@@ -9,6 +9,9 @@ export default function HomeLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="edit-profile" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="view-post" />
+        <Stack.Screen name="cart" />
       </Stack>
 
       <BottomNavBar />

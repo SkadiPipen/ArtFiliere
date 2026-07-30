@@ -1,7 +1,7 @@
-import { usePathname, useRouter } from 'expo-router';
-import { Clock, Disc, Home, MessageSquare, ShoppingCart, User } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { MessageSquare } from 'lucide-react-native';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ArtistCommission from '@/components/home/ArtistCommission';
@@ -13,20 +13,19 @@ import LatestSection from '@/components/home/LatestSection';
 
 export default function Dashboard() {
   const router = useRouter();
-  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const [activeCategory, setActiveCategory] = useState('All');
 
   const handleViewPost = (item: any, type: string) => {
     router.push({
-      pathname: '/(home)/profile',
+      pathname: '/(home)/view-post',
       params: { type, title: item.artist || item.title, price: item.price, image: item.image || item.img },
     });
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {/* HEADER */}
+      {/* Header */}
       <Header activeCategory={activeCategory} onSelectCategory={setActiveCategory} />
 
       <ScrollView
@@ -42,45 +41,13 @@ export default function Dashboard() {
         </View>
       </ScrollView>
 
-      {/* FLOATING ACTION BUTTON */}
+      {/* Floating chat button */}
       <TouchableOpacity
         style={[styles.msgFab, { bottom: 85 + insets.bottom }]}
         onPress={() => Alert.alert('Messages', 'Opening Chat...')}
       >
         <MessageSquare color="#fff" size={26} fill="#fff" />
       </TouchableOpacity>
-
-      {/* BOTTOM NAVBAR */}
-      <View style={[styles.navBar, { paddingBottom: Math.max(10, insets.bottom) }]}>
-        <View style={styles.navInner}>
-          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)')}>
-            <Home color="#fff" size={24} style={pathname === '/' ? styles.activeIcon : undefined} />
-            <Text style={styles.navText}>Home</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem} onPress={() => Alert.alert('Activities', 'Opening Activities...')}>
-            <Clock color="#fff" size={24} />
-            <Text style={styles.navText}>Activities</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.auctionContainer} onPress={() => Alert.alert('Auction', 'Opening Auctions...')}>
-            <View style={styles.auctionCircle}>
-              <Disc color="#fff" size={32} />
-            </View>
-            <Text style={[styles.navText, { marginTop: 20 }]}>Auction</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem} onPress={() => Alert.alert('Cart', 'Opening Cart...')}>
-            <ShoppingCart color="#fff" size={24} />
-            <Text style={styles.navText}>Cart</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/profile')}>
-            <User color="#fff" size={24} />
-            <Text style={styles.navText}>Me</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </SafeAreaView>
   );
 }

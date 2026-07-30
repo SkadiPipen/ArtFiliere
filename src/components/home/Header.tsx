@@ -20,7 +20,7 @@ export default function Header({ activeCategory, onSelectCategory }: HeaderProps
             <Search size={18} color="#555" />
           </View>
           <View style={styles.headerIcons}>
-            <TouchableOpacity onPress={() => Alert.alert('Cart', 'Opening Cart...')}>
+            <TouchableOpacity onPress={() => Alert.alert('Files', 'Opening Files...')}>
               <Folder color="#fff" size={22} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => Alert.alert('Notifications', 'No new alerts')}>

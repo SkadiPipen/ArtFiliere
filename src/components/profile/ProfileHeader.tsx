@@ -43,7 +43,7 @@ export default function ProfileHeader({ userRole, profileData, user, onLogout }:
               <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert('Notifications', 'No new alerts')}>
                 <Bell color="#fff" size={20} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={onLogout}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/(home)/settings')}>
                 <Settings color="#fff" size={20} />
               </TouchableOpacity>
             </View>

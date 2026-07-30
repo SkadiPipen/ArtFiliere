@@ -34,14 +34,14 @@ export default function BottomNavBar() {
         </TouchableOpacity>
 
         {/* CART */}
-        <TouchableOpacity style={styles.navItem} onPress={() => Alert.alert('Cart', 'Opening Cart...')}>
-          <ShoppingCart color="#fff" size={24} />
+        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/cart')}>
+          <ShoppingCart color="#fff" size={24} style={pathname.includes('/cart') ? styles.activeIcon : undefined}/>
           <Text style={styles.navText}>Cart</Text>
         </TouchableOpacity>
 
         {/* PROFILE / ME */}
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/profile')}>
-          <User color="#fff" size={24} style={pathname.includes('/profile') ? styles.activeIcon : undefined} />
+          <User color="#fff" size={24} style={pathname.includes('/profile') ? styles.activeIcon : undefined}/>
           <Text style={[styles.navText, pathname.includes('/profile') && styles.activeText]}>Me</Text>
         </TouchableOpacity>
       </View>
