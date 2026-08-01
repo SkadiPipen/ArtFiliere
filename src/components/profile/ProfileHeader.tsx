@@ -81,7 +81,7 @@ export default function ProfileHeader({ userRole, profileData, user, onLogout }:
             {userRole === 'Buyer' && (
               <TouchableOpacity
                 style={styles.registerArtistBtn}
-                onPress={() => Alert.alert('Artist Portal', 'Artist registration...')}
+                onPress={() => router.push('/artist-registration')}
               >
                 <Text style={styles.registerText}>Register as ARTIST</Text>
               </TouchableOpacity>
