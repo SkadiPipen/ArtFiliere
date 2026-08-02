@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { ArrowLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -107,31 +107,44 @@ export default function RegisterArtistScreen() {
 
     setSubmitting(true);
     try {
-      const artistregistrationData = {
-        userId: user.uid,
-        age,
+      const payload = {
+        firebase_uid: user.uid,
         hourly_rate: hourlyRate,
         tinNum: tinNum.join(''),
-        bio,
+        bio: bio,
         birCertificate: birDoc ? birDoc.name : '',
         swornDeclaration: swornDoc ? swornDoc.name : '',
         portfolio: portfolioList,
-        status: 'pending_approval',
-        submittedAt: new Date().toISOString(),
-      };
+      }
 
-      await setDoc(doc(db, 'artist_applications', user.uid), artistregistrationData);
-      await setDoc(doc(db, 'users', user.uid), { artistStatus: 'pending' }, { merge: true });
+      // Change url when testing sa expo go
+      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
-      setSubmitting(false);
-      setShowSuccessModal(true);
+      const response = await fetch(`${API_URL}/api/users/artist-applications/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSubmitting(false);
+        setShowSuccessModal(true);
+      } else {
+        console.error('Django Error:', result);
+        Alert.alert('Submission Failed', result.error || 'There was an error submitting your application. Please try again later.');
+        setSubmitting(false);
+      }
     } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to submit registration. Please try again.');
+      console.error('Network Error:', err);
+      Alert.alert('Connection Error', 'Unable to reach backend server. Please check your connection and try again.');
       setSubmitting(false);
     }
   };
-
+  
   if (loading) {
     return (
       <View style={styles.centered}>
