@@ -45,3 +45,9 @@ example
 # generated native folders
 /ios
 /android
+
+backend/*firebase*
+backend/**/firebase*
+backend/*serviceAccountKey*.json
+src/*firebase*
+src/**/firebase*
