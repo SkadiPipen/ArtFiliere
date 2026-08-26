@@ -1,4 +1,4 @@
-import { CartItem } from '@/components/cart/types';
+import { CartItem } from '@/module/cart/types';
 import React, { createContext, useContext, useState } from 'react';
 
 interface CartContextType {

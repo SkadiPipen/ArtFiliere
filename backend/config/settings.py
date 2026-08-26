@@ -29,7 +29,9 @@ SECRET_KEY = 'django-insecure-f+f3h+z_d24&qdb0yqgwh#)#=pviw0qu&0vib_*!xq*nqq3ihe
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# Local development and temporary Cloudflare tunnels used for sandbox webhooks.
+# Replace this with explicit production domains before deployment.
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".trycloudflare.com"]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
@@ -45,12 +47,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    'authentication',
-    'rest_framework',
-    'corsheaders',
-    'users',
+    
+    "rest_framework",
+    "authentication",
+    "users",
+    "artist_applications",
+    "artworks",
+    "artist_profiles",
+    "messaging",
+    "notifications",
+    "wallets",
 ]
+
+# Test and live credentials are loaded from backend/.env. Never expose the
+# secret key or webhook verification token to the Expo application.
+XENDIT_SECRET_KEY = os.getenv("XENDIT_SECRET_KEY", "")
+XENDIT_WEBHOOK_TOKEN = os.getenv("XENDIT_WEBHOOK_TOKEN", "")
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",

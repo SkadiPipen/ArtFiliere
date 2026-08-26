@@ -59,6 +59,9 @@ class User(models.Model):
     class Role(models.TextChoices):
         BUYER = "buyer", "Buyer"
         ARTIST = "artist", "Artist"
+        HR = "hr", "HR"
+        CREATIVE_MODERATOR = "creative_moderator", "Creative Moderator"
+        PLATFORM_ADMIN = "platform_admin", "Platform Admin"
 
     role = models.CharField(
         max_length=20,
@@ -87,33 +90,4 @@ class Address(models.Model):
     def __str__(self):
         return f"{self.street}, {self.barangay}, {self.city}"
 
-class ArtistApplication(models.Model):
-    class ApprovalStatus(models.TextChoices):
-        PENDING = "pending", "Pending HR Approval"
-        APPROVED = "approved", "Approved"
-        REJECTED = "rejected", "Rejected"
 
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="artist_application"
-    )
-    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2)
-    tin_number = models.CharField(max_length=20, blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
-
-    # Documents
-    bir_certificate = models.CharField(max_length=255)
-    sworn_declaration = models.CharField(max_length=255)
-    portfolio = models.JSONField(default=list)
-
-    status = models.CharField(
-        max_length=20,
-        choices=ApprovalStatus.choices,
-        default=ApprovalStatus.PENDING
-    )
-    submitted_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Artist Application for {self.user.email} Status: ({self.status})"

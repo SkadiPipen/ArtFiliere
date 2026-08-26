@@ -1,0 +1,202 @@
+warning: in the working copy of 'backend/authentication/views.py', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/backend/authentication/views.py b/backend/authentication/views.py[m
+[1mindex 70c9ba3..680fb96 100644[m
+[1m--- a/backend/authentication/views.py[m
+[1m+++ b/backend/authentication/views.py[m
+[36m@@ -1,170 +1,34 @@[m
+[31m-from django.db import transaction[m
+[31m-from rest_framework.decorators import api_view, permission_classes[m
+[31m-from rest_framework.permissions import AllowAny, IsAuthenticated[m
+[31m-from rest_framework.response import Response[m
+[32m+[m[32mfrom rest_framework.views import APIView[m
+ [m
+[31m-from users.models import Address, User[m
+[32m+[m[32mfrom users.models import User[m
+ from .services import verify_token[m
+ [m
+ [m
+[31m-@api_view(["POST"])[m
+[31m-@permission_classes([AllowAny])[m
+[31m-def login(request):[m
+[31m-    header = request.headers.get("Authorization")[m
+[32m+[m[32mclass AuthenticatedAPIView(APIView):[m
+[32m+[m[32m    """[m
+[32m+[m[32m    Base view for any endpoint that needs to resolve the requesting User[m
+[32m+[m[32m    from a Firebase Bearer token. Subclass this instead of APIView directly,[m
+[32m+[m[32m    then call self.get_request_user(request) inside get/post/patch/etc.[m
+ [m
+[31m-    if not header:[m
+[31m-        return Response({"error": "No Token"}, status=401)[m
+[32m+[m[32m    Caches the resolved user on the request object so permission classes[m
+[32m+[m[32m    (see authentication/permissions.py) and the view method itself don't[m
+[32m+[m[32m    verify the same token twice per request.[m
+[32m+[m[32m    """[m
+ [m
+[31m-    try:[m
+[31m-        token = header.split(" ")[1][m
+[31m-        decoded = verify_token(token)[m
+[31m-    except Exception as e:[m
+[31m-        return Response({"error": "Invalid token"}, status=401)[m
+[32m+[m[32m    def get_request_user(self, request):[m
+[32m+[m[32m        if hasattr(request, "artfiliere_user"):[m
+[32m+[m[32m            return request.artfiliere_user[m
+ [m
+[31m-    firebase_uid = decoded["uid"][m
+[31m-    email = decoded["email"][m
+[32m+[m[32m        header = request.headers.get("Authorization", "")[m
+[32m+[m[32m        if not header.startswith("Bearer "):[m
+[32m+[m[32m            request.artfiliere_user = None[m
+[32m+[m[32m            return None[m
+ [m
+[31m-    user, created = User.objects.get_or_create([m
+[31m-        firebase_uid=firebase_uid,[m
+[31m-        defaults={"email": email}[m
+[31m-    )[m
+[32m+[m[32m        try:[m
+[32m+[m[32m            decoded = verify_token(header.split(" ", 1)[1])[m
+[32m+[m[32m            user = User.objects.get(firebase_uid=decoded["uid"])[m
+[32m+[m[32m        except Exception:[m
+[32m+[m[32m            user = None[m
+ [m
+[31m-    return Response({[m
+[31m-        "id": user.id,[m
+[31m-        "firebase_uid": user.firebase_uid,[m
+[31m-        "email": user.email,[m
+[31m-        "username": user.username,[m
+[31m-        "first_name": user.first_name,[m
+[31m-        "last_name": user.last_name,[m
+[31m-        "new_user": created,[m
+[31m-    })[m
+[31m-[m
+[31m-[m
+[31m-@api_view(["POST"])[m
+[31m-@permission_classes([AllowAny])[m
+[31m-def register(request):[m
+[31m-    header = request.headers.get("Authorization")[m
+[31m-[m
+[31m-    if not header:[m
+[31m-        return Response({"error": "No token provided"}, status=401)[m
+[31m-[m
+[31m-    try:[m
+[31m-        token = header.split(" ")[1][m
+[31m-        decoded = verify_token(token)[m
+[31m-    except Exception:[m
+[31m-        return Response({"error": "Invalid or expired token"}, status=401)[m
+[31m-[m
+[31m-    firebase_uid = decoded["uid"][m
+[31m-    email = decoded.get("email", "")[m
+[31m-[m
+[31m-    data = request.data[m
+[31m-[m
+[31m-    username = data.get("username")[m
+[31m-    first_name = data.get("first_name") or data.get("firstName")[m
+[31m-    last_name = data.get("last_name") or data.get("lastName")[m
+[31m-    date_of_birth = data.get("date_of_birth") or data.get("dateOfBirth")[m
+[31m-    contact_number = data.get("contact_number") or data.get("contactNumber")[m
+[31m-[m
+[31m-    if not all([username, first_name, last_name, date_of_birth, contact_number]):[m
+[31m-        return Response([m
+[31m-            {"error": "Please complete all required profile fields."},[m
+[31m-            status=400[m
+[31m-        )[m
+[31m-[m
+[31m-    # Address Validation[m
+[31m-    address_data = data.get("address") or {}[m
+[31m-    required_address_fields = ["region", "province", "city", "postal_code", "barangay", "street"][m
+[31m-    missing_address = [field for field in required_address_fields if not address_data.get(field)][m
+[31m-[m
+[31m-    if missing_address:[m
+[31m-        return Response([m
+[31m-            {"error": f"Missing required address fields: {', '.join(missing_address)}"},[m
+[31m-            status=400[m
+[31m-        )[m
+[31m-[m
+[31m-    # Uniqueness checks[m
+[31m-    if User.objects.filter(firebase_uid=firebase_uid).exists():[m
+[31m-        return Response({"error": "User already registered"}, status=409)[m
+[31m-[m
+[31m-    if User.objects.filter(username=username).exists():[m
+[31m-        return Response({"error": "Username already taken"}, status=409)[m
+[31m-[m
+[31m-    # Database Creation[m
+[31m-    with transaction.atomic():[m
+[31m-        user = User.objects.create([m
+[31m-            firebase_uid=firebase_uid,[m
+[31m-            email=email,[m
+[31m-            username=username,[m
+[31m-            first_name=first_name,[m
+[31m-            middle_name=data.get("middle_name", ""),[m
+[31m-            last_name=last_name,[m
+[31m-            date_of_birth=date_of_birth,[m
+[31m-            contact_number=contact_number,[m
+[31m-            wants_royalty=data.get("wants_royalty", getattr(User, "RoyaltyStatus", None) and User.RoyaltyStatus.NO or "NO"),[m
+[31m-        )[m
+[31m-[m
+[31m-        Address.objects.create([m
+[31m-            user=user,[m
+[31m-            region=address_data["region"],[m
+[31m-            province=address_data["province"],[m
+[31m-            city=address_data["city"],[m
+[31m-            postal_code=address_data["postal_code"],[m
+[31m-            barangay=address_data["barangay"],[m
+[31m-            street=address_data["street"],[m
+[31m-        )[m
+[31m-[m
+[31m-    return Response({[m
+[31m-        "id": user.id,[m
+[31m-        "firebase_uid": user.firebase_uid,[m
+[31m-        "email": user.email,[m
+[31m-        "username": user.username,[m
+[31m-        "first_name": user.first_name,[m
+[31m-        "last_name": user.last_name,[m
+[31m-        "new_user": True,[m
+[31m-    }, status=201)[m
+[31m-[m
+[31m-[m
+[31m-@api_view(['GET', 'PATCH'])[m
+[31m-@permission_classes([IsAuthenticated])[m
+[31m-def me(request):[m
+[31m-    user = request.user[m
+[31m-[m
+[31m-    if request.method == 'GET':[m
+[31m-        address = getattr(user, 'address', None)[m
+[31m-        return Response({[m
+[31m-            'id': user.id,[m
+[31m-            'username': user.username,[m
+[31m-            'email': user.email,[m
+[31m-            'first_name': user.first_name,[m
+[31m-            'last_name': user.last_name,[m
+[31m-            'contact_number': getattr(user, 'contact_number', ''),[m
+[31m-            'role': getattr(user, 'role', 'Buyer'),[m
+[31m-            'profile_image': getattr(user, 'profile_image', None),[m
+[31m-            'address': {[m
+[31m-                'street': address.street if address else ''[m
+[31m-            }[m
+[31m-        })[m
+[31m-[m
+[31m-    elif request.method == 'PATCH':[m
+[31m-        data = request.data[m
+[31m-        if 'first_name' in data or 'firstName' in data:[m
+[31m-            user.first_name = data.get('first_name') or data.get('firstName')[m
+[31m-        if 'last_name' in data or 'lastName' in data:[m
+[31m-            user.last_name = data.get('last_name') or data.get('lastName')[m
+[31m-        if 'username' in data:[m
+[31m-            user.username = data['username'][m
+[31m-        if 'contact_number' in data:[m
+[31m-            user.contact_number = data['contact_number'][m
+[31m-[m
+[31m-        user.save()[m
+[31m-[m
+[31m-        if 'street' in data and hasattr(user, 'address'):[m
+[31m-            user.address.street = data['street'][m
+[31m-            user.address.save()[m
+[31m-[m
+[31m-        return Response({[m
+[31m-            'message': 'Profile updated successfully',[m
+[31m-            'first_name': user.first_name,[m
+[31m-            'last_name': user.last_name,[m
+[31m-            'username': user.username,[m
+[31m-        })[m
+\ No newline at end of file[m
+[32m+[m[32m        request.artfiliere_user = user[m
+[32m+[m[32m        return user[m
