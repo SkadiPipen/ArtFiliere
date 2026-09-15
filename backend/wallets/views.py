@@ -16,8 +16,9 @@ from rest_framework.response import Response
 from authentication.views import AuthenticatedAPIView
 from authentication.permissions import IsPlatformAdmin
 from artworks.models import Artwork
-from users.models import User
-from .models import PaymentSession, WalletAccount, WalletLedgerEntry
+from users.models import ActivityLog, User
+from messaging.models import Agreement
+from .models import CancellationReturnRequest, PaymentSession, WalletAccount, WalletLedgerEntry
 
 PLATFORM_FEE_RATE = Decimal("0.10")
 
@@ -86,6 +87,85 @@ class ArtworkCheckoutView(AuthenticatedAPIView):
         return Response({"checkout_url": payload.get("payment_link_url"), "reference_id": session.reference_id}, status=status.HTTP_201_CREATED)
 
 
+class AgreementCheckoutView(AuthenticatedAPIView):
+    """Creates a checkout only after both parties have accepted the same agreement revision."""
+    def post(self, request, agreement_id):
+        buyer = self.get_request_user(request)
+        agreement = Agreement.objects.select_related("artwork", "artist", "buyer").filter(id=agreement_id).first()
+        if not agreement or agreement.buyer_id != buyer.id:
+            return Response({"error": "Agreement not found."}, status=404)
+        if agreement.status != Agreement.Status.ACCEPTED:
+            return Response({"error": "Both parties must accept the agreement before payment."}, status=409)
+        if not agreement.artwork_id:
+            return Response({"error": "An artwork must be attached to the agreement before payment."}, status=400)
+        existing = PaymentSession.objects.filter(agreement=agreement, status__in=[PaymentSession.Status.PENDING, PaymentSession.Status.PAID]).first()
+        if existing:
+            return Response({"error": "This agreement already has an active payment.", "reference_id": existing.reference_id}, status=409)
+        if not getattr(settings, "XENDIT_SECRET_KEY", ""):
+            return Response({"error": "Xendit sandbox is not configured yet."}, status=503)
+
+        gross = agreement.price
+        platform_fee = (gross * PLATFORM_FEE_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        session = PaymentSession.objects.create(
+            reference_id=f"agreement_{agreement.id}_{uuid.uuid4().hex[:16]}", buyer=buyer, artist=agreement.artist,
+            artwork=agreement.artwork, agreement=agreement, gross_amount=gross,
+            platform_fee=platform_fee, artist_amount=gross-platform_fee,
+        )
+        try:
+            payload = {
+                "reference_id": session.reference_id, "session_type": "PAY", "mode": "PAYMENT_LINK",
+                "amount": float(gross), "currency": "PHP", "country": "PH",
+                "description": f"ArtFiliere agreement payment: {agreement.artwork.title}",
+            }
+            for field in ("success_return_url", "cancel_return_url"):
+                if request.data.get(field):
+                    payload[field] = request.data[field]
+            response = requests.post("https://api.xendit.co/sessions", auth=(settings.XENDIT_SECRET_KEY, ""), timeout=20, json=payload)
+            result = response.json()
+            if not response.ok:
+                raise RuntimeError(result.get("message", "Xendit checkout could not be created."))
+        except (requests.RequestException, ValueError, RuntimeError) as error:
+            session.delete()
+            return Response({"error": str(error)}, status=502)
+        session.xendit_session_id = result.get("payment_session_id", "")
+        session.save(update_fields=["xendit_session_id"])
+        ActivityLog.objects.create(user=buyer, action="payment_started", description=f"Started payment for agreement #{agreement.id}.", reference_type="payment_session", reference_id=session.id)
+        return Response({"checkout_url": result.get("payment_link_url"), "reference_id": session.reference_id}, status=201)
+
+
+class ActivityHistoryView(AuthenticatedAPIView):
+    def get(self, request):
+        user = self.get_request_user(request)
+        logs = user.activity_logs.all()[:100]
+        return Response([{"id": log.id, "action": log.action, "description": log.description, "reference_type": log.reference_type, "reference_id": log.reference_id, "created_at": log.created_at.isoformat()} for log in logs])
+
+
+class CancellationReturnRequestView(AuthenticatedAPIView):
+    def get(self, request):
+        user = self.get_request_user(request)
+        rows = CancellationReturnRequest.objects.filter(requester=user).select_related("payment_session__artwork")
+        return Response([serialize_request(row) for row in rows])
+
+    def post(self, request, payment_id):
+        user = self.get_request_user(request)
+        payment = PaymentSession.objects.filter(id=payment_id).first()
+        if not payment or user.id not in {payment.buyer_id, payment.artist_id}:
+            return Response({"error": "Transaction not found."}, status=404)
+        request_type = request.data.get("request_type")
+        reason = (request.data.get("reason") or "").strip()
+        if request_type not in CancellationReturnRequest.RequestType.values or not reason:
+            return Response({"error": "A request type and reason are required."}, status=400)
+        row, created = CancellationReturnRequest.objects.get_or_create(payment_session=payment, requester=user, request_type=request_type, defaults={"reason": reason})
+        if not created:
+            return Response({"error": "You already submitted this request for the transaction."}, status=409)
+        ActivityLog.objects.create(user=user, action=f"{request_type}_requested", description=f"Requested {request_type} for transaction #{payment.id}.", reference_type="payment_session", reference_id=payment.id)
+        return Response(serialize_request(row), status=201)
+
+
+def serialize_request(row):
+    return {"id": row.id, "type": row.request_type, "reason": row.reason, "status": row.status, "admin_note": row.admin_note, "payment_id": row.payment_session_id, "artwork": row.payment_session.artwork.title, "created_at": row.created_at.isoformat()}
+
+
 class PlatformAdminWalletView(AuthenticatedAPIView):
     permission_classes = [IsPlatformAdmin]
 
@@ -134,6 +214,48 @@ class PlatformAdminWalletView(AuthenticatedAPIView):
         return Response({"message": f"Funds {action}d successfully."})
 
 
+class PlatformAdminRequestView(AuthenticatedAPIView):
+    permission_classes = [IsPlatformAdmin]
+
+    def get(self, request):
+        rows = CancellationReturnRequest.objects.select_related("requester", "payment_session__artwork").all()[:100]
+        return Response([{**serialize_request(row), "requester": row.requester.username} for row in rows])
+
+    def patch(self, request, request_id):
+        decision = request.data.get("status")
+        if decision not in {CancellationReturnRequest.Status.APPROVED, CancellationReturnRequest.Status.DECLINED}:
+            return Response({"error": "status must be approved or declined."}, status=400)
+        row = CancellationReturnRequest.objects.filter(id=request_id, status=CancellationReturnRequest.Status.PENDING).first()
+        if not row:
+            return Response({"error": "Pending request not found."}, status=404)
+        row.status, row.admin_note, row.reviewed_by, row.reviewed_at = decision, (request.data.get("admin_note") or "").strip(), self.get_request_user(request), timezone.now()
+        row.save(update_fields=["status", "admin_note", "reviewed_by", "reviewed_at"])
+        ActivityLog.objects.create(user=row.requester, action=f"{row.request_type}_{decision}", description=f"Your {row.request_type} request for transaction #{row.payment_session_id} was {decision}.", reference_type="payment_session", reference_id=row.payment_session_id)
+        return Response(serialize_request(row))
+
+
+class PlatformAdminUserView(AuthenticatedAPIView):
+    permission_classes = [IsPlatformAdmin]
+
+    def get(self, request):
+        return Response([{"id": user.id, "email": user.email, "username": user.username, "role": user.role, "wallet": str(user.wallet.available_balance) if hasattr(user, "wallet") else "0.00"} for user in User.objects.all().order_by("email")])
+
+    def patch(self, request, user_id):
+        admin = self.get_request_user(request)
+        role = request.data.get("role")
+        if role not in User.Role.values:
+            return Response({"error": "Invalid role."}, status=400)
+        target = User.objects.filter(id=user_id).first()
+        if not target:
+            return Response({"error": "User not found."}, status=404)
+        if target.id == admin.id and role != User.Role.PLATFORM_ADMIN:
+            return Response({"error": "You cannot remove your own platform-admin access."}, status=409)
+        target.role = role
+        target.save(update_fields=["role"])
+        ActivityLog.objects.create(user=target, action="role_changed", description=f"Your account role was changed to {target.get_role_display()}.", reference_type="user", reference_id=target.id)
+        return Response({"id": target.id, "role": target.role})
+
+
 @csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -166,4 +288,6 @@ def xendit_payment_session_webhook(request):
         payment.xendit_payment_id = data.get("payment_id", "")
         payment.paid_at = timezone.now()
         payment.save(update_fields=["status", "xendit_payment_id", "paid_at"])
+        ActivityLog.objects.create(user=payment.buyer, action="payment_completed", description=f"Payment for {payment.artwork.title} was received by ArtFiliere.", reference_type="payment_session", reference_id=payment.id)
+        ActivityLog.objects.create(user=payment.artist, action="sale_paid", description=f"Payment for {payment.artwork.title} is held pending completion.", reference_type="payment_session", reference_id=payment.id)
     return Response({"received": True})

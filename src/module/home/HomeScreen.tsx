@@ -106,7 +106,7 @@ export default function Dashboard() {
       {/* Floating chat button */}
       <TouchableOpacity
         style={[styles.msgFab, { bottom: 85 + insets.bottom }]}
-        onPress={() => Alert.alert('Messages', 'Opening Chat...')}
+        onPress={() => router.push('/messages-inbox')}
       >
         <MessageSquare color="#fff" size={26} fill="#fff" />
       </TouchableOpacity>

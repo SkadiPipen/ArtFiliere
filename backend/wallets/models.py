@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 
 from artworks.models import Artwork
 from users.models import User
@@ -25,6 +26,7 @@ class PaymentSession(models.Model):
     buyer = models.ForeignKey(User, on_delete=models.PROTECT, related_name="purchases")
     artist = models.ForeignKey(User, on_delete=models.PROTECT, related_name="sales")
     artwork = models.ForeignKey(Artwork, on_delete=models.PROTECT, related_name="payment_sessions")
+    agreement = models.ForeignKey("messaging.Agreement", on_delete=models.PROTECT, related_name="payment_sessions", null=True, blank=True)
     gross_amount = models.DecimalField(max_digits=12, decimal_places=2)
     platform_fee = models.DecimalField(max_digits=12, decimal_places=2)
     artist_amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -33,6 +35,31 @@ class PaymentSession(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CancellationReturnRequest(models.Model):
+    class RequestType(models.TextChoices):
+        CANCELLATION = "cancellation", "Cancellation"
+        RETURN = "return", "Return"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        APPROVED = "approved", "Approved"
+        DECLINED = "declined", "Declined"
+
+    payment_session = models.ForeignKey(PaymentSession, on_delete=models.PROTECT, related_name="cancellation_requests")
+    requester = models.ForeignKey(User, on_delete=models.PROTECT, related_name="cancellation_requests")
+    request_type = models.CharField(max_length=20, choices=RequestType.choices)
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    admin_note = models.TextField(blank=True, default="")
+    reviewed_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name="reviewed_cancellation_requests")
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [models.UniqueConstraint(fields=["payment_session", "requester", "request_type"], condition=Q(status="pending"), name="unique_open_request_type")]
 
 
 class WalletLedgerEntry(models.Model):

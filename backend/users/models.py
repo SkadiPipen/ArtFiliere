@@ -91,3 +91,16 @@ class Address(models.Model):
         return f"{self.street}, {self.barangay}, {self.city}"
 
 
+class ActivityLog(models.Model):
+    """A user-visible audit trail.  Records are created by the server only."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="activity_logs")
+    action = models.CharField(max_length=80)
+    description = models.CharField(max_length=255)
+    reference_type = models.CharField(max_length=50, blank=True, default="")
+    reference_id = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+

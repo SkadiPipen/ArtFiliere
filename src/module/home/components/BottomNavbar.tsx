@@ -21,13 +21,10 @@ export default function BottomNavBar() {
     const loadRole = async () => {
       if (!auth.currentUser) return;
       try {
-        const token = await auth.currentUser.getIdToken();
-        const response = await fetch(`${API_URL}/auth/me/`, { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch(`${API_URL}/auth/me/`, { headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` } });
         const profile = response.ok ? await response.json() : null;
         setIsArtist(profile?.role === 'artist');
-      } catch {
-        setIsArtist(false);
-      }
+      } catch { setIsArtist(false); }
     };
     loadRole();
   }, []);
@@ -47,7 +44,7 @@ export default function BottomNavBar() {
           <Text style={styles.navText}>Activities</Text>
         </TouchableOpacity>
 
-        {/* ARTISTS POST FROM THE DASHBOARD; OTHER USERS KEEP THE AUCTION ACTION. */}
+        {/* Artists post from the dashboard; buyers retain the auction action. */}
         <TouchableOpacity style={styles.auctionContainer} onPress={() => isArtist ? router.push('/artist-post') : Alert.alert('Auction', 'Opening Auctions...')}>
           <View style={styles.auctionCircle}>
             {isArtist ? <Plus color="#fff" size={34} /> : <Disc color="#fff" size={32} />}
