@@ -16,4 +16,8 @@ urlpatterns = [
     path("admin/users/", PlatformAdminUserView.as_view(), name="platform_admin_users"),
     path("admin/users/<int:user_id>/", PlatformAdminUserView.as_view(), name="platform_admin_user"),
     path("webhooks/xendit/payment-session/", xendit_payment_session_webhook, name="xendit_payment_session_webhook"),
+
+    #Added aliases
+    path("activities/", ActivityHistoryView.as_view(), name="activities_history_slash"),
+    path("activites", ActivityHistoryView.as_view(), name="activity_history"),
 ]

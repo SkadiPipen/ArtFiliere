@@ -12,4 +12,8 @@ urlpatterns = [
     path("api/users/", include("messaging.urls")),
     path("api/users/", include("notifications.urls")),
     path("api/", include("wallets.urls")),
+    path("api/delivery/", include("delivery.urls")),
+
+    # added fallback
+    path("api/wallets/", include("wallets.urls")),
 ]

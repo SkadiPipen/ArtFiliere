@@ -1,18 +1,18 @@
+import { COLORS } from '@/constants/colors';
+import API_URL from '@/services/api';
+import { loginUser } from '@/services/auth';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-  View,
-  Text,
-  Pressable,
-  TextInput,
   Image,
-  useWindowDimensions,
+  Pressable,
   ScrollView,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { loginUser } from '@/services/auth';
-import API_URL from '@/services/api';
-import { COLORS } from '@/constants/colors';
 
 export default function HomeScreen() {
   const [email, setEmail] = useState('');
@@ -42,7 +42,7 @@ export default function HomeScreen() {
 
       alert('Login Successfully!');
 
-      router.replace(data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : '/(home)');
+      router.replace(data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : (data.role?.toLowerCase() === 'rider') ? '/rider/(tabs)': '/(home)');
     } catch (error: any) {
       alert(error.message);
     }
@@ -171,7 +171,6 @@ export default function HomeScreen() {
               Forgot password?
             </Text>
           </Pressable>
-
           <Pressable onPress={() => router.push('/sign-up')}>
             <Text
               style={{
@@ -182,6 +181,27 @@ export default function HomeScreen() {
             >
               Don't have an account?{' '}
               <Text style={{ color: COLORS.red, fontWeight: '700' }}>Sign Up</Text>
+            </Text>
+          </Pressable>
+          <Pressable 
+            onPress={() => router.push('/rider/login' as any)}
+            style={{
+              marginTop: 24,
+              paddingVertical: 12,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: COLORS.red,
+              borderStyle: 'dashed',
+              alignItems: 'center',
+            }}>
+            <Text
+              style={{
+                color: COLORS.red,
+                fontSize: 13,
+                textAlign: 'center',
+              }}
+            >
+              Are you Courier / Driver? Log In Here
             </Text>
           </Pressable>
         </ScrollView>

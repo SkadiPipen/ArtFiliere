@@ -1,6 +1,7 @@
 import hmac
 import os
 import uuid
+import math
 from decimal import Decimal, ROUND_HALF_UP
 
 import requests
@@ -20,6 +21,8 @@ from users.models import ActivityLog, User
 from messaging.models import Agreement
 from .models import CancellationReturnRequest, PaymentSession, WalletAccount, WalletLedgerEntry
 
+from delivery.models import Order as DeliveryOrder
+from notifications.models import UserNotification
 PLATFORM_FEE_RATE = Decimal("0.10")
 
 
@@ -42,6 +45,141 @@ class WalletView(AuthenticatedAPIView):
             } for entry in entries],
         })
 
+# haversine formula that calculate distance/eta
+def calculate_distance_and_eta(lat1, lon1, lat2, lon2):
+    """Calculates road distance and estimated motorbike delivery time using Haversine formula."""
+    try:
+        lat1, lon1, lat2, lon2 = map(float, [lat1, lon1, lat2, lon2])
+        # Earth radius in km
+        r = 6371.0
+        d_lat = math.radians(lat2 - lat1)
+        d_lon = math.radians(lon2 - lon1)
+        a = (
+            math.sin(d_lat / 2) ** 2
+            + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon / 2) ** 2
+        )
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        km = r * c
+
+        # Road detour factor ~ 1.3x straight-line distance
+        road_km = round(km * 1.3, 1)
+        # Assuming average inner-city motorbike delivery speed of 25 km/h + 10 min pickup buffer
+        est_minutes = int(round((road_km / 25.0) * 60)) + 10
+
+        return f"{road_km} km", f"{est_minutes} mins"
+    except Exception:
+        return "TBD", "Calculating..."
+    
+# Added helper
+def create_delivery_and_notify(payment):
+    print(">>> [DEBUG] create_delivery_and_notify triggered for payment:", payment.id)
+    artwork = payment.artwork
+    print(">>> [DEBUG] Artwork:", artwork)
+
+    raw_art_type = (
+        getattr(artwork, "artwork_type", None)
+        or getattr(artwork, "category", None)
+        or getattr(artwork, "type", "")
+    )
+    art_type_str = str(raw_art_type).upper()
+    print(">>> [DEBUG] Resolved art_type:", repr(art_type_str))
+
+    physical_keywords = ["PHYSICAL", "PAINTING", "SCULPTURE", "TRADITIONAL", "CRAFT", "CANVAS"]
+    is_physical = any(kw in art_type_str for kw in physical_keywords)
+    print(">>> [DEBUG] Evaluated is_physical:", is_physical)
+
+    buyer = payment.buyer
+    artist = payment.artist
+
+    if is_physical:
+        buyer_profile = getattr(buyer, "profile", None)
+        buyer_address = (
+            getattr(buyer, "delivery_address", None)
+            or getattr(buyer_profile, "delivery_address", None)
+            or getattr(buyer_profile, "address", None)
+            or getattr(buyer, "address", None)
+            or "Cebu City, Philippines"
+        )
+        buyer_lat = float(getattr(buyer_profile, "latitude", None) or getattr(buyer, "latitude", 10.3157))
+        buyer_lng = float(getattr(buyer_profile, "longitude", None) or getattr(buyer, "longitude", 123.8854))
+
+        artist_profile = getattr(artist, "artist_profile", None) or getattr(artist, "profile", None)
+        artist_lat = float(getattr(artist_profile, "latitude", None) or getattr(artist, "latitude", 10.3110))
+        artist_lng = float(getattr(artist_profile, "longitude", None) or getattr(artist, "longitude", 123.8910))
+
+        dynamic_distance, dynamic_eta = calculate_distance_and_eta(
+            artist_lat, artist_lng, buyer_lat, buyer_lng
+        )
+
+        payment_method = (
+            getattr(payment, "payment_method", None)
+            or getattr(payment, "payment_channel", None)
+            or getattr(payment, "channel_code", None)
+            or "XENDIT"
+        )
+
+        if hasattr(payment, "items"):
+            items_count = payment.items.count()
+        elif hasattr(payment, "order_items"):
+            items_count = payment.order_items.count()
+        else:
+            items_count = 1
+
+        raw_pm = str(payment_method).upper()
+        if "PAYPAL" in raw_pm:
+            safe_payment = "Paypal"
+        elif "GCASH" in raw_pm:
+            safe_payment = "Gcash"
+        elif "MAYA" in raw_pm:
+            safe_payment = "Maya"
+        else:
+            safe_payment = str(payment_method)[:10]
+
+        safe_distance = str(dynamic_distance)[:10]
+        safe_eta = str(dynamic_eta)[:10]
+
+        delivery_order, _ = DeliveryOrder.objects.get_or_create(
+            id=payment.id,
+            defaults={
+                "buyerId": buyer.id,
+                "address": buyer_address,
+                "paymentMethod": safe_payment,
+                "distance": safe_distance,
+                "estimatedTime": safe_eta,
+                "items_count": items_count,
+                "status": "PENDING",
+            },
+        )
+        print(f">>> [DEBUG] Successfully created DeliveryOrder #{delivery_order.id}: {dynamic_distance}, ETA: {dynamic_eta}")
+
+        try:
+            UserNotification.objects.create(
+                user=artist,
+                artwork=artwork,
+                title="New Sale - Prepare for Pickup",
+                message=f"Order for '{artwork.title}' is paid. Track: /delivery-details?id={delivery_order.id}",
+            )
+            UserNotification.objects.create(
+                user=buyer,
+                artwork=artwork,
+                title="Order Confirmed - Dispatching Rider",
+                message=f"Payment received for '{artwork.title}'. Track delivery: /delivery-details?id={delivery_order.id}",
+            )
+        except Exception as e:
+            print(">>> [DEBUG] UserNotification error (ignored):", e)
+
+        try:
+            ActivityLog.objects.create(
+                user=buyer,
+                action="delivery_dispatched",
+                description=f"Delivery order #{delivery_order.id} generated for {artwork.title}.",
+                reference_type="delivery_order",
+                reference_id=delivery_order.id,
+            )
+        except Exception as e:
+            print(">>> [DEBUG] ActivityLog error (ignored):", e)
+
+        return delivery_order
 
 class ArtworkCheckoutView(AuthenticatedAPIView):
     def post(self, request, artwork_id):
@@ -84,6 +222,11 @@ class ArtworkCheckoutView(AuthenticatedAPIView):
             return Response({"error": str(error)}, status=status.HTTP_502_BAD_GATEWAY)
         session.xendit_session_id = payload.get("payment_session_id", "")
         session.save(update_fields=["xendit_session_id"])
+
+        #Call helper
+        if settings.DEBUG:
+            create_delivery_and_notify(session)
+
         return Response({"checkout_url": payload.get("payment_link_url"), "reference_id": session.reference_id}, status=status.HTTP_201_CREATED)
 
 
@@ -290,4 +433,8 @@ def xendit_payment_session_webhook(request):
         payment.save(update_fields=["status", "xendit_payment_id", "paid_at"])
         ActivityLog.objects.create(user=payment.buyer, action="payment_completed", description=f"Payment for {payment.artwork.title} was received by ArtFiliere.", reference_type="payment_session", reference_id=payment.id)
         ActivityLog.objects.create(user=payment.artist, action="sale_paid", description=f"Payment for {payment.artwork.title} is held pending completion.", reference_type="payment_session", reference_id=payment.id)
+
+        # delivery trigger
+        create_delivery_and_notify(payment)
+
     return Response({"received": True})

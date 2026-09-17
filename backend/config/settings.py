@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     
     "rest_framework",
     "authentication",
@@ -57,6 +58,7 @@ INSTALLED_APPS = [
     "messaging",
     "notifications",
     "wallets",
+    "delivery",
 ]
 
 # Test and live credentials are loaded from backend/.env. Never expose the
