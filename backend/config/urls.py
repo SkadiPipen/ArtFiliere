@@ -2,6 +2,10 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
+    path("api/delivery/", include("delivery.urls")),
+    path("api/wallets/", include("wallets.urls")),
+    path("api/", include("fulfillment.urls")),
+    path("api/", include("cart.urls")),
     path("admin/", admin.site.urls),
     path("auth/", include("authentication.urls")),
     # These five all share the "api/users/" prefix your frontend already
@@ -12,8 +16,4 @@ urlpatterns = [
     path("api/users/", include("messaging.urls")),
     path("api/users/", include("notifications.urls")),
     path("api/", include("wallets.urls")),
-    path("api/delivery/", include("delivery.urls")),
-
-    # added fallback
-    path("api/wallets/", include("wallets.urls")),
 ]

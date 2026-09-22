@@ -18,7 +18,7 @@ export async function getLiveETA(
         return null;
     }
     try {
-        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${originLat},${originLng}$destinations=${destLat},${destLng}&mode=driving&departure_time=now&key=${GOOGLE_API_KEY}`;
+        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${originLat},${originLng}&destinations=${destLat},${destLng}&mode=driving&departure_time=now&key=${GOOGLE_API_KEY}`;
     
         const response = await fetch(url);
         const data = await response.json();

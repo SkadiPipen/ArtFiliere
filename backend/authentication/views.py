@@ -111,6 +111,7 @@ def register(request):
             )
 
             Address.objects.create(
+                is_default=True,
                 user=user,
                 region=address_data["region"],
                 province=address_data["province"],
@@ -159,13 +160,19 @@ def me(request):
             'contact_number': getattr(user, 'contact_number', ''),
             'role': getattr(user, 'role', 'Buyer'),
             'profile_image': getattr(user, 'profile_image', None),
-            'address': {
-                'street': address.street if address else ''
-            }
+            'address': {field: getattr(address, field, '') if address else '' for field in ('street', 'barangay', 'city', 'province', 'region', 'postal_code')}
         })
 
     elif request.method == 'PATCH':
         data = request.data
+        address_fields = ('street', 'barangay', 'city', 'province', 'region', 'postal_code')
+        address_updates = {field: data[field] for field in address_fields if field in data}
+        for field, value in address_updates.items():
+            limit = Address._meta.get_field(field).max_length
+            if not isinstance(value, str) or not value.strip() or len(value) > limit:
+                return Response({'error': f'Enter a valid {field.replace("_", " ")} (up to {limit} characters).'}, status=400)
+        if address_updates and not user.address and len(address_updates) != len(address_fields):
+            return Response({'error': 'Enter all address fields.'}, status=400)
         if 'first_name' in data or 'firstName' in data:
             user.first_name = data.get('first_name') or data.get('firstName')
         if 'last_name' in data or 'lastName' in data:
@@ -177,9 +184,13 @@ def me(request):
 
         user.save()
 
-        if 'street' in data and hasattr(user, 'address'):
-            user.address.street = data['street']
-            user.address.save()
+        if address_updates:
+            with transaction.atomic():
+                User.objects.select_for_update().get(pk=user.pk)
+                address = user.address or Address(user=user, is_default=True)
+                for field, value in address_updates.items():
+                    setattr(address, field, value.strip())
+                address.save()
 
         return Response({
             'message': 'Profile updated successfully',
@@ -217,3 +228,14 @@ class AuthenticatedAPIView(APIView):
 
         request.artfiliere_user = user
         return user
+
+
+class ChatUsersView(AuthenticatedAPIView):
+    """Public chat labels for authenticated application users."""
+
+    def get(self, request):
+        if not self.get_request_user(request):
+            return Response({"error": "Authentication is required."}, status=401)
+        return Response(list(User.objects.order_by("username").values(
+            "firebase_uid", "username", "role"
+        )))

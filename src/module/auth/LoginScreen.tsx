@@ -42,7 +42,7 @@ export default function HomeScreen() {
 
       alert('Login Successfully!');
 
-      router.replace(data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : (data.role?.toLowerCase() === 'rider') ? '/rider/(tabs)': '/(home)');
+      router.replace(data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : (['rider', 'driver'].includes(data.role?.toLowerCase())) ? '/rider/(tabs)' as any : '/(home)');
     } catch (error: any) {
       alert(error.message);
     }
@@ -72,7 +72,7 @@ export default function HomeScreen() {
               style={{ position: 'absolute', top: 24, left: 24 }}
             >
               <Text style={{ color: COLORS.red, fontWeight: '600', fontSize: 14 }}>
-                â€¹ Back to Home
+                ‹ Back to Home
               </Text>
             </Pressable>
 

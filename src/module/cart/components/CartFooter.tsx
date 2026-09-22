@@ -7,13 +7,16 @@ interface Props {
   onToggleSelectAll: () => void;
   onCheckout: () => void;
   checkingOut: boolean;
+  agreementRequired: boolean;
+  signaturesRequired: boolean;
+  onSign: () => void;
 }
 
 export default function CartFooter({
   isAllSelected,
   selectedCount,
   totalPrice,
-  onToggleSelectAll, onCheckout, checkingOut,
+  onToggleSelectAll, onCheckout, checkingOut, agreementRequired, signaturesRequired, onSign,
 }: Props) {
   return (
     <View style={styles.bottomStickyFooter}>
@@ -32,13 +35,16 @@ export default function CartFooter({
         </Text>
       </View>
 
+      <View style={{ alignItems: 'center', gap: 4 }}>
+      {signaturesRequired && !agreementRequired && selectedCount === 1 && <TouchableOpacity onPress={onSign}><Text style={{ color: '#C15656', fontWeight: '600' }}>Sign / view signatures</Text></TouchableOpacity>}
       <TouchableOpacity
-        style={[styles.solidCheckoutBtn, selectedCount === 0 && { backgroundColor: '#A0A0A0' }]}
-        disabled={selectedCount === 0 || checkingOut}
+        style={[styles.solidCheckoutBtn, (selectedCount !== 1 || agreementRequired || signaturesRequired) && { backgroundColor: '#A0A0A0' }]}
+        disabled={selectedCount !== 1 || checkingOut || agreementRequired || signaturesRequired}
         onPress={onCheckout}
       >
-        <Text style={styles.checkoutBtnText}>{checkingOut ? 'Opening checkout...' : `Checkout (${selectedCount})`}</Text>
+        <Text style={styles.checkoutBtnText}>{checkingOut ? 'Opening checkout...' : agreementRequired ? 'Agreement required' : signaturesRequired ? 'Both signatures required' : `Checkout (${selectedCount})`}</Text>
       </TouchableOpacity>
+      </View>
     </View>
   );
 }

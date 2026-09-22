@@ -16,6 +16,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "category",
+            "art_type",
             "price",
             "image_data",
             "status",

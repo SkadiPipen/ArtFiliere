@@ -1,3 +1,4 @@
+from decimal import Decimal, InvalidOperation
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -62,6 +63,20 @@ class ArtworkView(AuthenticatedAPIView):
             )
 
         try:
+            hours = Decimal(str(request.data.get("hours", "")))
+            rate = Decimal(str(request.data.get("hourly_rate", "")))
+            materials = Decimal(str(request.data.get("material_cost", "0")))
+            art_type = request.data.get("art_type")
+            if art_type not in ("digital", "physical") or not all(x.is_finite() for x in (hours, rate, materials)) or hours <= 0 or rate <= 0 or materials < 0 or hours > 999999 or rate > 99999999 or materials > 99999999:
+                raise ValueError()
+            if any(value != value.quantize(Decimal("0.01")) for value in (hours, rate, materials)):
+                raise ValueError()
+            if art_type == "digital": materials = Decimal("0")
+            cost = hours * rate + materials
+            if cost * Decimal("1.1") > Decimal("99999999.99"): raise ValueError()
+        except (InvalidOperation, ValueError):
+            return Response({"error": "Enter valid hours, hourly rate, material costs, and artwork type."}, status=400)
+        try:
             sha256_hash = compute_sha256(request.data["image_data"])
             perceptual_hash = compute_perceptual_hash(request.data["image_data"])
             difference_hash = compute_difference_hash(request.data["image_data"])
@@ -95,7 +110,8 @@ class ArtworkView(AuthenticatedAPIView):
                 title=request.data["title"].strip(),
                 description=request.data["description"].strip(),
                 category=request.data["category"].strip(),
-                price=request.data["price"],
+                price=(cost * Decimal("1.1")).quantize(Decimal("0.01")),
+                hours=hours, hourly_rate=rate, material_cost=materials, art_type=art_type,
                 image_data=request.data["image_data"],
                 sha256_hash=sha256_hash,
                 perceptual_hash=perceptual_hash,

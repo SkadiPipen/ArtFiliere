@@ -26,7 +26,8 @@ export default function ViewPostPage() {
   const [isOwnArtwork, setIsOwnArtwork] = useState(false);
   const [checkingOwner, setCheckingOwner] = useState(true);
 
-  const { type, title, price, image, medium, artist, artistId, artworkId } = useLocalSearchParams();
+  const { type, artType, title, price, image, medium, artist, artistId, artworkId } = useLocalSearchParams();
+  const isDigital = String(artType || type || '').trim().toLowerCase() === 'digital';
 
   useEffect(() => {
     const checkOwnership = async () => {
@@ -46,7 +47,7 @@ export default function ViewPostPage() {
     checkOwnership().catch(() => setCheckingOwner(false));
   }, [artistId]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (isOwnArtwork) {
       Alert.alert('Your artwork', 'You cannot add your own artwork to the cart.');
       return;
@@ -72,7 +73,8 @@ export default function ViewPostPage() {
     const itemImage = (image as string) || 'No Image';
     const itemArtist = (artist as string) || 'Artist';
 
-    addToCart({
+    try {
+    await addToCart({
       artworkId: String(artworkId || ''),
       title: itemTitle,
       price: itemPrice,
@@ -85,6 +87,10 @@ export default function ViewPostPage() {
       alert(`${itemTitle} has been added to your cart!`);
     } else {
       Alert.alert('Added to Cart', `${itemTitle} has been added to your cart!`);
+    }
+    } catch (error: any) {
+      if (Platform.OS === 'web') alert(error.message);
+      else Alert.alert('Cart', error.message);
     }
   };
 
@@ -117,7 +123,7 @@ export default function ViewPostPage() {
             <View style={styles.detailsSection}>
               <Text style={styles.detailsHeader}>About the Art</Text>
               <Text style={styles.detailsText}>
-                Medium/Material: {(medium as string) || 'Oil on Canvas'}{'\n'}
+                Medium/Material: {isDigital ? 'Digital' : (medium as string) || 'Oil on Canvas'}{'\n'}
                 License: Standard Personal License{'\n'}
                 Dimensions: 2000 x 3000 px
               </Text>

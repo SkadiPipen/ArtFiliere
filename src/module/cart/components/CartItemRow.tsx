@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, Handshake } from 'lucide-react-native';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CartItem } from '@/module/cart/types';
 
@@ -8,7 +8,10 @@ interface Props {
   isItemSelected: boolean;
   onToggleSelect: (id: string) => void;
   onToggleArtistSelect: (artistName: string) => void;
-  onQuantityChange: (id: string, currentQty: number, change: number) => void;
+  onNegotiate: (id: string) => void;
+  contractStatus: string;
+  isAgreed: boolean;
+  isOngoing: boolean;
   onRemove: (id: string) => void;
 }
 
@@ -18,8 +21,7 @@ export default function CartItemRow({
   isItemSelected,
   onToggleSelect,
   onToggleArtistSelect,
-  onQuantityChange,
-  onRemove,
+  onRemove, onNegotiate, contractStatus, isAgreed, isOngoing,
 }: Props) {
   return (
     <View>
@@ -55,18 +57,7 @@ export default function CartItemRow({
           <Text style={styles.priceText}>₱{item.price}</Text>
         </View>
 
-        {/* Quantity picker */}
-        <View style={styles.quantityPickerContainer}>
-          <TouchableOpacity style={styles.squareQtyBtn} onPress={() => onQuantityChange(item.id, item.quantity, -1)}>
-            <Text style={styles.squareQtyBtnText}>˂</Text>
-          </TouchableOpacity>
-          <View style={styles.squareQtyDisplay}>
-            <Text style={styles.squareQtyText}>{item.quantity}</Text>
-          </View>
-          <TouchableOpacity style={styles.squareQtyBtn} onPress={() => onQuantityChange(item.id, item.quantity, 1)}>
-            <Text style={styles.squareQtyBtnText}>˃</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={styles.quantityPickerContainer}><Text style={styles.squareQtyText}>1 artwork</Text></View>
 
         {/* Actions */}
         <View style={styles.actionsColumn}>
@@ -79,11 +70,23 @@ export default function CartItemRow({
           </TouchableOpacity>
         </View>
       </View>
+      <View style={styles.contractRow}>
+        <Text style={styles.contractStatus}>{contractStatus}</Text>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${isAgreed ? 'Review contract for' : isOngoing ? 'View negotiation for' : 'Negotiate contract for'} ${item.title}`} onPress={() => onNegotiate(item.artworkId)} style={[styles.negotiateButton, isAgreed && styles.reviewButton]}>
+          <Handshake color="#C15656" size={18} />
+          <Text style={styles.negotiateText}>{isAgreed ? 'Review contract' : isOngoing ? 'View negotiation' : 'Negotiate'}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  contractRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingBottom: 14, flexWrap: 'wrap' },
+  contractStatus: { color: '#786963', fontSize: 12, flexShrink: 1 },
+  negotiateButton: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: '#C15656', backgroundColor: '#FFF1EC', paddingVertical: 5, paddingHorizontal: 9, borderRadius: 6 },
+  reviewButton: { backgroundColor: '#fff' },
+  negotiateText: { color: '#C15656', fontWeight: '700', fontSize: 12 },
   artistHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',

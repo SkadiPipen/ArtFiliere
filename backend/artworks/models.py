@@ -14,6 +14,10 @@ class Artwork(models.Model):
     description = models.TextField()
     category = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    hours = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    material_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    art_type = models.CharField(max_length=10, default="digital")
     image_data = models.TextField()
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.PENDING

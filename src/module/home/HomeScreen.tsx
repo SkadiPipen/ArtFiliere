@@ -1,10 +1,14 @@
 import { useRouter } from 'expo-router';
+import UnreadMessageBadge from '@/module/chat-negotiations/UnreadMessageBadge';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { MessageSquare, SlidersHorizontal } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ArtistCommission from '@/module/home/components/ArtistCommission';
+import { auth } from '@/firebase/config';
+import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import AuctionSection from '@/module/home/components/AuctionSection';
 import ForYouGrid from '@/module/home/components/ForYouGrid';
 import Header from '@/module/home/components/Header';
@@ -19,19 +23,34 @@ export default function Dashboard() {
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState('All');
   const [approvedArtworks, setApprovedArtworks] = useState<ArtItem[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+  const [chatVisible, setChatVisible] = useState(false);
   const isDesktop = width >= 768;
+
+  useEffect(() => onAuthStateChanged(auth, (user) => {
+    setCurrentUser(user);
+    setChatVisible(false);
+  }), []);
+
+  const handleOpenChat = () => {
+    if (!currentUser) {
+      Alert.alert('Messages', 'Please sign in to open your messages.');
+      return;
+    }
+    setChatVisible(true);
+  };
 
   const handleViewPost = (item: any, type: string) => {
     router.push({
       pathname: '/(home)/view-post',
-      params: { type, title: item.artist || item.title, price: item.price, image: item.image || item.img, artist: item.artistName || item.artist, artistId: item.artistId, artworkId: item.id },
+      params: { type, artType: item.artType || item.type, title: item.artist || item.title, price: item.price, image: item.image || item.img, artist: item.artistName || item.artist, artistId: item.artistId, artworkId: item.id },
     });
   };
 
   useEffect(() => {
     fetch(`${API_URL}/api/users/artworks/`)
       .then((response) => response.ok ? response.json() : [])
-      .then((artworks) => setApprovedArtworks(artworks.map((artwork: any) => ({ id: String(artwork.id), artist: artwork.title, artistName: artwork.artist_name, artistId: String(artwork.artist_id), price: artwork.price, type: artwork.category, image: artwork.image_data }))))
+      .then((artworks) => setApprovedArtworks(artworks.map((artwork: any) => ({ id: String(artwork.id), artist: artwork.title, artistName: artwork.artist_name, artistId: String(artwork.artist_id), price: artwork.price, type: artwork.category, artType: artwork.art_type, image: artwork.image_data }))))
       .catch(() => undefined);
   }, []);
 
@@ -106,10 +125,20 @@ export default function Dashboard() {
       {/* Floating chat button */}
       <TouchableOpacity
         style={[styles.msgFab, { bottom: 85 + insets.bottom }]}
-        onPress={() => router.push('/messages-inbox')}
+        onPress={handleOpenChat}
+        accessibilityRole="button"
+        accessibilityLabel="Open messages"
       >
         <MessageSquare color="#fff" size={26} fill="#fff" />
+        <UnreadMessageBadge uid={currentUser?.uid} />
       </TouchableOpacity>
+      {chatVisible && currentUser && (
+        <ChatModal
+          visible={chatVisible}
+          onClose={() => setChatVisible(false)}
+          currentUser={currentUser}
+        />
+      )}
     </SafeAreaView>
   );
 }

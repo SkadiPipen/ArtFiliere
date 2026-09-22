@@ -19,8 +19,11 @@
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('Painting');
-    const [price, setPrice] = useState('');
+    const [hours, setHours] = useState('');
+    const [hourlyRate, setHourlyRate] = useState('');
+    const [materials, setMaterials] = useState('0');
     const [artType, setArtType] = useState('Physical');
+    const price = ((Number(hours) * Number(hourlyRate) + (artType.toLowerCase() === 'physical' ? Number(materials) : 0)) * 1.1).toFixed(2);
     const [tags, setTags] = useState<string[]>([]);
     const [generatingTags, setGeneratingTags] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -72,7 +75,7 @@
         const response = await fetch(`${API_URL}/api/users/artworks/`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image_data: imageData, title, description, category: `${category} · ${artType}${tags.length ? ` · ${tags.join(', ')}` : ''}`, price }),
+          body: JSON.stringify({ hours, hourly_rate: hourlyRate, material_cost: materials, art_type: artType.toLowerCase(), image_data: imageData, title, description, category: `${category} · ${artType}${tags.length ? ` · ${tags.join(', ')}` : ''}`, price }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
@@ -124,7 +127,12 @@
               <Text style={styles.label}>Category:</Text>
               <TextInput style={styles.input} value={category} onChangeText={setCategory} placeholder="Painting, Photography..." />
               <Text style={styles.label}>Price (PHP):</Text>
-              <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="0.00" />
+              <Text style={styles.label}>Hours worked</Text>
+              <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="decimal-pad" />
+              <Text style={styles.label}>Hourly rate (PHP)</Text>
+              <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate} keyboardType="decimal-pad" />
+              {artType.toLowerCase() === 'physical' && <><Text style={styles.label}>Material cost (PHP)</Text><TextInput style={styles.input} value={materials} onChangeText={setMaterials} keyboardType="decimal-pad" /></>}
+              <Text>Includes 10% platform fee, before license and exclusivity adjustments.</Text>
               <Text style={styles.pricePreview}>Price: Php. {price || '0000.00'}</Text>
               <TouchableOpacity style={styles.submit} disabled={saving} onPress={submit}>{saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Submit for review</Text>}</TouchableOpacity>
             </View>
