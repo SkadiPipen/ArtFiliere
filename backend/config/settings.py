@@ -172,7 +172,7 @@ XENDIT_RETURN_URL = os.getenv("XENDIT_RETURN_URL", "")
 import sys
 if sys.platform == 'win32':
     try:
-        import truststore
+        import truststore # type: ignore
         truststore.inject_into_ssl()
     except ImportError:
         pass
