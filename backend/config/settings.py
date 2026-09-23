@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "notifications",
     "wallets",
     "delivery",
+    "auctions",
 ]
 
 # Test and live credentials are loaded from backend/.env. Never expose the

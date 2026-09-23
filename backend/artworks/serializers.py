@@ -22,6 +22,12 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "decline_reason",
             "created_at",
             "similarity_matches",
+            # added for auc
+            "sale_type",
+            "bid_increment",
+            "starting_time",
+            "end_time",
+            "artist",
         ]
         read_only_fields = ["id", "artist_id", "status", "decline_reason", "created_at"]
 

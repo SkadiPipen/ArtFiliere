@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { MessageSquare, SlidersHorizontal } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ArtistCommission from '@/module/home/components/ArtistCommission';
@@ -10,8 +10,8 @@ import ForYouGrid from '@/module/home/components/ForYouGrid';
 import Header from '@/module/home/components/Header';
 import HeroCarousel from '@/module/home/components/HeroCarousel';
 import LatestSection from '@/module/home/components/LatestSection';
-import API_URL from '@/services/api';
 import { ArtItem } from '@/module/home/types';
+import API_URL from '@/services/api';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -22,16 +22,34 @@ export default function Dashboard() {
   const isDesktop = width >= 768;
 
   const handleViewPost = (item: any, type: string) => {
+    const saleTypeStr = String(item.sale_type || '').toUpperCase();
+    const categoryStr = String(item.category || '').toUpperCase();
+    const isAuctionItem = saleTypeStr.includes('AUCTION') || categoryStr.includes('AUCTION') || Boolean(item.end_time || item.starting_time);
+    const resolvedType = isAuctionItem ? 'Auction' : (type || 'Physical');
     router.push({
       pathname: '/(home)/view-post',
-      params: { type, title: item.artist || item.title, price: item.price, image: item.image || item.img, artist: item.artistName || item.artist, artistId: item.artistId, artworkId: item.id },
+      params: { 
+        type: resolvedType,
+        sale_type: resolvedType,
+        title: item.title || item.artist, 
+        price: String(item.price), 
+        image: item.image_data || item.image || item.img || item.image_url, 
+        artist: item.artistName || item.artist?.username || item.artist, 
+        artistId: item.artistId || item.artist_id || item.artist?.id, 
+        artworkId: item.id, 
+        medium: item.medium || (categoryStr.includes('DIGITAL') ? 'Digital Artwork' : 'Oil on Canvas'),
+        bidIncrement: item.bid_increment,
+        startingTime: item.starting_time || item.start_time,
+        endTime: item.end_time ? String(item.end_time) : '',
+        auctionId: item.auction_id || item.auction_listing?.id,
+       },
     });
   };
 
   useEffect(() => {
     fetch(`${API_URL}/api/users/artworks/`)
       .then((response) => response.ok ? response.json() : [])
-      .then((artworks) => setApprovedArtworks(artworks.map((artwork: any) => ({ id: String(artwork.id), artist: artwork.title, artistName: artwork.artist_name, artistId: String(artwork.artist_id), price: artwork.price, type: artwork.category, image: artwork.image_data }))))
+      .then((artworks) => setApprovedArtworks(artworks.map((artwork: any) => ({ ...artwork, id: String(artwork.id), artist: artwork.title, artistName: artwork.artist_name, artistId: String(artwork.artist_id), price: artwork.price, type: artwork.category || artwork.type, image: artwork.image_data, category: artwork.category, sale_type: artwork.sale_type, bid_increment: artwork.bid_increment, starting_time: artwork.starting_time, end_time: artwork.end_time}))))
       .catch(() => undefined);
   }, []);
 

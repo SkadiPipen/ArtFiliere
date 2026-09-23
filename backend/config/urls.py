@@ -16,4 +16,7 @@ urlpatterns = [
 
     # added fallback
     path("api/wallets/", include("wallets.urls")),
+
+    # added for auc
+    path("api/auction/", include("auctions.urls")),
 ]

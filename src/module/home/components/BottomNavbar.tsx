@@ -1,11 +1,11 @@
-import { usePathname, useRouter } from 'expo-router';
-import { Clock, Disc, Home, Plus, ShoppingCart, User } from 'lucide-react-native';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useCart } from '@/context/CartContext';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
-import { useCart } from '@/context/CartContext';
+import { usePathname, useRouter } from 'expo-router';
+import { Clock, Disc, Home, Plus, ShoppingCart, User } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BottomNavBar() {
   const router = useRouter();
@@ -45,7 +45,15 @@ export default function BottomNavBar() {
         </TouchableOpacity>
 
         {/* Artists post from the dashboard; buyers retain the auction action. */}
-        <TouchableOpacity style={styles.auctionContainer} onPress={() => isArtist ? router.push('/artist-post') : Alert.alert('Auction', 'Opening Auctions...')}>
+        <TouchableOpacity 
+          style={styles.auctionContainer} 
+          onPress={() => { 
+            if (isArtist) {
+              router.push('/artist-post'); 
+            } else { 
+              router.push('/auction-dashboard');
+            }
+          }}>
           <View style={styles.auctionCircle}>
             {isArtist ? <Plus color="#fff" size={34} /> : <Disc color="#fff" size={32} />}
           </View>

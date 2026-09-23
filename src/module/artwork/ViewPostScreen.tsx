@@ -1,21 +1,21 @@
-import { Watermark } from '@/module/artwork/components/Watermark';
 import { useCart } from '@/context/CartContext';
 import { auth } from '@/firebase/config';
+import { Watermark } from '@/module/artwork/components/Watermark';
 import API_URL from '@/services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, ShoppingCart } from 'lucide-react-native';
-import {
-    Alert,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    ActivityIndicator,
-    useWindowDimensions,
-    View,
-} from 'react-native';
+import { ArrowLeft, Gavel, ShoppingCart } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ViewPostPage() {
@@ -23,14 +23,78 @@ export default function ViewPostPage() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
   const { addToCart } = useCart();
+
+  const params = useLocalSearchParams();
+  const artworkId = (params.artworkId as string) || '';
+
+  const [artworkData, setArtworkData] = useState<any>(null);
+  const [loadingArtwork, setLoadingArtwork] = useState(true);
   const [isOwnArtwork, setIsOwnArtwork] = useState(false);
   const [checkingOwner, setCheckingOwner] = useState(true);
 
-  const { type, title, price, image, medium, artist, artistId, artworkId } = useLocalSearchParams();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTimer = (targetDate: any) => {
+    if (!targetDate) return 'Active Now';
+    const diff = Math.max(0, new Date(targetDate).getTime() - now);
+    if (diff <= 0) return 'Auction Ended';
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+    return `${hours}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}s`;
+  }
+
+  useEffect(() => {
+    if (!artworkId){
+      setLoadingArtwork(false);
+      return;
+    }
+
+    const fetchArtwork = async () => {
+      try {
+        let res = await fetch(`${API_URL}/api/users/artworks/${artworkId}/`);
+        if (!res.ok) {
+          res = await fetch(`${API_URL}/api/artworks/${artworkId}/`);
+        }
+        if (res.ok) {
+          const json = await res.json();
+          setArtworkData(json);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch artwork info:', err);
+      } finally {
+        setLoadingArtwork(false);
+      }
+    };
+
+    fetchArtwork();
+  }, [artworkId]);
+
+  const title = artworkData?.title || params.title;
+  const price = artworkData?.price || params.price;
+  const image = artworkData?.image || artworkData?.image_data || params.image;
+  const medium = artworkData?.category || params.medium;
+  const artistName = artworkData?.artist_name || artworkData?.artist?.username || params.artist;
+  const resolvedArtistId = String(artworkData?.artist.id || artworkData?.artist?.id || artworkData?.artist || params.artistId || '');
+
+  const rawSaleType = String(artworkData?.sale_type || params.type || params.sale_type || '').toUpperCase();
+  const hasAuctionTimes = Boolean(artworkData?.end_time || params.endTime || params.endtime || artworkData?.bid_increment);
+  const isAuction = rawSaleType.includes('AUCTION') || params.type === 'Auction' || hasAuctionTimes;
+
+  const bidIncrement = artworkData?.bid_increment || params.bidIncrement;
+  const startingtTime = artworkData?.starting_time || artworkData?.start_time || params.startingTime || '';
+  const endTime = artworkData?.end_time || params.endTime || '';
 
   useEffect(() => {
     const checkOwnership = async () => {
-      if (!auth.currentUser || !artistId) {
+      if (!auth.currentUser || !resolvedArtistId) {
         setCheckingOwner(false);
         return;
       }
@@ -38,13 +102,13 @@ export default function ViewPostPage() {
         const token = await auth.currentUser.getIdToken();
         const response = await fetch(`${API_URL}/auth/me/`, { headers: { Authorization: `Bearer ${token}` } });
         const profile = response.ok ? await response.json() : null;
-        setIsOwnArtwork(String(profile?.id) === String(artistId));
+        setIsOwnArtwork(String(profile?.id) === String(resolvedArtistId));
       } finally {
         setCheckingOwner(false);
       }
     };
     checkOwnership().catch(() => setCheckingOwner(false));
-  }, [artistId]);
+  }, [resolvedArtistId]);
 
   const handleAddToCart = () => {
     if (isOwnArtwork) {
@@ -66,25 +130,28 @@ export default function ViewPostPage() {
       return;
     }
 
-    const itemTitle = (title as string) || 'Artwork Name';
-    const itemPrice = (price as string) || '0.00';
-    const itemType = (type as string) || 'Direct Sell';
-    const itemImage = (image as string) || 'No Image';
-    const itemArtist = (artist as string) || 'Artist';
-
     addToCart({
       artworkId: String(artworkId || ''),
-      title: itemTitle,
-      price: itemPrice,
-      type: itemType,
-      image: itemImage,
-      artistName: itemArtist,
+      title: String(title),
+      price: String(price),
+      type: isAuction ? 'Auction' : 'Direct Sell',
+      image: String(image),
+      artistName: String(artistName),
     });
 
     if (Platform.OS === 'web') {
-      alert(`${itemTitle} has been added to your cart!`);
+      alert(`${title} has been added to your cart!`);
     } else {
-      Alert.alert('Added to Cart', `${itemTitle} has been added to your cart!`);
+      Alert.alert('Added to Cart', `${title} has been added to your cart!`);
+    }
+  };
+
+  const formatDate = (dateStr?: any) => {
+    if (!dateStr) return 'Aactive Now';
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch {
+      return String(dateStr);
     }
   };
 
@@ -106,32 +173,63 @@ export default function ViewPostPage() {
 
           {/* Right side for web & bottom side for mobile android/iOS */}
           <View style={[styles.contentCard, isDesktop && styles.desktopContentCard]}>
-            <Text style={styles.date}>Posted: 04/10/2026</Text>
-            <Text style={styles.title}>{(title as string) || 'Artwork Name'}</Text>
-            {!!artistId && <TouchableOpacity onPress={() => router.push({ pathname: '/artist-profile', params: { artistId: artistId as string } })}><Text style={styles.artistLink}>View artist profile</Text></TouchableOpacity>}
+            <Text style={styles.date}>Posted Artwork</Text>
+            <Text style={styles.title}>{title}</Text>
+
+            {/* Artist Profile */}
+              <TouchableOpacity onPress={() => router.push({ pathname: '/artist-profile' as any, params: { artistId: resolvedArtistId } })}>
+                <Text style={styles.artistLink}>View artist profile ({artistName})</Text>
+              </TouchableOpacity>
 
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{(type as string) || 'Physical'}</Text>
+              <Text style={styles.badgeText}>{isAuction ? 'Auction' : medium}</Text>
             </View>
 
             <View style={styles.detailsSection}>
               <Text style={styles.detailsHeader}>About the Art</Text>
               <Text style={styles.detailsText}>
-                Medium/Material: {(medium as string) || 'Oil on Canvas'}{'\n'}
+                {artworkData?.description || 'Original artwork on ArtFiliere.'}{'\n'}
                 License: Standard Personal License{'\n'}
                 Dimensions: 2000 x 3000 px
               </Text>
             </View>
 
+            {/* Auction deets */}
+            {isAuction && (
+              <View style={styles.auctionDetailsBox}>
+                <Text style={styles.auctionHeader}> Auction Parameters</Text>
+                <Text style={styles.auctionText}>Bid Increment: Php{Number(bidIncrement).toLocaleString()}</Text>
+                <Text style={[styles.auctionText, {fontWeight: '700', color: '#059d19', marginTop: 4 }]}>Starts: {startingtTime ? new Date(startingtTime).toLocaleString() : 'Active Now'}</Text>
+                <Text style={[styles.auctionText, {fontWeight: '700', color: '#C15656', marginTop: 4 }]}>Ends in: {formatTimer(endTime)}</Text>
+              </View>
+            )}
+
             <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>{type === 'Auction' ? 'Current Bid:' : 'Price:'}</Text>
-              <Text style={styles.priceValue}>₱ {(price as string) || '0.00'}</Text>
+              <Text style={styles.priceLabel}>{isAuction ? 'Starting / Current Bid:' : 'Price:'}</Text>
+              <Text style={styles.priceValue}>Php {Number(price || 0).toLocaleString()}</Text>
             </View>
 
-            <TouchableOpacity style={[styles.cartBtn, (isOwnArtwork || checkingOwner) && styles.cartBtnDisabled]} onPress={handleAddToCart} disabled={isOwnArtwork || checkingOwner}>
-              <ShoppingCart color="#fff" size={18} style={{ marginRight: 8 }} />
-              {checkingOwner ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.cartText}>{isOwnArtwork ? 'This is your artwork' : 'Add to Cart'}</Text>}
-            </TouchableOpacity>
+            {/* If auction, Go to Auction / Place Bid is provided */}
+            {isAuction ? (
+              <TouchableOpacity style={[styles.auctionBtn, (isOwnArtwork || checkingOwner) && styles.cartBtnDisabled]}
+                onPress={() => router.push('/auction-dashboard' as any)}
+                disabled={isOwnArtwork || checkingOwner}
+              >
+                <Gavel color="#fff" size={18} style={{ marginRight: 8 }}/>
+                <Text style={styles.cardText}>
+                  {isOwnArtwork ? 'This is your auction' : 'Enter Auction Room'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.cartBtn, (isOwnArtwork || checkingOwner) && styles.cartBtnDisabled]} onPress={handleAddToCart} disabled={isOwnArtwork || checkingOwner}>
+                <ShoppingCart color="#fff" size={18} style={{ marginRight: 8 }} />
+                {checkingOwner ? (
+                  <ActivityIndicator color="#fff" size="small" /> 
+                ) : (
+                  <Text style={styles.cartText}>{isOwnArtwork ? 'This is your artwork' : 'Add to Cart'}</Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
 
         </View>
@@ -219,4 +317,10 @@ const styles = StyleSheet.create({
   },
   cartBtnDisabled: { backgroundColor: '#A99B96' },
   cartText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  // Added for auction
+  auctionDetailsBox: {backgroundColor: '#FFF5F5', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#F5C6CB', marginBottom: 16, top: 20 },
+  auctionHeader: { fontSize: 13, fontWeight: '700', color: '#D75B5C', marginBottom: 6 },
+  auctionText: { fontSize: 12, color: '#555', marginBottom: 3},
+  auctionBtn: { flexDirection: 'row', backgroundColor: '#7B241C', height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center', top: 10 },
+  cardText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
 });

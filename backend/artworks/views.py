@@ -190,6 +190,42 @@ class ArtworkReviewView(AuthenticatedAPIView):
         )
         artwork.save(update_fields=["status", "decline_reason", "updated_at"])
 
+        # Live auction upon approval
+        if review_status == Artwork.Status.APPROVED:
+            from datetime import timedelta
+            from django.utils import timezone
+            from auctions.models import AuctionListing
+
+            category_str = str(getattr(artwork, "category", "")).upper()
+            sale_type = str(getattr(artwork, "sale_type", "")).upper()
+
+            is_auction = "AUCTION" in sale_type or "AUCTION" in category_str
+            is_physical = "PHYSICAL" in category_str or getattr(artwork, "art_type", "") == "Physical"
+
+            if is_auction:
+                starting_price = float(artwork.price)
+                now = timezone.now()
+
+                # Artist choice for auc if chosen
+                start_time = getattr(artwork, "starting_time", None) or now
+                end_time = getattr(artwork, "end_time", None) or (start_time + timedelta(days=3))
+                increment = getattr(artwork, "bid_increment", None) or 100.00
+
+                initial_status = "ACTIVE" if start_time <= now else "SCHEDULED"
+
+                AuctionListing.objects.get_or_create(
+                    artwork=artwork,
+                    defaults={
+                        "artist": artwork.artist,
+                        "starting_bid": starting_price,
+                        "current_bid": starting_price,
+                        "bid_increment": float(increment),
+                        "start_time": start_time,
+                        "end_time": end_time,
+                        "status": initial_status,
+                        "is_physical": is_physical,
+                    },
+                )
         ArtworkReviewLog.objects.create(
             artwork=artwork,
             actor=moderator,
