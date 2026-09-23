@@ -1,9 +1,13 @@
+import UnreadMessageBadge from '@/module/chat-negotiations/UnreadMessageBadge';
 import { useRouter } from 'expo-router';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { MessageSquare, SlidersHorizontal } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { auth } from '@/firebase/config';
+import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import ArtistCommission from '@/module/home/components/ArtistCommission';
 import AuctionSection from '@/module/home/components/AuctionSection';
 import ForYouGrid from '@/module/home/components/ForYouGrid';
@@ -19,7 +23,22 @@ export default function Dashboard() {
   const { width } = useWindowDimensions();
   const [activeCategory, setActiveCategory] = useState('All');
   const [approvedArtworks, setApprovedArtworks] = useState<ArtItem[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+  const [chatVisible, setChatVisible] = useState(false);
   const isDesktop = width >= 768;
+
+  useEffect(() => onAuthStateChanged(auth, (user) => {
+    setCurrentUser(user);
+    setChatVisible(false);
+  }), []);
+
+  const handleOpenChat = () => {
+    if (!currentUser) {
+      Alert.alert('Messages', 'Please sign in to open your messages.');
+      return;
+    }
+    setChatVisible(true);
+  };
 
   const handleViewPost = (item: any, type: string) => {
     const saleTypeStr = String(item.sale_type || '').toUpperCase();
@@ -31,6 +50,7 @@ export default function Dashboard() {
       params: { 
         type: resolvedType,
         sale_type: resolvedType,
+        artType: item.artType || item.art_type || item.type,
         title: item.title || item.artist, 
         price: String(item.price), 
         image: item.image_data || item.image || item.img || item.image_url, 
@@ -49,7 +69,26 @@ export default function Dashboard() {
   useEffect(() => {
     fetch(`${API_URL}/api/users/artworks/`)
       .then((response) => response.ok ? response.json() : [])
-      .then((artworks) => setApprovedArtworks(artworks.map((artwork: any) => ({ ...artwork, id: String(artwork.id), artist: artwork.title, artistName: artwork.artist_name, artistId: String(artwork.artist_id), price: artwork.price, type: artwork.category || artwork.type, image: artwork.image_data, category: artwork.category, sale_type: artwork.sale_type, bid_increment: artwork.bid_increment, starting_time: artwork.starting_time, end_time: artwork.end_time}))))
+      .then((artworks) => 
+        setApprovedArtworks(
+          artworks.map((artwork: any) => ({ 
+            ...artwork, 
+            id: String(artwork.id), 
+            artist: artwork.title, 
+            artistName: artwork.artist_name, 
+            artistId: String(artwork.artist_id), 
+            price: artwork.price, 
+            type: artwork.category,
+            artType: artwork.art_type, 
+            image: artwork.image_data, 
+            category: artwork.category, 
+            sale_type: artwork.sale_type, 
+            bid_increment: artwork.bid_increment, 
+            starting_time: artwork.starting_time, 
+            end_time: artwork.end_time
+          }))
+        )
+      )
       .catch(() => undefined);
   }, []);
 
@@ -124,10 +163,20 @@ export default function Dashboard() {
       {/* Floating chat button */}
       <TouchableOpacity
         style={[styles.msgFab, { bottom: 85 + insets.bottom }]}
-        onPress={() => router.push('/messages-inbox')}
+        onPress={handleOpenChat}
+        accessibilityRole="button"
+        accessibilityLabel="Open messages"
       >
         <MessageSquare color="#fff" size={26} fill="#fff" />
+        <UnreadMessageBadge uid={currentUser?.uid} />
       </TouchableOpacity>
+      {chatVisible && currentUser && (
+        <ChatModal
+          visible={chatVisible}
+          onClose={() => setChatVisible(false)}
+          currentUser={currentUser}
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -1,33 +1,43 @@
+import MyPurchases from '../MyPurchases';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import OngoingNegotiations from '@/module/chat-negotiations/OngoingNegotiations';
 import { Handshake, Star, Truck, Wallet } from 'lucide-react-native';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function TransactionGrid() {
+export default function TransactionGrid({ role }: { role?: string }) {
+  const router = useRouter();
+  const [purchaseFilter, setPurchaseFilter] = useState<'all' | 'receive' | 'rate' | 'pay' | null>(null);
+  const [showNegotiations, setShowNegotiations] = useState(false);
   return (
     <View style={styles.container}>
+      {purchaseFilter && <MyPurchases filter={purchaseFilter} onClose={() => setPurchaseFilter(null)} />}
+      {showNegotiations && <OngoingNegotiations onClose={() => setShowNegotiations(false)} />}
+      {role?.toLowerCase() === 'driver' && <TouchableOpacity onPress={() => router.push('/rider/(tabs)' as any)}><Text style={styles.viewMore}>Manage delivery orders</Text></TouchableOpacity>}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>My Transactions</Text>
-        <TouchableOpacity onPress={() => Alert.alert('History', 'Purchase history...')}>
-          <Text style={styles.viewMore}>View Purchase History {'>>'}</Text>
+        <TouchableOpacity onPress={() => setPurchaseFilter('all')}>
+          <Text style={styles.viewMore}>My Purchases {'>>'}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.iconGrid}>
-        <TouchableOpacity style={styles.iconItem} onPress={() => Alert.alert('Status', 'Negotiations...')}>
+        <TouchableOpacity style={styles.iconItem} onPress={() => setShowNegotiations(true)}>
           <Handshake color="#C15656" size={28} />
           <Text style={styles.iconLabel}>To Negotiate</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.iconItem} onPress={() => Alert.alert('Status', 'Pending Payments...')}>
+        <TouchableOpacity style={styles.iconItem} onPress={() => setPurchaseFilter('pay')}>
           <Wallet color="#C15656" size={28} />
           <Text style={styles.iconLabel}>To Pay</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.iconItem} onPress={() => Alert.alert('Status', 'Deliveries...')}>
+        <TouchableOpacity style={styles.iconItem} onPress={() => setPurchaseFilter('receive')}>
           <Truck color="#C15656" size={28} />
           <Text style={styles.iconLabel}>To Receive</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.iconItem} onPress={() => Alert.alert('Status', 'Reviews...')}>
+        <TouchableOpacity style={styles.iconItem} onPress={() => setPurchaseFilter('rate')}>
           <Star color="#C15656" size={28} />
           <Text style={styles.iconLabel}>To Rate</Text>
         </TouchableOpacity>

@@ -32,6 +32,15 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      "expo-sharing",
+      "expo-location",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow ArtFiliere to take pickup and delivery proof photos.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

@@ -11,11 +11,12 @@ interface OrderRequest {
   itemsCount: number; // number/quantity of items bought by buyer
   distance: string;
   estimatedTime: string;
-  paymentMethod: 'COD' | 'Paypal';
+  paymentMethod: string;
 }
 
 export default function OrdersScreen() {
   const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -26,12 +27,9 @@ export default function OrdersScreen() {
 
   // Load orders from Django REST API
   const loadOrders = useCallback (async () => {
-    const data = await fetchPendingOrders();
-    if (Array.isArray(data)) {
-      setOrderRequests(data);
-    }
-    setLoading(false);
-    setRefreshing(false);
+    try { setOrderRequests(await fetchPendingOrders()); setError(''); }
+    catch (e: any) { setError(e.message); }
+    finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useEffect(() => {
@@ -72,7 +70,8 @@ export default function OrdersScreen() {
       } else {
         Alert.alert('Error', 'Unable to accept order.')
       }
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message); setIsModalVisible(false);
       console.error('Error accepting order:', error);
       Alert.alert('Action Failed', 'Unable to accept this order. Please try again.');
     } finally {
@@ -116,6 +115,7 @@ export default function OrdersScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#BC5454']} tintColor="#BC5454"/>
         }
       >
+        {!!error && <Text style={{ color: "#b00020", marginBottom: 12 }}>{error}</Text>}
         {loading ? (
           <View style={styles.loaderCenter}>
             <ActivityIndicator size="large" color="#BC5454"/>

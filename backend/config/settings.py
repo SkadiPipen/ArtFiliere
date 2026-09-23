@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "wallets",
     "delivery",
     "auctions",
+    "cart",
+    "fulfillment",
 ]
 
 # Test and live credentials are loaded from backend/.env. Never expose the
@@ -150,3 +152,27 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Bounded JSON uploads for rider proof photos (5 MB before base64 encoding).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
+
+# Local module testing only; production (DEBUG=False) always uses the provider.
+ENABLE_SIMULATED_CHECKOUT = os.getenv("ENABLE_SIMULATED_CHECKOUT", "false").lower() == "true"
+
+# Server-only OpenRouteService key; never expose this through Expo.
+ORS_API_KEY = os.getenv('ORS_API_KEY', '')
+DELIVERY_BASE_FARE = '50.00'
+DELIVERY_PER_KM = '15.00'
+
+# Optional HTTPS frontend purchases URL for hosted checkout redirects.
+XENDIT_RETURN_URL = os.getenv("XENDIT_RETURN_URL", "")
+
+
+# Use Windows' trusted certificate store while retaining HTTPS verification.
+import sys
+if sys.platform == 'win32':
+    try:
+        import truststore
+        truststore.inject_into_ssl()
+    except ImportError:
+        pass

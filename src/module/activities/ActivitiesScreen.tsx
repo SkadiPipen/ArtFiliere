@@ -89,7 +89,7 @@ export default function ActivitiesScreen() {
 
                   {/* Tracking Link */}
                   {log.reference_type === 'delivery_order' && (
-                    <TouchableOpacity style={styles.trackButton} onPress={() => router.push({ pathname: '/delivery-details', params: { id: String(log.reference_id) }, } as any)}>
+                    <TouchableOpacity style={styles.trackButton} onPress={() => router.push('/purchases' as any)}>
                       <Truck color="#FFFFFF" size={14}/>
                       <Text style={styles.trackButtonText}>Track Delivery</Text>
                     </TouchableOpacity>

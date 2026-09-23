@@ -1,3 +1,4 @@
+import AddressBook from '@/components/AddressBook';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
@@ -36,6 +37,7 @@ export default function EditProfile() {
     lastName: '',
     contact: '',
     street: '',
+    barangay: '', city: '', province: '', region: '', postal_code: '',
     profileImage: null as string | null,
   });
 
@@ -62,6 +64,7 @@ export default function EditProfile() {
             lastName: data.last_name || data.lastName || '',
             contact: data.contact_number || data.contact || '',
             street: data.address?.street || data.street || '',
+            barangay: data.address?.barangay || '', city: data.address?.city || '', province: data.address?.province || '', region: data.address?.region || '', postal_code: data.address?.postal_code || '',
             profileImage: data.profile_image || data.profileImage || user.photoURL || null,
           });
         } else {
@@ -154,7 +157,8 @@ export default function EditProfile() {
           first_name: form.firstName,
           last_name: form.lastName,
           contact_number: form.contact,
-          street: form.street,
+
+
         }),
       });
 
@@ -298,16 +302,7 @@ export default function EditProfile() {
                 </View>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Street / Barangay</Text>
-                <TextInput
-                  style={styles.input}
-                  value={form.street}
-                  onChangeText={(val) => setForm((prev) => ({ ...prev, street: val }))}
-                  placeholder="Enter street or barangay"
-                  placeholderTextColor="#999"
-                />
-              </View>
+              <AddressBook />
 
               {/* SAVE BUTTON */}
               <TouchableOpacity

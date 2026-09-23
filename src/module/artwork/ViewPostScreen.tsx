@@ -82,7 +82,7 @@ export default function ViewPostPage() {
   const image = artworkData?.image || artworkData?.image_data || params.image;
   const medium = artworkData?.category || params.medium;
   const artistName = artworkData?.artist_name || artworkData?.artist?.username || params.artist;
-  const resolvedArtistId = String(artworkData?.artist.id || artworkData?.artist?.id || artworkData?.artist || params.artistId || '');
+  const resolvedArtistId = String(artworkData?.artist?.id || artworkData?.artist_id || artworkData?.artist || params.artistId || '');
 
   const rawSaleType = String(artworkData?.sale_type || params.type || params.sale_type || '').toUpperCase();
   const hasAuctionTimes = Boolean(artworkData?.end_time || params.endTime || params.endtime || artworkData?.bid_increment);
@@ -91,6 +91,7 @@ export default function ViewPostPage() {
   const bidIncrement = artworkData?.bid_increment || params.bidIncrement;
   const startingtTime = artworkData?.starting_time || artworkData?.start_time || params.startingTime || '';
   const endTime = artworkData?.end_time || params.endTime || '';
+  const isDigital = String(artworkData?.category || params.medium || '').toLowerCase().includes('digital');
 
   useEffect(() => {
     const checkOwnership = async () => {
@@ -110,7 +111,7 @@ export default function ViewPostPage() {
     checkOwnership().catch(() => setCheckingOwner(false));
   }, [resolvedArtistId]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (isOwnArtwork) {
       Alert.alert('Your artwork', 'You cannot add your own artwork to the cart.');
       return;
@@ -130,13 +131,14 @@ export default function ViewPostPage() {
       return;
     }
 
-    addToCart({
-      artworkId: String(artworkId || ''),
-      title: String(title),
-      price: String(price),
-      type: isAuction ? 'Auction' : 'Direct Sell',
-      image: String(image),
-      artistName: String(artistName),
+    try {
+        await addToCart({
+        artworkId: String(artworkId || ''),
+        title: String(title),
+        price: String(price),
+        type: isAuction ? 'Auction' : 'Direct Sell',
+        image: String(image),
+        artistName: String(artistName),
     });
 
     if (Platform.OS === 'web') {
@@ -144,6 +146,10 @@ export default function ViewPostPage() {
     } else {
       Alert.alert('Added to Cart', `${title} has been added to your cart!`);
     }
+  } catch (error: any) {
+    if(Platform.OS === 'web') alert(error.message);
+    else Alert.alert('Cart', error.message);
+  }
   };
 
   const formatDate = (dateStr?: any) => {
@@ -189,6 +195,7 @@ export default function ViewPostPage() {
               <Text style={styles.detailsHeader}>About the Art</Text>
               <Text style={styles.detailsText}>
                 {artworkData?.description || 'Original artwork on ArtFiliere.'}{'\n'}
+                Medium/Material: {isDigital ? 'Digital' : (medium as string) || 'Oil on Canvas'}{'\n'}
                 License: Standard Personal License{'\n'}
                 Dimensions: 2000 x 3000 px
               </Text>
