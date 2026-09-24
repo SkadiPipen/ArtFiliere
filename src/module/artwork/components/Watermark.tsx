@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from "react-native";
 
 interface WatermarkProps {
   uri: string;
@@ -20,19 +20,19 @@ export function Watermark({ uri, height = 400 }: WatermarkProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { width: '100%', position: 'relative', overflow: 'hidden' },
-  image: { width: '100%', height: '100%' },
+  container: { width: "100%", position: "relative", overflow: "hidden" },
+  image: { width: "100%", height: "100%" },
   watermarkOverlay: {
     ...StyleSheet.absoluteFill,
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    justifyContent: "space-around",
+    alignItems: "center",
     opacity: 0.15,
   },
   watermarkText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 32,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 8,
-    transform: [{ rotate: '-25deg' }],
+    transform: [{ rotate: "-25deg" }],
   },
 });

@@ -1,1 +1,1 @@
-export { default } from '@/module/profile/EditProfileScreen';
+export { default } from "@/module/profile/EditProfileScreen";

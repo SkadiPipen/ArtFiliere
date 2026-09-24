@@ -20,6 +20,6 @@ export interface ArtistRegistrationData {
   birCertificate: string;
   swornDeclaration: string;
   portfolio: PortfolioItem[];
-  status: 'pending_approval' | 'approved' | 'rejected';
+  status: "pending_approval" | "approved" | "rejected";
   submittedAt: string;
 }

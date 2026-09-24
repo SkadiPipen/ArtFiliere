@@ -1,1 +1,1 @@
-export { default } from '@/module/admin/PlatformAdminScreen';
+export { default } from "@/module/admin/PlatformAdminScreen";

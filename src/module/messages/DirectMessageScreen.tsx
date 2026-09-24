@@ -1,12 +1,429 @@
-import { auth } from '@/firebase/config'; import API_URL from '@/services/api'; import { useLocalSearchParams,useRouter } from 'expo-router'; import { ArrowLeft,FileText,Send } from 'lucide-react-native'; import { useEffect,useState } from 'react'; import { ActivityIndicator,Alert,FlatList,Modal,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,TouchableOpacity,View } from 'react-native';
-type A={id:number;status:string;price:string;terms:string;buyer_accepted_at:string|null;artist_accepted_at:string|null;license_type:string;exclusivity:string;delivery_type:string;compensation_type:string};type M={id:number;sender_id:number|null;body:string;type:string;agreement:A|null};type C={id:number;status:string;current_user_id:number;artwork_id:number|null;messages:M[]};
-export default function DirectMessageScreen(){const {artistId,artistName,artworkId,conversationId}=useLocalSearchParams<{artistId:string;artistName:string;artworkId:string;conversationId:string}>();const router=useRouter();const [chat,setChat]=useState<C|null>(null),[body,setBody]=useState(''),[loading,setLoading]=useState(true),[create,setCreate]=useState(false),[selected,setSelected]=useState<A|null>(null),[price,setPrice]=useState(''),[saving,setSaving]=useState(false);const [license,setLicense]=useState('personal'),[exclusive,setExclusive]=useState('non_exclusive'),[delivery,setDelivery]=useState('digital'),[compensation,setCompensation]=useState('one_time');const headers=async()=>{if(!auth.currentUser)throw Error('Please log in again.');return {Authorization:`Bearer ${await auth.currentUser.getIdToken()}`,'Content-Type':'application/json'}};
-const load=async()=>{try{setLoading(true);const h=await headers();let id=conversationId;if(!id){const r=await fetch(`${API_URL}/api/users/conversations/`,{headers:h}),rows=await r.json();if(!r.ok)throw Error(rows.error);id=rows.find((x:any)=>String(x.artwork_id||'')===String(artworkId||''))?.id;if(!id){const c=await fetch(`${API_URL}/api/users/conversations/`,{method:'POST',headers:h,body:JSON.stringify({artist_id:Number(artistId),artwork_id:artworkId?Number(artworkId):undefined})}),d=await c.json();if(!c.ok)throw Error(d.error);id=d.id}}const r=await fetch(`${API_URL}/api/users/conversations/${id}/`,{headers:h}),d=await r.json();if(!r.ok)throw Error(d.error);setChat(d)}catch(e:any){Alert.alert('Messages',e.message||'Unable to open conversation.')}finally{setLoading(false)}};useEffect(()=>{if(artistId||conversationId)load()},[artistId,artworkId,conversationId]);
-const send=async()=>{if(!body.trim()||!chat)return;try{setSaving(true);const r=await fetch(`${API_URL}/api/users/conversations/${chat.id}/messages/`,{method:'POST',headers:await headers(),body:JSON.stringify({body})}),d=await r.json();if(!r.ok)throw Error(d.error);setChat({...chat,messages:[...chat.messages,d]});setBody('')}catch(e:any){Alert.alert('Message',e.message||'Unable to send.')}finally{setSaving(false)}};
-const propose=async()=>{if(!chat||!price)return Alert.alert('Agreement','Enter the agreed price.');try{setSaving(true);const r=await fetch(`${API_URL}/api/users/conversations/${chat.id}/agreements/`,{method:'POST',headers:await headers(),body:JSON.stringify({price,artwork_id:chat.artwork_id,license_type:license,exclusivity:exclusive,delivery_type:delivery,compensation_type:compensation})}),d=await r.json();if(!r.ok)throw Error(d.error);setCreate(false);load()}catch(e:any){Alert.alert('Agreement',e.message||'Unable to create agreement.')}finally{setSaving(false)}};const accept=async(id:number)=>{try{setSaving(true);const r=await fetch(`${API_URL}/api/users/agreements/${id}/`,{method:'PATCH',headers:await headers()}),d=await r.json();if(!r.ok)throw Error(d.error);setSelected(null);load()}catch(e:any){Alert.alert('Agreement',e.message||'Unable to accept.')}finally{setSaving(false)}};
-if(loading)return <View style={s.center}><ActivityIndicator size="large" color="#C15656"/></View>;return <SafeAreaView style={s.page}><View style={s.head}><TouchableOpacity onPress={()=>router.back()}><ArrowLeft color="#C15656" size={24}/></TouchableOpacity><Text style={s.name}>{artistName||'Conversation'}</Text><TouchableOpacity onPress={()=>setCreate(true)} style={s.doc}><FileText size={18} color="#fff"/></TouchableOpacity></View><FlatList data={chat?.messages||[]} keyExtractor={x=>String(x.id)} contentContainerStyle={s.list} renderItem={({item})=>item.agreement?<TouchableOpacity onPress={()=>setSelected(item.agreement)} style={[s.agreeBubble,item.sender_id===chat?.current_user_id?s.mine:s.theirs]}><FileText size={16} color="#fff"/><Text style={s.white}>License and Agreement</Text></TouchableOpacity>:item.type==='system'?<Text style={s.system}>{item.body}</Text>:<View style={[s.bubble,item.sender_id===chat?.current_user_id?s.mine:s.theirs]}><Text>{item.body}</Text></View>}/><View style={s.compose}><TextInput value={body} onChangeText={setBody} placeholder="Write a message..." style={s.input}/><TouchableOpacity onPress={send} style={s.send}><Send size={18} color="#fff"/></TouchableOpacity></View><Modal visible={create} transparent><View style={s.overlay}><ScrollView contentContainerStyle={s.modal}><Text style={s.modalTitle}>Create license agreement</Text><Text style={s.help}>Choose terms clearly. Both users must approve before payment.</Text><TextInput value={price} onChangeText={setPrice} placeholder="Agreed price (PHP)" keyboardType="decimal-pad" style={s.field}/><Option title="License offered" choices={[['personal','Personal Use'],['commercial','Commercial Use']]} value={license} set={setLicense}/><Option title="Exclusivity" choices={[['non_exclusive','Non-exclusive'],['exclusive','Exclusive'],['sole','Sole']]} value={exclusive} set={setExclusive}/><Option title="Creation & delivery" choices={[['physical','Physical Product & Delivery'],['digital','Digital Product & Delivery']]} value={delivery} set={setDelivery}/><Option title="Fees & compensation" choices={[['one_time','One-time Payment'],['royalty','Royalty Percentage']]} value={compensation} set={setCompensation}/><View style={s.actions}><TouchableOpacity onPress={()=>setCreate(false)}><Text>Cancel</Text></TouchableOpacity><TouchableOpacity onPress={propose} style={s.sendBtn}><Text style={s.white}>Send</Text></TouchableOpacity></View></ScrollView></View></Modal><Modal visible={!!selected} transparent animationType="slide">{selected&&<Book item={selected} busy={saving} accept={()=>accept(selected.id)} close={()=>setSelected(null)}/>}</Modal></SafeAreaView>}
-function Option({title,choices,value,set}:{title:string;choices:string[][];value:string;set:(x:string)=>void}){return <View><Text style={s.optionTitle}>{title}</Text>{choices.map(([v,l])=><TouchableOpacity key={v} onPress={()=>set(v)} style={s.option}><View style={[s.dot,value===v&&s.dotOn]}/><Text>{l}</Text></TouchableOpacity>)}</View>}
-function Book({item,busy,accept,close}:{item:A;busy:boolean;accept:()=>void;close:()=>void}){const done=!!(item.buyer_accepted_at&&item.artist_accepted_at);return <View style={s.overlay}><View style={s.book}><ScrollView style={s.left}><Text style={s.brand}>ArtFiliere</Text><Text style={s.redTitle}>ART LICENSE AGREEMENT</Text><Text style={s.subhead}>What is this?</Text><Text style={s.copy}>This document records the license the artist gives the buyer. Both people must understand and accept the same terms before payment.</Text><Guide title="Personal use" text="For private, non-business use only: display it at home, use it as a personal wallpaper, or share it privately. The buyer may not sell it, use it in ads, or use it to earn money."/><Guide title="Commercial use" text="Allows business or money-making use, such as marketing, products, social-media promotion, or a business website. It does not transfer the artist's copyright unless the agreement says so."/><Guide title="Non-exclusive" text="The artist can license or sell the artwork to other people too."/><Guide title="Exclusive" text="The buyer is the only person allowed to use the artwork for the agreed purpose. The artist cannot license that same work to another buyer."/><Guide title="Sole" text="The buyer has exclusive use, but the artist may still personally use the work in their portfolio or self-promotion."/><Guide title="Delivery" text="Digital means a downloadable file. Physical means the original or printed artwork is shipped; shipping details should be agreed in chat."/><Guide title="Compensation" text="One-time payment means the listed price is the full agreed payment. Royalty percentage means the artist also receives an agreed share from future sales; write the exact percentage in chat before accepting."/></ScrollView><ScrollView style={[s.right,s.bookOptions]}><Text style={s.redTitle}>LICENSE DETAILS</Text><Detail title="LICENSE OFFERED" value={item.license_type}/><Detail title="EXCLUSIVITY" value={item.exclusivity}/><Detail title="CREATION & DELIVERY" value={item.delivery_type}/><Detail title="FEES & COMPENSATION" value={item.compensation_type}/><Text style={s.amount}>₱{Number(item.price).toLocaleString('en-PH',{minimumFractionDigits:2})}</Text><Text style={s.copy}>{done?'Accepted by both parties.':'By accepting, you confirm that you understand the selected terms.'}</Text>{!done&&<TouchableOpacity onPress={accept} disabled={busy} style={s.sendBtn}><Text style={s.white}>{busy?'Saving…':'I understand and accept'}</Text></TouchableOpacity>}<TouchableOpacity onPress={close} style={s.close}><Text>Close</Text></TouchableOpacity></ScrollView></View></View>}
-function Guide({title,text}:{title:string;text:string}){return <View><Text style={s.guideTitle}>{title}</Text><Text style={s.copy}>{text}</Text></View>}
-function Detail({title,value}:{title:string;value:string}){return <View><Text style={s.optionTitle}>{title}</Text><View style={s.option}><View style={[s.dot,s.dotOn]}/><Text>{value.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase())}</Text></View></View>}
-const s=StyleSheet.create({page:{flex:1,backgroundColor:'#FBF7E8'},center:{flex:1,justifyContent:'center',alignItems:'center'},head:{height:64,backgroundColor:'#fff',padding:16,flexDirection:'row',alignItems:'center',gap:14},name:{flex:1,fontWeight:'800',fontSize:17},doc:{backgroundColor:'#C15656',padding:10,borderRadius:20},list:{padding:14,gap:8},bubble:{padding:10,borderRadius:12,maxWidth:'78%'},mine:{alignSelf:'flex-end',backgroundColor:'#EFD7CD'},theirs:{alignSelf:'flex-start',backgroundColor:'#fff'},agreeBubble:{padding:11,borderRadius:13,flexDirection:'row',gap:7,alignItems:'center',backgroundColor:'#D75A5D',alignSelf:'flex-start'},white:{color:'#fff',fontWeight:'800'},system:{textAlign:'center',color:'#786963',fontSize:11},compose:{flexDirection:'row',padding:10,backgroundColor:'#fff'},input:{flex:1,backgroundColor:'#F7EFEA',borderRadius:20,paddingHorizontal:14},send:{backgroundColor:'#C15656',borderRadius:20,padding:10,marginLeft:8},overlay:{flex:1,backgroundColor:'rgba(33,25,20,.45)',justifyContent:'center',alignItems:'center',padding:14},modal:{backgroundColor:'#FFFDF5',width:'100%',maxWidth:520,borderRadius:14,padding:20},modalTitle:{fontSize:20,fontWeight:'800',color:'#C15656'},help:{fontSize:12,color:'#75655F',marginVertical:8},field:{borderWidth:1,borderColor:'#E6D7CF',borderRadius:8,padding:10,marginVertical:8},optionTitle:{fontSize:13,fontWeight:'800',color:'#D65B5B',marginTop:11},option:{flexDirection:'row',gap:7,alignItems:'center',marginTop:6},dot:{width:11,height:11,borderRadius:6,borderWidth:1,borderColor:'#D65B5B'},dotOn:{backgroundColor:'#D65B5B'},actions:{flexDirection:'row',justifyContent:'flex-end',gap:18,marginTop:18,alignItems:'center'},sendBtn:{backgroundColor:'#D75A5D',borderRadius:7,paddingHorizontal:19,paddingVertical:10,alignSelf:'flex-end',marginTop:13},book:{width:'100%',maxWidth:760,height:'78%',backgroundColor:'#FFF9E9',borderRadius:4,flexDirection:'row',overflow:'hidden'},left:{flex:1,padding:22,backgroundColor:'#FFFDF6'},right:{flex:1,padding:22,borderLeftWidth:1,borderColor:'#E8DCC9'},bookOptions:{flex:1},brand:{fontSize:22,color:'#D75A5D',fontWeight:'800',textAlign:'center'},redTitle:{fontSize:14,color:'#D75A5D',fontWeight:'800',textAlign:'center',marginVertical:13},subhead:{fontSize:12,fontWeight:'800',color:'#493833',marginTop:10},guideTitle:{fontSize:12,fontWeight:'800',color:'#D65B5B',marginTop:11},copy:{fontSize:11,lineHeight:15,color:'#5D4D48',marginTop:4},amount:{fontSize:21,color:'#D75A5D',fontWeight:'800',marginTop:16},close:{alignSelf:'flex-end',marginTop:10}});
+import { auth } from "@/firebase/config";
+import API_URL from "@/services/api";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowLeft, FileText, Send } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+type A = {
+  id: number;
+  price: string;
+  terms: string;
+  buyer_accepted_at: string | null;
+  artist_accepted_at: string | null;
+  license_type: string;
+  exclusivity: string;
+  delivery_type: string;
+  compensation_type: string;
+};
+type M = {
+  id: number;
+  sender_id: number | null;
+  body: string;
+  type: string;
+  agreement: A | null;
+};
+type C = {
+  id: number;
+  current_user_id: number;
+  artwork_id: number | null;
+  messages: M[];
+};
+const explain: Record<string, string> = {
+  personal: "Private, non-business use only.",
+  commercial: "Business, marketing, product, or income-related use is allowed.",
+  non_exclusive: "The artist may license the artwork to others.",
+  exclusive: "Only this buyer may use it for the agreed purpose.",
+  sole: "Buyer has exclusive use; artist may still show it in a portfolio.",
+  digital: "Buyer receives a downloadable file.",
+  physical: "A physical item is delivered; agree shipping in chat.",
+  one_time: "The listed price is the complete payment.",
+  royalty: "Artist receives an agreed percentage from future sales.",
+};
+export default function DirectMessageScreen() {
+  const q = useLocalSearchParams<{
+      artistId: string;
+      artistName: string;
+      artworkId: string;
+      conversationId: string;
+    }>(),
+    router = useRouter();
+  const [chat, setChat] = useState<C | null>(null),
+    [body, setBody] = useState(""),
+    [loading, setLoading] = useState(true),
+    [form, setForm] = useState(false),
+    [guide, setGuide] = useState(false),
+    [view, setView] = useState<A | null>(null),
+    [price, setPrice] = useState(""),
+    [license, setLicense] = useState("personal"),
+    [exclusive, setExclusive] = useState("non_exclusive"),
+    [delivery, setDelivery] = useState("digital"),
+    [comp, setComp] = useState("one_time");
+  const h = async () => ({
+    Authorization: `Bearer ${await auth.currentUser!.getIdToken()}`,
+    "Content-Type": "application/json",
+  });
+  const load = async () => {
+    try {
+      setLoading(true);
+      let id = q.conversationId,
+        heads = await h();
+      if (!id) {
+        const r = await fetch(`${API_URL}/api/users/conversations/`, {
+            headers: heads,
+          }),
+          x = await r.json();
+        id = x.find(
+          (i: any) => String(i.artwork_id || "") === String(q.artworkId || ""),
+        )?.id;
+        if (!id) {
+          const c = await fetch(`${API_URL}/api/users/conversations/`, {
+              method: "POST",
+              headers: heads,
+              body: JSON.stringify({
+                artist_id: Number(q.artistId),
+                artwork_id: q.artworkId ? Number(q.artworkId) : undefined,
+              }),
+            }),
+            d = await c.json();
+          id = d.id;
+        }
+      }
+      const r = await fetch(`${API_URL}/api/users/conversations/${id}/`, {
+          headers: heads,
+        }),
+        d = await r.json();
+      if (!r.ok) throw Error(d.error);
+      setChat(d);
+    } catch (e: any) {
+      Alert.alert("Messages", e.message || "Unable to open.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (q.artistId || q.conversationId) load();
+  }, [q.artistId, q.conversationId]);
+  const send = async () => {
+    if (!body || !chat) return;
+    const r = await fetch(
+        `${API_URL}/api/users/conversations/${chat.id}/messages/`,
+        { method: "POST", headers: await h(), body: JSON.stringify({ body }) },
+      ),
+      d = await r.json();
+    setChat({ ...chat, messages: [...chat.messages, d] });
+    setBody("");
+  };
+  const propose = async () => {
+    if (!price || !chat) return;
+    const r = await fetch(
+      `${API_URL}/api/users/conversations/${chat.id}/agreements/`,
+      {
+        method: "POST",
+        headers: await h(),
+        body: JSON.stringify({
+          price,
+          artwork_id: chat.artwork_id,
+          license_type: license,
+          exclusivity: exclusive,
+          delivery_type: delivery,
+          compensation_type: comp,
+        }),
+      },
+    );
+    if (!r.ok) return Alert.alert("Agreement", "Unable to send.");
+    setForm(false);
+    load();
+  };
+  const accept = async (a: A) => {
+    await fetch(`${API_URL}/api/users/agreements/${a.id}/`, {
+      method: "PATCH",
+      headers: await h(),
+    });
+    setView(null);
+    load();
+  };
+  if (loading)
+    return (
+      <View style={s.center}>
+        <ActivityIndicator color="#C15656" />
+      </View>
+    );
+  return (
+    <SafeAreaView style={s.page}>
+      <View style={s.head}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft color="#C15656" />
+        </TouchableOpacity>
+        <Text style={s.name}>{q.artistName || "Conversation"}</Text>
+        <TouchableOpacity onPress={() => setForm(true)} style={s.doc}>
+          <FileText color="#fff" />
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={chat?.messages || []}
+        keyExtractor={(x) => String(x.id)}
+        contentContainerStyle={s.list}
+        renderItem={({ item }) =>
+          item.agreement ? (
+            <TouchableOpacity
+              style={s.agree}
+              onPress={() => setView(item.agreement)}
+            >
+              <FileText size={16} color="#fff" />
+              <Text style={s.white}>License and Agreement</Text>
+            </TouchableOpacity>
+          ) : (
+            <View
+              style={[
+                s.bubble,
+                item.sender_id === chat?.current_user_id ? s.mine : s.theirs,
+              ]}
+            >
+              <Text>{item.body}</Text>
+            </View>
+          )
+        }
+      />
+      <View style={s.compose}>
+        <TextInput
+          value={body}
+          onChangeText={setBody}
+          placeholder="Write a message..."
+          style={s.input}
+        />
+        <TouchableOpacity onPress={send} style={s.send}>
+          <Send size={18} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      <Modal visible={form} transparent onRequestClose={() => setForm(false)}>
+        <Pressable style={s.overlay} onPress={() => setForm(false)}>
+          <Pressable style={s.modal} onPress={(e) => e.stopPropagation()}>
+            <ScrollView>
+              <Text style={s.title}>Create license agreement</Text>
+              <TouchableOpacity onPress={() => setGuide(true)}>
+                <Text style={s.learn}>Learn more about license terms</Text>
+              </TouchableOpacity>
+              <TextInput
+                value={price}
+                onChangeText={setPrice}
+                placeholder="Agreed price"
+                keyboardType="decimal-pad"
+                style={s.field}
+              />
+              <Pick
+                title="License"
+                value={license}
+                set={setLicense}
+                choices={[
+                  ["personal", "Personal use"],
+                  ["commercial", "Commercial use"],
+                ]}
+              />
+              <Pick
+                title="Exclusivity"
+                value={exclusive}
+                set={setExclusive}
+                choices={[
+                  ["non_exclusive", "Non-exclusive"],
+                  ["exclusive", "Exclusive"],
+                  ["sole", "Sole"],
+                ]}
+              />
+              <Pick
+                title="Delivery"
+                value={delivery}
+                set={setDelivery}
+                choices={[
+                  ["digital", "Digital"],
+                  ["physical", "Physical"],
+                ]}
+              />
+              <Pick
+                title="Compensation"
+                value={comp}
+                set={setComp}
+                choices={[
+                  ["one_time", "One-time"],
+                  ["royalty", "Royalty"],
+                ]}
+              />
+              <TouchableOpacity onPress={propose} style={s.red}>
+                <Text style={s.white}>Send agreement</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <Modal visible={guide} transparent onRequestClose={() => setGuide(false)}>
+        <Pressable style={s.overlay} onPress={() => setGuide(false)}>
+          <Pressable style={s.modal} onPress={(e) => e.stopPropagation()}>
+            <ScrollView>
+              <Text style={s.title}>License terms guide</Text>
+              {Object.entries(explain).map(([k, v]) => (
+                <View key={k}>
+                  <Text style={s.label}>{k.replace(/_/g, " ")}</Text>
+                  <Text style={s.meaning}>{v}</Text>
+                </View>
+              ))}
+              <TouchableOpacity onPress={() => setGuide(false)} style={s.red}>
+                <Text style={s.white}>Close</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <Modal visible={!!view} transparent onRequestClose={() => setView(null)}>
+        {view && (
+          <Pressable style={s.overlay} onPress={() => setView(null)}>
+            <Pressable style={s.modal} onPress={(e) => e.stopPropagation()}>
+              <Text style={s.title}>Art License Agreement</Text>
+              <Text style={s.label}>Terms and conditions</Text>
+              <Text style={s.meaning}>{view.terms}</Text>
+              <Info k="License" v={view.license_type} />
+              <Info k="Exclusivity" v={view.exclusivity} />
+              <Info k="Delivery" v={view.delivery_type} />
+              <Info k="Compensation" v={view.compensation_type} />
+              <Text style={s.amount}>₱{view.price}</Text>
+              {!(view.buyer_accepted_at && view.artist_accepted_at) && (
+                <TouchableOpacity onPress={() => accept(view)} style={s.red}>
+                  <Text style={s.white}>I understand and accept</Text>
+                </TouchableOpacity>
+              )}
+            </Pressable>
+          </Pressable>
+        )}
+      </Modal>
+    </SafeAreaView>
+  );
+}
+function Pick({
+  title,
+  value,
+  set,
+  choices,
+}: {
+  title: string;
+  value: string;
+  set: (x: string) => void;
+  choices: string[][];
+}) {
+  return (
+    <View>
+      <Text style={s.label}>{title}</Text>
+      {choices.map(([v, t]) => (
+        <TouchableOpacity key={v} onPress={() => set(v)} style={s.pick}>
+          <Text style={value === v ? s.selected : s.normal}>●</Text>
+          <View>
+            <Text>{t}</Text>
+            <Text style={s.meaning}>{explain[v]}</Text>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+function Info({ k, v }: { k: string; v: string }) {
+  return (
+    <View>
+      <Text style={s.label}>{k}</Text>
+      <Text>{v.replace(/_/g, " ")}</Text>
+      <Text style={s.meaning}>{explain[v]}</Text>
+    </View>
+  );
+}
+const s = StyleSheet.create({
+  page: { flex: 1, backgroundColor: "#FBF7E8" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  head: {
+    height: 64,
+    backgroundColor: "#fff",
+    padding: 16,
+    flexDirection: "row",
+    gap: 14,
+    alignItems: "center",
+  },
+  name: { flex: 1, fontWeight: "800" },
+  doc: { backgroundColor: "#C15656", padding: 9, borderRadius: 20 },
+  list: { padding: 14, gap: 8 },
+  bubble: { padding: 10, borderRadius: 12, maxWidth: "78%" },
+  mine: { alignSelf: "flex-end", backgroundColor: "#EFD7CD" },
+  theirs: { alignSelf: "flex-start", backgroundColor: "#fff" },
+  agree: {
+    alignSelf: "flex-start",
+    backgroundColor: "#D75A5D",
+    padding: 11,
+    borderRadius: 13,
+    flexDirection: "row",
+    gap: 7,
+  },
+  white: { color: "#fff", fontWeight: "800" },
+  compose: { flexDirection: "row", padding: 10, backgroundColor: "#fff" },
+  input: {
+    flex: 1,
+    backgroundColor: "#F7EFEA",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+  },
+  send: {
+    backgroundColor: "#C15656",
+    padding: 10,
+    borderRadius: 20,
+    marginLeft: 8,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+  },
+  modal: {
+    backgroundColor: "#fff",
+    width: "100%",
+    maxWidth: 500,
+    maxHeight: "80%",
+    borderRadius: 14,
+    padding: 20,
+  },
+  title: { fontSize: 19, fontWeight: "800", color: "#C15656" },
+  learn: { color: "#C15656", fontWeight: "800", fontSize: 12, marginTop: 7 },
+  field: {
+    borderWidth: 1,
+    borderColor: "#E6D7CF",
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 12,
+  },
+  label: {
+    fontWeight: "800",
+    fontSize: 12,
+    color: "#D65B5B",
+    marginTop: 12,
+    textTransform: "uppercase",
+  },
+  pick: { flexDirection: "row", gap: 7, marginTop: 7 },
+  meaning: { fontSize: 11, lineHeight: 15, color: "#75655F", marginTop: 2 },
+  selected: { color: "#D65B5B" },
+  normal: { color: "#D7A5A5" },
+  red: {
+    backgroundColor: "#D75A5D",
+    alignSelf: "flex-end",
+    padding: 11,
+    borderRadius: 7,
+    marginTop: 16,
+  },
+  amount: { fontSize: 20, fontWeight: "800", color: "#D75A5D", marginTop: 15 },
+});

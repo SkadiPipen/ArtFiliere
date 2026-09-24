@@ -14,33 +14,33 @@ export type SignUpFormData = {
   postalCode: string;
   barangay: string;
   street: string;
-  wantsRoyalty: 'yes' | 'no' | null;
+  wantsRoyalty: "yes" | "no" | null;
   royaltyFileName: string | null;
 };
 
 export const INITIAL_SIGN_UP_FORM_DATA: SignUpFormData = {
-  username: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-  firstName: '',
-  middleName: '',
-  lastName: '',
-  dateOfBirth: '',
-  contactNumber: '',
-  region: '',
-  province: '',
-  city: '',
-  postalCode: '',
-  barangay: '',
-  street: '',
+  username: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  dateOfBirth: "",
+  contactNumber: "",
+  region: "",
+  province: "",
+  city: "",
+  postalCode: "",
+  barangay: "",
+  street: "",
   wantsRoyalty: null,
   royaltyFileName: null,
 };
 
 export type UpdateSignUpField = <K extends keyof SignUpFormData>(
   key: K,
-  value: SignUpFormData[K]
+  value: SignUpFormData[K],
 ) => void;
 
 // Maps camelCase client state to the snake_case field names Django expects
@@ -56,7 +56,7 @@ export function toDjangoPayload(formData: SignUpFormData) {
     last_name: formData.lastName,
     date_of_birth: formData.dateOfBirth,
     contact_number: formData.contactNumber,
-    wants_royalty: formData.wantsRoyalty ?? 'no',
+    wants_royalty: formData.wantsRoyalty ?? "no",
     address: {
       region: formData.region,
       province: formData.province,

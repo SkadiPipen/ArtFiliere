@@ -1,1 +1,1 @@
-export { default } from '@/module/auth/SignUpScreen';
+export { default } from "@/module/auth/SignUpScreen";

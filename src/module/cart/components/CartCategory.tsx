@@ -1,5 +1,5 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { FilterType } from '@/module/cart/types';
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FilterType } from "@/module/cart/types";
 
 interface Props {
   activeFilter: FilterType;
@@ -7,7 +7,7 @@ interface Props {
 }
 
 export default function CartCategory({ activeFilter, onSelectFilter }: Props) {
-  const filters: FilterType[] = ['All', 'Direct Sell', 'Auction', 'Commission'];
+  const filters: FilterType[] = ["All", "Direct Sell", "Auction", "Commission"];
 
   return (
     <View style={styles.filterTabsContainer}>
@@ -16,14 +16,18 @@ export default function CartCategory({ activeFilter, onSelectFilter }: Props) {
           key={filter}
           style={[
             styles.filter,
-            activeFilter === filter ? styles.filterActive : styles.filterInactive,
+            activeFilter === filter
+              ? styles.filterActive
+              : styles.filterInactive,
           ]}
           onPress={() => onSelectFilter(filter)}
         >
           <Text
             style={[
               styles.filterText,
-              activeFilter === filter ? styles.filterTextActive : styles.filterTextInactive,
+              activeFilter === filter
+                ? styles.filterTextActive
+                : styles.filterTextInactive,
             ]}
           >
             {filter}
@@ -36,21 +40,21 @@ export default function CartCategory({ activeFilter, onSelectFilter }: Props) {
 
 const styles = StyleSheet.create({
   filterTabsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 15,
     marginVertical: 12,
-    justifyContent: 'space-around',
+    justifyContent: "space-around",
   },
   filter: {
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-  filterActive: { backgroundColor: '#C15656' },
-  filterInactive: { backgroundColor: '#FDF5E6' },
-  filterText: { fontWeight: '600', fontSize: 13 },
-  filterTextActive: { color: '#fff' },
-  filterTextInactive: { color: '#C15656' },
+  filterActive: { backgroundColor: "#C15656" },
+  filterInactive: { backgroundColor: "#FDF5E6" },
+  filterText: { fontWeight: "600", fontSize: 13 },
+  filterTextActive: { color: "#fff" },
+  filterTextInactive: { color: "#C15656" },
 });

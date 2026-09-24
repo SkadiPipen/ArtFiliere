@@ -1,1 +1,1 @@
-export { default } from '@/module/messages/DirectMessageScreen';
+export { default } from "@/module/messages/DirectMessageScreen";

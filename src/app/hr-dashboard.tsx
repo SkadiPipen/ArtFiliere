@@ -1,1 +1,1 @@
-export { default } from '@/module/hr/HrDashboardScreen';
+export { default } from "@/module/hr/HrDashboardScreen";

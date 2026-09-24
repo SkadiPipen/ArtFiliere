@@ -1,1 +1,1 @@
-export { default } from '@/module/artwork/ArtistPostScreen';
+export { default } from "@/module/artwork/ArtistPostScreen";

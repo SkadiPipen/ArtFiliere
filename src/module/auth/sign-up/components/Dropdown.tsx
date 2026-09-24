@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/colors';
-import type { AddressOption } from '@/constants/addresses';
+import { useState } from "react";
+import { View, Text, Pressable, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "@/constants/colors";
+import type { AddressOption } from "@/constants/addresses";
 
 type DropdownProps = {
   placeholder: string;
@@ -32,16 +32,21 @@ export default function Dropdown({
           borderRadius: 8,
           paddingHorizontal: 14,
           paddingVertical: 12,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
-        <Text style={{ color: value ? COLORS.textDark : COLORS.textMuted, fontSize: 15 }}>
+        <Text
+          style={{
+            color: value ? COLORS.textDark : COLORS.textMuted,
+            fontSize: 15,
+          }}
+        >
           {value || placeholder}
         </Text>
         <Ionicons
-          name={open ? 'chevron-up' : 'chevron-down'}
+          name={open ? "chevron-up" : "chevron-down"}
           size={16}
           color={COLORS.textMuted}
         />
@@ -73,7 +78,9 @@ export default function Dropdown({
                   borderBottomColor: COLORS.border,
                 }}
               >
-                <Text style={{ color: COLORS.textDark, fontSize: 14 }}>{option.name}</Text>
+                <Text style={{ color: COLORS.textDark, fontSize: 14 }}>
+                  {option.name}
+                </Text>
               </Pressable>
             ))}
           </ScrollView>

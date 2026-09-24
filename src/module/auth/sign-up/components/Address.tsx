@@ -1,7 +1,10 @@
-import { View, TextInput } from 'react-native';
-import { COLORS } from '@/constants/colors';
-import Dropdown from './Dropdown';
-import type { SignUpFormData, UpdateSignUpField } from '@/module/auth/sign-up/types';
+import { View, TextInput } from "react-native";
+import { COLORS } from "@/constants/colors";
+import Dropdown from "./Dropdown";
+import type {
+  SignUpFormData,
+  UpdateSignUpField,
+} from "@/module/auth/sign-up/types";
 import {
   REGIONS,
   PROVINCES_BY_REGION,
@@ -9,29 +12,34 @@ import {
   BARANGAYS_BY_CITY,
   DEFAULT_BARANGAYS,
   AddressOption,
-} from '@/constants/addresses';
+} from "@/constants/addresses";
 
 type AddressProps = {
   formData: SignUpFormData;
   updateField: UpdateSignUpField;
 };
 
-function findCodeByName(options: AddressOption[], name: string): string | undefined {
+function findCodeByName(
+  options: AddressOption[],
+  name: string,
+): string | undefined {
   return options.find((option) => option.name === name)?.code;
 }
 
 export default function Address({ formData, updateField }: AddressProps) {
   const regionCode = findCodeByName(REGIONS, formData.region);
-  const provinces = regionCode ? PROVINCES_BY_REGION[regionCode] ?? [] : [];
+  const provinces = regionCode ? (PROVINCES_BY_REGION[regionCode] ?? []) : [];
 
   const provinceCode = provinces.length
     ? findCodeByName(provinces, formData.province)
     : undefined;
-  const cities = provinceCode ? CITIES_BY_PROVINCE[provinceCode] ?? [] : [];
+  const cities = provinceCode ? (CITIES_BY_PROVINCE[provinceCode] ?? []) : [];
 
-  const cityCode = cities.length ? findCodeByName(cities, formData.city) : undefined;
+  const cityCode = cities.length
+    ? findCodeByName(cities, formData.city)
+    : undefined;
   const barangays = cityCode
-    ? BARANGAYS_BY_CITY[cityCode] ?? DEFAULT_BARANGAYS
+    ? (BARANGAYS_BY_CITY[cityCode] ?? DEFAULT_BARANGAYS)
     : DEFAULT_BARANGAYS;
 
   return (
@@ -41,10 +49,10 @@ export default function Address({ formData, updateField }: AddressProps) {
         value={formData.region}
         options={REGIONS}
         onSelect={(name) => {
-          updateField('region', name);
-          updateField('province', '');
-          updateField('city', '');
-          updateField('barangay', '');
+          updateField("region", name);
+          updateField("province", "");
+          updateField("city", "");
+          updateField("barangay", "");
         }}
       />
 
@@ -54,9 +62,9 @@ export default function Address({ formData, updateField }: AddressProps) {
         options={provinces}
         disabled={!formData.region}
         onSelect={(name) => {
-          updateField('province', name);
-          updateField('city', '');
-          updateField('barangay', '');
+          updateField("province", name);
+          updateField("city", "");
+          updateField("barangay", "");
         }}
       />
 
@@ -66,8 +74,8 @@ export default function Address({ formData, updateField }: AddressProps) {
         options={cities}
         disabled={!formData.province}
         onSelect={(name) => {
-          updateField('city', name);
-          updateField('barangay', '');
+          updateField("city", name);
+          updateField("barangay", "");
         }}
       />
 
@@ -76,7 +84,7 @@ export default function Address({ formData, updateField }: AddressProps) {
         placeholder="Postal Code"
         placeholderTextColor={COLORS.textMuted}
         value={formData.postalCode}
-        onChangeText={(text) => updateField('postalCode', text)}
+        onChangeText={(text) => updateField("postalCode", text)}
         keyboardType="number-pad"
       />
 
@@ -85,7 +93,7 @@ export default function Address({ formData, updateField }: AddressProps) {
         value={formData.barangay}
         options={barangays}
         disabled={!formData.city}
-        onSelect={(name) => updateField('barangay', name)}
+        onSelect={(name) => updateField("barangay", name)}
       />
 
       <TextInput
@@ -93,7 +101,7 @@ export default function Address({ formData, updateField }: AddressProps) {
         placeholder="Street"
         placeholderTextColor={COLORS.textMuted}
         value={formData.street}
-        onChangeText={(text) => updateField('street', text)}
+        onChangeText={(text) => updateField("street", text)}
       />
     </View>
   );

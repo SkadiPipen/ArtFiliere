@@ -1,49 +1,66 @@
-import { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import API_URL from '@/services/api';
-import { loginUser, registerUser } from '@/services/auth';
-import { COLORS } from '@/constants/colors';
+import { useState } from "react";
+import { View, Text, Pressable, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import API_URL from "@/services/api";
+import { loginUser, registerUser } from "@/services/auth";
+import { COLORS } from "@/constants/colors";
 import {
   INITIAL_SIGN_UP_FORM_DATA,
   SignUpFormData,
   UpdateSignUpField,
   toDjangoPayload,
-} from '@/module/auth/sign-up/types';
-import CreateAccount from '@/module/auth/sign-up/components/CreateAccount';
-import ProfileInfo from '@/module/auth/sign-up/components/ProfileInfo';
-import Address from '@/module/auth/sign-up/components/Address';
-import RoyaltyInfo from '@/module/auth/sign-up/components/RoyaltyInfo';
-import Success from '@/module/auth/sign-up/components/Success';
+} from "@/module/auth/sign-up/types";
+import CreateAccount from "@/module/auth/sign-up/components/CreateAccount";
+import ProfileInfo from "@/module/auth/sign-up/components/ProfileInfo";
+import Address from "@/module/auth/sign-up/components/Address";
+import RoyaltyInfo from "@/module/auth/sign-up/components/RoyaltyInfo";
+import Success from "@/module/auth/sign-up/components/Success";
 
 const TOTAL_STEPS = 4;
 
 const STEP_META: Record<number, { subtitle: string; heading: string }> = {
-  1: { subtitle: 'Sign up to get more access', heading: 'Create Your Account' },
-  2: { subtitle: 'Tell us about yourself', heading: 'Profile Information' },
-  3: { subtitle: 'Enter your default address', heading: 'Address' },
-  4: { subtitle: 'And set default royalty (this is optional)', heading: '' },
+  1: { subtitle: "Sign up to get more access", heading: "Create Your Account" },
+  2: { subtitle: "Tell us about yourself", heading: "Profile Information" },
+  3: { subtitle: "Enter your default address", heading: "Address" },
+  4: { subtitle: "And set default royalty (this is optional)", heading: "" },
 };
 
 function validateStep(step: number, formData: SignUpFormData): string | null {
   if (step === 1) {
-    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
-      return 'Please fill in all fields.';
+    if (
+      !formData.username ||
+      !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      return "Please fill in all fields.";
     }
     if (formData.password !== formData.confirmPassword) {
-      return 'Passwords do not match.';
+      return "Passwords do not match.";
     }
   }
 
   if (step === 2) {
-    if (!formData.firstName || !formData.lastName || !formData.dateOfBirth || !formData.contactNumber) {
-      return 'Please fill in all required profile fields.';
+    if (
+      !formData.firstName ||
+      !formData.lastName ||
+      !formData.dateOfBirth ||
+      !formData.contactNumber
+    ) {
+      return "Please fill in all required profile fields.";
     }
   }
 
   if (step === 3) {
-    if (!formData.region || !formData.province || !formData.city || !formData.postalCode || !formData.barangay || !formData.street) {
-      return 'Please complete your address.';
+    if (
+      !formData.region ||
+      !formData.province ||
+      !formData.city ||
+      !formData.postalCode ||
+      !formData.barangay ||
+      !formData.street
+    ) {
+      return "Please complete your address.";
     }
   }
 
@@ -52,7 +69,9 @@ function validateStep(step: number, formData: SignUpFormData): string | null {
 
 export default function SignUp() {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<SignUpFormData>(INITIAL_SIGN_UP_FORM_DATA);
+  const [formData, setFormData] = useState<SignUpFormData>(
+    INITIAL_SIGN_UP_FORM_DATA,
+  );
 
   const updateField: UpdateSignUpField = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -79,7 +98,7 @@ export default function SignUp() {
       try {
         user = await registerUser(formData.email, formData.password);
       } catch (error: any) {
-        if (error.code !== 'auth/email-already-in-use') throw error;
+        if (error.code !== "auth/email-already-in-use") throw error;
         user = await loginUser(formData.email, formData.password);
       }
 
@@ -89,21 +108,23 @@ export default function SignUp() {
       // Send token + full profile to Django, mapped to the snake_case
       // fields the users.User / users.Address models expect
       const response = await fetch(`${API_URL}/auth/register/`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(toDjangoPayload(formData)),
       });
 
-      console.log('Status:', response.status);
+      console.log("Status:", response.status);
 
       const data = await response.json().catch(() => ({}));
       console.log(data);
 
       if (!response.ok) {
-        throw new Error(data.error || `Unable to create your account (${response.status}).`);
+        throw new Error(
+          data.error || `Unable to create your account (${response.status}).`,
+        );
       }
 
       setStep(5);
@@ -118,12 +139,18 @@ export default function SignUp() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.cream }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 20 }}>
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
         <View
           style={{
-            width: '100%',
+            width: "100%",
             maxWidth: 420,
-            alignSelf: 'center',
+            alignSelf: "center",
             backgroundColor: COLORS.white,
             borderRadius: 16,
             padding: 24,
@@ -131,8 +158,17 @@ export default function SignUp() {
         >
           {!isSuccessStep && (
             <>
-              <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16 }}>
-                {Array.from({ length: TOTAL_STEPS }, (_, index) => index + 1).map((dotStep) => (
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  marginBottom: 16,
+                }}
+              >
+                {Array.from(
+                  { length: TOTAL_STEPS },
+                  (_, index) => index + 1,
+                ).map((dotStep) => (
                   <View
                     key={dotStep}
                     style={{
@@ -140,18 +176,26 @@ export default function SignUp() {
                       height: 10,
                       borderRadius: 5,
                       marginHorizontal: 4,
-                      backgroundColor: dotStep <= step ? COLORS.activeDot : COLORS.inactiveDot,
+                      backgroundColor:
+                        dotStep <= step ? COLORS.activeDot : COLORS.inactiveDot,
                     }}
                   />
                 ))}
               </View>
 
-              <Text style={{ textAlign: 'center', color: COLORS.red, fontWeight: '700', fontSize: 13 }}>
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: COLORS.red,
+                  fontWeight: "700",
+                  fontSize: 13,
+                }}
+              >
                 Step {step} of Registration
               </Text>
               <Text
                 style={{
-                  textAlign: 'center',
+                  textAlign: "center",
                   color: COLORS.textMuted,
                   fontSize: 12,
                   marginBottom: 12,
@@ -164,7 +208,7 @@ export default function SignUp() {
                 <Text
                   style={{
                     fontSize: 22,
-                    fontWeight: '800',
+                    fontWeight: "800",
                     color: COLORS.red,
                     marginBottom: 18,
                   }}
@@ -175,24 +219,34 @@ export default function SignUp() {
             </>
           )}
 
-          {step === 1 && <CreateAccount formData={formData} updateField={updateField} />}
-          {step === 2 && <ProfileInfo formData={formData} updateField={updateField} />}
-          {step === 3 && <Address formData={formData} updateField={updateField} />}
-          {step === 4 && <RoyaltyInfo formData={formData} updateField={updateField} />}
+          {step === 1 && (
+            <CreateAccount formData={formData} updateField={updateField} />
+          )}
+          {step === 2 && (
+            <ProfileInfo formData={formData} updateField={updateField} />
+          )}
+          {step === 3 && (
+            <Address formData={formData} updateField={updateField} />
+          )}
+          {step === 4 && (
+            <RoyaltyInfo formData={formData} updateField={updateField} />
+          )}
           {step === 5 && <Success />}
 
           {!isSuccessStep && (
             <View
               style={{
-                flexDirection: 'row',
-                justifyContent: step === 1 ? 'flex-end' : 'space-between',
-                alignItems: 'center',
+                flexDirection: "row",
+                justifyContent: step === 1 ? "flex-end" : "space-between",
+                alignItems: "center",
                 marginTop: 20,
               }}
             >
               {step > 1 && (
                 <Pressable onPress={handleBack}>
-                  <Text style={{ color: COLORS.textMuted, fontWeight: '600' }}>Back</Text>
+                  <Text style={{ color: COLORS.textMuted, fontWeight: "600" }}>
+                    Back
+                  </Text>
                 </Pressable>
               )}
 
@@ -205,8 +259,8 @@ export default function SignUp() {
                 })}
                 onPress={step === 4 ? handleCreateAccount : handleNext}
               >
-                <Text style={{ color: COLORS.white, fontWeight: '700' }}>
-                  {step === 4 ? 'Create Account' : 'Next'}
+                <Text style={{ color: COLORS.white, fontWeight: "700" }}>
+                  {step === 4 ? "Create Account" : "Next"}
                 </Text>
               </Pressable>
             </View>

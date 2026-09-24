@@ -1,11 +1,11 @@
-import { View, Text, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { COLORS } from '@/constants/colors';
+import { View, Text, Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { COLORS } from "@/constants/colors";
 
 export default function Success() {
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+    <View style={{ alignItems: "center", paddingVertical: 24 }}>
       <View
         style={{
           width: 64,
@@ -13,8 +13,8 @@ export default function Success() {
           borderRadius: 32,
           borderWidth: 2,
           borderColor: COLORS.success,
-          alignItems: 'center',
-          justifyContent: 'center',
+          alignItems: "center",
+          justifyContent: "center",
           marginBottom: 20,
         }}
       >
@@ -24,17 +24,17 @@ export default function Success() {
       <Text
         style={{
           fontSize: 16,
-          fontWeight: '700',
+          fontWeight: "700",
           color: COLORS.textDark,
-          textAlign: 'center',
+          textAlign: "center",
           marginBottom: 16,
         }}
       >
         Congratulations! You've done sign up.
       </Text>
 
-      <Pressable onPress={() => router.replace('/login')}>
-        <Text style={{ color: COLORS.red, fontWeight: '700', fontSize: 14 }}>
+      <Pressable onPress={() => router.replace("/login")}>
+        <Text style={{ color: COLORS.red, fontWeight: "700", fontSize: 14 }}>
           Proceed to Log In
         </Text>
       </Pressable>

@@ -1,1 +1,1 @@
-export { default } from '@/module/artwork/ViewPostScreen';
+export { default } from "@/module/artwork/ViewPostScreen";

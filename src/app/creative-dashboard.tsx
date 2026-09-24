@@ -1,1 +1,1 @@
-export { default } from '@/module/creative/CreativeDashboardScreen';
+export { default } from "@/module/creative/CreativeDashboardScreen";

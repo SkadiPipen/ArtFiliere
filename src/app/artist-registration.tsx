@@ -1,1 +1,1 @@
-export { default } from '@/module/artist-registration/ArtistRegistrationScreen';
+export { default } from "@/module/artist-registration/ArtistRegistrationScreen";

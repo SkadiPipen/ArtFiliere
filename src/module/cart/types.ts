@@ -9,4 +9,4 @@ export interface CartItem {
   quantity: number;
 }
 
-export type FilterType = 'All' | 'Direct Sell' | 'Auction' | 'Commission';
+export type FilterType = "All" | "Direct Sell" | "Auction" | "Commission";

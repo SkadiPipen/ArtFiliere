@@ -1,6 +1,6 @@
-import BottomNavBar from '@/module/home/components/BottomNavbar';
-import { Stack } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import BottomNavBar from "@/module/home/components/BottomNavbar";
+import { Stack } from "expo-router";
+import { StyleSheet, View } from "react-native";
 
 export default function HomeLayout() {
   return (
@@ -23,6 +23,6 @@ export default function HomeLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
 });

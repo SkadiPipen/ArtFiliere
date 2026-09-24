@@ -1,6 +1,13 @@
-import { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { ArtItem, FOR_YOU_DATA } from '@/module/home/types';
+import { useState } from "react";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { ArtItem, FOR_YOU_DATA } from "@/module/home/types";
 
 interface ForYouGridProps {
   activeCategory: string;
@@ -8,7 +15,11 @@ interface ForYouGridProps {
   items?: ArtItem[];
 }
 
-export default function ForYouGrid({ activeCategory, onSelect, items }: ForYouGridProps) {
+export default function ForYouGrid({
+  activeCategory,
+  onSelect,
+  items,
+}: ForYouGridProps) {
   const { width } = useWindowDimensions();
   const [gridPage, setGridPage] = useState(1);
 
@@ -17,9 +28,10 @@ export default function ForYouGrid({ activeCategory, onSelect, items }: ForYouGr
   const itemsPerPage = numColumns * 2;
 
   const sourceItems = items?.length ? items : FOR_YOU_DATA;
-  const filteredForYou = activeCategory === 'All'
-    ? sourceItems
-    : sourceItems.filter((item) => item.type === activeCategory);
+  const filteredForYou =
+    activeCategory === "All"
+      ? sourceItems
+      : sourceItems.filter((item) => item.type === activeCategory);
 
   return (
     <View style={styles.container}>
@@ -33,9 +45,15 @@ export default function ForYouGrid({ activeCategory, onSelect, items }: ForYouGr
               style={[styles.gridCard, { width: `${100 / numColumns - 2}%` }]}
               onPress={() => onSelect(item, item.type)}
             >
-              <Image source={{ uri: item.image }} style={styles.gridImg} resizeMode="cover" />
+              <Image
+                source={{ uri: item.image }}
+                style={styles.gridImg}
+                resizeMode="cover"
+              />
               <View style={styles.gridContent}>
-                <Text style={styles.gridName} numberOfLines={1}>{item.artist}</Text>
+                <Text style={styles.gridName} numberOfLines={1}>
+                  {item.artist}
+                </Text>
                 <Text style={styles.gridPrice}>₱ {item.price}</Text>
               </View>
             </TouchableOpacity>
@@ -44,7 +62,9 @@ export default function ForYouGrid({ activeCategory, onSelect, items }: ForYouGr
 
       {/* PAGINATION */}
       <View style={styles.pagination}>
-        <TouchableOpacity onPress={() => setGridPage(Math.max(1, gridPage - 1))}>
+        <TouchableOpacity
+          onPress={() => setGridPage(Math.max(1, gridPage - 1))}
+        >
           <Text style={styles.pageArrow}>◀ prev</Text>
         </TouchableOpacity>
         {[1, 2, 3, 4, 5].map((p) => (
@@ -53,10 +73,14 @@ export default function ForYouGrid({ activeCategory, onSelect, items }: ForYouGr
             style={[styles.pageDot, gridPage === p && styles.activePageDot]}
             onPress={() => setGridPage(p)}
           >
-            <Text style={[styles.pageNum, gridPage === p && { color: '#fff' }]}>{p}</Text>
+            <Text style={[styles.pageNum, gridPage === p && { color: "#fff" }]}>
+              {p}
+            </Text>
           </TouchableOpacity>
         ))}
-        <TouchableOpacity onPress={() => setGridPage(Math.min(5, gridPage + 1))}>
+        <TouchableOpacity
+          onPress={() => setGridPage(Math.min(5, gridPage + 1))}
+        >
           <Text style={styles.pageArrow}>next ▶</Text>
         </TouchableOpacity>
       </View>
@@ -66,28 +90,57 @@ export default function ForYouGrid({ activeCategory, onSelect, items }: ForYouGr
 
 const styles = StyleSheet.create({
   container: { marginTop: 20, flex: 1 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#C15656', marginHorizontal: 15, marginBottom: 12, textAlign: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 15 },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#C15656",
+    marginHorizontal: 15,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 15,
+  },
   gridCard: {
     marginBottom: 15,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
   },
-  gridImg: { width: '100%', aspectRatio: 1 },
+  gridImg: { width: "100%", aspectRatio: 1 },
   gridContent: { padding: 10 },
-  gridName: { fontSize: 13, fontWeight: '500', color: '#333' },
-  gridPrice: { fontWeight: 'bold', color: '#C15656', marginTop: 2 },
-  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 20 },
-  pageArrow: { color: '#C15656', marginHorizontal: 12, fontWeight: 'bold', fontSize: 13 },
-  pageDot: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginHorizontal: 4 },
-  activePageDot: { backgroundColor: '#C15656' },
-  pageNum: { fontSize: 13, fontWeight: 'bold', color: '#555' },
+  gridName: { fontSize: 13, fontWeight: "500", color: "#333" },
+  gridPrice: { fontWeight: "bold", color: "#C15656", marginTop: 2 },
+  pagination: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  pageArrow: {
+    color: "#C15656",
+    marginHorizontal: 12,
+    fontWeight: "bold",
+    fontSize: 13,
+  },
+  pageDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+  activePageDot: { backgroundColor: "#C15656" },
+  pageNum: { fontSize: 13, fontWeight: "bold", color: "#555" },
 });
