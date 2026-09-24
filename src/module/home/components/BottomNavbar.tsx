@@ -1,18 +1,11 @@
-import { usePathname, useRouter } from "expo-router";
-import {
-  Clock,
-  Disc,
-  Home,
-  Plus,
-  ShoppingCart,
-  User,
-} from "lucide-react-native";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useEffect, useState } from "react";
-import { auth } from "@/firebase/config";
-import API_URL from "@/services/api";
-import { useCart } from "@/context/CartContext";
+import { useCart } from '@/context/CartContext';
+import { auth } from '@/firebase/config';
+import API_URL from '@/services/api';
+import { usePathname, useRouter } from 'expo-router';
+import { Clock, Disc, Home, Plus, ShoppingCart, User } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BottomNavBar() {
   const router = useRouter();
@@ -22,92 +15,58 @@ export default function BottomNavBar() {
   const { cartItems } = useCart();
   const cartCount = cartItems.length;
 
-  const isHomeActive = pathname === "/" || pathname === "/(home)";
+  const isHomeActive = pathname === '/' || pathname === '/(home)';
 
   useEffect(() => {
     const loadRole = async () => {
       if (!auth.currentUser) return;
       try {
-        const response = await fetch(`${API_URL}/auth/me/`, {
-          headers: {
-            Authorization: `Bearer ${await auth.currentUser.getIdToken()}`,
-          },
-        });
+        const response = await fetch(`${API_URL}/auth/me/`, { headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` } });
         const profile = response.ok ? await response.json() : null;
-        setIsArtist(profile?.role === "artist");
-      } catch {
-        setIsArtist(false);
-      }
+        setIsArtist(profile?.role === 'artist');
+      } catch { setIsArtist(false); }
     };
     loadRole();
   }, []);
 
   return (
-    <View
-      style={[styles.navBar, { paddingBottom: Math.max(10, insets.bottom) }]}
-    >
+    <View style={[styles.navBar, { paddingBottom: Math.max(10, insets.bottom) }]}>
       <View style={styles.navInner}>
         {/* HOME */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => router.push("/(home)")}
-        >
-          <Home
-            color="#fff"
-            size={24}
-            style={isHomeActive ? styles.activeIcon : undefined}
-          />
-          <Text style={[styles.navText, isHomeActive && styles.activeText]}>
-            Home
-          </Text>
+        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)')}>
+          <Home color="#fff" size={24} style={isHomeActive ? styles.activeIcon : undefined} />
+          <Text style={[styles.navText, isHomeActive && styles.activeText]}>Home</Text>
         </TouchableOpacity>
 
         {/* ACTIVITIES */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => router.push("/(home)/activities")}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/activities')}>
           <Clock color="#fff" size={24} />
           <Text style={styles.navText}>Activities</Text>
         </TouchableOpacity>
 
         {/* Artists post from the dashboard; buyers retain the auction action. */}
-        <TouchableOpacity
-          style={styles.auctionContainer}
-          onPress={() =>
-            isArtist
-              ? router.push("/artist-post")
-              : Alert.alert("Auction", "Opening Auctions...")
-          }
-        >
+        <TouchableOpacity 
+          style={styles.auctionContainer} 
+          onPress={() => { 
+            if (isArtist) {
+              router.push('/artist-post'); 
+            } else { 
+              router.push('/auction-dashboard');
+            }
+          }}>
           <View style={styles.auctionCircle}>
-            {isArtist ? (
-              <Plus color="#fff" size={34} />
-            ) : (
-              <Disc color="#fff" size={32} />
-            )}
+            {isArtist ? <Plus color="#fff" size={34} /> : <Disc color="#fff" size={32} />}
           </View>
-          <Text style={[styles.navText, { marginTop: 20 }]}>
-            {isArtist ? "Post" : "Auction"}
-          </Text>
+          <Text style={[styles.navText, { marginTop: 20 }]}>{isArtist ? 'Post' : 'Auction'}</Text>
         </TouchableOpacity>
 
         {/* CART */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => router.push("/(home)/cart")}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/cart')}>
           <View style={styles.cartIconWrap}>
-            <ShoppingCart
-              color="#fff"
-              size={24}
-              style={pathname.includes("/cart") ? styles.activeIcon : undefined}
-            />
+            <ShoppingCart color="#fff" size={24} style={pathname.includes('/cart') ? styles.activeIcon : undefined}/>
             {cartCount > 0 && (
               <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>
-                  {cartCount > 9 ? "9+" : cartCount}
-                </Text>
+                <Text style={styles.cartBadgeText}>{cartCount > 9 ? '9+' : cartCount}</Text>
               </View>
             )}
           </View>
@@ -115,25 +74,9 @@ export default function BottomNavBar() {
         </TouchableOpacity>
 
         {/* PROFILE / ME */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => router.push("/(home)/profile")}
-        >
-          <User
-            color="#fff"
-            size={24}
-            style={
-              pathname.includes("/profile") ? styles.activeIcon : undefined
-            }
-          />
-          <Text
-            style={[
-              styles.navText,
-              pathname.includes("/profile") && styles.activeText,
-            ]}
-          >
-            Me
-          </Text>
+        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/profile')}>
+          <User color="#fff" size={24} style={pathname.includes('/profile') ? styles.activeIcon : undefined}/>
+          <Text style={[styles.navText, pathname.includes('/profile') && styles.activeText]}>Me</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -142,62 +85,57 @@ export default function BottomNavBar() {
 
 const styles = StyleSheet.create({
   navBar: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 0,
-    width: "100%",
-    backgroundColor: "#D48C62",
-    alignItems: "center",
+    width: '100%',
+    backgroundColor: '#D48C62',
+    alignItems: 'center',
     elevation: 8,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   navInner: {
-    width: "100%",
+    width: '100%',
     maxWidth: 600,
     height: 65,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
   },
-  navItem: { alignItems: "center", justifyContent: "center" },
+  navItem: { alignItems: 'center', justifyContent: 'center' },
   activeIcon: { transform: [{ scale: 1.1 }] },
-  navText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 11,
-    fontWeight: "500",
-    marginTop: 2,
-  },
-  activeText: { color: "#fff", fontWeight: "bold" },
-  auctionContainer: { alignItems: "center", position: "relative" },
+  navText: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '500', marginTop: 2 },
+  activeText: { color: '#fff', fontWeight: 'bold' },
+  auctionContainer: { alignItems: 'center', position: 'relative' },
   auctionCircle: {
-    position: "absolute",
+    position: 'absolute',
     top: -42,
-    backgroundColor: "#C15656",
+    backgroundColor: '#C15656',
     width: 58,
     height: 58,
     borderRadius: 29,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 4,
-    borderColor: "#fff",
+    borderColor: '#fff',
     elevation: 5,
   },
-  cartIconWrap: { position: "relative" },
+  cartIconWrap: { position: 'relative' },
   cartBadge: {
-    position: "absolute",
+    position: 'absolute',
     top: -6,
     right: -8,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 3,
     borderWidth: 1,
-    borderColor: "#C15656",
+    borderColor: '#C15656',
   },
-  cartBadgeText: { color: "#C15656", fontSize: 9, fontWeight: "800" },
+  cartBadgeText: { color: '#C15656', fontSize: 9, fontWeight: '800' },
 });

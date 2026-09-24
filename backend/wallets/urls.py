@@ -1,8 +1,9 @@
 from django.urls import path
 
-from .views import AgreementCheckoutView, ActivityHistoryView, ArtworkCheckoutView, CancellationReturnRequestView, PlatformAdminRequestView, PlatformAdminUserView, WalletView, PlatformAdminWalletView, xendit_payment_session_webhook
+from .views import PaymentStatusView, AgreementCheckoutView, ActivityHistoryView, ArtworkCheckoutView, CancellationReturnRequestView, PlatformAdminRequestView, PlatformAdminUserView, WalletView, PlatformAdminWalletView, xendit_payment_session_webhook
 
 urlpatterns = [
+    path("payments/<int:payment_id>/refresh/", PaymentStatusView.as_view()),
     path("wallet/", WalletView.as_view(), name="wallet"),
     path("checkout/artworks/<int:artwork_id>/", ArtworkCheckoutView.as_view(), name="artwork_checkout"),
     path("checkout/agreements/<int:agreement_id>/", AgreementCheckoutView.as_view(), name="agreement_checkout"),
@@ -16,4 +17,8 @@ urlpatterns = [
     path("admin/users/", PlatformAdminUserView.as_view(), name="platform_admin_users"),
     path("admin/users/<int:user_id>/", PlatformAdminUserView.as_view(), name="platform_admin_user"),
     path("webhooks/xendit/payment-session/", xendit_payment_session_webhook, name="xendit_payment_session_webhook"),
+
+    #Added aliases
+    path("activities/", ActivityHistoryView.as_view(), name="activities_history_slash"),
+    path("activites", ActivityHistoryView.as_view(), name="activity_history"),
 ]

@@ -92,7 +92,7 @@ export default function UserProfile() {
 
         <View style={styles.contentBody}>
           <WalletCard />
-          <TransactionGrid />
+          <TransactionGrid role={profileData?.role} />
           <PurchaseGallery />
         </View>
       </ScrollView>

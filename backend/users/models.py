@@ -29,7 +29,7 @@ class User(models.Model):
         max_length=150
     )
 
-    date_of_birth = models.DateField()
+    date_of_birth = models.DateField(blank=True, null=True)
 
     contact_number = models.CharField(
         max_length=20
@@ -57,6 +57,8 @@ class User(models.Model):
 
     # Added: tracks user authorization
     class Role(models.TextChoices):
+        DRIVER = "driver", "Driver"
+        CUSTOMER_SUPPORT = "customer_support", "Customer Support"
         BUYER = "buyer", "Buyer"
         ARTIST = "artist", "Artist"
         HR = "hr", "HR"
@@ -69,23 +71,35 @@ class User(models.Model):
         default=Role.BUYER
     ) 
 
+    @property
+    def address(self):
+        # Compatibility for registration/profile and existing delivery consumers.
+        return self.addresses.order_by('-is_default', 'id').first()
+
     def __str__(self):
         return self.email
 
 
 class Address(models.Model):
-    user = models.OneToOneField(
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="address",
+        related_name="addresses",
     )
 
+    label = models.CharField(max_length=50, default='Home')
+    is_default = models.BooleanField(default=False)
     region = models.CharField(max_length=150)
     province = models.CharField(max_length=150)
     city = models.CharField(max_length=150)
     postal_code = models.CharField(max_length=10)
     barangay = models.CharField(max_length=150)
     street = models.CharField(max_length=255)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['user'], condition=models.Q(is_default=True), name='one_default_address_per_user')]
 
     def __str__(self):
         return f"{self.street}, {self.barangay}, {self.city}"

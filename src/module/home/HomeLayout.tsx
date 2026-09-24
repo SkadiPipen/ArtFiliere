@@ -13,6 +13,8 @@ export default function HomeLayout() {
         <Stack.Screen name="view-post" />
         <Stack.Screen name="cart" />
         <Stack.Screen name="activities" />
+
+        <Stack.Screen name="auction-dashboard"/>
       </Stack>
 
       <BottomNavBar />

@@ -1,22 +1,22 @@
-import { useState } from "react";
+import { COLORS } from '@/constants/colors';
+import API_URL from '@/services/api';
+import { loginUser } from '@/services/auth';
+import { router } from 'expo-router';
+import { useState } from 'react';
 import {
-  View,
-  Text,
-  Pressable,
-  TextInput,
   Image,
-  useWindowDimensions,
+  Pressable,
   ScrollView,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { loginUser } from "@/services/auth";
-import API_URL from "@/services/api";
-import { COLORS } from "@/constants/colors";
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
@@ -30,7 +30,7 @@ export default function HomeScreen() {
 
       // Send token to Django
       const response = await fetch(`${API_URL}/auth/login/`, {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -40,17 +40,9 @@ export default function HomeScreen() {
 
       console.log(data);
 
-      alert("Login Successfully!");
+      alert('Login Successfully!');
 
-      router.replace(
-        data.role === "platform_admin"
-          ? "/admin-dashboard"
-          : data.role === "hr"
-            ? "/hr-dashboard"
-            : data.role === "creative_moderator"
-              ? "/creative-dashboard"
-              : "/(home)",
-      );
+      router.replace(data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : (['rider', 'driver'].includes(data.role?.toLowerCase())) ? '/rider/(tabs)' as any : '/(home)');
     } catch (error: any) {
       alert(error.message);
     }
@@ -61,7 +53,7 @@ export default function HomeScreen() {
       <View
         style={{
           flex: 1,
-          flexDirection: isWide ? "row" : "column",
+          flexDirection: isWide ? 'row' : 'column',
         }}
       >
         {isWide && (
@@ -71,23 +63,21 @@ export default function HomeScreen() {
               backgroundColor: COLORS.cream,
               paddingHorizontal: 32,
               paddingTop: 24,
-              justifyContent: "center",
-              alignItems: "center",
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
           >
             <Pressable
-              onPress={() => router.push("/")}
-              style={{ position: "absolute", top: 24, left: 24 }}
+              onPress={() => router.push('/')}
+              style={{ position: 'absolute', top: 24, left: 24 }}
             >
-              <Text
-                style={{ color: COLORS.red, fontWeight: "600", fontSize: 14 }}
-              >
+              <Text style={{ color: COLORS.red, fontWeight: '600', fontSize: 14 }}>
                 ‹ Back to Home
               </Text>
             </Pressable>
 
             <Image
-              source={require("@/assets/images/logo.png")}
+              source={require('@/assets/images/logo.png')}
               style={{ width: 220, height: 220 }}
               resizeMode="contain"
             />
@@ -97,7 +87,7 @@ export default function HomeScreen() {
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: "center",
+            justifyContent: 'center',
             paddingHorizontal: 32,
             paddingVertical: 40,
           }}
@@ -106,7 +96,7 @@ export default function HomeScreen() {
           <Text
             style={{
               fontSize: 34,
-              fontWeight: "800",
+              fontWeight: '800',
               color: COLORS.red,
               marginBottom: 28,
             }}
@@ -158,44 +148,60 @@ export default function HomeScreen() {
               backgroundColor: pressed ? COLORS.redDark : COLORS.red,
               paddingVertical: 14,
               borderRadius: 8,
-              alignItems: "center",
+              alignItems: 'center',
               marginBottom: 16,
             })}
             onPress={handleLogin}
           >
-            <Text
-              style={{ color: COLORS.white, fontWeight: "700", fontSize: 16 }}
-            >
+            <Text style={{ color: COLORS.white, fontWeight: '700', fontSize: 16 }}>
               Log In
             </Text>
           </Pressable>
 
-          <Pressable onPress={() => router.push("/")}>
+          <Pressable onPress={() => router.push('/')}>
             <Text
               style={{
                 color: COLORS.red,
-                fontWeight: "600",
+                fontWeight: '600',
                 fontSize: 13,
-                textAlign: "center",
+                textAlign: 'center',
                 marginBottom: 10,
               }}
             >
               Forgot password?
             </Text>
           </Pressable>
-
-          <Pressable onPress={() => router.push("/sign-up")}>
+          <Pressable onPress={() => router.push('/sign-up')}>
             <Text
               style={{
                 color: COLORS.textDark,
                 fontSize: 13,
-                textAlign: "center",
+                textAlign: 'center',
               }}
             >
-              Don't have an account?{" "}
-              <Text style={{ color: COLORS.red, fontWeight: "700" }}>
-                Sign Up
-              </Text>
+              Don't have an account?{' '}
+              <Text style={{ color: COLORS.red, fontWeight: '700' }}>Sign Up</Text>
+            </Text>
+          </Pressable>
+          <Pressable 
+            onPress={() => router.push('/rider/login' as any)}
+            style={{
+              marginTop: 24,
+              paddingVertical: 12,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: COLORS.red,
+              borderStyle: 'dashed',
+              alignItems: 'center',
+            }}>
+            <Text
+              style={{
+                color: COLORS.red,
+                fontSize: 13,
+                textAlign: 'center',
+              }}
+            >
+              Are you Courier / Driver? Log In Here
             </Text>
           </Pressable>
         </ScrollView>

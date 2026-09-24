@@ -3,6 +3,7 @@ export interface ArtItem {
   artist: string;
   price: string;
   type: string;
+  artType?: 'digital' | 'physical';
   image: string;
   time?: string;
   artistId?: string;

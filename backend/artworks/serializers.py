@@ -16,13 +16,26 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "category",
+            "art_type",
             "price",
             "image_data",
             "status",
             "decline_reason",
             "created_at",
             "similarity_matches",
+            # added for auc
+            "sale_type",
+            "bid_increment",
+            "starting_time",
+            "end_time",
+            "artist",
         ]
+        extra_kwargs = {
+            'sale_type': {'required': False},
+            'bid_increment': {'required': False},
+            'starting_time': {'required': False},
+            'end_time': {'required': False},
+        }
         read_only_fields = ["id", "artist_id", "status", "decline_reason", "created_at"]
 
     def get_artist_name(self, artwork):
