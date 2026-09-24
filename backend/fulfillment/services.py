@@ -5,6 +5,7 @@ from PIL import Image, ImageOps
 from notifications.models import UserNotification
 from users.models import ActivityLog
 from .models import DeliveryOrder, DeliveryRoute
+from delivery.views import create_delivery_and_notify_driver_order
 
 
 def physical(artwork):
@@ -60,27 +61,77 @@ def png_bytes(artwork):
 
 
 def fulfill_payment(payment):
-    agreement = payment.agreement
-    if agreement and agreement.delivery_type == 'physical':
-        info = agreement.delivery_details
-        delivery_order, created = DeliveryOrder.objects.get_or_create(payment=payment, defaults={
-            'pickup_address': info['pickup_address'],
-            'delivery_address': info['delivery_address'] if info.get('address_source') == 'profiles' else f"{info['delivery_address']}, {info['destination_city']}",
-            'fee': agreement.delivery_fee,
-        })
+    # Safely resolve agreement and artwork
+    agreement = getattr(payment, 'agreement', None)
+    artwork = getattr(payment, 'artwork', None)
+    artwork_title = getattr(artwork, 'title', 'Artwork') if artwork else 'Commission Asset'
 
-        if created:
-            ActivityLog.objects.create(user=payment.buyer, action='delivery_requested', description=f'Delivery requested for {payment.artwork.title}.', reference_type='delivery_order', reference_id=delivery_order.id)
+    # Determine if physical or digital
+    is_physical = False
+    if agreement and getattr(agreement, 'delivery_type', '').lower() == 'physical':
+        is_physical = True
+    elif agreement and getattr(agreement, 'is_physical', False):
+        is_physical = True
+    elif artwork and 'physical' in str(getattr(artwork, 'art_type', '')).lower():
+        is_physical = True
 
-    UserNotification.objects.create(user=payment.buyer, artwork=payment.artwork,
-        title='Test purchase ready - no money charged' if payment.is_simulated else 'Purchase ready', message=(
-            f"Payment confirmed for {payment.artwork.title}. Track delivery in My Purchases."
-            if agreement and agreement.delivery_type == 'physical' else
-            f"Payment confirmed for {payment.artwork.title}. Your PNG is ready in My Purchases. You can now rate the artist and artwork."
-        ))
-    UserNotification.objects.create(user=payment.artist, artwork=payment.artwork,
-        title='Test sale - no money charged' if payment.is_simulated else 'Artwork sold', message=(
-            f"Payment confirmed for {payment.artwork.title}. Prepare the artwork for pickup at the address in your agreement."
-            if agreement and agreement.delivery_type == 'physical' else
-            f"Payment confirmed for {payment.artwork.title}. The buyer can now download the PNG."
-        ))
+    # Physical Dispatch to Rider
+    if is_physical:
+        info = (agreement.delivery_details if agreement else {}) or {}
+        
+        # Resolve destination address safely
+        buyer_addr = getattr(payment.buyer, 'address', None)
+        if not buyer_addr and hasattr(payment.buyer, 'profile'):
+            buyer_addr = getattr(payment.buyer.profile, 'address', None)
+        
+        dest_addr = info.get('delivery_address') or buyer_addr or 'Cebu City'
+        dist_km = float(info.get('distance_km', 5.0))
+        is_prio = bool(info.get('is_priority', False))
+
+        create_delivery_and_notify_driver_order(
+            payment=payment,
+            buyer_id=payment.buyer.id,
+            address=str(dest_addr),
+            payment_method=str(getattr(payment, 'payment_method', 'PAYPAL')),
+            artwork_title=artwork_title,
+            price=float(getattr(payment, 'gross_amount', 0.0) or 0.0),
+            is_physical=True,
+            is_priority=is_prio,
+            distance_km=dist_km,
+            delivery_coords=info.get('delivery_coordinates'),
+            pickup_coords=info.get('pickup_coordinates'),
+        )
+    else:
+        # Digital Asset Access Grant (Unlock download)
+        if artwork and hasattr(artwork, 'unlocked_by'):
+            artwork.unlocked_by.add(payment.buyer)
+
+    # User Notifications
+    is_simulated = getattr(payment, 'is_simulated', False)
+
+    # Buyer notification
+    buyer_msg = (
+        f"Payment confirmed for {artwork_title}. Track delivery in My Purchases."
+        if is_physical else
+        f"Payment confirmed for {artwork_title}. Your high-resolution file is ready in My Purchases. You can now rate the artist and artwork."
+    )
+    UserNotification.objects.create(
+        user=payment.buyer,
+        artwork=artwork,
+        title='Test purchase ready - no money charged' if is_simulated else 'Purchase ready',
+        message=buyer_msg
+    )
+
+    # Artist notification
+    if getattr(payment, 'artist', None):
+        artist_msg = (
+            f"Payment confirmed for {artwork_title}. Prepare the artwork for courier pickup at the address in your agreement."
+            if is_physical else
+            f"Payment confirmed for {artwork_title}. The buyer can now download the digital file."
+        )
+        UserNotification.objects.create(
+            user=payment.artist,
+            artwork=artwork,
+            title='Test sale - no money charged' if is_simulated else 'Artwork sold',
+            message=artist_msg
+        )

@@ -10,6 +10,7 @@ from .models import DirectMessage
 from .models import Agreement, AgreementTemplate, Conversation, ConversationParticipant, Message
 from django.utils import timezone
 from authentication.permissions import IsPlatformAdmin
+from delivery.views import create_delivery_and_notify_driver_order
 
 
 class DirectMessageView(AuthenticatedAPIView):
@@ -153,6 +154,31 @@ class AgreementView(AuthenticatedAPIView):
             agreement.status = Agreement.Status.ACCEPTED
             Conversation.objects.filter(id=agreement.conversation_id).update(status=Conversation.Status.AGREED)
             Message.objects.create(conversation_id=agreement.conversation_id, message_type=Message.Type.SYSTEM, body="Both parties accepted the agreement. Payment must be made through ArtFiliere's secure Xendit checkout.")
+
+        # trigger for delivery for physical
+        delivery_type_str = str(getattr(agreement, 'delivery_type', '')).lower() 
+        if delivery_type_str not in ['digital', '']: 
+            try: 
+                buyer_address = ( 
+                    getattr(agreement.buyer, 'address', None) 
+                    or request.data.get('delivery_address') 
+                ) 
+                artwork_title = agreement.artwork.title if agreement.artwork else "Physical Artwork Contract" 
+                
+                create_delivery_and_notify_driver_order( 
+                    buyer_id=agreement.buyer.id, 
+                    address=buyer_address, 
+                    payment_method="COD", 
+                    artwork_title=artwork_title, 
+                    price=float(agreement.price or 0.0), 
+                    is_physical=True, 
+                    is_priority=bool(request.data.get('is_priority', False)), 
+                    distance_km=float(request.data.get('distance_km', 5.0)) 
+                ) 
+                print(f"Triggered delivery order for physical agreement #{agreement.id}") 
+            except Exception as e: 
+                print("Warning: delivery order could not be generated:", e) 
+                
         agreement.save()
         return Response(serialize_agreement(agreement))
 

@@ -1,73 +1,228 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Text, TouchableOpacity, View } from 'react-native';
-import AddressBook, { SavedAddress } from '@/components/AddressBook';
-import { purchaseRequest } from '@/services/purchases';
+import { auth } from '@/firebase/config';
+import API_URL from '@/services/api';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-export type DeliveryQuote = { token: string; fee: string; distance_km: string; base_fare: string; per_km: string; pickup_address: string; delivery_address: string; expires_in: number };
-type Context = { pickup: SavedAddress | null; destination: SavedAddress | null; own_side: 'pickup' | 'destination'; addresses: SavedAddress[] };
-
-export default function DeliveryAddressPicker({ artworkId, revisionId, onQuote }: { artworkId: string | number; revisionId?: number; onQuote: (quote: DeliveryQuote | null) => void }) {
-  const [context, setContext] = useState<Context | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [quote, setQuote] = useState<DeliveryQuote | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [manage, setManage] = useState(false);
-  const generation = useRef(0);
-  const onQuoteRef = useRef(onQuote); onQuoteRef.current = onQuote;
-  const expireTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clearQuote = () => { if (expireTimer.current) clearTimeout(expireTimer.current); setQuote(null); onQuoteRef.current(null); };
-  const calculate = async (id: number) => {
-    const version = ++generation.current;
-    clearQuote(); setBusy(true); setError(''); setSelected(id);
-    try {
-      const result: DeliveryQuote = await purchaseRequest(`delivery/quote/${artworkId}/`, 'POST', { address_id: id, agreement_id: revisionId });
-      if (version !== generation.current) return;
-      setQuote(result); onQuoteRef.current(result);
-      expireTimer.current = setTimeout(() => { clearQuote(); setError('Delivery quote expired. Calculate again before sending.'); }, result.expires_in * 1000);
-    } catch (e: any) { if (version === generation.current) setError(e.message); }
-    finally { if (version === generation.current) setBusy(false); }
-  };
-  const load = async () => {
-    const version = ++generation.current;
-    clearQuote(); setBusy(true); setError('');
-    try {
-      const data: Context = await purchaseRequest(`delivery/quote/${artworkId}/${revisionId ? `?agreement_id=${revisionId}` : ''}`);
-      if (version !== generation.current) return;
-      setContext(data);
-      const id = data[data.own_side]?.id ?? data.addresses[0]?.id;
-      setSelected(id ?? null);
-      if (id && data.pickup && data.destination) { await calculate(id); return; }
-      setError('Both parties need a complete saved address.');
-    } catch (e: any) { if (version === generation.current) setError(e.message); }
-    finally { if (version === generation.current) setBusy(false); }
-  };
-  useEffect(() => { load(); return () => { ++generation.current; if (expireTimer.current) clearTimeout(expireTimer.current); }; }, [artworkId, revisionId]);
-  const own = context?.addresses.find(a => a.id === selected);
-  const pickup = context?.own_side === 'pickup' ? own : context?.pickup;
-  const destination = context?.own_side === 'destination' ? own : context?.destination;
-  return <View style={{ gap: 10, marginVertical: 14 }}>
-    <Text style={{ fontWeight: '600', fontSize: 16 }}>Physical delivery</Text>
-    <Text>Pickup: {pickup?.formatted || 'Artist needs to save an address'}</Text>
-    <Text>Deliver to: {destination?.formatted || 'Buyer needs to save an address'}</Text>
-    <Text>Choose your {context?.own_side === 'pickup' ? 'pickup' : 'delivery'} address. Only the other party can change their address.</Text>
-    {context?.addresses.map(address => <TouchableOpacity key={address.id} disabled={manage} onPress={() => calculate(address.id)} style={{ padding: 12, borderWidth: 1, borderRadius: 8, borderColor: selected === address.id ? '#D48C62' : '#ddd', backgroundColor: selected === address.id ? '#FFF5EB' : '#fff' }}>
-      <Text style={{ fontWeight: '600' }}>{address.label}{address.is_default ? ' (Default)' : ''}</Text><Text>{address.formatted}</Text>
-    </TouchableOpacity>)}
-    {busy && <ActivityIndicator />}
-    {!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}
-    {quote && <View style={{ gap: 6 }}>
-      <Text>Driving distance: {Number(quote.distance_km).toFixed(3)} km</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-        <TouchableOpacity onPress={() => Linking.openURL('https://openrouteservice.org/')}><Text style={{ color: '#A75A2C', fontSize: 12 }}>Routing © openrouteservice</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => Linking.openURL('https://www.openstreetmap.org/copyright')}><Text style={{ color: '#A75A2C', fontSize: 12 }}>Map data © OpenStreetMap contributors</Text></TouchableOpacity>
-      </View>
-      <Text>PHP {quote.base_fare} + PHP {quote.per_km}/km = PHP {quote.fee}</Text>
-      <TouchableOpacity onPress={() => Linking.openURL(`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(quote.pickup_address + ', Philippines')}&destination=${encodeURIComponent(quote.delivery_address + ', Philippines')}&travelmode=driving`)}><Text style={{ color: '#A75A2C' }}>View addresses in Google Maps</Text></TouchableOpacity>
-      <Text>The delivery fee is added to the artwork price and saved with your proposal.</Text>
-    </View>}
-    <TouchableOpacity disabled={busy || manage} onPress={load}><Text style={{ color: '#A75A2C' }}>Refresh addresses and calculate delivery</Text></TouchableOpacity>
-    <TouchableOpacity onPress={() => { ++generation.current; clearQuote(); setBusy(false); setManage(!manage); if (manage) load(); }}><Text style={{ color: '#A75A2C' }}>{manage ? 'Done managing addresses' : 'Manage my addresses'}</Text></TouchableOpacity>
-    {manage && <AddressBook onChanged={() => { ++generation.current; clearQuote(); }} />}
-  </View>;
+export interface DeliveryQuote {
+  token: string;
+  delivery_address: string;
+  fee: number;
+  distance_km?: number;
+  is_priority?: boolean;
 }
+
+interface DeliveryAddressPickerProps {
+  artworkId: number | string;
+  artistAddress?: string;
+  initialAddress?: string | any;
+  revisionId?: number;
+  onQuote: (quote: DeliveryQuote | null) => void;
+}
+
+export default function DeliveryAddressPicker({
+  artworkId,
+  artistAddress = 'Cebu City Art Studio',
+  initialAddress = '',
+  onQuote,
+}: DeliveryAddressPickerProps) {
+  // Helper to prevent [object Object] from ever rendering in TextInput
+  const cleanAddressString = (raw: any): string => {
+    if (!raw) return '';
+    if (typeof raw === 'string') return raw;
+    if (typeof raw === 'object') {
+      return (
+        raw.delivery_address ||
+        raw.address ||
+        raw.formatted_address ||
+        [raw.street, raw.barangay, raw.city, raw.province].filter(Boolean).join(', ') ||
+        ''
+      );
+    }
+    return String(raw);
+  };
+
+  const [address, setAddress] = useState<string>(() => cleanAddressString(initialAddress));
+  const [isPriority, setIsPriority] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [currentQuote, setCurrentQuote] = useState<DeliveryQuote | null>(null);
+
+  const fetchQuote = async (priorityVal: boolean, targetAddr: string) => {
+    const finalAddress = targetAddr.trim() || 'Cebu City, Philippines';
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/delivery/quote/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artwork_id: artworkId,
+          artist_address: artistAddress,
+          delivery_address: finalAddress,
+          is_priority: priorityVal,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentQuote(data);
+        onQuote(data);
+      } else {
+        onQuote(null);
+      }
+    } catch (err) {
+      console.warn('Delivery quote calculation error:', err);
+      onQuote(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 1. Load buyer's address on mount and trigger initial standard quote immediately
+  useEffect(() => {
+    let isMounted = true;
+
+    const initAddressAndQuote = async () => {
+      let resolvedAddress = cleanAddressString(initialAddress);
+
+      if (!resolvedAddress && auth.currentUser) {
+        try {
+          const token = await auth.currentUser.getIdToken();
+          const res = await fetch(`${API_URL}/auth/me/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const profile = await res.json();
+            resolvedAddress = cleanAddressString(
+              profile.delivery_address ||
+              profile.address ||
+              profile.location ||
+              profile.buyer?.address
+            );
+          }
+        } catch (err) {
+          console.warn('Could not auto-fetch user profile address:', err);
+        }
+      }
+
+      if (!resolvedAddress) {
+        resolvedAddress = 'Mandaue City, Cebu';
+      }
+
+      if (isMounted) {
+        setAddress(resolvedAddress);
+        // Calculate standard delivery quote right away on mount
+        fetchQuote(false, resolvedAddress);
+      }
+    };
+
+    initAddressAndQuote();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [artworkId, initialAddress]);
+
+  const handleAddressChange = (text: string) => {
+    setAddress(text);
+  };
+
+  const handleAddressBlur = () => {
+    if (address.trim()) {
+      fetchQuote(isPriority, address);
+    }
+  };
+
+  const handlePriorityToggle = (val: boolean) => {
+    setIsPriority(val);
+    fetchQuote(val, address);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.sectionTitle}>Delivery Information (Physical Piece)</Text>
+      <Text style={styles.label}>Destination Address (Editable) *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter delivery address in Cebu..."
+        placeholderTextColor="#999"
+        value={address}
+        onChangeText={handleAddressChange}
+        onBlur={handleAddressBlur}
+      />
+
+      <View style={styles.priorityBox}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.priorityTitle}>Priority Delivery (+₱40.00)</Text>
+          <Text style={styles.prioritySub}>Direct rush dispatch with dedicated rider</Text>
+        </View>
+        <Switch
+          value={isPriority}
+          onValueChange={handlePriorityToggle}
+          trackColor={{ false: '#E5E5EA', true: '#D48C62' }}
+        />
+      </View>
+
+      {loading && (
+        <View style={styles.loaderRow}>
+          <ActivityIndicator size="small" color="#BC5454" />
+          <Text style={styles.loadingText}>Calculating distance and fare...</Text>
+        </View>
+      )}
+
+      {currentQuote && !loading && (
+        <View style={styles.quoteCard}>
+          <Text style={styles.quoteDistance}>
+            Estimated Distance: {currentQuote.distance_km} km
+          </Text>
+          <Text style={styles.quoteFee}>
+            Delivery Fee: ₱{Number(currentQuote.fee).toFixed(2)}
+          </Text>
+          <Text style={styles.quoteFormula}>
+            (₱50 base for first 2 km + ₱15/km {isPriority ? '+ ₱40 priority rush' : ''})
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { marginTop: 12, marginBottom: 16 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#BC5454', marginBottom: 8 },
+  label: { fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 4 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 42,
+    backgroundColor: '#FFF',
+    fontSize: 14,
+    color: '#333',
+  },
+  priorityBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8F6',
+    borderWidth: 1,
+    borderColor: '#FADBD8',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+  },
+  priorityTitle: { fontSize: 13, fontWeight: '700', color: '#BC5454' },
+  prioritySub: { fontSize: 11, color: '#777', marginTop: 2 },
+  loaderRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  loadingText: { fontSize: 12, color: '#777', marginLeft: 8 },
+  quoteCard: {
+    backgroundColor: '#F9FBF9',
+    borderWidth: 1,
+    borderColor: '#D4EFDF',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+  },
+  quoteDistance: { fontSize: 12, color: '#555' },
+  quoteFee: { fontSize: 15, fontWeight: '700', color: '#27AE60', marginTop: 2 },
+  quoteFormula: { fontSize: 11, color: '#888', marginTop: 2 },
+});

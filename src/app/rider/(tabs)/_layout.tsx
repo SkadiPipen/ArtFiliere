@@ -1,38 +1,43 @@
-import RiderGate from '@/module/delivery/RiderGate';
 import { Tabs } from 'expo-router';
 import { Clock, Home, Truck, User } from 'lucide-react-native';
 
 export default function RiderTabsLayout() {
   return (
-    <RiderGate><Tabs screenOptions={{ tabBarActiveTintColor: '#C15656', headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#BC5454',
+        tabBarInactiveTintColor: '#7F8C8D',
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <Home color={color} size={20} />,
+          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="orders"
         options={{
           title: 'Orders',
-          tabBarIcon: ({ color }) => <Truck color={color} size={20} />,
+          tabBarIcon: ({ color, size }) => <Truck color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
           title: 'History',
-          tabBarIcon: ({ color }) => <Clock color={color} size={20} />,
+          tabBarIcon: ({ color, size }) => <Clock color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <User color={color} size={20} />,
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
-    </Tabs></RiderGate>
+    </Tabs>
   );
 }

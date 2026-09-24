@@ -42,26 +42,22 @@ export default function Dashboard() {
 
   const handleViewPost = (item: any, type: string) => {
     const saleTypeStr = String(item.sale_type || '').toUpperCase();
-    const categoryStr = String(item.category || '').toUpperCase();
-    const isAuctionItem = saleTypeStr.includes('AUCTION') || categoryStr.includes('AUCTION') || Boolean(item.end_time || item.starting_time);
-    const resolvedType = isAuctionItem ? 'Auction' : (type || 'Physical');
+    const isAuctionItem = saleTypeStr === 'auction';
     router.push({
       pathname: '/(home)/view-post',
       params: { 
-        type: resolvedType,
-        sale_type: resolvedType,
-        artType: item.artType || item.art_type || item.type,
-        title: item.title || item.artist, 
+        artworkId: String(item.id || item.artworkId || ''),
+        type: isAuctionItem ? 'Auction' : (type || 'Direct Sell'),
+        sale_type: isAuctionItem ? 'Auction' : 'Direct Sell',
+        title: item.title, 
         price: String(item.price), 
         image: item.image_data || item.image || item.img || item.image_url, 
         artist: item.artistName || item.artist?.username || item.artist, 
-        artistId: item.artistId || item.artist_id || item.artist?.id, 
-        artworkId: item.id, 
-        medium: item.medium || (categoryStr.includes('DIGITAL') ? 'Digital Artwork' : 'Oil on Canvas'),
-        bidIncrement: item.bid_increment,
-        startingTime: item.starting_time || item.start_time,
-        endTime: item.end_time ? String(item.end_time) : '',
-        auctionId: item.auction_id || item.auction_listing?.id,
+        artistId: String(item.artistId || item.artist_id || item.artist?.id || ''), 
+        medium: item.category || item.medium || 'Painting',
+        bidIncrement: isAuctionItem ? String(item.bid_increment) : '',
+        startingTime: isAuctionItem && item.starting_time ? String(item.starting_time) : '',
+        endTime: isAuctionItem && item.end_time ? String(item.end_time) : '',
        },
     });
   };

@@ -30,7 +30,16 @@ class ArtworkView(AuthenticatedAPIView):
             return [IsArtist()]
         return [AllowAny()]
 
-    def get(self, request):
+    def get(self, request, artwork_id=None):
+        if artwork_id:
+            try:
+                artwork = Artwork.objects.select_related("artist").get(id=artwork_id)
+                user = self.get_request_user(request)
+                include_sim = bool(user and user.role == User.Role.CREATIVE_MODERATOR)
+                return Response(ArtworkSerializer(artwork, context={"include_similarity": include_sim}).data)
+            except Artwork.DoesNotExist:
+                return Response({"error": "Artwork not found."}, status=status.HTTP_404_NOT_FOUND)
+
         user = self.get_request_user(request)
         mine = request.query_params.get("mine") == "1"
         artworks = Artwork.objects.select_related("artist")
@@ -76,6 +85,7 @@ class ArtworkView(AuthenticatedAPIView):
             if cost * Decimal("1.1") > Decimal("99999999.99"): raise ValueError()
         except (InvalidOperation, ValueError):
             return Response({"error": "Enter valid hours, hourly rate, material costs, and artwork type."}, status=400)
+
         try:
             sha256_hash = compute_sha256(request.data["image_data"])
             perceptual_hash = compute_perceptual_hash(request.data["image_data"])
@@ -83,13 +93,10 @@ class ArtworkView(AuthenticatedAPIView):
             edge_hash = compute_edge_hash(request.data["image_data"])
         except ValueError:
             return Response(
-            {"error": "The uploaded image could not be processed."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+                {"error": "The uploaded image could not be processed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        # Tier 1 anti-plagiarism check: exact file match. Checked up front
-        # (rather than relying only on the DB unique constraint) so we can
-        # tell the artist which existing artwork it duplicates.
         duplicate = (
             Artwork.objects.filter(sha256_hash=sha256_hash)
             .select_related("artist")
@@ -104,6 +111,11 @@ class ArtworkView(AuthenticatedAPIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
+        sale_type = request.data.get("sale_type", "Direct Sell")
+        bid_increment = request.data.get("bid_increment") or 100.00
+        starting_time = request.data.get("starting_time") or None
+        end_time = request.data.get("end_time") or None
+
         try:
             artwork = Artwork.objects.create(
                 artist=user,
@@ -111,23 +123,77 @@ class ArtworkView(AuthenticatedAPIView):
                 description=request.data["description"].strip(),
                 category=request.data["category"].strip(),
                 price=(cost * Decimal("1.1")).quantize(Decimal("0.01")),
-                hours=hours, hourly_rate=rate, material_cost=materials, art_type=art_type,
+                hours=hours,
+                hourly_rate=rate,
+                material_cost=materials,
+                art_type=art_type,
                 image_data=request.data["image_data"],
                 sha256_hash=sha256_hash,
                 perceptual_hash=perceptual_hash,
                 difference_hash=difference_hash,
                 edge_hash=edge_hash,
+                sale_type=sale_type,
+                bid_increment=bid_increment,
+                starting_time=starting_time,
+                end_time=end_time,
             )
         except IntegrityError:
-            # Safety net for a race condition: two identical uploads hitting
-            # this view at nearly the same instant, both passing the check
-            # above before either had committed. The DB's unique constraint
-            # catches what the pre-check couldn't.
             return Response(
                 {
                     "error": "This exact image has already been uploaded to the platform."
                 },
                 status=status.HTTP_409_CONFLICT,
+            )
+
+        category_str = str(artwork.category or "").upper()
+        sale_type_str = str(sale_type or "").upper()
+        if "AUCTION" in sale_type_str or "AUCTION" in category_str:
+            from datetime import timedelta
+            from django.utils import timezone
+            from django.utils.dateparse import parse_datetime
+            from auctions.models import AuctionListing
+
+            now = timezone.now()
+
+            raw_start = artwork.starting_time 
+            if isinstance(raw_start, str): 
+                start_time = parse_datetime(raw_start) or now
+            else: 
+                start_time = raw_start or now 
+                
+            if timezone.is_naive(start_time): 
+                start_time = timezone.make_aware(start_time) 
+                
+            raw_end = artwork.end_time 
+            if isinstance(raw_end, str): 
+                end_time = parse_datetime(raw_end) or (start_time + timedelta(days=3)) 
+            else: 
+                end_time = raw_end or (start_time + timedelta(days=3)) 
+                
+            if timezone.is_naive(end_time): 
+                end_time = timezone.make_aware(end_time) 
+
+            increment = artwork.bid_increment or 100.00
+            start_bid = float(artwork.price)
+
+            # Auto-approve for instant visibility across dashboards
+            artwork.status = Artwork.Status.APPROVED
+            artwork.save(update_fields=["status"])
+
+            initial_status = "ACTIVE" if start_time <= now else "SCHEDULED"
+
+            AuctionListing.objects.update_or_create(
+                artwork=artwork.id,
+                defaults={
+                    "artist": artwork.artist,
+                    "starting_bid": start_bid,
+                    "current_bid": start_bid,
+                    "bid_increment": float(increment),
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "status": "ACTIVE",
+                    "is_physical": artwork.art_type == "physical",
+                },
             )
 
         _create_similarity_matches(artwork)

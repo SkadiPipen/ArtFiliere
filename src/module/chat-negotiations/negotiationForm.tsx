@@ -4,9 +4,8 @@ import LicenseInfoModal from './LicenseInfoModal';
 // PURPOSE: Negotiation form for chat
 // ========================================
 
-import { CheckCircle, Circle, Info, Package } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import DeliveryAddressPicker, { DeliveryQuote } from './DeliveryAddressPicker';
+import { CheckCircle, Circle, Info } from 'lucide-react-native';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DeliveryAddressPicker, { DeliveryQuote } from './DeliveryAddressPicker';
 import type { Artwork, ExclusivityType, LicenseType } from './types';
 
 // Retain the form's existing defaults until a settings backend is available.
@@ -200,9 +200,17 @@ export default function NegotiationForm({
     }
 
     // ONLY add deliveryZone and deliveryAddress if requiresDelivery is true
-    if (requiresDelivery) {
-      proposal.deliveryQuote = deliveryQuote?.token;
-      proposal.deliveryAddress = deliveryQuote?.delivery_address;
+    if (requiresDelivery && deliveryQuote) {
+      proposal.deliveryQuote = deliveryQuote.token;
+      proposal.delivery_quote = deliveryQuote.token;
+      proposal.delivery_quote_token = deliveryQuote.token;
+      proposal.quote_token = deliveryQuote.token;
+      proposal.deliveryAddress = deliveryQuote.delivery_address;
+      proposal.delivery_address = deliveryQuote.delivery_address;
+      proposal.delivery_fee = Number(deliveryQuote.fee || 0);
+      proposal.fee = Number(deliveryQuote.fee || 0);
+      proposal.distance_km = Number(deliveryQuote.distance_km || 5.0);
+      proposal.is_priority = Boolean(deliveryQuote.is_priority);
     }
 
     // ONLY add royaltyPercentage if isRoyalty is true

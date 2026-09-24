@@ -1,4 +1,4 @@
-  import Toast from '@/components/Toast';
+import Toast from '@/components/Toast';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
@@ -23,7 +23,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
     const [hourlyRate, setHourlyRate] = useState('');
     const [materials, setMaterials] = useState('0');
     const [artType, setArtType] = useState('Physical');
-    const price = ((Number(hours) * Number(hourlyRate) + (artType.toLowerCase() === 'physical' ? Number(materials) : 0)) * 1.1).toFixed(2);
     const [tags, setTags] = useState<string[]>([]);
     const [generatingTags, setGeneratingTags] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -34,7 +33,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
     const [bidIncrement, setBidIncrement] = useState('100.00');
     const [startingTime, setStartingTime] = useState('');
     const [endTime, setEndTime] = useState('');
+    const [customStartingBid, setCustomStartingBid] = useState('');
 
+    const calculatedPrice = ((Number(hours) * Number(hourlyRate) + (artType.toLowerCase() === 'physical' ? Number(materials) : 0)) * 1.1).toFixed(2);
+    const price = saleType === 'Auction' ? customStartingBid : (calculatedPrice !== '0.00' ? calculatedPrice : customStartingBid);
+    
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
       setToast({ visible: true, message, type });
     };
@@ -106,6 +109,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
         // Appended custom auction if artist chose auc
         if (saleType === 'Auction') {
+          payload.starting_bid = price || customStartingBid;
+          payload.starting_price = price || customStartingBid;
           payload.bid_increment = bidIncrement;
           if (startingTime) payload.starting_time = new Date(startingTime).toISOString();
           if (endTime) payload.end_time = new Date(endTime).toISOString();
@@ -204,8 +209,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
               <Text style={styles.label}>Category:</Text>
               <TextInput style={styles.input} value={category} onChangeText={setCategory} placeholder="Painting, Photography..." />
               
-              <Text style={styles.label}>{saleType === 'Auction' ? 'Starting Bid (Php):' : 'Price (PHP):'}</Text>
-              <TextInput style={styles.input} value={price} editable={false} placeholder="0.00"/>
+              <Text style={styles.label}>
+                {saleType === 'Auction' ? 'Starting Bid (Php):' : 'Price (PHP):'}
+              </Text>
+              <TextInput
+                style={[styles.input, saleType !== 'Auction' && hours && hourlyRate ? { backgroundColor: '#F0F0F0', color: '#666' } : {}
+                ]}
+                value={saleType === 'Auction' ? customStartingBid : (price || '')}
+                onChangeText={(val) => {
+                  if (saleType === 'Auction') {
+                    setCustomStartingBid(val);
+                  } else {
+                    setCustomStartingBid(val);
+                  }
+                }}
+                keyboardType="decimal-pad"
+                editable={true}
+                placeholder={saleType === 'Auction' ? 'Enter starting bid (e.g. 100.00)' : '0.00'}
+              />
               <Text style={styles.label}>Price (PHP):</Text>
               <Text style={styles.label}>Hours worked</Text>
               <TextInput style={styles.input} value={hours} onChangeText={setHours} keyboardType="decimal-pad" />

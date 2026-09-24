@@ -41,7 +41,8 @@
           "cameraPermission": "Allow ArtFiliere to take pickup and delivery proof photos.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

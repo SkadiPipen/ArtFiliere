@@ -15,24 +15,21 @@ export interface ActiveDelivery {
         name: string;
         phone: string;
         address: string;
-        latitude?: number;
-        longitude?: number;
+        latitude: number;
+        longitude: number;
     };
     buyer: {
         name: string;
         phone: string;
         address: string;
         instructions: string;
-        latitude?: number;
-        longitude?: number;
+        latitude: number;
+        longitude: number;
     };
     items: {
         name: string;
         quantity: number
     } [];
-    has_pickup_proof: boolean;
-    has_delivery_proof: boolean;
-    fee: string;
     artistPhotoUri?: string;
     buyerPhotoUri?: string;
 }

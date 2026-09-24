@@ -41,8 +41,11 @@ export default function ViewPostPage() {
   }, []);
 
   const formatTimer = (targetDate: any) => {
-    if (!targetDate) return 'Active Now';
-    const diff = Math.max(0, new Date(targetDate).getTime() - now);
+    if (!targetDate) return 'Active Ended';
+    const target = new Date(targetDate).getTime();
+    if (isNaN(target)) return 'Auction Ended';
+
+    const diff = target - now;
     if (diff <= 0) return 'Auction Ended';
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -84,13 +87,24 @@ export default function ViewPostPage() {
   const artistName = artworkData?.artist_name || artworkData?.artist?.username || params.artist;
   const resolvedArtistId = String(artworkData?.artist?.id || artworkData?.artist_id || artworkData?.artist || params.artistId || '');
 
-  const rawSaleType = String(artworkData?.sale_type || params.type || params.sale_type || '').toUpperCase();
-  const hasAuctionTimes = Boolean(artworkData?.end_time || params.endTime || params.endtime || artworkData?.bid_increment);
-  const isAuction = rawSaleType.includes('AUCTION') || params.type === 'Auction' || hasAuctionTimes;
+  const backendSaleType = String(artworkData?.sale_type || '').trim().toLowerCase();
+  const paramSaleType = String(params.sale_type || '').trim().toLowerCase();
+  const paramType = String(params.type || '').trim().toLowerCase();
 
-  const bidIncrement = artworkData?.bid_increment || params.bidIncrement;
-  const startingtTime = artworkData?.starting_time || artworkData?.start_time || params.startingTime || '';
-  const endTime = artworkData?.end_time || params.endTime || '';
+  const isAuction = 
+    backendSaleType === 'auction' || 
+    paramSaleType === 'auction' || 
+    paramType === 'auction';
+
+  const displayedBidIncrement = isAuction ? (artworkData?.bid_increment || params.bidIncrement || '100.00') : '0';
+  const displayedStartingtTime = isAuction ? (artworkData?.starting_time || artworkData?.start_time || params.startingTime || '') : '';
+  
+  const rawEnd = artworkData?.end_time || params.endTime;
+  const fallbackEnd = artworkData?.created_at 
+    ? new Date(new Date(artworkData.created_at).getTime() + 24 * 60 * 60 * 1000).toISOString()
+    : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const effectiveEndTime = isAuction ? (rawEnd ? String(rawEnd) : fallbackEnd) : '';
+
   const isDigital = String(artworkData?.category || params.medium || '').toLowerCase().includes('digital');
 
   useEffect(() => {
@@ -153,13 +167,22 @@ export default function ViewPostPage() {
   };
 
   const formatDate = (dateStr?: any) => {
-    if (!dateStr) return 'Aactive Now';
+    if (!dateStr) return 'Active Now';
     try {
       return new Date(dateStr).toLocaleString();
     } catch {
       return String(dateStr);
     }
   };
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(home)');
+    }
+  };
+
 
   return (
     <SafeAreaView style={styles.mainContainer} edges={['top', 'left', 'right']}>
@@ -172,7 +195,7 @@ export default function ViewPostPage() {
               uri={(image as string) || 'https://picsum.photos/seed/view/800/1200'}
               height={isDesktop ? 550 : 350}
             />
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
               <ArrowLeft color="white" size={22} />
             </TouchableOpacity>
           </View>
@@ -188,7 +211,7 @@ export default function ViewPostPage() {
               </TouchableOpacity>
 
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{isAuction ? 'Auction' : medium}</Text>
+              <Text style={styles.badgeText}>{isAuction ? 'Auction' : (isDigital ? 'Digital' : 'Physical')}</Text>
             </View>
 
             <View style={styles.detailsSection}>
@@ -205,9 +228,9 @@ export default function ViewPostPage() {
             {isAuction && (
               <View style={styles.auctionDetailsBox}>
                 <Text style={styles.auctionHeader}> Auction Parameters</Text>
-                <Text style={styles.auctionText}>Bid Increment: Php{Number(bidIncrement).toLocaleString()}</Text>
-                <Text style={[styles.auctionText, {fontWeight: '700', color: '#059d19', marginTop: 4 }]}>Starts: {startingtTime ? new Date(startingtTime).toLocaleString() : 'Active Now'}</Text>
-                <Text style={[styles.auctionText, {fontWeight: '700', color: '#C15656', marginTop: 4 }]}>Ends in: {formatTimer(endTime)}</Text>
+                <Text style={styles.auctionText}>Bid Increment: Php{Number(displayedBidIncrement).toLocaleString()}</Text>
+                <Text style={[styles.auctionText, {fontWeight: '700', color: '#059d19', marginTop: 4 }]}>Starts: {displayedStartingtTime ? new Date(displayedStartingtTime).toLocaleString() : 'Active Now'}</Text>
+                <Text style={[styles.auctionText, {fontWeight: '700', color: '#C15656', marginTop: 4 }]}>Ends in: {formatTimer(effectiveEndTime)}</Text>
               </View>
             )}
 
@@ -218,11 +241,21 @@ export default function ViewPostPage() {
 
             {/* If auction, Go to Auction / Place Bid is provided */}
             {isAuction ? (
-              <TouchableOpacity style={[styles.auctionBtn, (isOwnArtwork || checkingOwner) && styles.cartBtnDisabled]}
-                onPress={() => router.push('/auction-dashboard' as any)}
+              <TouchableOpacity
+                style={[styles.auctionBtn, (isOwnArtwork || checkingOwner) && styles.cartBtnDisabled]}
+                onPress={() => {
+                  if (artworkId) {
+                    router.push({
+                      pathname: '/auction-dashboard',
+                      params: { id: String(artworkId) },
+                    } as any);
+                  } else {
+                    router.push('/auction-post' as any);
+                  }
+                }}
                 disabled={isOwnArtwork || checkingOwner}
               >
-                <Gavel color="#fff" size={18} style={{ marginRight: 8 }}/>
+                <Gavel color="#fff" size={18} style={{ marginRight: 8 }} />
                 <Text style={styles.cardText}>
                   {isOwnArtwork ? 'This is your auction' : 'Enter Auction Room'}
                 </Text>

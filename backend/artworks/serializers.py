@@ -30,6 +30,12 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "end_time",
             "artist",
         ]
+        extra_kwargs = {
+            'sale_type': {'required': False},
+            'bid_increment': {'required': False},
+            'starting_time': {'required': False},
+            'end_time': {'required': False},
+        }
         read_only_fields = ["id", "artist_id", "status", "decline_reason", "created_at"]
 
     def get_artist_name(self, artwork):

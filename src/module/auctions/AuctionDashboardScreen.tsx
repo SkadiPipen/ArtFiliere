@@ -27,10 +27,17 @@ export default function AuctionDashboardScreen() {
             }
             if (res.ok) {
                 const json = await res.json();
+                console.log('Auction Dashboard API response:', json);
+                const allList = json.all_auctions || (Array.isArray(json) ? json : []); 
+                const deadlineList = (json.close_to_deadline && json.close_to_deadline.length > 0)
+                    ? json.close_to_deadline
+                    : allList.slice(0, 5);
                 setData({
-                    close_to_deadline: json.close_to_deadline || [],
-                    all_auctions: json.all_auctions || (Array.isArray(json) ? json :[]),
+                    close_to_deadline: deadlineList,
+                    all_auctions: allList,
                 });
+            } else {
+                console.warn('Auction Dashboard response not ok:', res.status);
             }
         } catch (err) {
             console.warn('Failed to load auctions:', err);
@@ -74,6 +81,11 @@ export default function AuctionDashboardScreen() {
     if (loading) {
         return <ActivityIndicator size="large" color="#BC5454" style={{ flex: 1, marginTop: 60}}/>;
     }
+    
+    const filteredAuctions = data.all_auctions.filter((item: any) =>
+        (item.title || '').toLowerCase().includes(search.toLowerCase()) ||
+        (item.artist_name || '').toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -127,7 +139,7 @@ export default function AuctionDashboardScreen() {
 
             {/* See More Grid */}
             <Text style={[styles.sectionTitle, { marginTop: 24}]}>See More</Text>
-            {data.all_auctions?.length === 0 ? (
+            {filteredAuctions.length === 0 ? (
                 <View style={{ padding: 24, alignItems: 'center' }}>
                     <Text style={{ color: '#888' }}>No live auctions found.</Text>
                 </View>    

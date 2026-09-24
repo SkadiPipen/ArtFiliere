@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "auctions",
     "cart",
     "fulfillment",
+    "commissions",
 ]
 
 # Test and live credentials are loaded from backend/.env. Never expose the

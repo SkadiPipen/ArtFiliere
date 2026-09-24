@@ -1,107 +1,243 @@
+import math
+from decimal import Decimal
 from django.shortcuts import render
-from rest_framework.decorators import api_view
+from django.contrib.auth import get_user_model
+from django.core import signing
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, permissions
 from .models import Order, RiderProfile
 from .serializers import OrderSerializer, RiderProfileSerializer
+from artworks.models import Artwork
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import IsAuthenticated
+
+CEBU_COORDINATES = {
+    'cebu city': (10.3157, 123.8854),
+    'mandaue': (10.3333, 123.9333),
+    'lapu-lapu': (10.3111, 123.9494),
+    'talisay': (10.2447, 123.8494),
+    'lahug': (10.3382, 123.8967),
+    'banilad': (10.3400, 123.9100),
+    'consolacion': (10.3778, 123.9575),
+}
+
+try:
+    from fulfillment.routing import SALT
+except ImportError:
+    SALT = 'fulfillment.delivery.quote'
+
+User = get_user_model()
+
+def calculate_haversine_km(lat1, lon1, lat2, lon2):
+    """Calculates ground distance between two points in km."""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2 +
+         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return round(R * c * 1.3, 1)
+
+def estimate_distance_from_addresses(origin_str, dest_str):
+    origin = (origin_str or '').lower()
+    dest = (dest_str or '').lower()
+
+    c1 = (10.3157, 123.8854)
+    for name, coords in CEBU_COORDINATES.items():
+        if name in origin:
+            c1 = coords
+            break
+
+    c2 = (10.3333, 123.9333)
+    for name, coords in CEBU_COORDINATES.items():
+        if name in dest:
+            c2 = coords
+            break
+
+    return max(1.5, calculate_haversine_km(c1[0], c1[1], c2[0], c2[1]))
 
 
-# Create your views here.
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def get_delivery_quote(request):
+    artwork_id = request.data.get('artwork_id')
+    delivery_address = str(request.data.get('delivery_address') or 'Cebu City, Philippines')
+    artist_address = str(request.data.get('artist_address') or 'Cebu City Art Studio')
+    is_priority = bool(request.data.get('is_priority', False))
+
+    if request.data.get('distance_km'):
+        distance_km = float(request.data.get('distance_km'))
+    else:
+        distance_km = estimate_distance_from_addresses(artist_address, delivery_address)
+
+    base_fare = 50.00
+    base_km = 2.0
+    distance_fee = max(0.0, distance_km - base_km) * 15.00
+    priority_fee = 40.00 if is_priority else 0.00
+    total_fee = round(base_fare + distance_fee + priority_fee, 2)
+
+    artwork = Artwork.objects.filter(pk=artwork_id).first() if artwork_id else None
+    actor = request.user if request.user and request.user.is_authenticated else User.objects.first()
+    buyer = actor
+
+    artwork_pk = artwork.pk if artwork else int(artwork_id or 1)
+    buyer_pk = buyer.pk if buyer else 1
+    actor_pk = actor.pk if actor else 1
+    revision_pk = request.data.get('revision_id') or None
+
+    pickup_addr = getattr(artwork.artist, 'address', artist_address) if artwork and hasattr(artwork, 'artist') else artist_address
+
+    quote_payload = {
+        'artwork': artwork_pk,
+        'buyer': buyer_pk,
+        'actor': actor_pk,
+        'revision': revision_pk,
+        'details': {
+            'fee': str(total_fee),
+            'distance_km': distance_km,
+            'is_priority': is_priority,
+            'pickup_address_id': 1,
+            'delivery_address_id': 1,
+            'pickup_address': pickup_addr,
+            'delivery_address': delivery_address,
+            'pickup_coordinates': (10.3157, 123.8854),
+            'delivery_coordinates': (10.3333, 123.9333),
+        }
+    }
+
+    signed_token = signing.dumps(quote_payload, salt=SALT)
+
+    return Response({
+        "token": signed_token,
+        "delivery_address": delivery_address,
+        "distance_km": distance_km,
+        "fee": total_fee,
+        "is_priority": is_priority,
+        "estimated_time": f"{int(distance_km * 3 + 10)} mins",
+    }, status=status.HTTP_200_OK)
+
+
 @api_view(['GET'])
-def get_pending_orders(requests):
-    """ Fetch all pending order requests """
+@permission_classes([permissions.AllowAny])
+def get_pending_orders(request):
+    """ Fetch pending order requests for riders """
     orders = Order.objects.filter(status='PENDING').order_by('-created_at')
-    serializer = OrderSerializer(orders, many=True)
-    return Response(serializer.data)
+    data = []
+    for o in orders:
+        raw_buyer = getattr(o, 'buyer_name', None) or getattr(o, 'buyerId', str(o.id))
+        buyer_label = raw_buyer if str(raw_buyer).startswith("Customer #") else f"Customer #{raw_buyer}"
+
+        # Calculate Move It fare safely
+        try:
+            km_val = float(''.join(c for c in str(o.distance) if c.isdigit() or c == '.'))
+            fee_val = round(50.0 + max(0.0, km_val - 2.0) * 15.0, 2)
+        except Exception:
+            fee_val = 129.50
+
+        data.append({
+            "id": str(o.id),
+            "buyerId": buyer_label,
+            "customer_name": buyer_label,
+            "artwork_title": getattr(o, 'item_name', 'Physical Artwork Piece'),
+            "address": o.address,
+            "formatted_address": o.address,
+            "itemsCount": o.items_count,
+            "items_count": o.items_count,
+            "distance": o.distance,
+            "estimatedTime": o.estimatedTime,
+            "paymentMethod": o.paymentMethod,
+            "delivery_fee": fee_val,
+        })
+    return Response(data, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
+@permission_classes([permissions.AllowAny])
 def accept_order(request, order_id):
-    """ Accept order request """
-    try:
-        order = Order.objects.get(id=order_id, status='PENDING')
-        order.status = 'ACCEPTED'
-        # Pwede mag add rider logic ari, if naa
-        order.save()
-        return Response({'message': 'Order accepted successfully!', 'order_id': order_id}, status=status.HTTP_200_OK)
-    except Order.DoesNotExist:
-        return Response({'error': 'Order not found or already accepted.'}, status=status.HTTP_404_NOT_FOUND)
-
-@api_view(['POST'])
-def update_rider_location(request):
-    """ Update rider GPS location """
-    try:
-        rider_id = request.data.get('rider_id')
-        latitude = request.data.get('latitude')
-        longitude = request.data.get('longitude')
-
-        if latitude is None or longitude is None:
-            return Response(
-                {"error": "Latitude and longitude are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Handle nested lists/arrays
-        if isinstance(latitude, list):
-            latitude = latitude[0]
-        if isinstance(longitude, list):
-            longitude = longitude[0]
-
-        lat_val = float(latitude)
-        lng_val = float(longitude)
-
-        # Fallback to first profile if rider is missing or invalid
-        if rider_id:
-            rider = RiderProfile.objects.filter(id=rider_id).first()
-        else:
-            rider = RiderProfile.objects.first()
-
-        if not rider:
-            rider = RiderProfile.objects.create(id=rider_id or 1)
-
-        rider.current_latitude = lat_val
-        rider.current_longitude = lng_val
-        rider.save()
-
-        return Response({'message': 'Location updated'}, status=status.HTTP_200_OK)
-
-    except (ValueError, TypeError) as e:
-        return Response({'error': f'Invalid coordinat numbers: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error':str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-@api_view(['POST'])
-def update_order_status(request, order_id):
-    """ Update order status """
+    """ Accept order request without strict PENDING constraint """
     try:
         order = Order.objects.get(id=order_id)
-    except Order.DoesNotExist:
-        return Response({'error': f'Order {order_id} not found in database'}, status=status.HTTP_404_NOT_FOUND)
-
-    new_status = request.data.get('status')
-    if not new_status:
-        return Response(
-            {'error': 'Invalid status provided.'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    order.status = new_status
-    order.save()
         
-    return Response({
-        'message': 'Order status updated to {new_status}',
-        'id': order.id,
-        'status': order.status
-    }, status.HTTP_200_OK )
-    
+        if order.status == 'ACCEPTED':
+            return Response({
+                'message': 'Order is already accepted.',
+                'order_id': order.id,
+                'status': order.status
+            }, status=status.HTTP_200_OK)
+
+        order.status = 'ACCEPTED'
+        
+        rider = RiderProfile.objects.first()
+        if rider:
+            order.assigned_rider = rider
+            
+        order.save()
+        return Response({
+            'message': 'Order accepted successfully!',
+            'order_id': order.id,
+            'status': order.status
+        }, status=status.HTTP_200_OK)
+
+    except Order.DoesNotExist:
+        return Response({
+            'error': f'Order #{order_id} does not exist in the database.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+def serialize_active_order(order):
+    """ Helper that matches ActiveDelivery interface dynamically with live DB records """
+    rider = order.assigned_rider or RiderProfile.objects.first()
+
+    return {
+        "id": order.id,
+        "paymentMethod": order.paymentMethod,
+        "step": order.status,
+        "fee": str(order.delivery_fee),
+        "rider_location": {
+            "latitude": rider.current_latitude if rider and rider.current_latitude else 10.3157,
+            "longitude": rider.current_longitude if rider and rider.current_longitude else 123.8854,
+        },
+        "artist": {
+            "name": order.artist_name or (order.payment.artist.username if order.payment and order.payment.artist else "Artist"),
+            "phone": order.artist_phone or "No phone on file",
+            "address": order.pickup_address or "Artist Studio Address",
+            "latitude": float(order.pickup_latitude),
+            "longitude": float(order.pickup_longitude),
+        },
+        "buyer": {
+            "name": order.buyer_name or (order.payment.buyer.username if order.payment and order.payment.buyer else f"Customer #{order.buyerId}"),
+            "phone": order.buyer_phone or "No phone on file",
+            "address": order.address,
+            "instructions": "Please handle the artwork with care.",
+            "latitude": float(order.delivery_latitude),
+            "longitude": float(order.delivery_longitude),
+        },
+        "items": [
+            {
+                "name": order.item_name,
+                "quantity": order.items_count or 1
+            }
+        ],
+        "has_pickup_proof": bool(order.pickup_proof),
+        "has_delivery_proof": bool(order.delivery_proof),
+        "artistPhotoUri": order.pickup_proof or None,
+        "buyerPhotoUri": order.delivery_proof or None,
+    }
+
 @api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def get_order_by_id(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+        return Response(serialize_active_order(order), status=status.HTTP_200_OK)
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
 def get_active_delivery(request):
-    """
-    Fetches the recent orders handled by the rider.
-    Statuses: ACCEPTED, ARRIVED_AT_FIRST, PICKED_UP, IN_TRANSIT, ARRIVED_AT_BUYER
-    """
     active_statuses = [
         'ACCEPTED',
         'ARRIVED_AT_ARTIST',
@@ -109,102 +245,103 @@ def get_active_delivery(request):
         'IN_TRANSIT',
         'ARRIVED_AT_BUYER'
     ]
-
-    # Get order that is active
     order = Order.objects.filter(status__in=active_statuses).order_by('-id').first()
-
     if not order:
         return Response(None, status=status.HTTP_200_OK)
 
-    # Retrieve artist name (purpose para di mag crash since ala pay connection sa main app)
-    artist_id = getattr(order, 'artist_id', getattr(order, 'artistId', None))
-    artist_name = getattr(order, 'artist_name', None) or (f"Artist #{artist_id}" if artist_id else "No Name")
+    return Response(serialize_active_order(order), status=status.HTTP_200_OK)
 
-    buyer_id = getattr(order, 'buyer_id', getattr(order, 'buyerId', getattr(order, 'id', 'Customer')))
-    buyer_name = getattr(order, 'buyer_name', None) or f"Customer {buyer_id}"
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def update_order_status(request, order_id):
+    """ Update order status safely and return serialized order """
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response(
+            {'error': f'Order #{order_id} not found in database'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
 
-    # Helper function to extract a clean float from scalar, list, or string
-    def parse_coord(val, default):
-        if val is None:
-            return default
-        if isinstance(val, list):
-            val = val[0] if len(val) > 0 else default
-        try:
-            return float(val)
-        except (ValueError, TypeError):
-            return default
+    new_status = request.data.get('status')
+    if not new_status:
+        return Response(
+            {'error': 'No status provided in request body.'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-    data = {
-        "id": order.id,
-        "step": order.status,
-        "paymentMethod": getattr(order, 'payment_method', 'COD'),
-        "buyer": {
-            "name": f"Buyer #{buyer_name}",
-            "phone": getattr(order, 'buyer_phone', 'N/A'),
-            "address": getattr(order, 'address', getattr(order, 'delivery_address', 'Customer Delivery Address')),
-            "instructions": getattr(order, 'instructions', 'Handle with care.'),
-            "latitude": float(getattr(order, 'buyer_lat', getattr(order, 'delivery_latitude', 10.3200))),
-            "longitude": float(getattr(order, 'buyer_lng', getattr(order, 'delivery_longitude', 123.9000))),
-        },
-        "artist": {
-            "name": str(artist_name),
-            "phone": getattr(order, 'artist_phone', 'N/A'),
-            "address": getattr(order, 'pickup_address', getattr(order, 'artist_address', 'N/A')),
-            "latitude": float(getattr(order, 'artist_lat', getattr(order, 'pickup_latitude', 10.3157 ))),
-            "longitude": float(getattr(order, 'artist_lng', getattr(order, 'pickup_longitude', 123.8854))),
-        },
-        "items": [
-            {
-                "name": getattr(order, 'item_name', "Artwork Item"), 
-                "quantity": int(getattr(order,'item_count', getattr(order, 'itemCount', 1)))
-            }
-        ]
-    }
-    return Response(data, status=status.HTTP_200_OK)
+    order.status = str(new_status).strip()
+    order.save()
+
+    try:
+        data = serialize_active_order(order)
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'message': f'Status updated to {order.status}',
+            'id': order.id,
+            'status': order.status
+        }, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def update_rider_location(request):
+    rider = RiderProfile.objects.first()
+    if rider:
+        rider.current_latitude = float(request.data.get('latitude', 10.3157))
+        rider.current_longitude = float(request.data.get('longitude', 123.8854))
+        rider.save()
+    return Response({'message': 'Location updated'}, status=status.HTTP_200_OK)
+
 
 class RiderDeliveryHistoryView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request):
-        queryset = Order.objects.filter(
-            status__in=["DELIVERED", "COMPLETED", "delivered", "completed"]
-        ).order_by('-id')
-
+        queryset = Order.objects.filter(status__in=['DELIVERED', 'COMPLETED']).order_by('-id')
         data = []
-        for order in queryset:
-            payment = getattr(order, 'payment', None)
-            artwork = getattr(payment, 'artwork', None) if payment else None
-
-            order_total = float(getattr(payment, 'amount', 0) or getattr(artwork, 'price', 0) or 0.0)
-
-            # Base fare 50 + 15 per km
-            try:
-                km_num = float(''.join(c for c in str(order.distance) if c.isdigit() or c == '.'))
-                rider_fee = round(50.0 + (km_num * 15.0), 2)
-            except Exception:
-                rider_fee = 85.00
-
-            order_date = None
-            if hasattr(order, 'created_at') and order.created_at:
-                order_date = order.created_at.isoformat()
-
+        for o in queryset:
             data.append({
-                "id": order.id,
-                "buyerId": order.buyerId,
-                "customer_name": f"Buyer #{order.buyerId}",
-                "address": order.address,
-                "paymentMethod": order.paymentMethod,
-                "distance": order.distance,
-                "estimatedTime": order.estimatedTime,
-                "items_count": order.items_count,
-                "status": order.status,
-                "order_total": order_total,
-                "rider_earnings": rider_fee,
-                "artworl_title": getattr(artwork, 'title', f"Artwork #{order.id}"),
+                "id": o.id,
+                "artwork_title": getattr(o, 'item_name', f"Artwork #{o.id}"),
+                "customer_name": getattr(o, 'buyer_name', f"Customer #{o.buyerId}"),
+                "address": o.address,
+                "delivered_at": o.created_at.isoformat() if hasattr(o, 'created_at') and o.created_at else None,
+                "fee": "129.50",
             })
-
         return Response(data, status=status.HTTP_200_OK)
+
+
+class RiderProfileView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        completed_count = Order.objects.filter(status__in=['DELIVERED', 'COMPLETED']).count()
+        return Response({
+            "fullName": "ArtFiliere Express Rider",
+            "email": "rider@artfiliere.ph",
+            "is_clocked_in": True,
+            "total_delivery": completed_count,
+            "date_registered": "2026-01-01",
+            "vehicle": {
+                "type": "Motorcycle",
+                "model": "Honda XRM 125",
+                "plate_number": "ABC-1234",
+                "color": "Red",
+                "orcr_docs": "orcr_verified.pdf"
+            },
+            "license": {
+                "license_number": "N01-26-891024",
+                "expiry_date": "2028-11-30",
+                "document_url": "driver_license.pdf",
+                "status": "Valid"
+            }
+        }, status=status.HTTP_200_OK)
+
 
 class OrderProofUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request, order_id):
         try:
@@ -213,7 +350,7 @@ class OrderProofUploadView(APIView):
             return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
         photo = request.FILES.get('photo') or request.FILES.get('image')
-        proof_type = request.data.get('type', 'delivery')  # 'pickup' or 'delivery'
+        proof_type = request.data.get('type', 'delivery')
 
         if photo:
             if hasattr(order, 'proof_image'):
@@ -224,70 +361,85 @@ class OrderProofUploadView(APIView):
         return Response({"error": "No photo provided"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class RiderProfileView(APIView):
-    def get(self, request):
-        user = request.user
-        
-        if not user or not user.is_authenticated:
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            user = User.objects.filter(is_staff=True).first() or User.objects.first()
+def create_delivery_and_notify_driver_order(
+    payment,
+    buyer_id, 
+    address, 
+    payment_method='PAYPAL', 
+    artwork_title='Artwork Asset', 
+    price=0.0, 
+    is_physical=True, 
+    is_priority=False, 
+    distance_km=5.0,
+    delivery_coords=None,
+    pickup_coords=None
+):
+    if not is_physical:
+        return None
 
-        if not user:
-            return Response({"error": "No user found"}, status=status.HTTP_404_NOT_FOUND)
+    agreement = getattr(payment, 'agreement', None)
+    artwork = getattr(payment, 'artwork', None)
+    artist = getattr(payment, 'artist', getattr(artwork, 'artist', None)) if (payment or artwork) else None
+    buyer = getattr(payment, 'buyer', None)
 
-        completed_count = Order.objects.filter(
-            status__in=["DELIVERED", "COMPLETED", "delivered", "completed"]
-        ).count()
+    # 1. Dynamic Artist Data
+    a_name = ''
+    if artist:
+        a_name = f"{getattr(artist, 'first_name', '')} {getattr(artist, 'last_name', '')}".strip() or artist.username
+    a_phone = ''
+    if artist:
+        a_prof = getattr(artist, 'profile', None)
+        a_phone = getattr(a_prof, 'phone_number', '') or getattr(artist, 'phone', '')
 
-        profile = getattr(user, 'profile', None) or getattr(user, 'rider_profile', None)
-        
-        full_name = f"{user.first_name} {user.last_name}".strip() or user.username
-        email = user.email or f"{user.username}@artfiliere.ph"
-        phone = (
-            getattr(profile, 'phone_number', None)
-            or getattr(user, 'phone', None)
-            or getattr(profile, 'phone', None)
-            or "No phone provided"
-        )
-        address = (
-            getattr(profile, 'address', None)
-            or getattr(user, 'address', None)
-            or "Cebu City, Philippines"
-        )
-        member_since = user.date_joined.strftime("%Y-%m-%d") if hasattr(user, 'date_joined') and user.date_joined else "2026-01-01"
+    pickup_str = ''
+    if artist:
+        a_addr = getattr(artist, 'address', None)
+        pickup_str = getattr(a_addr, 'formatted', str(a_addr)) if a_addr else ''
+    if not pickup_str and agreement and hasattr(agreement, 'delivery_details'):
+        pickup_str = agreement.delivery_details.get('pickup_address', '')
 
-        vehicle_type = getattr(profile, 'vehicle_type', 'Motorcycle')
-        vehicle_model = getattr(profile, 'vehicle_model', 'Honda XRM 125')
-        plate_number = getattr(profile, 'plate_number', 'ABC-1234')
-        vehicle_color = getattr(profile, 'vehicle_color', 'Red')
-        orcr_doc = getattr(profile, 'orcr_document', 'orcr_verified.pdf')
+    # 2. Dynamic Buyer Data
+    b_name = ''
+    if buyer:
+        b_name = f"{getattr(buyer, 'first_name', '')} {getattr(buyer, 'last_name', '')}".strip() or buyer.username
+    b_phone = ''
+    if buyer:
+        b_prof = getattr(buyer, 'profile', None)
+        b_phone = getattr(b_prof, 'phone_number', '') or getattr(buyer, 'phone', '')
 
-        license_number = getattr(profile, 'license_number', 'N01-26-891024')
-        expiry_date = getattr(profile, 'license_expiry', '2028-11-30')
-        license_doc = getattr(profile, 'license_document', 'driver_license.pdf')
+    # 3. Coordinates
+    p_lat = pickup_coords[0] if pickup_coords else 10.3157
+    p_lng = pickup_coords[1] if pickup_coords else 123.8854
+    d_lat = delivery_coords[0] if delivery_coords else 10.3333
+    d_lng = delivery_coords[1] if delivery_coords else 123.9333
 
-        data = {
-            "fullName": full_name,
-            "email": email,
-            "phoneNum": phone,
-            "address": address,
-            "rating": 4.9,
-            "total_delivery": completed_count,
-            "date_registered": member_since,
-            "vehicle": {
-                "type": vehicle_type,
-                "model": vehicle_model,
-                "plate_number": plate_number,
-                "color": vehicle_color,
-                "orcr_docs": str(orcr_doc).split('/')[-1]
-            },
-            "license": {
-                "license_number": license_number,
-                "expiry_date": expiry_date,
-                "document_url": str(license_doc).split('/')[-1],
-                "status": "Valid"
-            }
-        }
+    # Calculate Move It Fare: 50 base (2km) + 15/km + optional 40 priority
+    base_fare = 50.00
+    base_km = 2.0
+    dist_fee = max(0.0, float(distance_km) - base_km) * 15.00
+    prio_fee = 40.00 if is_priority else 0.00
+    total_fee = round(base_fare + dist_fee + prio_fee, 2)
 
-        return Response(data, status=status.HTTP_200_OK)
+    order = Order.objects.create(
+        payment=payment,
+        buyerId=str(buyer_id),
+        buyer_name=b_name or f"Customer #{buyer_id}",
+        buyer_phone=b_phone,
+        address=address,
+        delivery_latitude=d_lat,
+        delivery_longitude=d_lng,
+        artist_name=a_name or 'Artist',
+        artist_phone=a_phone,
+        pickup_address=pickup_str or 'Artist Studio',
+        pickup_latitude=p_lat,
+        pickup_longitude=p_lng,
+        item_name=artwork_title,
+        items_count=1,
+        distance=f"{distance_km:.1f} km",
+        estimatedTime=f"{int(distance_km * 3 + 10)} mins",
+        delivery_fee=total_fee,
+        is_priority=is_priority,
+        paymentMethod=payment_method,
+        status='PENDING'
+    )
+    return order

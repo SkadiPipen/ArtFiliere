@@ -44,6 +44,78 @@ class WalletView(AuthenticatedAPIView):
             } for entry in entries],
         })
 
+def create_delivery_and_notify(payment):
+    # Triggers delivery order creation for physical artworks upon payment confirmation.
+    # 50 base for first 2km. 15/km for succeeding distance and +40 for priority
+    print(">>> [DEBUG] create_delivery_and_notify triggered for payment:", payment.id)
+    artwork = payment.artwork
+    agreement = getattr(payment, "agreement", None)
+
+    raw_art_type = (
+        getattr(artwork, "art_type", None)
+        or getattr(artwork, "artwork_type", None)
+        or getattr(artwork, "category", None)
+        or ""
+    )
+    art_type_str = str(raw_art_type).upper()
+    
+    agreement_delivery_type = str(getattr(agreement, "delivery_type", "")).upper() if agreement else ""
+
+    physical_keywords = ["PHYSICAL", "PAINTING", "SCULPTURE", "TRADITIONAL", "CRAFT", "CANVAS"]
+    is_physical = (
+        "PHYSICAL" in agreement_delivery_type
+        or any(kw in art_type_str for kw in physical_keywords)
+        or (art_type_str and "DIGITAL" not in art_type_str)
+    )
+
+    if not is_physical:
+        print(">>> [DEBUG] Digital artwork detected. Bypassing delivery.")
+        return None
+
+    buyer = payment.buyer
+    artist = payment.artist
+
+    delivery_details = getattr(agreement, "delivery_details", {}) or {}
+    if not isinstance(delivery_details, dict):
+        delivery_details = {}
+
+    buyer_profile = getattr(buyer, "profile", None)
+    buyer_address = (
+        delivery_details.get("delivery_address")
+        or getattr(agreement, "delivery_address", None)
+        or getattr(payment, "delivery_address", None)
+        or getattr(buyer, "delivery_address", None)
+        or getattr(buyer_profile, "delivery_address", None)
+        or getattr(buyer_profile, "address", None)
+        or getattr(buyer, "address", None)
+        or "Cebu"
+    )
+
+    is_priority = bool(
+        delivery_details.get("is_priority")
+        or getattr(agreement, "is_priority", False)
+        or getattr(payment, "is_priority", False)
+    )
+
+    try:
+        distance_km = float(delivery_details.get("distance_km") or 5.0)
+    except (ValueError, TypeError):
+        distance_km = 5.0
+
+    from delivery.views import create_delivery_and_notify_driver_order
+    delivery_order = create_delivery_and_notify_driver_order(
+        buyer_id=buyer.id,
+        address=buyer_address,
+        payment_method="ONLINE",
+        artwork_title=artwork.title if artwork else "Physical Artwork Asset",
+        price=float(payment.gross_amount or 0.0),
+        is_physical=True,
+        is_priority=is_priority,
+        distance_km=distance_km
+    )
+    print(f">>> [DEBUG] Successfully generated Delivery Order #{delivery_order.id}")
+
+    return delivery_order
 
 class ArtworkCheckoutView(AuthenticatedAPIView):
     def post(self, request, artwork_id):
@@ -139,6 +211,10 @@ class AgreementCheckoutView(AuthenticatedAPIView):
         session.checkout_url = result.get("payment_link_url", "")
         session.save(update_fields=["xendit_session_id", "checkout_url"])
         ActivityLog.objects.create(user=buyer, action="payment_started", description=f"Started payment for agreement #{agreement.id}.", reference_type="payment_session", reference_id=session.id)
+        try:
+            create_delivery_and_notify(session)
+        except Exception as err:
+            print(">>> [DEBUG] Error triggering delivery order:", err)
         return Response({"checkout_url": result.get("payment_link_url"), "reference_id": session.reference_id}, status=201)
 
 
@@ -339,8 +415,6 @@ def xendit_payment_session_webhook(request):
     data = request.data.get('data')
     if not isinstance(data, dict):
         return Response({'error': 'Invalid payload.'}, status=400)
-    # Saving a payment method (including the dashboard's sample) is not a purchase.
-    # Authenticate it above, acknowledge it, and never modify order/payment state.
     if data.get('session_type') == 'SAVE':
         return Response({'received': True, 'ignored': 'Payment-method saving session.'})
     payment = PaymentSession.objects.filter(reference_id=data.get('reference_id', ''), is_simulated=False).first()
