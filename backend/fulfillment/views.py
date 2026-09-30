@@ -11,6 +11,7 @@ from wallets.models import PaymentSession
 from .models import DeliveryOrder, PurchaseReview
 from .services import delivery_context, png_bytes
 from messaging.models import Agreement
+from commissions.models import CommissionRequest, CommissionPhoto
 
 
 class DeliveryRoutesView(AuthenticatedAPIView):
@@ -50,6 +51,7 @@ def delivery_data(order):
 class PurchasesView(AuthenticatedAPIView):
     permission_classes = [IsAuthenticatedUser]
     def get(self, request):
+        user = self.get_request_user(request)
         payments = PaymentSession.objects.filter(buyer=self.get_request_user(request)).select_related('artwork', 'artist', 'agreement', 'delivery_order__driver', 'review').order_by('-id')
         rows = []
         for p in payments:
@@ -64,6 +66,42 @@ class PurchasesView(AuthenticatedAPIView):
                          'can_download': paid and digital, 'can_rate': paid and not review,
                          'delivery': delivery_data(delivery) if delivery else None,
                          'review': {'artist_rating': review.artist_rating, 'artwork_rating': review.artwork_rating, 'comment': review.comment, 'artist_comment': review.artist_comment, 'artwork_comment': review.artwork_comment} if review else None})
+
+        commissions = CommissionRequest.objects.filter(buyer=user).prefetch_related('milestones', 'photos').order_by('-commission_req_id')
+        for c in commissions:
+            has_paid_any = c.milestones.filter(status='PAID').exists()
+            is_complete = c.status in ['COMPLETE', 'STAGE_3']
+            is_digital = c.art_type.lower() == 'digital'
+
+            latest_photo = c.photos.filter(photo_type='PROGRESS').order_by('-progress_percentage').first()
+            img_url = latest_photo.image_url if latest_photo else None
+
+            comm_status = 'paid' if is_complete else ('in_progress' if has_paid_any else 'pending')
+
+            rows.append({
+                'id': 100000 + c.commission_req_id,
+                'commission_id': c.commission_req_id,
+                'is_commission': True,
+                'title': c.title,
+                'artist': c.artist.username,
+                'image': img_url,
+                'is_simulated': False,
+                'status': comm_status,
+                'amount': str(c.time_duration),
+                'agreement_id': None,
+                'checkout_url': None,
+                'can_download': is_complete and is_digital and bool(img_url),
+                'can_rate': is_complete,
+                'delivery': {
+                    'status': 'in_transit' if not is_complete else 'delivered',
+                    'status_label': 'In Progress / Production' if not is_complete else 'Completed & Dispatched',
+                    'driver': 'Artisan Logistics',
+                    'delivery_address': getattr(c, 'delivery_address', 'Physical Commission Address'),
+                    'fee': '0.00'
+                } if not is_digital else None,
+                'review': None
+            })
+            
         return Response(rows)
 
 

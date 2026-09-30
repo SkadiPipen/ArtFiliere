@@ -8,6 +8,7 @@ export interface ArtItem {
   time?: string;
   artistId?: string;
   artistName?: string;
+  is_sold?: boolean;
 }
 
 export interface ArtistItem {

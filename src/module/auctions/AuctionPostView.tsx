@@ -1,3 +1,4 @@
+import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { Watermark } from '../artwork/components/Watermark';
+import ContractPanel from '../chat-negotiations/ContractPanel';
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web' || width > 768;
@@ -28,9 +30,11 @@ export default function AuctionPostView() {
   const [auction, setAuction] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [bidding, setBidding] = useState(false);
   const [settling, setSettling] = useState(false);
   const [bidModal, setBidModal] = useState(false);
   const [customBid, setCustomBid] = useState('');
+  const [showContractPanel, setShowContractPanel] = useState(false);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -44,7 +48,11 @@ export default function AuctionPostView() {
   useEffect(() => {
     async function fetchMe() {
       try {
-        const res = await fetch(`${API_URL}/auth/me/`);
+        const token = await auth.currentUser?.getIdToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`${API_URL}/auth/me/`, { headers });
         if (res.ok) {
           const user = await res.json();
           setCurrentUser(user);
@@ -71,8 +79,6 @@ export default function AuctionPostView() {
         const data = await res.json();
         setAuction(data);
         setCustomBid(String(data.next_min_bid || ''));
-      } else {
-        console.warn(`Auction detail returned status ${res.status}`);
       }
     } catch (err) {
       console.warn('Error loading auction details:', err);
@@ -87,8 +93,20 @@ export default function AuctionPostView() {
 
   const isExpired = auction?.end_time ? new Date(auction.end_time).getTime() <= now : false;
   const isSettled = auction?.status === 'SETTLED';
-  const isArtist = currentUser && auction && (currentUser.id === auction.artist_id || currentUser.username === auction.artist_name);
+  const firebaseUser = auth.currentUser;
+  const isArtist = Boolean(
+    auction && (
+      (firebaseUser && (auction.artist_uid === firebaseUser.uid || auction.artist_email === firebaseUser.email)) ||
+      (currentUser && (currentUser.id === auction.artist_id || currentUser.username === auction.artist_name))
+    )
+  );
 
+  const isWinner = Boolean(
+    auction && (
+      (firebaseUser && (auction.highest_bidder_uid === firebaseUser.uid)) ||
+      (currentUser && (currentUser.id === auction.highest_bidder_id || currentUser.username === auction.highest_bidder_name))
+    )
+  );
   const formatTimer = (targetDate: string) => {
     if (!targetDate) return '00:00:00s';
     const diff = Math.max(0, new Date(targetDate).getTime() - now);
@@ -101,77 +119,89 @@ export default function AuctionPostView() {
   };
 
   const placeBid = async (amount: number) => {
+    if (bidding) return;
+
+    if (!amount || isNaN(amount)) {
+      Alert.alert('Invalid Amount', 'Please enter a valid numeric bid amount.');
+      return;
+    }
+
     try {
-      let res = await fetch(`${API_URL}/api/auction/${auctionId}/bid/`, {
+      setBidding(true);
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        Alert.alert('Login Required', 'Please log in to place a bid on this artwork.');
+        return;
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      };
+
+      // Always call the standard plural route first
+      let res = await fetch(`${API_URL}/api/auctions/${auctionId}/bid/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ amount }),
       });
       if (res.status === 404) {
-        res = await fetch(`${API_URL}/api/auctions/${auctionId}/bid/`, {
+        res = await fetch(`${API_URL}/api/auction/${auctionId}/bid/`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ amount }),
         });
       }
+
       const data = await res.json();
       if (!res.ok) {
-        Alert.alert('Bid Error', data.error || 'Failed to place bid');
+        Alert.alert('Bid Error', data.error || 'Failed to place bid.');
       } else {
-        Alert.alert('Success', `Bid of ₱${amount.toLocaleString()} placed!`);
+        Alert.alert('Success!', `Your bid of ₱${amount.toLocaleString()} was placed!`);
         setBidModal(false);
-        loadDetails();
+        await loadDetails();
       }
     } catch (err) {
       Alert.alert('Error', 'Unable to connect to auction server.');
+    } finally {
+      setBidding(false);
     }
   };
 
   // Settle auction and navigate to chat negotiations & payment
   const handleSettleAndNegotiate = async () => {
     if (settling) return;
-    setSettling(true);
 
     try {
+      setSettling(true);
+      const token = await auth.currentUser?.getIdToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       let res = await fetch(`${API_URL}/api/auction/${auctionId}/settle/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
       });
       if (res.status === 404) {
         res = await fetch(`${API_URL}/api/auctions/${auctionId}/settle/`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
         });
       }
 
       const data = await res.json();
-
       if (res.ok) {
-        Alert.alert(
-          'Auction Concluded!',
-          `Proceeding to contract negotiations and checkout (${data.is_physical ? 'Physical Courier Delivery' : 'Digital Asset'}).`,
-          [
-            {
-              text: 'Open Negotiations',
-              onPress: () => {
-                router.push({
-                  pathname: '/chats',
-                  params: {
-                    roomId: String(data.thread_id || ''),
-                    agreementId: String(data.agreement_id || ''),
-                    fromAuction: 'true',
-                  },
-                } as any);
-              },
-            },
-          ]
-        );
+        setShowContractPanel(true);
       } else {
-        Alert.alert('Notice', data.error || 'Failed to settle auction.');
+        if (isSettled || data.error?.includes('settled')) {
+          setShowContractPanel(true);
+        } else {
+          Alert.alert('Auction Notice', data.error || 'Auction could not be settled.');
+        }
       }
     } catch (err) {
-      console.error('Error settling auction:', err);
-      Alert.alert('Error', 'Could not conclude auction.');
+      Alert.alert('Notice', 'Opening negotiation panel...');
+      setShowContractPanel(true);
     } finally {
       setSettling(false);
     }
@@ -242,12 +272,16 @@ export default function AuctionPostView() {
           {/* Top 5 Bidders Box */}
           <View style={styles.topBiddersBox}>
             <Text style={styles.topBiddersHeader}>Top Bidders:</Text>
-            {auction.top_bidders?.map((b: any, idx: number) => (
-              <View key={idx} style={styles.bidderRow}>
-                <Ionicons name="person" size={12} color="#FFF" />
-                <Text style={styles.bidderName}>{b.masked_name}</Text>
-              </View>
-            ))}
+            {auction.top_bidders && auction.top_bidders.length > 0 ? (
+              auction.top_bidders.map((b: any, idx: number) => (
+                <View key={idx} style={styles.bidderRow}>
+                  <Ionicons name="person" size={12} color="#FFF" />
+                  <Text style={styles.bidderName}>{b.masked_name}</Text>
+                </View>
+            ))
+          ) : (
+            <Text style={{ color: '#EEE', fontSize: 10 }}>No bids yet</Text>
+          )}
           </View>
         </View>
 
@@ -288,7 +322,7 @@ export default function AuctionPostView() {
             <Text style={styles.sectionHeader}>Offered licenses:</Text>
             <TouchableOpacity
               style={styles.licenseBtn}
-              onPress={() => router.push(`/negotiation/${auction.id}` as any)}
+              onPress={() => setShowContractPanel(true)}
             >
               <Ionicons name="document-text-outline" size={16} color="#C05C5C" />
               <Text style={styles.licenseBtnText}>Negotiate License Terms & Usage Rights →</Text>
@@ -314,7 +348,7 @@ export default function AuctionPostView() {
                     <>
                       <Ionicons name="chatbubbles-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
                       <Text style={styles.settleBtnText}>
-                        {isArtist ? 'Settle & Open Chat' : 'Proceed to Contract & Checkout'}
+                        {isArtist ? 'Review Terms & Chat' : 'Proceed to Contract & Checkout'}
                       </Text>
                     </>
                   )}
@@ -326,14 +360,19 @@ export default function AuctionPostView() {
                   <Text style={styles.pastBidLabel}>Past bid: Php {auction.past_bid?.toLocaleString()}</Text>
                 </View>
                 <View style={styles.btnRow}>
-                  <TouchableOpacity style={styles.rebidBtn} onPress={() => setBidModal(true)}>
-                    <Text style={styles.rebidText}>REBID</Text>
+                  <TouchableOpacity style={styles.rebidBtn} onPress={() => setBidModal(true)} disabled={isArtist}>
+                    <Text style={[styles.rebidText, isArtist && {color: '#AAA'}]}>REBID</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.instantBidBtn}
+                    style={[styles.instantBidBtn, isArtist && { backgroundColor: '#CCC'}]}
                     onPress={() => placeBid(Number(auction.next_min_bid))}
+                    disabled={isArtist || bidding}
                   >
-                    <Text style={styles.instantBidText}>Php{auction.next_min_bid?.toLocaleString()}</Text>
+                    {bidding ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <Text style={styles.instantBidText}>Php{auction.next_min_bid?.toLocaleString()}</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </>
@@ -355,21 +394,45 @@ export default function AuctionPostView() {
               keyboardType="numeric"
               value={customBid}
               onChangeText={setCustomBid}
+              placeholder="Enter amount..."
             />
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setBidModal(false)} style={styles.cancelBtn}>
-                <Text>Cancel</Text>
+                <Text style={{ color: '#666'}}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => placeBid(Number(customBid))}
                 style={styles.confirmBtn}
+                disabled={bidding}
               >
-                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Submit Bid</Text>
+                {bidding ? (
+                  <ActivityIndicator color="#FFF" size="small"/>
+                ) : (
+                  <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Submit Bid</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {showContractPanel && (
+        <ContractPanel
+          artworkId={String(auction.artwork_id || auction.id)}
+          startInChat={false}
+          onClose={() => {
+            setShowContractPanel(false);
+            router.push({
+              pathname: '/(home)/cart',
+              params:{ 
+                directCheckout: 'true', 
+                auctionId: String(auction.id), 
+                artworkId: String(auction.artwork_id || auction.id), 
+              },
+            } as any );
+          }}
+        />
+      )}
     </View>
   );
 }

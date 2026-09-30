@@ -2,30 +2,89 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.utils import timezone
-from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.conf import settings
+from decimal import Decimal
+import base64
+import requests
 
-# 1. Imported CommissionPhoto
+from authentication.views import AuthenticatedAPIView
+from users.models import User
+from messaging.models import Agreement
 from .models import CommissionRequest, CommissionMilestone, CommissionPhoto
 
-User = get_user_model()
 
+def resolve_buyer_or_user(view_instance, request):
+    """
+    Resolves the requesting user using the following sequence:
+    1. AuthenticatedAPIView get_request_user (Firebase Bearer token)
+    2. Explicit user_id / buyer_id in body or params
+    3. Case-insensitive email matching
+    4. Case-insensitive username matching
+    5. Direct firebase_admin token decode fallback
+    """
+    user = None
+    if hasattr(view_instance, 'get_request_user'):
+        user = view_instance.get_request_user(request)
 
-def resolve_user(request):
-    if request.user and request.user.is_authenticated:
-        return request.user
-    email = request.data.get('user_email') or request.query_params.get('user_email')
-    if email:
-        return User.objects.filter(email=email).first()
+    if user:
+        return user
+
+    user_id = request.data.get('user_id') or request.data.get('buyer_id') or request.query_params.get('user_id')
+    if user_id:
+        try:
+            matched = User.objects.filter(pk=int(user_id)).first()
+            if matched:
+                return matched
+        except (ValueError, TypeError):
+            pass
+
+    email = request.data.get('user_email') or request.data.get('email') or request.query_params.get('user_email') or request.query_params.get('email')
+    if email and isinstance(email, str) and email.strip():
+        matched = User.objects.filter(email__iexact=email.strip()).first()
+        if matched:
+            return matched
+
+    username = (
+        request.data.get('buyer_username')
+        or request.data.get('username')
+        or request.query_params.get('buyer_username')
+        or request.query_params.get('username')
+    )
+    if username and isinstance(username, str) and username.strip():
+        matched = User.objects.filter(username__iexact=username.strip()).first()
+        if matched:
+            return matched
+
+    auth_header = request.headers.get('Authorization') or request.META.get('HTTP_AUTHORIZATION')
+    if auth_header and auth_header.startswith('Bearer '):
+        token_str = auth_header.split('Bearer ')[1].strip()
+        try:
+            import firebase_admin
+            from firebase_admin import auth as fb_auth
+            decoded = fb_auth.verify_id_token(token_str)
+            fb_uid = decoded.get('uid')
+            fb_email = decoded.get('email')
+            if fb_email:
+                matched = User.objects.filter(email__iexact=fb_email.strip()).first()
+                if matched:
+                    return matched
+            if fb_uid:
+                matched = User.objects.filter(firebase_uid=fb_uid).first()
+                if matched:
+                    return matched
+        except Exception:
+            pass
+
     return None
 
 
-class CommissionRequestView(APIView):
+class CommissionRequestView(AuthenticatedAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         """Fetch commission history for either buyer or artist"""
-        user = resolve_user(request)
+        user = resolve_buyer_or_user(self, request)
         role = request.query_params.get('role', 'buyer')
 
         if not user:
@@ -40,17 +99,21 @@ class CommissionRequestView(APIView):
             milestones = [
                 {
                     "milestone_id": m.milestone_id,
-                    "milestone_number": float(m.milestone_number),
+                    "milestone_number": m.milestone_number,
+                    "stage_label": m.stage_label,
                     "status": m.status,
                     "percentage": m.percentage,
-                    "amount": m.amount,
+                    "amount": float(m.amount),
                     "paid_at": m.paid_at.isoformat() if m.paid_at else None,
                 }
                 for m in c.milestones.all().order_by('milestone_number')
             ]
             data.append({
                 "commission_req_id": c.commission_req_id,
+                "buyer_id": c.buyer.id,
                 "buyer_name": getattr(c.buyer, 'username', 'Buyer'),
+                "buyer_username": getattr(c.buyer, 'username', 'Buyer'),
+                "artist_id": c.artist.id,
                 "artist_name": getattr(c.artist, 'username', 'Artist'),
                 "title": c.title,
                 "description": c.description,
@@ -70,13 +133,22 @@ class CommissionRequestView(APIView):
     def post(self, request):
         """Submit a new commission request (Buyer)"""
         data = request.data
-        buyer = resolve_user(request) or User.objects.first()
-        artist_id = data.get('artist_id')
+        buyer = resolve_buyer_or_user(self, request)
 
+        if not buyer:
+            return Response(
+                {"error": "Could not identify logged-in user. Please ensure you are logged in."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        artist_id = data.get('artist_id')
         if not artist_id:
             return Response({"error": "artist_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Parse deadline
+        artist = User.objects.filter(pk=artist_id).first()
+        if not artist:
+            return Response({"error": "Selected artist does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
         deadline = timezone.now() + timezone.timedelta(days=14)
         if data.get('deadline'):
             try:
@@ -84,12 +156,14 @@ class CommissionRequestView(APIView):
             except Exception:
                 pass
 
-        total_price = float(data.get('time_duration', 2000.00) or 2000.00)
+        total_price = Decimal(str(data.get('time_duration', 3000.00) or 3000.00))
 
-        # Build commission with fields from the new form
+        buyer_pk = getattr(buyer, 'pk', None) or getattr(buyer, 'id', None)
+        artist_pk = getattr(artist, 'pk', None) or getattr(artist, 'id', None) or int(artist_id)
+
         commission = CommissionRequest.objects.create(
-            buyer=buyer,
-            artist_id=artist_id,
+            buyer_id=buyer_pk,
+            artist_id=artist_pk,
             title=data.get('title', 'Custom Art Commission'),
             description=data.get('description', ''),
             art_type=data.get('art_type', 'Physical'),
@@ -100,7 +174,21 @@ class CommissionRequestView(APIView):
             status='PENDING',
         )
 
-        # Save any initial reference images provided by the buyer
+        try:
+            Agreement.objects.create(
+                buyer_id=buyer_pk,
+                artist_id=artist_pk,
+                title=commission.title,
+                price=total_price,
+                terms=f"Commission Contract:\nType: {commission.art_type}\nDescription: {commission.description}\nDeadline: {deadline.strftime('%Y-%m-%d')}",
+                status='accepted',
+                buyer_accepted=True,
+                artist_accepted=False,
+                delivery_type='digital' if commission.art_type.lower() == 'digital' else 'physical',
+            )
+        except Exception as e:
+            print("[Commissions] Skipped creating agreement:", e)
+
         ref_images = data.get('reference_images', [])
         if isinstance(ref_images, list):
             for img in ref_images:
@@ -112,36 +200,48 @@ class CommissionRequestView(APIView):
                         caption="Buyer reference",
                     )
 
-        # Milestone 1: 50% upfront deposit
-        # Milestone 2: 50% final upon completion
-        half = int(total_price / 2)
+        p1 = round(total_price * Decimal('0.33'), 2)
+        p2 = round(total_price * Decimal('0.33'), 2)
+        p3 = total_price - (p1 + p2)
+
         CommissionMilestone.objects.create(
             commission_req=commission,
             milestone_number=1,
-            percentage=50,
-            amount=half,
-            status='PENDING',
+            stage_label="Stage 1 Downpayment (Sketch)",
+            percentage=33,
+            amount=p1,
+            status='READY_TO_PAY',
         )
         CommissionMilestone.objects.create(
             commission_req=commission,
             milestone_number=2,
-            percentage=50,
-            amount=half,
+            stage_label="Stage 2 Downpayment (Rendering)",
+            percentage=33,
+            amount=p2,
+            status='PENDING',
+        )
+        CommissionMilestone.objects.create(
+            commission_req=commission,
+            milestone_number=3,
+            stage_label="Stage 3 Final Balance",
+            percentage=34,
+            amount=p3,
             status='PENDING',
         )
 
         return Response({
             "message": "Commission request created",
             "commission_req_id": commission.commission_req_id,
+            "buyer_username": buyer.username,
         }, status=status.HTTP_201_CREATED)
 
 
-class ManageCommissionStatusView(APIView):
-    """Artist: Accept or Cancel a Commission"""
+class ManageCommissionStatusView(AuthenticatedAPIView):
+    """Artist: Accept or Decline a Commission"""
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, pk):
-        action = request.data.get('action')  # 'ACCEPT' or 'REJECT'
+        action = request.data.get('action')
         commission = CommissionRequest.objects.filter(pk=pk).first()
         if not commission:
             return Response({"error": "Commission not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -158,8 +258,172 @@ class ManageCommissionStatusView(APIView):
         return Response({"error": "Invalid action. Use ACCEPT or REJECT."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PayMilestoneView(APIView):
-    """Buyer / Artist: Process Milestone Payments"""
+class CancelCommissionView(AuthenticatedAPIView):
+    """Buyer: Cancels at Stage 1 or 2 with survey and automated refund"""
+    permission_classes = [permissions.AllowAny]
+
+    @transaction.atomic
+    def post(self, request, pk):
+        commission = CommissionRequest.objects.filter(pk=pk).first()
+        if not commission:
+            return Response({"error": "Commission not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        current_progress = commission.current_progress()
+        if current_progress >= 100 or commission.status == 'COMPLETE':
+            return Response({"error": "Stage 3 is complete. Final commission cannot be cancelled."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reason = request.data.get('reason', 'Client requested cancellation')
+        feedback = request.data.get('feedback', '')
+
+        total = commission.time_duration
+        stage = 1 if current_progress < 66 else 2
+
+        if stage == 1:
+            refund = round(total * Decimal('0.33'), 2)
+        else:
+            refund = round(total * Decimal('0.46'), 2)
+
+        commission.status = 'CANCELLED'
+        commission.cancel_reason = reason
+        commission.cancel_feedback = feedback
+        commission.refund_amount = refund
+        commission.cancelled_at_stage = stage
+        commission.save()
+
+        return Response({
+            "message": "Commission cancelled successfully.",
+            "refund_amount": float(refund),
+            "stage": stage,
+        }, status=status.HTTP_200_OK)
+
+
+class PayMilestoneView(AuthenticatedAPIView):
+    """Creates a Xendit Invoice or processes fallback payment for milestones"""
+    permission_classes = [permissions.AllowAny]
+
+    @transaction.atomic
+    def post(self, request, milestone_id):
+        milestone = CommissionMilestone.objects.select_related('commission_req', 'commission_req__buyer').filter(pk=milestone_id).first()
+        if not milestone:
+            return Response({"error": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if milestone.status == 'PAID':
+            return Response({"error": "Milestone is already paid."}, status=status.HTTP_400_BAD_REQUEST)
+
+        xendit_key = getattr(settings, 'XENDIT_SECRET_KEY', None)
+
+        if not xendit_key:
+            milestone.status = 'PAID'
+            milestone.paid_at = timezone.now()
+            milestone.save()
+
+            comm = milestone.commission_req
+            if milestone.milestone_number == 1:
+                next_m = comm.milestones.filter(milestone_number=2).first()
+                if next_m:
+                    next_m.status = 'READY_TO_PAY'
+                    next_m.save()
+                comm.status = 'STAGE_1'
+            elif milestone.milestone_number == 2:
+                next_m = comm.milestones.filter(milestone_number=3).first()
+                if next_m:
+                    next_m.status = 'READY_TO_PAY'
+                    next_m.save()
+                comm.status = 'STAGE_2'
+            elif milestone.milestone_number == 3:
+                comm.status = 'COMPLETE'
+            comm.save()
+
+            return Response({
+                "message": f"{milestone.stage_label} marked as PAID (Simulated).",
+                "simulated": True,
+                "commission_status": comm.status,
+            }, status=status.HTTP_200_OK)
+
+        external_id = f"commission-milestone-{milestone.milestone_id}-{int(timezone.now().timestamp())}"
+        amount = int(float(milestone.amount))
+
+        auth_header = base64.b64encode(f"{xendit_key}:".encode('utf-8')).decode('utf-8')
+        headers = {
+            "Authorization": f"Basic {auth_header}",
+            "Content-Type": "application/json"
+        }
+
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:8081')
+        buyer_email = getattr(milestone.commission_req.buyer, 'email', '') or "buyer@artfiliere.com"
+
+        payload = {
+            "external_id": external_id,
+            "amount": amount,
+            "description": f"{milestone.commission_req.title} - {milestone.stage_label}",
+            "payer_email": buyer_email,
+            "currency": "PHP",
+            "success_redirect_url": f"{frontend_url}/commissions?payment=success&milestone={milestone.milestone_id}",
+            "failure_redirect_url": f"{frontend_url}/commissions?payment=failed",
+        }
+
+        try:
+            xendit_res = requests.post("https://api.xendit.co/v2/invoices", json=payload, headers=headers)
+            res_data = xendit_res.json()
+            if xendit_res.status_code in [200, 201]:
+                return Response({
+                    "checkout_url": res_data.get("invoice_url"),
+                    "external_id": external_id,
+                    "simulated": False
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": res_data.get("message", "Failed to create Xendit invoice.")}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Xendit connection error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class XenditMilestoneWebhookView(APIView):
+    """Processes server-to-server webhook callbacks from Xendit"""
+    permission_classes = [permissions.AllowAny]
+
+    @transaction.atomic
+    def post(self, request):
+        data = request.data
+        status_val = data.get('status')
+        external_id = data.get('external_id', '')
+
+        if status_val in ['PAID', 'SETTLED'] and external_id.startswith('commission-milestone-'):
+            try:
+                parts = external_id.split('-')
+                milestone_id = int(parts[2])
+
+                milestone = CommissionMilestone.objects.select_related('commission_req').filter(pk=milestone_id).first()
+                if milestone and milestone.status != 'PAID':
+                    milestone.status = 'PAID'
+                    milestone.paid_at = timezone.now()
+                    milestone.save()
+
+                    comm = milestone.commission_req
+                    if milestone.milestone_number == 1:
+                        next_m = comm.milestones.filter(milestone_number=2).first()
+                        if next_m:
+                            next_m.status = 'READY_TO_PAY'
+                            next_m.save()
+                        comm.status = 'STAGE_1'
+                    elif milestone.milestone_number == 2:
+                        next_m = comm.milestones.filter(milestone_number=3).first()
+                        if next_m:
+                            next_m.status = 'READY_TO_PAY'
+                            next_m.save()
+                        comm.status = 'STAGE_2'
+                    elif milestone.milestone_number == 3:
+                        comm.status = 'COMPLETE'
+                    comm.save()
+
+                    return Response({"message": "Milestone updated to PAID"}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": "Webhook received"}, status=status.HTTP_200_OK)
+
+
+class VerifyMilestonePaymentView(AuthenticatedAPIView):
+    """Syncs payment status immediately when the user is redirected back from Xendit"""
     permission_classes = [permissions.AllowAny]
 
     @transaction.atomic
@@ -168,38 +432,49 @@ class PayMilestoneView(APIView):
         if not milestone:
             return Response({"error": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        milestone.status = 'PAID'
-        milestone.paid_at = timezone.now()
-        milestone.save()
+        if milestone.status != 'PAID':
+            milestone.status = 'PAID'
+            milestone.paid_at = timezone.now()
+            milestone.save()
 
-        # Check if all milestones are paid; if so, mark commission complete
-        all_paid = not milestone.commission_req.milestones.filter(status='PENDING').exists()
-        if all_paid:
-            milestone.commission_req.status = 'COMPLETE'
-            milestone.commission_req.save()
+            comm = milestone.commission_req
+            if milestone.milestone_number == 1:
+                next_m = comm.milestones.filter(milestone_number=2).first()
+                if next_m:
+                    next_m.status = 'READY_TO_PAY'
+                    next_m.save()
+                comm.status = 'STAGE_1'
+            elif milestone.milestone_number == 2:
+                next_m = comm.milestones.filter(milestone_number=3).first()
+                if next_m:
+                    next_m.status = 'READY_TO_PAY'
+                    next_m.save()
+                comm.status = 'STAGE_2'
+            elif milestone.milestone_number == 3:
+                comm.status = 'COMPLETE'
+            comm.save()
 
         return Response({
-            "message": f"Milestone #{milestone.milestone_number} marked as PAID.",
+            "message": "Milestone verified and updated to PAID",
             "commission_status": milestone.commission_req.status,
+            "milestone_id": milestone.milestone_id,
         }, status=status.HTTP_200_OK)
 
 
-class ProcessTrackView(APIView):
+class ProcessTrackView(AuthenticatedAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, pk):
-        """Fetch timeline of progress images and current % for Process Track screen"""
         commission = CommissionRequest.objects.filter(pk=pk).first()
         if not commission:
             return Response({"error": "Commission not found"}, status=status.HTTP_404_NOT_FOUND)
 
         progress_photos = commission.photos.filter(photo_type='PROGRESS').order_by('uploaded_at')
-        reference_photos = commission.photos.filter(photo_type='REFERENCE')
-
         photos_data = [
             {
                 "photo_id": p.photo_id,
                 "image_url": p.image_url,
+                "stage_number": p.stage_number,
                 "progress_percentage": p.progress_percentage,
                 "caption": p.caption,
                 "uploaded_at": p.uploaded_at.isoformat(),
@@ -215,11 +490,9 @@ class ProcessTrackView(APIView):
             "status": commission.status,
             "current_progress": latest_pct,
             "photos": photos_data,
-            "reference_count": reference_photos.count(),
         }, status=status.HTTP_200_OK)
 
     def post(self, request, pk):
-        """Artist uploads a new progress photo update (e.g., 33% sketch, 66% lineart, 100% final)"""
         commission = CommissionRequest.objects.filter(pk=pk).first()
         if not commission:
             return Response({"error": "Commission not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -228,25 +501,28 @@ class ProcessTrackView(APIView):
         if not image_url:
             return Response({"error": "image_url is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        progress_percentage = int(request.data.get('progress_percentage', 33))
-        caption = request.data.get('caption', f"Stage update: {progress_percentage}%")
+        stage_num = int(request.data.get('stage_number', 1))
+        progress_percentage = int(request.data.get('progress_percentage', 33 if stage_num == 1 else 66 if stage_num == 2 else 100))
+        caption = request.data.get('caption', f"Stage {stage_num} update")
 
         photo = CommissionPhoto.objects.create(
             commission_req=commission,
             image_url=image_url,
             photo_type='PROGRESS',
+            stage_number=stage_num,
             progress_percentage=progress_percentage,
             caption=caption,
         )
 
-        if progress_percentage >= 100:
-            commission.status = 'COMPLETE'
-            commission.save()
-        elif commission.status == 'PENDING':
-            commission.status = 'IN_PROGRESS'
-            commission.save()
+        if stage_num == 3 or progress_percentage >= 100:
+            commission.status = 'STAGE_3'
+        elif stage_num == 2:
+            commission.status = 'STAGE_2'
+        else:
+            commission.status = 'STAGE_1'
+        commission.save()
 
         return Response({
-            "message": "Progress update posted",
+            "message": f"Stage {stage_num} update posted successfully.",
             "progress_percentage": photo.progress_percentage,
         }, status=status.HTTP_201_CREATED)

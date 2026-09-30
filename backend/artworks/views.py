@@ -183,9 +183,9 @@ class ArtworkView(AuthenticatedAPIView):
             initial_status = "ACTIVE" if start_time <= now else "SCHEDULED"
 
             AuctionListing.objects.update_or_create(
-                artwork=artwork.id,
+                artwork_id=artwork.id,
                 defaults={
-                    "artist": artwork.artist,
+                    "artist_id": artwork.artist_id or getattr(artwork.artist, 'id', None),
                     "starting_bid": start_bid,
                     "current_bid": start_bid,
                     "bid_increment": float(increment),

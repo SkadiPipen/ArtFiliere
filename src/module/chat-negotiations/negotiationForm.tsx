@@ -107,7 +107,10 @@ export default function NegotiationForm({
     const subtotal = basePrice * licenseMult * exclusivityMult;
     const platformFee = subtotal * (settings.platform_fee_percentage / 100);
     const finalPrice = subtotal + platformFee;
-    const deliveryFee = requiresDelivery ? Number(deliveryQuote?.fee || 0) : 0;
+
+    const baseDeliveryFee = requiresDelivery ? Number(deliveryQuote?.base_fee ?? (deliveryQuote?.is_priority ? Math.max(0, (deliveryQuote?.fee || 0) - 40) : (deliveryQuote?.fee || 0))) : 0;
+    const priorityFee = requiresDelivery && deliveryQuote?.is_priority ? 40 : 0;
+    const totalDeliveryFee = baseDeliveryFee + priorityFee;
     
     return {
       basePrice,
@@ -116,8 +119,10 @@ export default function NegotiationForm({
       subtotal,
       platformFee,
       finalPrice,
-      deliveryFee,
-      totalWithDelivery: finalPrice + deliveryFee,
+      baseDeliveryFee,
+      priorityFee,
+      deliveryFee: totalDeliveryFee,
+      totalWithDelivery: finalPrice + totalDeliveryFee,
     };
   };
 
@@ -503,10 +508,18 @@ export default function NegotiationForm({
             <Text style={styles.priceValue}>₱{formatPrice(prices.platformFee)}</Text>
           </View>
           {requiresDelivery && (
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Delivery Fee</Text>
-              <Text style={styles.priceValue}>₱{formatPrice(prices.deliveryFee)}</Text>
-            </View>
+            <>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Delivery Fee</Text>
+                <Text style={styles.priceValue}>₱{formatPrice(prices.baseDeliveryFee)}</Text>
+              </View>
+              {prices.priorityFee > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceLabel, { color: '#BC5454', fontWeight: '600' }]}>Priority Delivery Rush</Text>
+                  <Text style={[styles.priceValue, { color: '#BC5454', fontWeight: '600' }]}>+₱{formatPrice(prices.priorityFee)}</Text>
+                </View>
+              )}
+            </>
           )}
           <View style={styles.priceDivider} />
           <View style={[styles.priceRow, styles.totalRow]}>
@@ -522,7 +535,14 @@ export default function NegotiationForm({
         <TextInput accessibilityLabel="Proposed price" accessibilityHint={invalidOffer ? offerError : `Minimum price PHP ${minimumPrice.toFixed(2)}`} value={offer} onChangeText={setOffer} keyboardType="decimal-pad" placeholder={prices.finalPrice.toFixed(2)} style={[styles.offerInput, invalidOffer && styles.offerInputError]} />
         {invalidOffer && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.offerError}>{offerError}</Text>}
       </View>
-      <Text style={styles.totalLabel}>{requiresDelivery && !deliveryQuote ? 'Calculate delivery to see the total.' : `Total including delivery: PHP ${((offer.trim() && Number.isFinite(Number(offer)) ? Number(offer) : minimumPrice) + prices.deliveryFee).toFixed(2)}`}</Text>
+      <Text style={styles.totalLabel}>
+        {requiresDelivery && !deliveryQuote
+          ? 'Calculate delivery to see the total.'
+          : `Total including delivery: PHP ${formatPrice(
+              (offer.trim() && Number.isFinite(Number(offer)) ? Number(offer) : minimumPrice) +
+                prices.deliveryFee
+            )}`}
+      </Text>
       {/* Actions */}
       <View style={styles.actionContainer}>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>

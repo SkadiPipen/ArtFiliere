@@ -6,6 +6,7 @@ from .models import Artwork
 class ArtworkSerializer(serializers.ModelSerializer):
     artist_name = serializers.SerializerMethodField()
     similarity_matches = serializers.SerializerMethodField()
+    is_sold = serializers.SerializerMethodField()
 
     class Meta:
         model = Artwork
@@ -29,6 +30,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "starting_time",
             "end_time",
             "artist",
+            "is_sold"
         ]
         extra_kwargs = {
             'sale_type': {'required': False},
@@ -62,3 +64,13 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "color_similarity_score": match.color_similarity_score,
             "review_status": match.review_status,
         } for match in matches]
+
+    def get_is_sold(self, artwork):
+        try:
+            if hasattr(artwork, 'auction_listings') and artwork.auction_listings.filter(status='SETTLED').exists():
+                return True
+            if hasattr(artwork, 'contracts') and artwork.contracts.filter(status__in=['paid', 'completed']).exists():
+                return True
+        except Exception:
+            return False
+        return False

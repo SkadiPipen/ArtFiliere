@@ -4,10 +4,15 @@ from rest_framework import status, permissions
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Q
+from decimal import Decimal
 from .models import AuctionListing, Bid
+from authentication.views import AuthenticatedAPIView
+from users.models import User
 
 
 def mark_username(username: str) -> str:
+    if not username:
+        return "@User"
     if len(username) <= 4:
         return f"@{username[:1]}***{username[-1:]}"
     return f"@{username[:2]}***{username[-2:]}"
@@ -23,7 +28,7 @@ def get_artwork_image(artwork):
             return artwork.image.url
         except Exception:
             try:
-                return str(artwork.img)
+                return str(artwork.image)
             except Exception:
                 pass
     return getattr(artwork, 'image_url', None) or getattr(artwork, 'primary_image', None)
@@ -34,6 +39,30 @@ class AuctionDashboardView(APIView):
 
     def get(self, request, *args, **kwargs):
         now = timezone.now()
+
+        from artworks.models import Artwork
+        auction_artworks = Artwork.objects.filter(
+            Q(sale_type__icontains='AUCTION') | Q(category__icontains='AUCTION')
+        ).exclude(auction_listings__isnull=False)
+
+        for art in auction_artworks:
+            try:
+                start_p = float(art.price or 1000)
+                AuctionListing.objects.get_or_create(
+                    artwork_id=art.id,
+                    defaults={
+                        'artist_id': getattr(art, 'artist_id', None),
+                        'starting_bid': start_p,
+                        'current_bid': start_p,
+                        'bid_increment': float(getattr(art, 'bid_increment', 100) or 100),
+                        'start_time': art.starting_time or now,
+                        'end_time': art.end_time or (now + timezone.timedelta(days=3)),
+                        'status': 'ACTIVE',
+                        'is_physical': getattr(art, 'art_type', '') == 'physical',
+                    }
+                )
+            except Exception as e:
+                print(f"[Auto-Heal AuctionListing Error] {e}")
 
         active_auctions = AuctionListing.objects.filter(
             status__in=['ACTIVE', 'SCHEDULED', 'PENDING_APPROVAL']
@@ -76,6 +105,7 @@ class AuctionDashboardView(APIView):
             "all_auctions": serialized_all,
         }, status=status.HTTP_200_OK)
 
+
 class AuctionDetailView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -86,38 +116,12 @@ class AuctionDetailView(APIView):
             ).filter(Q(pk=pk) | Q(artwork_id=pk)).first()
 
             if not auction:
-                from artworks.models import Artwork
-                art = Artwork.objects.filter(pk=pk).first()
-                if not art:
-                    return Response({"error": "Auction not found"}, status=status.HTTP_404_NOT_FOUND)
-
-                artist_user = getattr(art, 'artist', None) or getattr(art, 'user', None)
-                if not artist_user:
-                    from django.contrib.auth import get_user_model
-                    User = get_user_model()
-                    artist_user = User.objects.filter(is_staff=True).first() or User.objects.first()
-
-                starting_price = getattr(art, 'price', None) or 5280.00
-
-                artist_id_val = getattr(artist_user, 'id', None) or getattr(artist_user, 'pk', 1)
-
-                auction = AuctionListing.objects.create(
-                    artwork_id=art.id,
-                    artist_id=artist_id_val,
-                    starting_bid=starting_price,
-                    current_bid=starting_price,
-                    bid_increment=100.00,
-                    end_time=timezone.now() + timezone.timedelta(days=3),
-                    status='ACTIVE',
-                )
+                return Response({"error": "Auction not found"}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             return Response({"error": f"Internal Auction Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Top 5 bidders
-        bids = list(auction.bids.select_related('bidder').order_by('-amount'))
+        bids = list(auction.bids.select_related('bidder').order_by('-amount', '-created_at'))
         seen_bidders = set()
         top_5_bidders = []
         for b in bids:
@@ -135,7 +139,6 @@ class AuctionDetailView(APIView):
         increment_val = float(auction.bid_increment or 100.0)
 
         artwork_img = get_artwork_image(auction.artwork)
-
         artist_obj = auction.artist
         artist_display = "Artist"
         if artist_obj:
@@ -145,11 +148,12 @@ class AuctionDetailView(APIView):
         return Response({
             "id": auction.id,
             "artwork_id": auction.artwork.id if auction.artwork else pk,
-            "title": getattr(auction.artwork, 'title', 'Seashore'),
+            "title": getattr(auction.artwork, 'title', 'Artwork'),
             "artist_id": artist_obj.id if artist_obj else 1,
             "artist_name": artist_display,
+            "artist_uid": getattr(artist_obj, 'firebase_uid', str(artist_obj.id if artist_obj else 1)),
             "description": getattr(auction.artwork, 'description', 'No description provided.'),
-            "materials": getattr(auction.artwork, 'medium', getattr(auction.artwork, 'material', 'Digital Art / Painting')),
+            "materials": getattr(auction.artwork, 'medium', getattr(auction.artwork, 'material', 'Mixed Media')),
             "is_physical": bool(auction.is_physical or "PHYSICAL" in str(getattr(auction.artwork, 'art_type', '')).upper()),
             "image_data": artwork_img,
             "image_url": artwork_img,
@@ -157,36 +161,53 @@ class AuctionDetailView(APIView):
             "past_bid": past_bid,
             "next_min_bid": current_bid_val + increment_val,
             "end_time": auction.end_time.isoformat() if auction.end_time else (timezone.now() + timezone.timedelta(days=3)).isoformat(),
+            "status": auction.status,
+            "highest_bidder_id": auction.highest_bidder.id if auction.highest_bidder else None,
+            "highest_bidder_name": auction.highest_bidder.username if auction.highest_bidder else None,
+            "highest_bidder_uid": getattr(auction.highest_bidder, 'firebase_uid', None),
             "top_bidders": top_5_bidders,
         }, status=status.HTTP_200_OK)
 
 
-class PlaceBidView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+class PlaceBidView(AuthenticatedAPIView):
+    permission_classes = [permissions.AllowAny]
 
     @transaction.atomic
     def post(self, request, pk):
-        try:
-            auction = AuctionListing.objects.select_for_update().filter(
-                Q(pk=pk) | Q(artwork_id=pk)
-            ).first()
-            if not auction:
-                return Response({"error": "Auction does not exist."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        user = self.get_request_user(request)
+        if not user:
+            return Response({"error": "Authentication required. Please log in."}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        auction = AuctionListing.objects.select_for_update().filter(
+            Q(pk=pk) | Q(artwork_id=pk)
+        ).first()
+            
+        if not auction:
+            return Response({"error": "Auction does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        if auction.artist and auction.artist.id == user.id:
+            return Response({"error": "You cannot bid on your own auction listing."}, status=status.HTTP_400_BAD_REQUEST)
 
         if auction.status != 'ACTIVE' or auction.is_expired():
             return Response({"error": "This auction is no longer active."}, status=status.HTTP_400_BAD_REQUEST)
 
-        bid_amount = request.data.get('amount')
-        if not bid_amount or float(bid_amount) <= float(auction.current_bid):
+        raw_amount = request.data.get('amount')
+        if not raw_amount:
+            return Response({"error": "Please provide a valid bid amount."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            bid_amount = Decimal(str(raw_amount))
+        except Exception:
+            return Response({"error": "Invalid bid amount value."}, status=status.HTTP_400_BAD_REQUEST)
+
+        min_required = Decimal(str(auction.current_bid)) + Decimal(str(auction.bid_increment or 0))
+        if bid_amount < min_required:
             return Response(
-                {"error": f"Bid must be higher than current bid (Php{auction.current_bid})"},
+                {"error": f"Bid must be at least Php {min_required:,.2f}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         previous_bidder = auction.highest_bidder
-        user = request.user
 
         # Save bid
         Bid.objects.create(auction=auction, bidder=user, amount=bid_amount)
@@ -194,29 +215,34 @@ class PlaceBidView(APIView):
         auction.highest_bidder = user
         auction.save()
 
-        # Send outbid notif to previous highest bidder
-        if previous_bidder and previous_bidder != user:
+        # Send outbid notification
+        if previous_bidder and previous_bidder.id != user.id:
             try:
                 from users.models import UserNotification
                 UserNotification.objects.create(
-                    user=previous_bidder,
+                    recipient=previous_bidder,
                     title="You have been outbid.",
-                    message=f"Someone placed a higher bid of Php{bid_amount} on '{auction.artwork.title}'.",
+                    message=f"Someone placed a higher bid of Php{bid_amount:,.2f} on '{auction.artwork.title}'.",
                 )
             except Exception:
                 pass
 
         return Response({
             "message": "Bid placed successfully",
-            "current_bid": float(auction.current_bid)
+            "current_bid": float(auction.current_bid),
+            "next_min_bid": float(auction.current_bid) + float(auction.bid_increment or 100),
         }, status=status.HTTP_201_CREATED)
 
 
-class SettleAuctionView(APIView):
+class SettleAuctionView(AuthenticatedAPIView):
     permission_classes = [permissions.AllowAny]
 
     @transaction.atomic
     def post(self, request, pk):
+        user = self.get_request_user(request)
+        if not user:
+            return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
+        
         auction = AuctionListing.objects.select_related('artwork', 'artist', 'highest_bidder').filter(
             Q(pk=pk) | Q(artwork_id=pk)
         ).first()
@@ -227,7 +253,6 @@ class SettleAuctionView(APIView):
         if not auction.highest_bidder:
             return Response({"error": "No bids placed on this auction."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Mark Auction Settled
         auction.status = 'SETTLED'
         auction.save()
 
@@ -240,89 +265,22 @@ class SettleAuctionView(APIView):
             "PHYSICAL" in str(getattr(artwork, 'art_type', '')).upper()
         )
 
-        # Integrate with Teammate's backend/messaging models
-        conversation_id = None
-        contract_id = None
-
         try:
-            # Import messaging models
-            from messaging import models as msg_models
-            
-            # Find Conversation / Thread model
-            ConvModel = getattr(msg_models, 'Conversation', None) or getattr(msg_models, 'ChatRoom', None)
-            MsgModel = getattr(msg_models, 'Message', None)
-            
-            # Find Contract / Agreement model
-            ContractModel = getattr(msg_models, 'Contract', None) or getattr(msg_models, 'Agreement', None)
-            if not ContractModel:
-                try:
-                    from messaging import contracts as msg_contracts
-                    ContractModel = getattr(msg_contracts, 'Contract', None) or getattr(msg_contracts, 'Agreement', None)
-                except Exception:
-                    pass
-
-            # Create or get Conversation
-            if ConvModel:
-                conv = ConvModel.objects.filter(
-                    (Q(artist=artist) & Q(client=winner)) | (Q(artist=winner) & Q(client=artist)),
-                    artwork=artwork
-                ).first() if hasattr(ConvModel, 'artwork') else ConvModel.objects.filter(
-                    (Q(artist=artist) & Q(client=winner)) | (Q(artist=winner) & Q(client=artist))
-                ).first()
-
-                if not conv:
-                    create_kwargs = {'artist': artist, 'client': winner}
-                    if hasattr(ConvModel, 'artwork'):
-                        create_kwargs['artwork'] = artwork
-                    conv = ConvModel.objects.create(**create_kwargs)
-
-                conversation_id = conv.id
-
-                # Post automated winning announcement into the chat
-                if MsgModel:
-                    fulfillment_note = "Physical delivery via Move It Courier" if is_physical else "Digital download (No courier dispatch)"
-                    MsgModel.objects.create(
-                        conversation=conv if hasattr(MsgModel, 'conversation') else None,
-                        room=conv if hasattr(MsgModel, 'room') else None,
-                        sender=artist,
-                        text=(
-                            f"Auction Finished!\n"
-                            f"Winner: @{winner.username}\n"
-                            f"Winning Bid: ₱{final_price:,.2f}\n"
-                            f"Fulfillment: {fulfillment_note}\n"
-                            f"Contract generated. Please review terms and finalize payment."
-                        )
-                    )
-
-            # Create or update Contract
-            if ContractModel:
-                contract_defaults = {
-                    'agreed_price': final_price,
-                    'status': 'PENDING_PAYMENT',
-                    'is_physical': is_physical,
-                }
-                if hasattr(ContractModel, 'delivery_type'):
-                    contract_defaults['delivery_type'] = 'physical' if is_physical else 'digital'
-
-                contract, _ = ContractModel.objects.get_or_create(
-                    artwork=artwork,
-                    artist=artist,
-                    client=winner if hasattr(ContractModel, 'client') else None,
-                    buyer=winner if hasattr(ContractModel, 'buyer') else None,
-                    defaults=contract_defaults
-                )
-                contract.agreed_price = final_price
-                contract.save()
-                contract_id = contract.id
-
-        except Exception as e:
-            print("[SettleAuctionView] Messaging hook warning:", e)
+            from users.models import UserNotification
+            UserNotification.objects.create(
+                recipient=winner,
+                title="You won in Auction!",
+                message=f"Congratulations! You won the auction for '{artwork.title}' at Php {final_price:,.2f}. Please review the contract to proceed with payment.",
+            )
+        except Exception:
+            pass
 
         return Response({
             "message": "Auction successfully settled and linked to negotiation.",
-            "conversation_id": conversation_id,
-            "contract_id": contract_id,
-            "artwork_id": artwork.id,
-            "is_physical": is_physical,
+            "conversation_id": artwork.id,
+            "title": artwork.title,
             "final_price": final_price,
+            "is_physical": is_physical,
+            "winner_username": winner.username,
+            "artist_username": getattr(artist, 'username', 'Artist'),
         }, status=status.HTTP_200_OK)

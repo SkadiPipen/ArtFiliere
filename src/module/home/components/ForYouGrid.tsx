@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Watermark } from '@/module/artwork/components/Watermark';
 import { ArtItem, FOR_YOU_DATA } from '@/module/home/types';
+import { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 interface ForYouGridProps {
   activeCategory: string;
@@ -27,19 +28,34 @@ export default function ForYouGrid({ activeCategory, onSelect, items }: ForYouGr
       <View style={styles.grid}>
         {filteredForYou
           .slice((gridPage - 1) * itemsPerPage, gridPage * itemsPerPage)
-          .map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.gridCard, { width: `${100 / numColumns - 2}%` }]}
-              onPress={() => onSelect(item, item.type)}
-            >
-              <Image source={{ uri: item.image }} style={styles.gridImg} resizeMode="cover" />
-              <View style={styles.gridContent}>
-                <Text style={styles.gridName} numberOfLines={1}>{item.artist}</Text>
-                <Text style={styles.gridPrice}>₱ {item.price}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          .map((item) => {
+            const isSold = Boolean(item.is_sold);
+
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.gridCard, { width: `${100 / numColumns - 2}%` }]}
+                onPress={() => onSelect(item, item.type)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.imageWrapper}>
+                  <Watermark uri={item.image} height={350}/>
+                  {isSold && (
+                    <View style={styles.soldOverlay}>
+                      <View style={styles.soldBadge}>
+                        <Text style={styles.soldText}>SOLD</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              
+                <View style={styles.gridContent}>
+                  <Text style={styles.gridName} numberOfLines={1}>{item.artist}</Text>
+                  <Text style={styles.gridPrice}>₱ {item.price}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
       </View>
 
       {/* PAGINATION */}
@@ -90,4 +106,30 @@ const styles = StyleSheet.create({
   pageDot: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginHorizontal: 4 },
   activePageDot: { backgroundColor: '#C15656' },
   pageNum: { fontSize: 13, fontWeight: 'bold', color: '#555' },
+  imageWrapper: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    width: '100%',
+  },
+  soldOverlay: {
+    backgroundColor: '#c1565665',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  soldBadge: {
+    backgroundColor: '#C15656',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ffffff52',
+  },
+  soldText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 11,
+    letterSpacing: 1,
+  },
 });
