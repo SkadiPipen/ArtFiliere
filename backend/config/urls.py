@@ -24,4 +24,5 @@ urlpatterns = [
 
     # added for commission
     path('api/commissions/', include('commissions.urls')),
+    path("api/blockchain/", include("blockchain.urls")),
 ]

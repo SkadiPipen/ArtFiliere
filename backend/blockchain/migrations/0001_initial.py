@@ -1,0 +1,5 @@
+from django.db import migrations, models
+import django.db.models.deletion
+class Migration(migrations.Migration):
+ dependencies=[("artworks","0006_artwork_edge_hash_artworksimilaritymatch_edge_hash_distance")]
+ operations=[migrations.CreateModel(name="BlockchainTransaction",fields=[("id",models.BigAutoField(auto_created=True,primary_key=True,serialize=False,verbose_name="ID")),("operation",models.CharField(default="artwork_registration",max_length=30)),("transaction_hash",models.CharField(blank=True,default="",max_length=66)),("block_number",models.PositiveBigIntegerField(blank=True,null=True)),("network",models.CharField(max_length=30)),("status",models.CharField(choices=[("pending","Pending"),("confirmed","Confirmed"),("failed","Failed")],default="pending",max_length=12)),("error_message",models.TextField(blank=True,default="")),("confirmed_at",models.DateTimeField(blank=True,null=True)),("created_at",models.DateTimeField(auto_now_add=True)),("artwork",models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,related_name="blockchain_transactions",to="artworks.artwork"))])]

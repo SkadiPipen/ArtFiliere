@@ -63,7 +63,14 @@ INSTALLED_APPS = [
     "cart",
     "fulfillment",
     "commissions",
+    "blockchain",
 ]
+
+BLOCKCHAIN_NETWORK = os.getenv("BLOCKCHAIN_NETWORK", "local")
+BLOCKCHAIN_RPC_URL = os.getenv("BLOCKCHAIN_RPC_URL", "http://127.0.0.1:8545")
+BLOCKCHAIN_CHAIN_ID = int(os.getenv("BLOCKCHAIN_CHAIN_ID", "31337"))
+BLOCKCHAIN_PRIVATE_KEY = os.getenv("BLOCKCHAIN_PRIVATE_KEY", "")
+BLOCKCHAIN_CONTRACT_ADDRESS = os.getenv("BLOCKCHAIN_CONTRACT_ADDRESS", "")
 
 # Test and live credentials are loaded from backend/.env. Never expose the
 # secret key or webhook verification token to the Expo application.

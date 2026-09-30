@@ -272,6 +272,38 @@ class ArtworkReviewView(AuthenticatedAPIView):
         )
         artwork.save(update_fields=["status", "decline_reason", "updated_at"])
 
+        # Blockchain is proof of the approved artwork only. A node failure must
+        # never undo a valid moderation decision; it is recorded for retry.
+        blockchain_result = None
+        if review_status == Artwork.Status.APPROVED and artwork.sha256_hash:
+            from django.conf import settings
+            from django.utils import timezone
+            from blockchain.models import BlockchainTransaction
+            from blockchain.service import BlockchainError, register_artwork
+
+            existing_proof = artwork.blockchain_transactions.filter(
+                operation="artwork_registration", status=BlockchainTransaction.Status.CONFIRMED
+            ).exists()
+            if not existing_proof:
+                proof = BlockchainTransaction.objects.create(
+                    artwork=artwork,
+                    network=settings.BLOCKCHAIN_NETWORK,
+                    operation="artwork_registration",
+                )
+                try:
+                    result = register_artwork(artwork.id, artwork.sha256_hash)
+                    proof.transaction_hash = result["transaction_hash"]
+                    proof.block_number = result["block_number"]
+                    proof.status = BlockchainTransaction.Status.CONFIRMED
+                    proof.confirmed_at = timezone.now()
+                    proof.save()
+                    blockchain_result = {"status": "confirmed", **result}
+                except BlockchainError as error:
+                    proof.status = BlockchainTransaction.Status.FAILED
+                    proof.error_message = str(error)
+                    proof.save()
+                    blockchain_result = {"status": "failed", "error": str(error)}
+
         # Live auction upon approval
         if review_status == Artwork.Status.APPROVED:
             from datetime import timedelta
@@ -333,7 +365,10 @@ class ArtworkReviewView(AuthenticatedAPIView):
             message=message,
         )
 
-        return Response(ArtworkSerializer(artwork, context={"include_similarity": True}).data)
+        response_data = ArtworkSerializer(artwork, context={"include_similarity": True}).data
+        if blockchain_result is not None:
+            response_data["blockchain"] = blockchain_result
+        return Response(response_data)
 
 
 class ArtworkSimilarityReviewView(AuthenticatedAPIView):
