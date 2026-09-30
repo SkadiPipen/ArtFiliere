@@ -1,22 +1,21 @@
 import { auth } from '@/firebase/config';
-import ContractPanel from '@/module/chat-negotiations/ContractPanel';
 import API_URL from '@/services/api';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Plus, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,13 +23,17 @@ const MAX_IMAGES = 4;
 
 export default function CommissionRequestScreen() {
   const router = useRouter();
-  const { artistId, artistName } = useLocalSearchParams<{ artistId: string; artistName?: string }>();
+  const params = useLocalSearchParams<{
+    artistId?: string;
+    id?: string;
+    artist_id?: string;
+    artistName?: string;
+  }>();
+
+  const rawArtistId = params.artistId || params.id || params.artist_id;
 
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
   const isDesktop = windowWidth > 860;
-
-  const [showNegotiate, setShowNegotiate] = useState(false);
-  const [createdCommissionId, setCreatedCommissionId] = useState<string | null>(null);
 
   React.useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -39,7 +42,6 @@ export default function CommissionRequestScreen() {
     return () => sub?.remove();
   }, []);
 
-  // Form states
   const [description, setDescription] = useState('');
   const [refImages, setRefImages] = useState<string[]>([]);
   const [artType, setArtType] = useState<'Physical' | 'Digital'>('Physical');
@@ -47,7 +49,6 @@ export default function CommissionRequestScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>(['Modern', 'Art Pop']);
   const [loading, setLoading] = useState(false);
 
-  // Time & Rush States
   const [targetDate, setTargetDate] = useState<Date>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 14);
@@ -55,7 +56,6 @@ export default function CommissionRequestScreen() {
   });
   const [isRush, setIsRush] = useState(false);
 
-  // Rush Job Toggle
   const toggleRushJob = () => {
     const nextRush = !isRush;
     setIsRush(nextRush);
@@ -80,10 +80,13 @@ export default function CommissionRequestScreen() {
     hour12: true,
   });
 
-  // Cross-platform Image Picker using updated MediaType API
   const handlePickImage = async () => {
     if (refImages.length >= MAX_IMAGES) {
-      Alert.alert('Limit Reached', `You can upload up to ${MAX_IMAGES} reference images.`);
+      if (Platform.OS === 'web') {
+        window.alert(`Limit reached: You can upload up to ${MAX_IMAGES} reference images.`);
+      } else {
+        Alert.alert('Limit Reached', `You can upload up to ${MAX_IMAGES} reference images.`);
+      }
       return;
     }
 
@@ -97,7 +100,7 @@ export default function CommissionRequestScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], // Fixes ImagePicker.MediaTypeOptions deprecation
+        mediaTypes: ['images'],
         allowsEditing: true,
         quality: 0.7,
         base64: true,
@@ -109,61 +112,102 @@ export default function CommissionRequestScreen() {
         setRefImages((prev) => [...prev, uri]);
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Image picker error.');
+      if (Platform.OS === 'web') window.alert(e.message || 'Image picker error.');
+      else Alert.alert('Error', e.message || 'Image picker error.');
+    }
+  };
+
+  const showAlert = (title: string, msg: string, onOk?: () => void) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}: ${msg}`);
+      if (onOk) onOk();
+    } else {
+      Alert.alert(title, msg, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
     }
   };
 
   const handleNext = async () => {
     if (!description.trim()) {
-      Alert.alert('Required', 'Please describe your commission idea.');
+      showAlert('Required', 'Please describe your commission idea.');
+      return;
+    }
+
+    const resolvedArtistId = Number(rawArtistId);
+    if (!resolvedArtistId || isNaN(resolvedArtistId)) {
+      showAlert('Error', 'Missing valid artist information. Please return to the artist page.');
       return;
     }
 
     try {
       setLoading(true);
+      const token = await auth.currentUser?.getIdToken();
       const email = auth.currentUser?.email || '';
+      const username = auth.currentUser?.displayName || email.split('@')[0] || '';
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const payload = {
+        artist_id: resolvedArtistId,
+        user_email: email,
+        buyer_username: username,
+        title: `Custom ${artType} Commission`,
+        description: description.trim(),
+        art_type: artType,
+        tags: selectedTags.join(', '),
+        is_rush_job: isRush,
+        deadline: targetDate.toISOString(),
+        time_duration: isRush ? 4500 : 3000,
+        reference_images: refImages,
+      };
+
+      console.log('[CommissionRequest] Sending payload:', payload);
 
       const res = await fetch(`${API_URL}/api/commissions/requests/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          artist_id: Number(artistId),
-          user_email: email,
-          title: `Custom ${artType} Commission`,
-          description,
-          art_type: artType,
-          tags: selectedTags.join(', '),
-          is_rush_job: isRush,
-          deadline: targetDate.toISOString(),
-          time_duration: isRush ? 4500 : 3000,
-          reference_images: refImages,
-        }),
+        headers,
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (res.ok) {
-        // Set the ID and immediately display the contract negotiation form
-        setCreatedCommissionId(String(data.commission_req_id));
-        setShowNegotiate(true);
+        showAlert(
+          'Commission Request Sent',
+          'Your commission request has been submitted to the artist. You can chat and negotiate terms once accepted.',
+          () => {
+            router.push('/commissions' as any);
+          }
+        );
       } else {
-        Alert.alert('Error', data.error || 'Failed to submit request.');
+        showAlert('Submission Failed', data.error || 'Server rejected the request.');
       }
-    } catch (e) {
-      Alert.alert('Error', 'Failed to connect to commissions API.');
+    } catch (e: any) {
+      showAlert('Network Error', e.message || 'Failed to submit commission request.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(home)' as any);
+    }
+  };
+
   return (
     <SafeAreaView style={s.page}>
-      <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+      <TouchableOpacity style={s.backBtn} onPress={handleBack}>
         <ArrowLeft color="#B84A4A" size={24} />
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <View style={[s.formRow, isDesktop ? s.formRowDesktop : s.formRowMobile]}>
-          
           {/* LEFT COLUMN: FOR REFERENCE */}
           <View style={s.column}>
             <Text style={s.headingRed}>FOR REFERENCE</Text>
@@ -217,7 +261,6 @@ export default function CommissionRequestScreen() {
           <View style={s.column}>
             <Text style={s.headingRed}>ART COMMISSION DETAILS</Text>
 
-            {/* Type of Art */}
             <View style={s.fieldRow}>
               <Text style={s.labelRedInline}>Type of Art:</Text>
               <View style={s.pillGroup}>
@@ -240,7 +283,6 @@ export default function CommissionRequestScreen() {
               </View>
             </View>
 
-            {/* Tags */}
             <View style={s.fieldRow}>
               <Text style={s.labelRedInline}>Tags:</Text>
               <TextInput
@@ -271,12 +313,10 @@ export default function CommissionRequestScreen() {
 
             <View style={s.redDivider} />
 
-            {/* TIME DURATION & INTERACTIVE DATE/TIME */}
             <Text style={s.headingRedSmall}>TIME DURATION</Text>
             <View style={s.dateRow}>
               <Text style={s.labelRedInline}>Date & time to be done:</Text>
 
-              {/* DATE PICKER BADGE */}
               <View style={s.dateBadgeWrapper}>
                 {Platform.OS === 'web' && (
                   <input
@@ -307,7 +347,6 @@ export default function CommissionRequestScreen() {
                 </View>
               </View>
 
-              {/* TIME PICKER BADGE */}
               <View style={s.dateBadgeWrapper}>
                 {Platform.OS === 'web' && (
                   <input
@@ -341,18 +380,16 @@ export default function CommissionRequestScreen() {
               </View>
             </View>
 
-            {/* RUSH JOB BUTTON */}
             <TouchableOpacity
               style={[s.rushBtn, isRush && s.rushBtnActive]}
               onPress={toggleRushJob}
               activeOpacity={0.8}
             >
               <Text style={[s.rushBtnText, isRush && s.rushBtnTextActive]}>
-                {isRush ? ' Rush job (Urgent)' : 'Rush job'}
+                {isRush ? 'Rush job (Urgent)' : 'Rush job'}
               </Text>
             </TouchableOpacity>
 
-            {/* NEXT BUTTON */}
             <TouchableOpacity
               style={s.nextBtn}
               onPress={handleNext}
@@ -368,18 +405,6 @@ export default function CommissionRequestScreen() {
           </View>
         </View>
       </ScrollView>
-
-      {/* Existing Negotiate Contract Panel Overlay */}
-      {showNegotiate && (
-        <ContractPanel
-          startInChat={false}
-          artworkId={createdCommissionId || String(artistId)}
-          onClose={() => {
-            setShowNegotiate(false);
-            router.replace('/(tabs)/commissions' as any);
-          }}
-        />
-      )}
     </SafeAreaView>
   );
 }

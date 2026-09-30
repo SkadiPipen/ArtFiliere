@@ -3,13 +3,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -35,7 +35,7 @@ export default function ProcessTrackScreen() {
         const data = await res.json();
         setTrackData(data);
         if (data.photos && data.photos.length > 0) {
-          setSelectedPhotoIndex(data.photos.length - 1); // latest by default
+          setSelectedPhotoIndex(data.photos.length - 1);
         }
       }
     } catch (e) {
@@ -61,38 +61,45 @@ export default function ProcessTrackScreen() {
     );
   }
 
-  const currentPercentage = trackData?.photos?.[selectedPhotoIndex]?.progress_percentage ?? trackData?.current_progress ?? 33;
-  const activeImage = trackData?.photos?.[selectedPhotoIndex]?.image_url || 'https://via.placeholder.com/400';
+  const currentPercentage =
+    trackData?.photos?.[selectedPhotoIndex]?.progress_percentage ?? trackData?.current_progress ?? 33;
+  const activeImage =
+    trackData?.photos?.[selectedPhotoIndex]?.image_url || 'https://placehold.co/400x400?text=No+Stage+Uploaded';
+  const activeCaption =
+    trackData?.photos?.[selectedPhotoIndex]?.caption || `Progress: ${currentPercentage}%`;
 
   return (
     <SafeAreaView style={s.container}>
-      {/* Top Left Back Arrow */}
       <TouchableOpacity style={s.backBtn} onPress={handleBack}>
         <ChevronLeft color="#C15656" size={32} />
       </TouchableOpacity>
 
-      {/* Screen Title */}
-      <Text style={s.screenTitle}>Process Track</Text>
+      <Text style={s.screenTitle}>3-Stage Process Track</Text>
 
-      {/* Process Track Bar (Red fill vs Grey remainder) */}
+      {/* Progress Bar */}
       <View style={s.trackBarContainer}>
         <View style={s.trackBarBackground}>
-          <View style={[s.trackBarFill, { width: `${Math.min(100, Math.max(5, currentPercentage))}%` }]} />
+          <View
+            style={[
+              s.trackBarFill,
+              { width: `${Math.min(100, Math.max(10, currentPercentage))}%` },
+            ]}
+          />
         </View>
       </View>
 
-      {/* Main Stage Artwork Container with red border frame */}
+      {/* Main Artwork Preview Box */}
       <View style={s.imageCenterWrapper}>
         <View style={s.imageCard}>
           <Image source={{ uri: activeImage }} style={s.artworkImage} resizeMode="contain" />
         </View>
 
-        {/* Caption / Phase Indicator */}
         <Text style={s.progressLabel}>{currentPercentage}% Completed</Text>
+        <Text style={s.captionText}>{activeCaption}</Text>
       </View>
 
-      {/* Stage Dots to switch between Sketch (33%), Shading (66%), Final (100%) */}
-      {trackData?.photos && trackData.photos.length > 1 && (
+      {/* Stage Dots (1, 2, 3) */}
+      {trackData?.photos && trackData.photos.length > 0 && (
         <View style={s.stageDotsRow}>
           {trackData.photos.map((p: any, idx: number) => (
             <TouchableOpacity
@@ -101,7 +108,7 @@ export default function ProcessTrackScreen() {
               onPress={() => setSelectedPhotoIndex(idx)}
             >
               <Text style={[s.stageDotText, selectedPhotoIndex === idx && s.stageDotTextActive]}>
-                {p.progress_percentage}%
+                Stage {p.stage_number || idx + 1} ({p.progress_percentage}%)
               </Text>
             </TouchableOpacity>
           ))}
@@ -121,15 +128,12 @@ const s = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: '#B84A4A',
-    letterSpacing: 0.5,
   },
-
-  // Red progress bar matching wireframes
   trackBarContainer: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 30,
+    marginTop: 20,
+    marginBottom: 20,
     paddingHorizontal: 40,
   },
   trackBarBackground: {
@@ -145,8 +149,6 @@ const s = StyleSheet.create({
     backgroundColor: '#C15656',
     borderRadius: 4,
   },
-
-  // Image Frame matching the red bordered box in wireframes
   imageCenterWrapper: {
     flex: 1,
     alignItems: 'center',
@@ -154,8 +156,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
   },
   imageCard: {
-    width: Math.min(width * 0.75, 340),
-    height: Math.min(width * 0.95, 420),
+    width: Math.min(width * 0.8, 340),
+    height: Math.min(width * 0.95, 400),
     borderWidth: 1.5,
     borderColor: '#C15656',
     backgroundColor: '#FFF',
@@ -165,21 +167,27 @@ const s = StyleSheet.create({
   },
   artworkImage: { width: '100%', height: '100%' },
   progressLabel: {
-    marginTop: 16,
+    marginTop: 14,
     color: '#B84A4A',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
   },
-
+  captionText: {
+    marginTop: 4,
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
   stageDotsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     marginBottom: 40,
   },
   stageDot: {
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 14,
     backgroundColor: '#E6DCCF',
   },

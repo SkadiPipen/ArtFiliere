@@ -138,9 +138,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
       }
     };
 
+    const handleBack = () => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(home)' as any);
+      }
+    };
+
     return (
       <SafeAreaView style={styles.page}>
-        <View style={styles.header}><TouchableOpacity onPress={() => router.back()}><ArrowLeft color="#D75B5C" size={24} /></TouchableOpacity><Text style={styles.headerTitle}>Create a post</Text><View style={{ width: 24 }} /></View>
+        <View style={styles.header}><TouchableOpacity onPress={handleBack}><ArrowLeft color="#D75B5C" size={24} /></TouchableOpacity><Text style={styles.headerTitle}>Create a post</Text><View style={{ width: 24 }} /></View>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={[styles.card, width < 700 && styles.cardMobile]}>
             

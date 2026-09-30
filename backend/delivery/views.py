@@ -29,6 +29,18 @@ except ImportError:
 
 User = get_user_model()
 
+
+def format_address_str(addr):
+    """Safely converts an Address model instance or dict to a plain string for JSON serialization."""
+    if not addr:
+        return ""
+    if isinstance(addr, str):
+        return addr
+    fields = ('street', 'barangay', 'city', 'province', 'region', 'postal_code')
+    parts = [str(getattr(addr, f, '')).strip() for f in fields if getattr(addr, f, None)]
+    return ", ".join(parts) if parts else str(addr)
+
+
 def calculate_haversine_km(lat1, lon1, lat2, lon2):
     """Calculates ground distance between two points in km."""
     R = 6371.0
@@ -38,6 +50,7 @@ def calculate_haversine_km(lat1, lon1, lat2, lon2):
          math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2)
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return round(R * c * 1.3, 1)
+
 
 def estimate_distance_from_addresses(origin_str, dest_str):
     origin = (origin_str or '').lower()
@@ -86,8 +99,11 @@ def get_delivery_quote(request):
     actor_pk = actor.pk if actor else 1
     revision_pk = request.data.get('revision_id') or None
 
-    pickup_addr = getattr(artwork.artist, 'address', artist_address) if artwork and hasattr(artwork, 'artist') else artist_address
+    raw_pickup = getattr(artwork.artist, 'address', artist_address) if artwork and hasattr(artwork, 'artist') else artist_address
+    pickup_addr_str = format_address_str(raw_pickup) or str(artist_address)
+    delivery_addr_str = format_address_str(delivery_address)
 
+    # Ensure all values in quote_payload are standard JSON-serializable primitives
     quote_payload = {
         'artwork': artwork_pk,
         'buyer': buyer_pk,
@@ -95,12 +111,12 @@ def get_delivery_quote(request):
         'revision': revision_pk,
         'details': {
             'fee': str(total_fee),
-            'distance_km': distance_km,
+            'distance_km': float(distance_km),
             'is_priority': is_priority,
             'pickup_address_id': 1,
             'delivery_address_id': 1,
-            'pickup_address': pickup_addr,
-            'delivery_address': delivery_address,
+            'pickup_address': str(pickup_addr_str),
+            'delivery_address': str(delivery_addr_str),
             'pickup_coordinates': (10.3157, 123.8854),
             'delivery_coordinates': (10.3333, 123.9333),
         }
@@ -110,9 +126,11 @@ def get_delivery_quote(request):
 
     return Response({
         "token": signed_token,
-        "delivery_address": delivery_address,
+        "delivery_address": delivery_addr_str,
         "distance_km": distance_km,
         "fee": total_fee,
+        "base_fee": round(base_fare + distance_fee, 2),
+        "priority_fee": priority_fee,
         "is_priority": is_priority,
         "estimated_time": f"{int(distance_km * 3 + 10)} mins",
     }, status=status.HTTP_200_OK)
@@ -128,7 +146,6 @@ def get_pending_orders(request):
         raw_buyer = getattr(o, 'buyer_name', None) or getattr(o, 'buyerId', str(o.id))
         buyer_label = raw_buyer if str(raw_buyer).startswith("Customer #") else f"Customer #{raw_buyer}"
 
-        # Calculate Move It fare safely
         try:
             km_val = float(''.join(c for c in str(o.distance) if c.isdigit() or c == '.'))
             fee_val = round(50.0 + max(0.0, km_val - 2.0) * 15.0, 2)
@@ -225,6 +242,7 @@ def serialize_active_order(order):
         "buyerPhotoUri": order.delivery_proof or None,
     }
 
+
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def get_order_by_id(request, order_id):
@@ -251,6 +269,7 @@ def get_active_delivery(request):
 
     return Response(serialize_active_order(order), status=status.HTTP_200_OK)
 
+
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def update_order_status(request, order_id):
@@ -276,12 +295,13 @@ def update_order_status(request, order_id):
     try:
         data = serialize_active_order(order)
         return Response(data, status=status.HTTP_200_OK)
-    except Exception as e:
+    except Exception:
         return Response({
             'message': f'Status updated to {order.status}',
             'id': order.id,
             'status': order.status
         }, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
@@ -350,7 +370,6 @@ class OrderProofUploadView(APIView):
             return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
         photo = request.FILES.get('photo') or request.FILES.get('image')
-        proof_type = request.data.get('type', 'delivery')
 
         if photo:
             if hasattr(order, 'proof_image'):
@@ -394,9 +413,9 @@ def create_delivery_and_notify_driver_order(
     pickup_str = ''
     if artist:
         a_addr = getattr(artist, 'address', None)
-        pickup_str = getattr(a_addr, 'formatted', str(a_addr)) if a_addr else ''
+        pickup_str = format_address_str(a_addr) if a_addr else ''
     if not pickup_str and agreement and hasattr(agreement, 'delivery_details'):
-        pickup_str = agreement.delivery_details.get('pickup_address', '')
+        pickup_str = str(agreement.delivery_details.get('pickup_address', ''))
 
     # 2. Dynamic Buyer Data
     b_name = ''
@@ -413,7 +432,6 @@ def create_delivery_and_notify_driver_order(
     d_lat = delivery_coords[0] if delivery_coords else 10.3333
     d_lng = delivery_coords[1] if delivery_coords else 123.9333
 
-    # Calculate Move It Fare: 50 base (2km) + 15/km + optional 40 priority
     base_fare = 50.00
     base_km = 2.0
     dist_fee = max(0.0, float(distance_km) - base_km) * 15.00
