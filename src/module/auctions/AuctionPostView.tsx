@@ -8,24 +8,31 @@ import {
   Alert,
   Dimensions,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Watermark } from '../artwork/components/Watermark';
 import ContractPanel from '../chat-negotiations/ContractPanel';
-
-const { width } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web' || width > 768;
 
 export default function AuctionPostView() {
   const params = useLocalSearchParams();
   const auctionId = params.id;
   const router = useRouter();
+
+  const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
+  const isDesktop = windowWidth >= 920;
+
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowWidth(window.width);
+    });
+    return () => sub?.remove();
+  }, []);
 
   const [auction, setAuction] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -44,7 +51,6 @@ export default function AuctionPostView() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch logged in user to check if viewer is artist or winning bidder
   useEffect(() => {
     async function fetchMe() {
       try {
@@ -101,12 +107,6 @@ export default function AuctionPostView() {
     )
   );
 
-  const isWinner = Boolean(
-    auction && (
-      (firebaseUser && (auction.highest_bidder_uid === firebaseUser.uid)) ||
-      (currentUser && (currentUser.id === auction.highest_bidder_id || currentUser.username === auction.highest_bidder_name))
-    )
-  );
   const formatTimer = (targetDate: string) => {
     if (!targetDate) return '00:00:00s';
     const diff = Math.max(0, new Date(targetDate).getTime() - now);
@@ -116,6 +116,20 @@ export default function AuctionPostView() {
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
     return `${hours}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}s`;
+  };
+
+  const formatEndDate = (dateStr: string) => {
+    if (!dateStr) return 'Soon';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   const placeBid = async (amount: number) => {
@@ -139,7 +153,6 @@ export default function AuctionPostView() {
         Authorization: `Bearer ${token}`,
       };
 
-      // Always call the standard plural route first
       let res = await fetch(`${API_URL}/api/auctions/${auctionId}/bid/`, {
         method: 'POST',
         headers,
@@ -168,7 +181,6 @@ export default function AuctionPostView() {
     }
   };
 
-  // Settle auction and navigate to chat negotiations & payment
   const handleSettleAndNegotiate = async () => {
     if (settling) return;
 
@@ -227,6 +239,24 @@ export default function AuctionPostView() {
     }
   };
 
+  const handleArtistClick = () => {
+    const artistId = auction?.artist_id || auction?.artist?.id || auction?.artist;
+    if (artistId) {
+      router.push({
+        pathname: '/artist-profile',
+        params: { artistId: String(artistId) },
+      } as any);
+    }
+  };
+
+  const tagsList = auction?.tags
+    ? typeof auction.tags === 'string'
+      ? auction.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+      : Array.isArray(auction.tags)
+      ? auction.tags
+      : []
+    : ['Art', 'Featured', 'Original'];
+
   if (loading) {
     return (
       <View style={styles.centerBox}>
@@ -247,147 +277,194 @@ export default function AuctionPostView() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.mainWrapper, isWeb && styles.webWrapper]}>
-        {/* Background Artwork Banner */}
-        <View style={styles.imageHeader}>
-          <Watermark uri={getArtworkUri()} height={isWeb ? 450 : 250} />
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      <View style={styles.bgGlowTop} />
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* TOP HEADER BAR */}
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.navArrowBtn} onPress={handleBack} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={26} color="#844038" />
           </TouchableOpacity>
 
-          <View style={styles.topInfo}>
-            <View>
-              <Text style={styles.bidLabel}>Current Bid:</Text>
-              <Text style={styles.bidValue}>Php {auction.current_bid?.toLocaleString()}</Text>
-            </View>
+          <View style={styles.topCenterContainer}>
+            <Text style={styles.endsOnText}>
+              Ends on: {formatEndDate(auction.end_time)}
+            </Text>
             <View style={[styles.timerPill, (isExpired || isSettled) && styles.endedPill]}>
-              <Ionicons name="time-outline" size={14} color={(isExpired || isSettled) ? '#FFF' : '#C15656'} />
-              <Text style={[styles.timerText, (isExpired || isSettled) && { color: '#FFF' }]}>
+              <Ionicons
+                name="time-outline"
+                size={13}
+                color="#FFF"
+              />
+              <Text style={styles.timerText}>
                 {isSettled ? 'Settled' : formatTimer(auction.end_time)}
               </Text>
             </View>
           </View>
 
-          {/* Top 5 Bidders Box */}
-          <View style={styles.topBiddersBox}>
-            <Text style={styles.topBiddersHeader}>Top Bidders:</Text>
-            {auction.top_bidders && auction.top_bidders.length > 0 ? (
-              auction.top_bidders.map((b: any, idx: number) => (
-                <View key={idx} style={styles.bidderRow}>
-                  <Ionicons name="person" size={12} color="#FFF" />
-                  <Text style={styles.bidderName}>{b.masked_name}</Text>
-                </View>
-            ))
-          ) : (
-            <Text style={{ color: '#EEE', fontSize: 10 }}>No bids yet</Text>
-          )}
-          </View>
+          <View style={{ width: 32 }} />
         </View>
 
-        {/* Artwork Info & Description */}
-        <View style={styles.bottomCard}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-            <Text style={styles.dateText}>{isExpired || isSettled ? 'Auction Concluded' : 'Ends soon'}</Text>
-            <View style={styles.titleRow}>
-              <Text style={styles.titleText}>{auction.title}</Text>
-              <TouchableOpacity
-                style={styles.artistPill}
-                activeOpacity={0.7}
-                onPress={() => {
-                  const artistId = auction.artist_id || auction.artist?.id || auction.artist;
-                  if (artistId) {
-                    router.push({
-                      pathname: '/artist-profile',
-                      params: { artistId: artistId },
-                    } as any);
-                  }
-                }}
-              >
-                <Ionicons name="ellipse-outline" size={12} color="#8B6E49" />
-                <Text style={styles.artistName}> {auction.artist_name}</Text>
-              </TouchableOpacity>
+        {/* MAIN 3-PANEL ROW */}
+        <View style={[styles.layoutRow, !isDesktop && styles.layoutColumn]}>
+          {/* LEFT PANEL: TOP BIDDER CARD */}
+          <View style={[styles.leftColumn, !isDesktop && styles.columnFull]}>
+            <View style={styles.topBiddersCard}>
+              <Text style={styles.topBiddersTitle}>Top Bidder</Text>
+              <View style={styles.biddersList}>
+                {auction.top_bidders && auction.top_bidders.length > 0 ? (
+                  auction.top_bidders.map((b: any, idx: number) => (
+                    <View key={idx} style={styles.bidderItemRow}>
+                      <View style={styles.avatarWrapper}>
+                        {idx === 0 && (
+                          <Ionicons name="ribbon" size={12} color="#D48C62" style={styles.crownIcon} />
+                        )}
+                        <Ionicons name="person-circle-outline" size={20} color="#B89F8B" />
+                      </View>
+                      <Text style={styles.bidderMaskedText}>{b.masked_name}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyBiddersText}>No bids yet</Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* CENTER PANEL: ARTWORK IMAGE & CURRENT BID PRICE */}
+          <View style={[styles.centerColumn, !isDesktop && styles.columnFull]}>
+            <View style={styles.imageCanvasWrapper}>
+              <Watermark uri={getArtworkUri()} height={isDesktop ? 440 : 260} />
             </View>
 
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>{auction.is_physical ? 'Physical Artwork' : 'Digital Asset'}</Text>
+            <View style={styles.currentBidContainer}>
+              <Text style={styles.currentBidLabel}>CURRENT BID PRICE:</Text>
+              <Text style={styles.currentBidAmount}>
+                ₱ {auction.current_bid?.toLocaleString() || '0'}
+              </Text>
+            </View>
+          </View>
+
+          {/* RIGHT PANEL: ART DETAILS, TAGS & ACTION CONTROLS */}
+          <View style={[styles.rightColumn, !isDesktop && styles.columnFull]}>
+            <View style={styles.metaHeader}>
+              <Text style={styles.artTitleText}>
+                {auction.title}{' '}
+                <Text style={styles.byLabel}>by </Text>
+                <Text
+                  style={styles.byArtistLink}
+                  onPress={handleArtistClick}
+                >
+                  {auction.artist_name || 'Artist'}
+                </Text>
+              </Text>
+
+              {/* Tags */}
+              <View style={styles.tagsContainer}>
+                {tagsList.map((tag: string, index: number) => (
+                  <View key={index} style={styles.tagPill}>
+                    <Text style={styles.tagPillText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
 
-            <Text style={styles.sectionHeader}>About the Art</Text>
-            <Text style={styles.bodyText}>{auction.description}</Text>
+            {/* Description */}
+            <Text style={styles.bodyDescription}>
+              {auction.description || 'No description provided for this auction piece.'}
+            </Text>
 
-            <Text style={styles.sectionHeader}>Materials/medium used:</Text>
-            <Text style={styles.bodyText}>{auction.materials}</Text>
+            {/* Materials */}
+            <View style={styles.specRow}>
+              <Text style={styles.specLabel}>Materials used: </Text>
+              <Text style={styles.specValue}>{auction.materials || 'Mixed Media'}</Text>
+            </View>
 
-            <Text style={styles.sectionHeader}>Offered licenses:</Text>
+            {/* Type */}
+            <View style={styles.specRow}>
+              <Text style={styles.specLabel}>Type: </Text>
+              <Text style={styles.specValue}>
+                {auction.is_physical ? 'Physical Piece' : 'Digital Asset'}
+              </Text>
+            </View>
+
+            {/* License Negotiation Link */}
             <TouchableOpacity
               style={styles.licenseBtn}
               onPress={() => setShowContractPanel(true)}
             >
-              <Ionicons name="document-text-outline" size={16} color="#C05C5C" />
-              <Text style={styles.licenseBtnText}>Negotiate License Terms & Usage Rights →</Text>
+              <Ionicons name="document-text-outline" size={14} color="#844038" />
+              <Text style={styles.licenseBtnText}>Negotiate License Terms & Rights →</Text>
             </TouchableOpacity>
-          </ScrollView>
 
-          {/* Action Bar: Settle / Negotiate vs Active Bidding */}
-          <View style={styles.actionBar}>
-            {isSettled || isExpired ? (
-              <View style={styles.settledContainer}>
-                <View>
-                  <Text style={styles.settledWinningLabel}>Final Winning Bid</Text>
-                  <Text style={styles.settledWinningAmount}>Php {auction.current_bid?.toLocaleString()}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.settleBtn}
-                  onPress={handleSettleAndNegotiate}
-                  disabled={settling}
-                >
-                  {settling ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="chatbubbles-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
-                      <Text style={styles.settleBtnText}>
-                        {isArtist ? 'Review Terms & Chat' : 'Proceed to Contract & Checkout'}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                <View>
-                  <Text style={styles.pastBidLabel}>Past bid: Php {auction.past_bid?.toLocaleString()}</Text>
-                </View>
-                <View style={styles.btnRow}>
-                  <TouchableOpacity style={styles.rebidBtn} onPress={() => setBidModal(true)} disabled={isArtist}>
-                    <Text style={[styles.rebidText, isArtist && {color: '#AAA'}]}>REBID</Text>
-                  </TouchableOpacity>
+            {/* Bottom Actions */}
+            <View style={styles.rightActionFooter}>
+              {isSettled || isExpired ? (
+                <View style={styles.settledActionBox}>
+                  <Text style={styles.settledStatusLabel}>Final Winning Bid</Text>
+                  <Text style={styles.settledStatusAmount}>
+                    ₱ {auction.current_bid?.toLocaleString()}
+                  </Text>
                   <TouchableOpacity
-                    style={[styles.instantBidBtn, isArtist && { backgroundColor: '#CCC'}]}
-                    onPress={() => placeBid(Number(auction.next_min_bid))}
-                    disabled={isArtist || bidding}
+                    style={styles.settleBtn}
+                    onPress={handleSettleAndNegotiate}
+                    disabled={settling}
                   >
-                    {bidding ? (
+                    {settling ? (
                       <ActivityIndicator size="small" color="#FFF" />
                     ) : (
-                      <Text style={styles.instantBidText}>Php{auction.next_min_bid?.toLocaleString()}</Text>
+                      <>
+                        <Ionicons name="chatbubbles-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.settleBtnText}>
+                          {isArtist ? 'Review Terms & Chat' : 'Proceed to Contract & Checkout'}
+                        </Text>
+                      </>
                     )}
                   </TouchableOpacity>
                 </View>
-              </>
-            )}
+              ) : (
+                <View style={styles.activeBiddingBlock}>
+                  <Text style={styles.pastBidLabel}>
+                    Past bid: ₱ {auction.past_bid?.toLocaleString() || '0'}
+                  </Text>
+                  <View style={styles.buttonActionRow}>
+                    <TouchableOpacity
+                      style={styles.rebidBtn}
+                      onPress={() => setBidModal(true)}
+                      disabled={isArtist}
+                    >
+                      <Text style={[styles.rebidText, isArtist && { color: '#AAA' }]}>REBID</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.instantBidBtn, isArtist && { backgroundColor: '#CCC' }]}
+                      onPress={() => placeBid(Number(auction.next_min_bid))}
+                      disabled={isArtist || bidding}
+                    >
+                      {bidding ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text style={styles.instantBidText}>
+                          ₱{Number(auction.next_min_bid || 0).toLocaleString()}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
           </View>
         </View>
-      </View>
+      </ScrollView>
 
-      {/* Bid Modal */}
+      {/* BID MODAL */}
       <Modal visible={bidModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Enter Bid Amount</Text>
             <Text style={styles.modalSubtitle}>
-              Minimum bid: Php{auction.next_min_bid?.toLocaleString()}
+              Minimum bid: ₱{auction.next_min_bid?.toLocaleString()}
             </Text>
             <TextInput
               style={styles.modalInput}
@@ -397,8 +474,8 @@ export default function AuctionPostView() {
               placeholder="Enter amount..."
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setBidModal(false)} style={styles.cancelBtn}>
-                <Text style={{ color: '#666'}}>Cancel</Text>
+              <TouchableOpacity onPress={() => setBidModal(false)} style={styles.modalCancelBtn}>
+                <Text style={{ color: '#666' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => placeBid(Number(customBid))}
@@ -406,7 +483,7 @@ export default function AuctionPostView() {
                 disabled={bidding}
               >
                 {bidding ? (
-                  <ActivityIndicator color="#FFF" size="small"/>
+                  <ActivityIndicator color="#FFF" size="small" />
                 ) : (
                   <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Submit Bid</Text>
                 )}
@@ -416,6 +493,7 @@ export default function AuctionPostView() {
         </View>
       </Modal>
 
+      {/* CONTRACT MODAL */}
       {showContractPanel && (
         <ContractPanel
           artworkId={String(auction.artwork_id || auction.id)}
@@ -424,153 +502,372 @@ export default function AuctionPostView() {
             setShowContractPanel(false);
             router.push({
               pathname: '/(home)/cart',
-              params:{ 
-                directCheckout: 'true', 
-                auctionId: String(auction.id), 
-                artworkId: String(auction.artwork_id || auction.id), 
+              params: {
+                directCheckout: 'true',
+                auctionId: String(auction.id),
+                artworkId: String(auction.artwork_id || auction.id),
               },
-            } as any );
+            } as any);
           }}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  mainWrapper: { flex: 1 },
-  webWrapper: { maxWidth: 900, alignSelf: 'center', width: '100%' },
-  imageHeader: { position: 'relative' },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 16,
-    zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 20,
-    padding: 6,
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F1E3',
+    position: 'relative',
   },
-  topInfo: {
+  bgGlowTop: {
     position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '45%',
+    backgroundColor: '#FAF6ED',
+    opacity: 0.8,
+  },
+  bgGlowBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+    backgroundColor: '#EFE1CA',
+    opacity: 0.6,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 24,
+    width: '100%',
+  },
+  centerBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F1E3',
+  },
+
+  // TOP BAR
+  topBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    width: '100%',
+    maxWidth: 1180,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
-  bidLabel: { color: '#FFF', fontSize: 13, textShadowColor: '#000', textShadowRadius: 4 },
-  bidValue: { color: '#FFF', fontSize: 24, fontWeight: 'bold', textShadowColor: '#000', textShadowRadius: 4 },
+  navArrowBtn: {
+    top: 30,
+    padding: 4,
+    marginLeft: -4,
+  },
+  topCenterContainer: {
+    right: 40,
+    top: 70,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  endsOnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#844038',
+  },
   timerPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 10,
+    backgroundColor: '#E48A64',
+    paddingHorizontal: 14,
     paddingVertical: 5,
-    borderRadius: 14,
+    borderRadius: 16,
+    gap: 5,
   },
-  endedPill: { backgroundColor: '#C05C5C' },
-  timerText: { fontSize: 12, fontWeight: 'bold', color: '#C15656', marginLeft: 4 },
-  topBiddersBox: {
-    position: 'absolute',
-    top: 40,
-    right: 16,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 8,
-    padding: 8,
-    minWidth: 110,
+  endedPill: {
+    backgroundColor: '#844038',
   },
-  topBiddersHeader: { color: '#FFF', fontSize: 11, fontWeight: 'bold', marginBottom: 4 },
-  bidderRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 1 },
-  bidderName: { color: '#FFF', fontSize: 10, marginLeft: 4 },
-  bottomCard: {
+  timerText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+
+  // 3-PANEL WIREFRAME ROW
+  layoutRow: {
+    top: 70,
+    left: 40,
     flex: 1,
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -16,
-    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: 24,
+    width: '100%',
+    maxWidth: 1180,
   },
-  dateText: { fontSize: 12, color: '#C05C5C', fontWeight: 'bold', marginBottom: 4 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  titleText: { fontSize: 22, fontWeight: 'bold', color: '#2C3E50', flex: 1 },
-  artistPill: {
+  layoutColumn: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '100%',
+    gap: 20,
+  },
+  leftColumn: {
+    flex: 1,
+    minWidth: 175,
+    maxWidth: 205,
+  },
+  centerColumn: {
+    flex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rightColumn: {
+    flex: 2,
+    gap: 6,
+  },
+  columnFull: {
+    width: '100%',
+    maxWidth: 420,
+    flex: undefined,
+  },
+
+  // LEFT PANEL (TOP BIDDERS)
+  topBiddersCard: {
+    backgroundColor: '#ECE3D4',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#DFCDB8',
+    width: '100%',
+    minHeight: 180,
+  },
+  topBiddersTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#844038',
+    marginBottom: 12,
+  },
+  biddersList: {
+    gap: 10,
+  },
+  bidderItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F2EC',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: 8,
+  },
+  avatarWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crownIcon: {
+    position: 'absolute',
+    top: -5,
+    left: -4,
+    zIndex: 2,
+  },
+  bidderMaskedText: {
+    fontSize: 12,
+    color: '#844038',
+    fontWeight: '600',
+  },
+  emptyBiddersText: {
+    fontSize: 12,
+    color: '#A89284',
+    fontStyle: 'italic',
+  },
+
+  // CENTER PANEL (ARTWORK & CURRENT BID PRICE)
+  imageCanvasWrapper: {
+    width: '100%',
+    backgroundColor: '#D9D9D9',
+    borderRadius: 14,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#DDD0C0',
+  },
+  currentBidContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  currentBidLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#844038',
+    letterSpacing: 0.5,
+  },
+  currentBidAmount: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#844038',
+    marginTop: 2,
+  },
+
+  // RIGHT PANEL (META & ACTION CONTROLS)
+  metaHeader: {
+    marginBottom: 4,
+  },
+  artTitleText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#844038',
+    marginBottom: 6,
+  },
+  byLabel: {
+    fontSize: 13,
+    fontWeight: 'normal',
+    color: '#844038',
+  },
+  byArtistLink: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#844038',
+    textDecorationLine: 'underline',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 6,
+  },
+  tagPill: {
+    backgroundColor: '#E48A64',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: 12,
   },
-  artistName: { fontSize: 12, color: '#8B6E49', fontWeight: '600' },
-  typeBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EAECEE',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 14,
+  tagPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFF',
   },
-  typeBadgeText: { fontSize: 11, color: '#555', fontWeight: '600' },
-  sectionHeader: { fontSize: 14, fontWeight: 'bold', color: '#333', marginTop: 12, marginBottom: 4 },
-  bodyText: { fontSize: 13, color: '#666', lineHeight: 20 },
+  bodyDescription: {
+    fontSize: 12,
+    color: '#844038',
+    lineHeight: 18,
+    marginVertical: 4,
+  },
+  specRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  specLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#844038',
+  },
+  specValue: {
+    fontSize: 12,
+    color: '#844038',
+  },
   licenseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#C05C5C',
+    borderColor: '#DFCDB8',
+    backgroundColor: '#F3EADB',
     marginTop: 6,
-    backgroundColor: '#FFF5F5',
+    marginBottom: 8,
   },
-  licenseBtnText: { fontSize: 12, color: '#C05C5C', fontWeight: 'bold', marginLeft: 6 },
-  actionBar: {
+  licenseBtnText: {
+    fontSize: 11,
+    color: '#844038',
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+
+  // ACTIONS
+  rightActionFooter: {
+    marginTop: 10,
+    paddingTop: 10,
+  },
+  activeBiddingBlock: {
+    gap: 8,
+  },
+  pastBidLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#844038',
+    marginBottom: 2,
+  },
+  buttonActionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderColor: '#EEE',
-    paddingTop: 12,
-    marginTop: 8,
+    gap: 8,
   },
-  pastBidLabel: { fontSize: 12, color: '#888' },
-  btnRow: { flexDirection: 'row', alignItems: 'center' },
   rebidBtn: {
-    borderWidth: 1,
-    borderColor: '#C05C5C',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginRight: 8,
-  },
-  rebidText: { color: '#C05C5C', fontWeight: 'bold', fontSize: 13 },
-  instantBidBtn: {
-    backgroundColor: '#C05C5C',
-    borderRadius: 8,
+    backgroundColor: '#9B906E',
+    borderRadius: 6,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  instantBidText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
-  settledContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingVertical: 9,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  settledWinningLabel: { fontSize: 11, color: '#7F8C8D', textTransform: 'uppercase', fontWeight: 'bold' },
-  settledWinningAmount: { fontSize: 18, color: '#27AE60', fontWeight: 'bold' },
+  rebidText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  instantBidBtn: {
+    backgroundColor: '#C56054',
+    borderRadius: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  instantBidText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+
+  // SETTLED / WINNER ACTIONS
+  settledActionBox: {
+    gap: 6,
+  },
+  settledStatusLabel: {
+    fontSize: 11,
+    color: '#7F8C8D',
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+  },
+  settledStatusAmount: {
+    fontSize: 18,
+    color: '#27AE60',
+    fontWeight: 'bold',
+  },
   settleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#27AE60',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 8,
+    marginTop: 4,
   },
-  settleBtnText: { color: '#FFF', fontSize: 13, fontWeight: 'bold' },
+  settleBtnText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+
+  // MODAL
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -578,11 +875,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  modalBox: { backgroundColor: '#FFF', width: '100%', maxWidth: 360, borderRadius: 14, padding: 20 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
-  modalSubtitle: { fontSize: 12, color: '#777', marginBottom: 16 },
-  modalInput: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 10, fontSize: 16, marginBottom: 16 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
-  cancelBtn: { paddingHorizontal: 14, paddingVertical: 8, marginRight: 8 },
-  confirmBtn: { backgroundColor: '#C05C5C', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  modalBox: {
+    backgroundColor: '#FFF',
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 14,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#777',
+    marginBottom: 16,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  cancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  confirmBtn: {
+    backgroundColor: '#C05C5C',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
 });
