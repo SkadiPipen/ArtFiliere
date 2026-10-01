@@ -79,6 +79,12 @@ def get_delivery_quote(request):
     artist_address = str(request.data.get('artist_address') or 'Cebu City Art Studio')
     is_priority = bool(request.data.get('is_priority', False))
 
+    if 'cebu' not in delivery_address.lower():
+        return Response(
+            {"error": "Physical delivery is currently exclusive to addresses in Cebu."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     if request.data.get('distance_km'):
         distance_km = float(request.data.get('distance_km'))
     else:
@@ -394,6 +400,9 @@ def create_delivery_and_notify_driver_order(
     pickup_coords=None
 ):
     if not is_physical:
+        return None
+
+    if 'cebu' not in str(address).lower():
         return None
 
     agreement = getattr(payment, 'agreement', None)
