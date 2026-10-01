@@ -1,34 +1,37 @@
-import { auth } from '@/firebase/config';
-import API_URL from '@/services/api';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { auth } from "@/firebase/config";
+import API_URL from "@/services/api";
+import AgreementDocument from "@/module/messages/components/AgreementDocument";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Watermark } from '../artwork/components/Watermark';
-import ContractPanel from '../chat-negotiations/ContractPanel';
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Watermark } from "../artwork/components/Watermark";
 
 export default function AuctionPostView() {
   const params = useLocalSearchParams();
   const auctionId = params.id;
   const router = useRouter();
 
-  const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
+  const [windowWidth, setWindowWidth] = useState(
+    Dimensions.get("window").width,
+  );
   const isDesktop = windowWidth >= 920;
 
   useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => {
+    const sub = Dimensions.addEventListener("change", ({ window }) => {
       setWindowWidth(window.width);
     });
     return () => sub?.remove();
@@ -40,8 +43,10 @@ export default function AuctionPostView() {
   const [bidding, setBidding] = useState(false);
   const [settling, setSettling] = useState(false);
   const [bidModal, setBidModal] = useState(false);
-  const [customBid, setCustomBid] = useState('');
-  const [showContractPanel, setShowContractPanel] = useState(false);
+  const [customBid, setCustomBid] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [imageUnavailable, setImageUnavailable] = useState(false);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -55,8 +60,10 @@ export default function AuctionPostView() {
     async function fetchMe() {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const res = await fetch(`${API_URL}/auth/me/`, { headers });
         if (res.ok) {
@@ -64,7 +71,7 @@ export default function AuctionPostView() {
           setCurrentUser(user);
         }
       } catch (err) {
-        console.warn('Could not fetch user profile:', err);
+        console.warn("Could not fetch user profile:", err);
       }
     }
     fetchMe();
@@ -84,10 +91,11 @@ export default function AuctionPostView() {
       if (res.ok) {
         const data = await res.json();
         setAuction(data);
-        setCustomBid(String(data.next_min_bid || ''));
+        setImageUnavailable(false);
+        setCustomBid(String(data.next_min_bid || ""));
       }
     } catch (err) {
-      console.warn('Error loading auction details:', err);
+      console.warn("Error loading auction details:", err);
     } finally {
       setLoading(false);
     }
@@ -97,46 +105,65 @@ export default function AuctionPostView() {
     loadDetails();
   }, [auctionId]);
 
-  const isExpired = auction?.end_time ? new Date(auction.end_time).getTime() <= now : false;
-  const isSettled = auction?.status === 'SETTLED';
+  const isExpired = auction?.end_time
+    ? new Date(auction.end_time).getTime() <= now
+    : false;
+  const isSettled = auction?.status === "SETTLED";
   const firebaseUser = auth.currentUser;
   const isArtist = Boolean(
-    auction && (
-      (firebaseUser && (auction.artist_uid === firebaseUser.uid || auction.artist_email === firebaseUser.email)) ||
-      (currentUser && (currentUser.id === auction.artist_id || currentUser.username === auction.artist_name))
-    )
+    auction &&
+    ((firebaseUser &&
+      (auction.artist_uid === firebaseUser.uid ||
+        auction.artist_email === firebaseUser.email)) ||
+      (currentUser &&
+        (currentUser.id === auction.artist_id ||
+          currentUser.username === auction.artist_name))),
   );
 
   const formatTimer = (targetDate: string) => {
-    if (!targetDate) return '00:00:00s';
+    if (!targetDate) return "00:00:00s";
     const diff = Math.max(0, new Date(targetDate).getTime() - now);
-    if (diff <= 0) return 'Ended';
+    if (diff <= 0) return "Ended";
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
-    return `${hours}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}s`;
+    return `${hours}:${mins < 10 ? "0" : ""}${mins}:${secs < 10 ? "0" : ""}${secs}s`;
   };
 
   const formatEndDate = (dateStr: string) => {
-    if (!dateStr) return 'Soon';
+    if (!dateStr) return "Soon";
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
+      return d.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
       });
     } catch {
       return dateStr;
     }
   };
 
+  const bidSuggestions = () => {
+    const minimum = Number(auction?.next_min_bid || 0);
+    const increment = Number(auction?.bid_increment || 0);
+    if (!minimum || !increment) return [minimum].filter(Boolean);
+    return [minimum, minimum + increment, minimum + increment * 2];
+  };
+
   const placeBid = async (amount: number) => {
     if (bidding) return;
 
     if (!amount || isNaN(amount)) {
-      Alert.alert('Invalid Amount', 'Please enter a valid numeric bid amount.');
+      Alert.alert("Invalid Amount", "Please enter a valid numeric bid amount.");
+      return;
+    }
+    if (!termsAccepted) {
+      Alert.alert(
+        "Agreement required",
+        "Read and accept the published auction agreement before placing a bid.",
+      );
       return;
     }
 
@@ -144,38 +171,44 @@ export default function AuctionPostView() {
       setBidding(true);
       const token = await auth.currentUser?.getIdToken();
       if (!token) {
-        Alert.alert('Login Required', 'Please log in to place a bid on this artwork.');
+        Alert.alert(
+          "Login Required",
+          "Please log in to place a bid on this artwork.",
+        );
         return;
       }
 
       const headers = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
 
       let res = await fetch(`${API_URL}/api/auctions/${auctionId}/bid/`, {
-        method: 'POST',
+        method: "POST",
         headers,
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount, terms_accepted: true }),
       });
       if (res.status === 404) {
         res = await fetch(`${API_URL}/api/auction/${auctionId}/bid/`, {
-          method: 'POST',
+          method: "POST",
           headers,
-          body: JSON.stringify({ amount }),
+          body: JSON.stringify({ amount, terms_accepted: true }),
         });
       }
 
       const data = await res.json();
       if (!res.ok) {
-        Alert.alert('Bid Error', data.error || 'Failed to place bid.');
+        Alert.alert("Bid Error", data.error || "Failed to place bid.");
       } else {
-        Alert.alert('Success!', `Your bid of ₱${amount.toLocaleString()} was placed!`);
+        Alert.alert(
+          "Success!",
+          `Your bid of ₱${amount.toLocaleString()} was placed!`,
+        );
         setBidModal(false);
         await loadDetails();
       }
     } catch (err) {
-      Alert.alert('Error', 'Unable to connect to auction server.');
+      Alert.alert("Error", "Unable to connect to auction server.");
     } finally {
       setBidding(false);
     }
@@ -187,45 +220,57 @@ export default function AuctionPostView() {
     try {
       setSettling(true);
       const token = await auth.currentUser?.getIdToken();
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       let res = await fetch(`${API_URL}/api/auction/${auctionId}/settle/`, {
-        method: 'POST',
+        method: "POST",
         headers,
       });
       if (res.status === 404) {
         res = await fetch(`${API_URL}/api/auctions/${auctionId}/settle/`, {
-          method: 'POST',
+          method: "POST",
           headers,
         });
       }
 
       const data = await res.json();
       if (res.ok) {
-        setShowContractPanel(true);
+        Alert.alert(
+          "Winner selected",
+          `The fixed agreement is ready. Payment is due by ${new Date(data.payment_deadline).toLocaleString()}.`,
+        );
+        await loadDetails();
       } else {
-        if (isSettled || data.error?.includes('settled')) {
-          setShowContractPanel(true);
-        } else {
-          Alert.alert('Auction Notice', data.error || 'Auction could not be settled.');
-        }
+        Alert.alert(
+          "Auction Notice",
+          data.error || "Auction could not be settled.",
+        );
       }
     } catch (err) {
-      Alert.alert('Notice', 'Opening negotiation panel...');
-      setShowContractPanel(true);
+      Alert.alert("Auction Notice", "Unable to settle this auction right now.");
     } finally {
       setSettling(false);
     }
   };
 
   const getArtworkUri = () => {
-    const raw = auction?.image_data || auction?.artwork_image || auction?.image || auction?.image_url;
-    if (!raw) return 'https://via.placeholder.com/600';
-    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:')) {
+    const raw =
+      auction?.image_data ||
+      auction?.artwork_image ||
+      auction?.image ||
+      auction?.image_url;
+    if (!raw) return "https://via.placeholder.com/600";
+    if (
+      raw.startsWith("http://") ||
+      raw.startsWith("https://") ||
+      raw.startsWith("data:")
+    ) {
       return raw;
     }
-    if (raw.startsWith('/media') || raw.startsWith('/static')) {
+    if (raw.startsWith("/media") || raw.startsWith("/static")) {
       return `${API_URL}${raw}`;
     }
     return `data:image/jpeg;base64,${raw}`;
@@ -235,27 +280,31 @@ export default function AuctionPostView() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/auction-dashboard' as any);
+      router.replace("/auction-dashboard" as any);
     }
   };
 
   const handleArtistClick = () => {
-    const artistId = auction?.artist_id || auction?.artist?.id || auction?.artist;
+    const artistId =
+      auction?.artist_id || auction?.artist?.id || auction?.artist;
     if (artistId) {
       router.push({
-        pathname: '/artist-profile',
+        pathname: "/artist-profile",
         params: { artistId: String(artistId) },
       } as any);
     }
   };
 
   const tagsList = auction?.tags
-    ? typeof auction.tags === 'string'
-      ? auction.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-      : Array.isArray(auction.tags)
+    ? typeof auction.tags === "string"
       ? auction.tags
-      : []
-    : ['Art', 'Featured', 'Original'];
+          .split(",")
+          .map((t: string) => t.trim())
+          .filter(Boolean)
+      : Array.isArray(auction.tags)
+        ? auction.tags
+        : []
+    : ["Art", "Featured", "Original"];
 
   if (loading) {
     return (
@@ -268,22 +317,34 @@ export default function AuctionPostView() {
   if (!auction) {
     return (
       <View style={[styles.centerBox, { padding: 24 }]}>
-        <Text style={{ fontSize: 16, color: '#666', marginBottom: 16 }}>Auction details not found.</Text>
+        <Text style={{ fontSize: 16, color: "#666", marginBottom: 16 }}>
+          Auction details not found.
+        </Text>
         <TouchableOpacity style={styles.cancelBtn} onPress={handleBack}>
-          <Text style={{ color: '#BC5454', fontWeight: 'bold' }}>Go Back</Text>
+          <Text style={{ color: "#BC5454", fontWeight: "bold" }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
       <View style={styles.bgGlowTop} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* TOP HEADER BAR */}
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.navArrowBtn} onPress={handleBack} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.navArrowBtn}
+            onPress={handleBack}
+            activeOpacity={0.7}
+          >
             <Ionicons name="chevron-back" size={26} color="#844038" />
           </TouchableOpacity>
 
@@ -291,14 +352,15 @@ export default function AuctionPostView() {
             <Text style={styles.endsOnText}>
               Ends on: {formatEndDate(auction.end_time)}
             </Text>
-            <View style={[styles.timerPill, (isExpired || isSettled) && styles.endedPill]}>
-              <Ionicons
-                name="time-outline"
-                size={13}
-                color="#FFF"
-              />
+            <View
+              style={[
+                styles.timerPill,
+                (isExpired || isSettled) && styles.endedPill,
+              ]}
+            >
+              <Ionicons name="time-outline" size={13} color="#FFF" />
               <Text style={styles.timerText}>
-                {isSettled ? 'Settled' : formatTimer(auction.end_time)}
+                {isSettled ? "Settled" : formatTimer(auction.end_time)}
               </Text>
             </View>
           </View>
@@ -318,11 +380,22 @@ export default function AuctionPostView() {
                     <View key={idx} style={styles.bidderItemRow}>
                       <View style={styles.avatarWrapper}>
                         {idx === 0 && (
-                          <Ionicons name="ribbon" size={12} color="#D48C62" style={styles.crownIcon} />
+                          <Ionicons
+                            name="ribbon"
+                            size={12}
+                            color="#D48C62"
+                            style={styles.crownIcon}
+                          />
                         )}
-                        <Ionicons name="person-circle-outline" size={20} color="#B89F8B" />
+                        <Ionicons
+                          name="person-circle-outline"
+                          size={20}
+                          color="#B89F8B"
+                        />
                       </View>
-                      <Text style={styles.bidderMaskedText}>{b.masked_name}</Text>
+                      <Text style={styles.bidderMaskedText}>
+                        {b.masked_name}
+                      </Text>
                     </View>
                   ))
                 ) : (
@@ -335,13 +408,20 @@ export default function AuctionPostView() {
           {/* CENTER PANEL: ARTWORK IMAGE & CURRENT BID PRICE */}
           <View style={[styles.centerColumn, !isDesktop && styles.columnFull]}>
             <View style={styles.imageCanvasWrapper}>
-              <Watermark uri={getArtworkUri()} height={isDesktop ? 440 : 260} />
+              {imageUnavailable ? (
+                <View style={[styles.imageFallback, { height: isDesktop ? 440 : 260 }]}>
+                  <Ionicons name="image-outline" size={38} color="#B89F8B" />
+                  <Text style={styles.imageFallbackText}>Artwork image is unavailable.</Text>
+                </View>
+              ) : (
+                <Watermark uri={getArtworkUri()} height={isDesktop ? 440 : 260} onImageError={() => setImageUnavailable(true)} />
+              )}
             </View>
 
             <View style={styles.currentBidContainer}>
               <Text style={styles.currentBidLabel}>CURRENT BID PRICE:</Text>
               <Text style={styles.currentBidAmount}>
-                ₱ {auction.current_bid?.toLocaleString() || '0'}
+                ₱ {auction.current_bid?.toLocaleString() || "0"}
               </Text>
             </View>
           </View>
@@ -350,13 +430,9 @@ export default function AuctionPostView() {
           <View style={[styles.rightColumn, !isDesktop && styles.columnFull]}>
             <View style={styles.metaHeader}>
               <Text style={styles.artTitleText}>
-                {auction.title}{' '}
-                <Text style={styles.byLabel}>by </Text>
-                <Text
-                  style={styles.byArtistLink}
-                  onPress={handleArtistClick}
-                >
-                  {auction.artist_name || 'Artist'}
+                {auction.title} <Text style={styles.byLabel}>by </Text>
+                <Text style={styles.byArtistLink} onPress={handleArtistClick}>
+                  {auction.artist_name || "Artist"}
                 </Text>
               </Text>
 
@@ -372,37 +448,67 @@ export default function AuctionPostView() {
 
             {/* Description */}
             <Text style={styles.bodyDescription}>
-              {auction.description || 'No description provided for this auction piece.'}
+              {auction.description ||
+                "No description provided for this auction piece."}
             </Text>
 
             {/* Materials */}
             <View style={styles.specRow}>
               <Text style={styles.specLabel}>Materials used: </Text>
-              <Text style={styles.specValue}>{auction.materials || 'Mixed Media'}</Text>
+              <Text style={styles.specValue}>
+                {auction.materials || "Mixed Media"}
+              </Text>
             </View>
 
             {/* Type */}
             <View style={styles.specRow}>
               <Text style={styles.specLabel}>Type: </Text>
               <Text style={styles.specValue}>
-                {auction.is_physical ? 'Physical Piece' : 'Digital Asset'}
+                {auction.is_physical ? "Physical Piece" : "Digital Asset"}
               </Text>
             </View>
 
-            {/* License Negotiation Link */}
+            {/* Published auction agreement: fixed before bidding */}
             <TouchableOpacity
               style={styles.licenseBtn}
-              onPress={() => setShowContractPanel(true)}
+              onPress={() => setTermsOpen(true)}
             >
-              <Ionicons name="document-text-outline" size={14} color="#844038" />
-              <Text style={styles.licenseBtnText}>Negotiate License Terms & Rights →</Text>
+              <Ionicons
+                name="document-text-outline"
+                size={14}
+                color="#844038"
+              />
+              <Text style={styles.licenseBtnText}>
+                View Terms & Agreements →
+              </Text>
             </TouchableOpacity>
+            <Text style={styles.auctionTermsText}>
+              {auction.auction_terms ||
+                "The winning bid is the final core price. License and delivery terms are fixed before bidding."}
+            </Text>
+            {!isArtist && !isExpired && (
+              <TouchableOpacity
+                style={styles.termsAcceptance}
+                onPress={() => setTermsAccepted((value) => !value)}
+              >
+                <Ionicons
+                  name={termsAccepted ? "checkbox" : "square-outline"}
+                  size={19}
+                  color="#844038"
+                />
+                <Text style={styles.termsAcceptanceText}>
+                  I accept these auction terms if I win.
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Bottom Actions */}
             <View style={styles.rightActionFooter}>
               {isSettled || isExpired ? (
                 <View style={styles.settledActionBox}>
-                  <Text style={styles.settledStatusLabel}>Final Winning Bid</Text>
+                  <Text style={styles.settledStatusLabel}>
+                    Final Winning Bid
+                  </Text>
                   <Text style={styles.settledStatusAmount}>
                     ₱ {auction.current_bid?.toLocaleString()}
                   </Text>
@@ -415,9 +521,16 @@ export default function AuctionPostView() {
                       <ActivityIndicator size="small" color="#FFF" />
                     ) : (
                       <>
-                        <Ionicons name="chatbubbles-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                        <Ionicons
+                          name="chatbubbles-outline"
+                          size={16}
+                          color="#FFF"
+                          style={{ marginRight: 6 }}
+                        />
                         <Text style={styles.settleBtnText}>
-                          {isArtist ? 'Review Terms & Chat' : 'Proceed to Contract & Checkout'}
+                          {isArtist
+                            ? "Review Terms & Chat"
+                            : "Proceed to Contract & Checkout"}
                         </Text>
                       </>
                     )}
@@ -426,7 +539,7 @@ export default function AuctionPostView() {
               ) : (
                 <View style={styles.activeBiddingBlock}>
                   <Text style={styles.pastBidLabel}>
-                    Past bid: ₱ {auction.past_bid?.toLocaleString() || '0'}
+                    Past bid: ₱ {auction.past_bid?.toLocaleString() || "0"}
                   </Text>
                   <View style={styles.buttonActionRow}>
                     <TouchableOpacity
@@ -434,11 +547,21 @@ export default function AuctionPostView() {
                       onPress={() => setBidModal(true)}
                       disabled={isArtist}
                     >
-                      <Text style={[styles.rebidText, isArtist && { color: '#AAA' }]}>REBID</Text>
+                      <Text
+                        style={[
+                          styles.rebidText,
+                          isArtist && { color: "#AAA" },
+                        ]}
+                      >
+                        REBID
+                      </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.instantBidBtn, isArtist && { backgroundColor: '#CCC' }]}
+                      style={[
+                        styles.instantBidBtn,
+                        isArtist && { backgroundColor: "#CCC" },
+                      ]}
                       onPress={() => placeBid(Number(auction.next_min_bid))}
                       disabled={isArtist || bidding}
                     >
@@ -464,18 +587,33 @@ export default function AuctionPostView() {
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Enter Bid Amount</Text>
             <Text style={styles.modalSubtitle}>
-              Minimum bid: ₱{auction.next_min_bid?.toLocaleString()}
+              Minimum bid: ₱{auction.next_min_bid?.toLocaleString()} · You may enter any higher amount.
             </Text>
+            <Text style={styles.suggestionLabel}>Suggested bids</Text>
+            <View style={styles.suggestionRow}>
+              {bidSuggestions().map((amount) => (
+                <TouchableOpacity
+                  key={amount}
+                  style={styles.suggestionChip}
+                  onPress={() => setCustomBid(String(amount))}
+                >
+                  <Text style={styles.suggestionChipText}>₱{amount.toLocaleString()}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <TextInput
               style={styles.modalInput}
               keyboardType="numeric"
               value={customBid}
               onChangeText={setCustomBid}
-              placeholder="Enter amount..."
+              placeholder={`Enter ₱${Number(auction.next_min_bid || 0).toLocaleString()} or higher`}
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setBidModal(false)} style={styles.modalCancelBtn}>
-                <Text style={{ color: '#666' }}>Cancel</Text>
+              <TouchableOpacity
+                onPress={() => setBidModal(false)}
+                style={styles.modalCancelBtn}
+              >
+                <Text style={{ color: "#666" }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => placeBid(Number(customBid))}
@@ -485,82 +623,88 @@ export default function AuctionPostView() {
                 {bidding ? (
                   <ActivityIndicator color="#FFF" size="small" />
                 ) : (
-                  <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Submit Bid</Text>
+                  <Text style={{ color: "#FFF", fontWeight: "bold" }}>
+                    Submit Bid
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
-      {/* CONTRACT MODAL */}
-      {showContractPanel && (
-        <ContractPanel
-          artworkId={String(auction.artwork_id || auction.id)}
-          startInChat={false}
-          onClose={() => {
-            setShowContractPanel(false);
-            router.push({
-              pathname: '/(home)/cart',
-              params: {
-                directCheckout: 'true',
-                auctionId: String(auction.id),
-                artworkId: String(auction.artwork_id || auction.id),
-              },
-            } as any);
-          }}
-        />
-      )}
+      <Modal visible={termsOpen} transparent animationType="fade" onRequestClose={() => setTermsOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setTermsOpen(false)}>
+          <Pressable style={styles.termsModal} onPress={(event) => event.stopPropagation()}>
+            <ScrollView>
+              <AgreementDocument terms={{
+                terms: auction.auction_terms || "The platform's published auction terms apply.",
+                licenseType: auction.license_type || "personal",
+                exclusivity: auction.exclusivity || "non_exclusive",
+                deliveryType: auction.delivery_type || (auction.is_physical ? "physical" : "digital"),
+                compensationType: "one_time",
+              }} />
+              <TouchableOpacity style={styles.termsClose} onPress={() => setTermsOpen(false)}>
+                <Text style={styles.termsCloseText}>Close</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  imageFallback: { width: "100%", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#EFE6D8" },
+  imageFallbackText: { color: "#806D63", fontWeight: "700" },
+  termsModal: { width: "92%", maxWidth: 650, maxHeight: "86%", backgroundColor: "#FFFDF8", borderRadius: 15, padding: 16 },
+  termsClose: { alignSelf: "center", paddingVertical: 12, paddingHorizontal: 22 },
+  termsCloseText: { color: "#844038", fontWeight: "800" },
   container: {
     flex: 1,
-    backgroundColor: '#F8F1E3',
-    position: 'relative',
+    backgroundColor: "#F8F1E3",
+    position: "relative",
   },
   bgGlowTop: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: '45%',
-    backgroundColor: '#FAF6ED',
+    height: "45%",
+    backgroundColor: "#FAF6ED",
     opacity: 0.8,
   },
   bgGlowBottom: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: '40%',
-    backgroundColor: '#EFE1CA',
+    height: "40%",
+    backgroundColor: "#EFE1CA",
     opacity: 0.6,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 24,
-    width: '100%',
+    width: "100%",
   },
   centerBox: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F1E3',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8F1E3",
   },
 
   // TOP BAR
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
     maxWidth: 1180,
     marginBottom: 16,
     paddingHorizontal: 4,
@@ -573,31 +717,31 @@ const styles = StyleSheet.create({
   topCenterContainer: {
     right: 40,
     top: 70,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 16,
   },
   endsOnText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#844038',
+    fontWeight: "700",
+    color: "#844038",
   },
   timerPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E48A64',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E48A64",
     paddingHorizontal: 14,
     paddingVertical: 5,
     borderRadius: 16,
     gap: 5,
   },
   endedPill: {
-    backgroundColor: '#844038',
+    backgroundColor: "#844038",
   },
   timerText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFF',
+    fontWeight: "bold",
+    color: "#FFF",
   },
 
   // 3-PANEL WIREFRAME ROW
@@ -605,17 +749,17 @@ const styles = StyleSheet.create({
     top: 70,
     left: 40,
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "center",
     gap: 24,
-    width: '100%',
+    width: "100%",
     maxWidth: 1180,
   },
   layoutColumn: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "column",
+    alignItems: "center",
+    width: "100%",
     gap: 20,
   },
   leftColumn: {
@@ -625,91 +769,91 @@ const styles = StyleSheet.create({
   },
   centerColumn: {
     flex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   rightColumn: {
     flex: 2,
     gap: 6,
   },
   columnFull: {
-    width: '100%',
+    width: "100%",
     maxWidth: 420,
     flex: undefined,
   },
 
   // LEFT PANEL (TOP BIDDERS)
   topBiddersCard: {
-    backgroundColor: '#ECE3D4',
+    backgroundColor: "#ECE3D4",
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#DFCDB8',
-    width: '100%',
+    borderColor: "#DFCDB8",
+    width: "100%",
     minHeight: 180,
   },
   topBiddersTitle: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#844038',
+    fontWeight: "bold",
+    color: "#844038",
     marginBottom: 12,
   },
   biddersList: {
     gap: 10,
   },
   bidderItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   avatarWrapper: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
   },
   crownIcon: {
-    position: 'absolute',
+    position: "absolute",
     top: -5,
     left: -4,
     zIndex: 2,
   },
   bidderMaskedText: {
     fontSize: 12,
-    color: '#844038',
-    fontWeight: '600',
+    color: "#844038",
+    fontWeight: "600",
   },
   emptyBiddersText: {
     fontSize: 12,
-    color: '#A89284',
-    fontStyle: 'italic',
+    color: "#A89284",
+    fontStyle: "italic",
   },
 
   // CENTER PANEL (ARTWORK & CURRENT BID PRICE)
   imageCanvasWrapper: {
-    width: '100%',
-    backgroundColor: '#D9D9D9',
+    width: "100%",
+    backgroundColor: "#D9D9D9",
     borderRadius: 14,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: '#DDD0C0',
+    borderColor: "#DDD0C0",
   },
   currentBidContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 14,
   },
   currentBidLabel: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#844038',
+    fontWeight: "800",
+    color: "#844038",
     letterSpacing: 0.5,
   },
   currentBidAmount: {
     fontSize: 24,
-    fontWeight: '900',
-    color: '#844038',
+    fontWeight: "900",
+    color: "#844038",
     marginTop: 2,
   },
 
@@ -719,75 +863,93 @@ const styles = StyleSheet.create({
   },
   artTitleText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#844038',
+    fontWeight: "bold",
+    color: "#844038",
     marginBottom: 6,
   },
   byLabel: {
     fontSize: 13,
-    fontWeight: 'normal',
-    color: '#844038',
+    fontWeight: "normal",
+    color: "#844038",
   },
   byArtistLink: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#844038',
-    textDecorationLine: 'underline',
+    fontWeight: "bold",
+    color: "#844038",
+    textDecorationLine: "underline",
   },
   tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 6,
     marginBottom: 6,
   },
   tagPill: {
-    backgroundColor: '#E48A64',
+    backgroundColor: "#E48A64",
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
   },
   tagPillText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#FFF',
+    fontWeight: "700",
+    color: "#FFF",
   },
   bodyDescription: {
     fontSize: 12,
-    color: '#844038',
+    color: "#844038",
     lineHeight: 18,
     marginVertical: 4,
   },
   specRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 2,
   },
   specLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#844038',
+    fontWeight: "700",
+    color: "#844038",
   },
   specValue: {
     fontSize: 12,
-    color: '#844038',
+    color: "#844038",
   },
   licenseBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#DFCDB8',
-    backgroundColor: '#F3EADB',
+    borderColor: "#DFCDB8",
+    backgroundColor: "#F3EADB",
     marginTop: 6,
     marginBottom: 8,
   },
   licenseBtnText: {
     fontSize: 11,
-    color: '#844038',
-    fontWeight: '700',
+    color: "#844038",
+    fontWeight: "700",
     marginLeft: 6,
+  },
+  auctionTermsText: {
+    color: "#765F57",
+    fontSize: 11,
+    lineHeight: 16,
+    marginBottom: 7,
+  },
+  termsAcceptance: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginBottom: 10,
+  },
+  termsAcceptanceText: {
+    color: "#5C4640",
+    flex: 1,
+    fontSize: 11,
+    fontWeight: "700",
   },
 
   // ACTIONS
@@ -800,39 +962,39 @@ const styles = StyleSheet.create({
   },
   pastBidLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#844038',
+    fontWeight: "700",
+    color: "#844038",
     marginBottom: 2,
   },
   buttonActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   rebidBtn: {
-    backgroundColor: '#9B906E',
+    backgroundColor: "#9B906E",
     borderRadius: 6,
     paddingHorizontal: 16,
     paddingVertical: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   rebidText: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    color: "#FFF",
+    fontWeight: "bold",
     fontSize: 12,
   },
   instantBidBtn: {
-    backgroundColor: '#C56054',
+    backgroundColor: "#C56054",
     borderRadius: 6,
     paddingHorizontal: 18,
     paddingVertical: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   instantBidText: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    color: "#FFF",
+    fontWeight: "bold",
     fontSize: 13,
   },
 
@@ -842,68 +1004,72 @@ const styles = StyleSheet.create({
   },
   settledStatusLabel: {
     fontSize: 11,
-    color: '#7F8C8D',
-    textTransform: 'uppercase',
-    fontWeight: 'bold',
+    color: "#7F8C8D",
+    textTransform: "uppercase",
+    fontWeight: "bold",
   },
   settledStatusAmount: {
     fontSize: 18,
-    color: '#27AE60',
-    fontWeight: 'bold',
+    color: "#27AE60",
+    fontWeight: "bold",
   },
   settleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#27AE60',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#27AE60",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 8,
     marginTop: 4,
   },
   settleBtnText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 
   // MODAL
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modalBox: {
-    backgroundColor: '#FFF',
-    width: '100%',
+    backgroundColor: "#FFF",
+    width: "100%",
     maxWidth: 360,
     borderRadius: 14,
     padding: 20,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 4,
   },
   modalSubtitle: {
     fontSize: 12,
-    color: '#777',
+    color: "#777",
     marginBottom: 16,
   },
+  suggestionLabel: { color: "#844038", fontSize: 12, fontWeight: "800", marginBottom: 7 },
+  suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 12 },
+  suggestionChip: { borderWidth: 1, borderColor: "#D9A59B", backgroundColor: "#FFF4F1", borderRadius: 16, paddingHorizontal: 10, paddingVertical: 7 },
+  suggestionChipText: { color: "#A04E46", fontSize: 12, fontWeight: "800" },
   modalInput: {
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: "#DDD",
     borderRadius: 8,
     padding: 10,
     fontSize: 16,
     marginBottom: 16,
   },
   modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
   },
   modalCancelBtn: {
     paddingHorizontal: 14,
@@ -915,7 +1081,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   confirmBtn: {
-    backgroundColor: '#C05C5C',
+    backgroundColor: "#C05C5C",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,

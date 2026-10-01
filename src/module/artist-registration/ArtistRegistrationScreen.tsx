@@ -25,6 +25,7 @@ export default function RegisterArtistScreen() {
   const user = auth.currentUser;
 
   const [step, setStep] = useState<1 | 2>(1);
+  const [stepError, setStepError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
@@ -37,13 +38,23 @@ export default function RegisterArtistScreen() {
   const [portfolioList, setPortfolioList] = useState<PortfolioItem[]>([]);
 
   const handleNextStep = () => {
-    if (!hourlyRate || tinNum.some((digit) => !digit) || !birDoc || !swornDoc) {
-      Alert.alert(
-        "Required Fields",
-        "Please enter your hourly rate and TIN, then upload all required documents.",
+    const missingFields = [
+      !hourlyRate.trim() && "default hourly rate",
+      tinNum.some((digit) => !digit) && "9-digit TIN",
+      !birDoc && "BIR Form 2303",
+      !swornDoc && "sworn declaration",
+    ].filter(Boolean);
+    if (missingFields.length) {
+      setStepError(
+        `Complete the following before continuing: ${missingFields.join(", ")}.`,
       );
       return;
     }
+    if (!Number.isFinite(Number(hourlyRate)) || Number(hourlyRate) <= 0) {
+      setStepError("Enter a valid default hourly rate greater than zero.");
+      return;
+    }
+    setStepError("");
     setStep(2);
   };
 
@@ -64,8 +75,12 @@ export default function RegisterArtistScreen() {
         hourly_rate: hourlyRate,
         tinNum: tinNum.join(""),
         bio: bio,
-        birCertificate: birDoc ? birDoc.name : "",
-        swornDeclaration: swornDoc ? swornDoc.name : "",
+        birCertificate: birDoc
+          ? { name: birDoc.name, data_uri: birDoc.dataUri }
+          : null,
+        swornDeclaration: swornDoc
+          ? { name: swornDoc.name, data_uri: swornDoc.dataUri }
+          : null,
         portfolio: portfolioList,
       };
 
@@ -147,6 +162,7 @@ export default function RegisterArtistScreen() {
               swornDoc={swornDoc}
               setSwornDoc={setSwornDoc}
               onNext={handleNextStep}
+              errorMessage={stepError}
             />
           ) : (
             <Portfolio

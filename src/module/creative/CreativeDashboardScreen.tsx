@@ -1,5 +1,6 @@
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
+import AgreementDocument from "@/module/messages/components/AgreementDocument";
 import { router } from "expo-router";
 import {
   CheckCircle2,
@@ -42,6 +43,17 @@ type Artwork = {
   category: string;
   price: string;
   image_data: string;
+  additional_images?: string[];
+  art_type?: string;
+  sale_type?: string;
+  bid_increment?: string;
+  starting_time?: string;
+  end_time?: string;
+  hours?: string;
+  hourly_rate?: string;
+  material_cost?: string;
+  tags?: string[];
+  auction_request?: any;
   status: "pending" | "approved" | "declined";
   similarity_matches: Match[];
 };
@@ -293,6 +305,32 @@ export default function CreativeDashboardScreen() {
                   </Text>
                   <Text style={s.category}>{selected.category}</Text>
                   <Text style={s.description}>{selected.description}</Text>
+                  <Text style={s.detailTitle}>Submitted details</Text>
+                  <Text style={s.detailText}>Sale type: {selected.sale_type || "Direct Sell"}</Text>
+                  <Text style={s.detailText}>Artwork type: {selected.art_type || "Not specified"}</Text>
+                  <Text style={s.detailText}>Tags: {selected.tags?.join(", ") || "None"}</Text>
+                  {!!selected.additional_images?.length && (
+                    <ScrollView horizontal contentContainerStyle={s.gallery}>
+                      {selected.additional_images.map((uri, index) => (
+                        <Image key={`${uri}-${index}`} source={{ uri }} style={s.galleryImage} />
+                      ))}
+                    </ScrollView>
+                  )}
+                  {selected.auction_request && (
+                    <View style={s.auctionDetails}>
+                      <Text style={s.detailTitle}>Auction request</Text>
+                      <Text style={s.detailText}>Starts: {new Date(selected.auction_request.start_time).toLocaleString()}</Text>
+                      <Text style={s.detailText}>Ends: {new Date(selected.auction_request.end_time).toLocaleString()}</Text>
+                      <Text style={s.detailText}>Starting bid: ₱{selected.auction_request.starting_bid} · Increment: ₱{selected.auction_request.bid_increment}</Text>
+                      <AgreementDocument terms={{
+                        terms: selected.auction_request.terms,
+                        licenseType: selected.auction_request.license_type,
+                        exclusivity: selected.auction_request.exclusivity,
+                        deliveryType: selected.auction_request.delivery_type,
+                        compensationType: "one_time",
+                      }} />
+                    </View>
+                  )}
                   <View style={s.sectionHeader}>
                     <ShieldAlert size={18} color="#A86868" />
                     <View>
@@ -453,6 +491,11 @@ export default function CreativeDashboardScreen() {
 }
 
 const s = StyleSheet.create({
+  detailTitle: { color: "#7A4B43", fontWeight: "900", fontSize: 15, marginTop: 14 },
+  detailText: { color: "#5F514C", fontSize: 13, lineHeight: 20 },
+  auctionDetails: { marginTop: 8, gap: 4 },
+  gallery: { gap: 8, marginTop: 10 },
+  galleryImage: { width: 110, height: 90, borderRadius: 8, backgroundColor: "#EEE" },
   page: { flex: 1, backgroundColor: "#FFFDF5" },
   header: {
     height: 86,

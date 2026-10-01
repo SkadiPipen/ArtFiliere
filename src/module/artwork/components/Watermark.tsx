@@ -3,12 +3,13 @@ import { Image, StyleSheet, Text, View } from "react-native";
 interface WatermarkProps {
   uri: string;
   height?: number;
+  onImageError?: () => void;
 }
 
-export function Watermark({ uri, height = 400 }: WatermarkProps) {
+export function Watermark({ uri, height = 400, onImageError }: WatermarkProps) {
   return (
     <View style={[styles.container, { height }]}>
-      <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+      <Image source={{ uri }} style={styles.image} resizeMode="cover" onError={onImageError} />
       {/* Overlayed watermark */}
       <View style={styles.watermarkOverlay} pointerEvents="none">
         <Text style={styles.watermarkText}>ARTFILIER</Text>

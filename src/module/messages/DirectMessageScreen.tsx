@@ -1,5 +1,6 @@
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
+import AgreementDocument from "./components/AgreementDocument";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, FileText, Send } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -289,13 +290,15 @@ export default function DirectMessageScreen() {
         {view && (
           <Pressable style={s.overlay} onPress={() => setView(null)}>
             <Pressable style={s.modal} onPress={(e) => e.stopPropagation()}>
-              <Text style={s.title}>Art License Agreement</Text>
-              <Text style={s.label}>Terms and conditions</Text>
-              <Text style={s.meaning}>{view.terms}</Text>
-              <Info k="License" v={view.license_type} />
-              <Info k="Exclusivity" v={view.exclusivity} />
-              <Info k="Delivery" v={view.delivery_type} />
-              <Info k="Compensation" v={view.compensation_type} />
+              <AgreementDocument
+                terms={{
+                  terms: view.terms,
+                  licenseType: view.license_type,
+                  exclusivity: view.exclusivity,
+                  deliveryType: view.delivery_type,
+                  compensationType: view.compensation_type,
+                }}
+              />
               <Text style={s.amount}>₱{view.price}</Text>
               {!(view.buyer_accepted_at && view.artist_accepted_at) && (
                 <TouchableOpacity onPress={() => accept(view)} style={s.red}>

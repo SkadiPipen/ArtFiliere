@@ -1,14 +1,19 @@
 import Toast from "@/components/Toast";
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
+import AgreementDocument, {
+  type AgreementTerms,
+} from "@/module/messages/components/AgreementDocument";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { ArrowLeft, ImagePlus, Plus, Sparkles } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -58,11 +63,90 @@ export default function ArtistPostScreen() {
     "Auction",
   );
 
+  useEffect(() => {
+    let active = true;
+    const loadDefaultHourlyRate = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        const response = await fetch(`${API_URL}/auth/me/`, {
+          headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+        });
+        const data = await response.json();
+        if (active && response.ok && data.default_hourly_rate) {
+          setHourlyRate(
+            (current) => current || String(data.default_hourly_rate),
+          );
+        }
+      } catch {
+        // The artist can still enter a rate manually if the saved default is unavailable.
+      }
+    };
+    loadDefaultHourlyRate();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // Auction config states
   const [bidIncrement, setBidIncrement] = useState("100.00");
   const [startingTime, setStartingTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [auctionDateError, setAuctionDateError] = useState("");
   const [customStartingBid, setCustomStartingBid] = useState("");
+  const [auctionLicenseType, setAuctionLicenseType] = useState("personal");
+  const [auctionExclusivity, setAuctionExclusivity] = useState("non_exclusive");
+  const [auctionDeliveryType, setAuctionDeliveryType] = useState("physical");
+  const [auctionTerms, setAuctionTerms] = useState("");
+  const [auctionTemplateId, setAuctionTemplateId] = useState<number | null>(null);
+  const [auctionTermsOpen, setAuctionTermsOpen] = useState(false);
+  const [auctionTermsConfirmed, setAuctionTermsConfirmed] = useState(false);
+  const [loadingAuctionTerms, setLoadingAuctionTerms] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadAuctionAgreement = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        setLoadingAuctionTerms(true);
+        const response = await fetch(
+          `${API_URL}/api/users/artworks/auction-agreement-defaults/`,
+          { headers: { Authorization: `Bearer ${await user.getIdToken()}` } },
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Unable to load the platform agreement.");
+        if (active) {
+          setAuctionTemplateId(data.id);
+          setAuctionTerms((current) => current || data.body || "");
+        }
+      } catch (error: any) {
+        if (active) showToast(error.message || "Unable to load the platform agreement.", "error");
+      } finally {
+        if (active) setLoadingAuctionTerms(false);
+      }
+    };
+    loadAuctionAgreement();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const auctionAgreement: AgreementTerms = {
+    terms: auctionTerms,
+    licenseType: auctionLicenseType,
+    exclusivity: auctionExclusivity,
+    deliveryType: auctionDeliveryType,
+    compensationType: "one_time",
+  };
+
+  const updateAuctionAgreement = (next: AgreementTerms) => {
+    setAuctionTerms(next.terms);
+    setAuctionLicenseType(next.licenseType);
+    setAuctionExclusivity(next.exclusivity);
+    setAuctionDeliveryType(next.deliveryType);
+    setAuctionTermsConfirmed(false);
+  };
 
   const calculatedPrice = (
     (Number(hours) * Number(hourlyRate) +
@@ -72,9 +156,20 @@ export default function ArtistPostScreen() {
   const price =
     saleType === "Auction"
       ? customStartingBid
-      : calculatedPrice !== "0.00"
-        ? calculatedPrice
-        : customStartingBid;
+      : calculatedPrice;
+  const todayLocal = new Date().toLocaleDateString("en-CA");
+
+  const validateAuctionDates = (start = startingTime, end = endTime) => {
+    if (!start || !end) return "Choose both an auction start and end date.";
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return "Enter valid auction dates.";
+    }
+    if (start.slice(0, 10) < todayLocal) return "The auction start date cannot be before today.";
+    if (endDate <= startDate) return "The auction end date must be later than the start date.";
+    return "";
+  };
 
   const showToast = (
     message: string,
@@ -182,24 +277,41 @@ export default function ArtistPostScreen() {
   };
 
   const submit = async () => {
-    if (!imageData || !title.trim() || !description.trim() || !price.trim()) {
+    if (!imageData || !title.trim() || !description.trim()) {
       return showToast(
-        "Add an image, artwork name, description, and price.",
+        "Add an image, artwork name, and description.",
         "error",
       );
+    }
+
+    if (saleType === "Direct Sell") {
+      if (Number(hours) <= 0 || Number(hourlyRate) <= 0) {
+        return showToast(
+          "Enter valid hours worked and an hourly rate to calculate the listing price.",
+          "error",
+        );
+      }
+    } else if (Number(price) <= 0) {
+      return showToast("Enter a valid starting bid.", "error");
+    }
+
+    if (saleType === "Auction" && (!auctionTemplateId || !auctionTermsConfirmed)) {
+      return showToast(
+        "Review and confirm the auction Terms & Agreements before submitting.",
+        "error",
+      );
+    }
+
+    if (saleType === "Auction") {
+      const dateError = validateAuctionDates();
+      setAuctionDateError(dateError);
+      if (dateError) return showToast(dateError, "error");
     }
 
     // Auction incrementation and time duration
     if (saleType === "Auction") {
       if (!bidIncrement || parseFloat(bidIncrement) <= 0) {
         return showToast("Please provide a valid bid increment.", "error");
-      }
-      if (
-        startingTime &&
-        endTime &&
-        new Date(startingTime) >= new Date(endTime)
-      ) {
-        return showToast("Ending time must be after starting time.", "error");
       }
     }
 
@@ -224,6 +336,12 @@ export default function ArtistPostScreen() {
         hourly_rate: hourlyRate,
         material_cost: materials,
         art_type: artType.toLowerCase(),
+        auction_license_type: auctionLicenseType,
+        auction_exclusivity: auctionExclusivity,
+        auction_delivery_type: auctionDeliveryType,
+        auction_terms: auctionTerms.trim(),
+        auction_agreement_template_id: auctionTemplateId,
+        auction_terms_confirmed: auctionTermsConfirmed,
       };
 
       // Appended custom auction if artist chose auc
@@ -376,7 +494,13 @@ export default function ArtistPostScreen() {
               {ART_TYPES.map((type) => (
                 <TouchableOpacity
                   key={type}
-                  onPress={() => setArtType(type)}
+                  onPress={() => {
+                    setArtType(type);
+                    if (saleType === "Auction") {
+                      setAuctionDeliveryType(type.toLowerCase());
+                      setAuctionTermsConfirmed(false);
+                    }
+                  }}
                   style={[
                     styles.typePill,
                     artType === type && styles.typePillActive,
@@ -508,7 +632,12 @@ export default function ArtistPostScreen() {
                   <input
                     type="datetime-local"
                     value={startingTime}
-                    onChange={(e: any) => setStartingTime(e.target.value)}
+                    min={`${todayLocal}T00:00`}
+                    onChange={(e: any) => {
+                      const next = e.target.value;
+                      setStartingTime(next);
+                      setAuctionDateError(validateAuctionDates(next, endTime));
+                    }}
                     style={{
                       height: 44,
                       borderRadius: 8,
@@ -527,8 +656,11 @@ export default function ArtistPostScreen() {
                   <TextInput
                     style={styles.input}
                     value={startingTime}
-                    onChangeText={setStartingTime}
-                    placeholder="YYYY-MM-DDTHH:MM"
+                    onChangeText={(next) => {
+                      setStartingTime(next);
+                      setAuctionDateError(validateAuctionDates(next, endTime));
+                    }}
+                    placeholder={`YYYY-MM-DDTHH:MM (${todayLocal} or later)`}
                   />
                 )}
 
@@ -536,7 +668,12 @@ export default function ArtistPostScreen() {
                   <input
                     type="datetime-local"
                     value={endTime}
-                    onChange={(e: any) => setEndTime(e.target.value)}
+                    min={startingTime || `${todayLocal}T00:00`}
+                    onChange={(e: any) => {
+                      const next = e.target.value;
+                      setEndTime(next);
+                      setAuctionDateError(validateAuctionDates(startingTime, next));
+                    }}
                     style={{
                       height: 44,
                       borderRadius: 8,
@@ -555,10 +692,14 @@ export default function ArtistPostScreen() {
                   <TextInput
                     style={styles.input}
                     value={endTime}
-                    onChangeText={setEndTime}
-                    placeholder="YYYY-MM-DDTHH:MM"
+                    onChangeText={(next) => {
+                      setEndTime(next);
+                      setAuctionDateError(validateAuctionDates(startingTime, next));
+                    }}
+                    placeholder="YYYY-MM-DDTHH:MM (after the start)"
                   />
                 )}
+                {!!auctionDateError && <Text style={styles.dateError}>{auctionDateError}</Text>}
               </View>
             )}
 
@@ -582,18 +723,29 @@ export default function ArtistPostScreen() {
                   keyboardType="decimal-pad"
                   placeholder="Enter starting bid (e.g. 100.00)"
                 />
-              </>
-            )}
-            {saleType === "Direct Sell" && !(hours && hourlyRate) && (
-              <>
-                <Text style={styles.label}>Price (PHP):</Text>
-                <TextInput
-                  style={styles.input}
-                  value={customStartingBid}
-                  onChangeText={setCustomStartingBid}
-                  keyboardType="decimal-pad"
-                  placeholder="Enter your listing price"
-                />
+                <View style={styles.agreementSummary}>
+                  <Text style={styles.agreementTitle}>TERMS & AGREEMENTS</Text>
+                  <Text style={styles.agreementCopy}>
+                    Start with the platform document, set the license details for this artwork, and confirm it before publishing. Bidders will see these fixed terms before bidding.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.agreementButton}
+                    onPress={() => setAuctionTermsOpen(true)}
+                  >
+                    <Text style={styles.agreementButtonText}>
+                      {loadingAuctionTerms
+                        ? "Loading agreement…"
+                        : auctionTermsConfirmed
+                          ? "Review confirmed agreement"
+                          : "Review and customize agreement"}
+                    </Text>
+                  </TouchableOpacity>
+                  {auctionTermsConfirmed ? (
+                    <Text style={styles.agreementConfirmed}>✓ Agreement reviewed and confirmed</Text>
+                  ) : (
+                    <Text style={styles.agreementRequired}>Review and confirmation are required for an auction.</Text>
+                  )}
+                </View>
               </>
             )}
             {saleType === "Direct Sell" && (
@@ -636,7 +788,9 @@ export default function ArtistPostScreen() {
               </Text>
             )}
             <Text style={styles.pricePreview}>
-              {saleType === "Auction" ? "Starting bid" : "Your listing price"}:
+              {saleType === "Auction"
+                ? "Starting bid"
+                : "Calculated listing price"}:
               Php. {price || "0000.00"}
             </Text>
 
@@ -654,6 +808,51 @@ export default function ArtistPostScreen() {
           </View>
         </View>
       </ScrollView>
+      <Modal
+        visible={auctionTermsOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAuctionTermsOpen(false)}
+      >
+        <Pressable style={styles.agreementOverlay} onPress={() => setAuctionTermsOpen(false)}>
+          <Pressable style={styles.agreementModal} onPress={(event) => event.stopPropagation()}>
+            <ScrollView contentContainerStyle={styles.agreementScroll}>
+              <Text style={styles.agreementModalHeading}>Auction Terms & Agreements</Text>
+              <Text style={styles.agreementModalHint}>
+                This uses the same platform agreement document buyers will review. You may customize the permitted terms for this artwork only.
+              </Text>
+              <AgreementDocument
+                editable
+                terms={auctionAgreement}
+                onChange={updateAuctionAgreement}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.confirmAgreement,
+                  auctionTermsConfirmed && styles.confirmAgreementActive,
+                ]}
+                onPress={() => {
+                  if (!auctionTerms.trim()) {
+                    showToast("Add the agreement terms before confirming.", "error");
+                    return;
+                  }
+                  setAuctionTermsConfirmed((current) => !current);
+                }}
+              >
+                <Text style={styles.confirmAgreementText}>
+                  {auctionTermsConfirmed ? "✓ I reviewed these terms" : "I have reviewed these terms"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeAgreement}
+                onPress={() => setAuctionTermsOpen(false)}
+              >
+                <Text style={styles.closeAgreementText}>Done</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
       <Toast
         visible={toast.visible}
         message={toast.message}
@@ -830,6 +1029,37 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 10,
   },
+  agreementSummary: {
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E8D2CD",
+    backgroundColor: "#FFF9F6",
+  },
+  agreementTitle: { color: "#D75B5C", fontSize: 13, fontWeight: "900" },
+  agreementCopy: { color: "#766B66", fontSize: 12, lineHeight: 17, marginTop: 5 },
+  agreementButton: {
+    alignSelf: "flex-start",
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 7,
+    backgroundColor: "#D75B5C",
+  },
+  agreementButtonText: { color: "#FFF", fontSize: 12, fontWeight: "800" },
+  agreementConfirmed: { color: "#4D8A61", fontSize: 12, fontWeight: "700", marginTop: 8 },
+  agreementRequired: { color: "#B46A65", fontSize: 12, marginTop: 8 },
+  agreementOverlay: { flex: 1, backgroundColor: "rgba(45, 35, 31, 0.55)", alignItems: "center", justifyContent: "center", padding: 16 },
+  agreementModal: { width: "100%", maxWidth: 650, maxHeight: "92%", backgroundColor: "#FFFDF8", borderRadius: 16, overflow: "hidden" },
+  agreementScroll: { padding: 18 },
+  agreementModalHeading: { color: "#D75B5C", fontSize: 19, fontWeight: "900", textAlign: "center" },
+  agreementModalHint: { color: "#766B66", fontSize: 12, lineHeight: 17, textAlign: "center", marginVertical: 10 },
+  confirmAgreement: { marginTop: 14, padding: 12, borderWidth: 1, borderColor: "#D75B5C", borderRadius: 8, backgroundColor: "#FFF" },
+  confirmAgreementActive: { backgroundColor: "#E8F3E9", borderColor: "#5A986A" },
+  confirmAgreementText: { color: "#D75B5C", textAlign: "center", fontWeight: "800" },
+  closeAgreement: { alignSelf: "center", paddingVertical: 12, paddingHorizontal: 22 },
+  closeAgreementText: { color: "#766B66", fontWeight: "800" },
   submit: {
     alignSelf: "flex-end",
     backgroundColor: "#D75B5C",
@@ -855,4 +1085,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 10,
   },
+  dateError: { color: "#B94B50", fontSize: 12, fontWeight: "700", marginBottom: 8 },
 });

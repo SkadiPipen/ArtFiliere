@@ -3,6 +3,7 @@ import { FilePlus, HelpCircle } from "lucide-react-native";
 import React, { useRef, useState } from "react";
 import {
   Alert,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +24,7 @@ interface Props {
   swornDoc: DocumentFile | null;
   setSwornDoc: (doc: DocumentFile | null) => void;
   onNext: () => void;
+  errorMessage?: string;
 }
 
 export default function PersonalDocs({
@@ -37,9 +39,33 @@ export default function PersonalDocs({
   swornDoc,
   setSwornDoc,
   onNext,
+  errorMessage,
 }: Props) {
   const tinInputRefs = useRef<Array<TextInput | null>>([]);
   const [showHelp, setShowHelp] = useState(false);
+
+  const readDocumentAsDataUri = async (
+    uri: string,
+    mimeType?: string | null,
+  ) => {
+    const contentType = mimeType || "application/octet-stream";
+    if (Platform.OS === "web") {
+      const blob = await (await fetch(uri)).blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () =>
+          reject(new Error("Unable to read the selected document."));
+        reader.readAsDataURL(blob);
+      });
+    }
+    const FileSystem = await import("expo-file-system/legacy");
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return `data:${contentType};base64,${base64}`;
+  };
+
   const pickDocument = async (type: "bir" | "sworn") => {
     try {
       const res = await DocumentPicker.getDocumentAsync({
@@ -49,7 +75,19 @@ export default function PersonalDocs({
 
       if (!res.canceled && res.assets && res.assets.length > 0) {
         const file = res.assets[0];
-        const fileData = { name: file.name, uri: file.uri };
+        if (file.size && file.size > 5 * 1024 * 1024) {
+          Alert.alert(
+            "File too large",
+            "Please choose a document that is 5 MB or smaller.",
+          );
+          return;
+        }
+        const fileData = {
+          name: file.name,
+          uri: file.uri,
+          dataUri: await readDocumentAsDataUri(file.uri, file.mimeType),
+          mimeType: file.mimeType || undefined,
+        };
         if (type === "bir") setBirDoc(fileData);
         if (type === "sworn") setSwornDoc(fileData);
       }
@@ -104,14 +142,17 @@ export default function PersonalDocs({
           <Text style={styles.helpTitle}>Before you apply</Text>
           <Text style={styles.helpText}>
             Upload your BIR Form 2303 and sworn declaration, enter your TIN and
-            hourly rate, then add at least one original artwork to your
+            default hourly rate, then add at least one original artwork to your
             portfolio. Applications are reviewed before artist access is
             approved.
           </Text>
         </View>
       )}
 
-      <Text style={styles.labelTitle}>Hourly Rate</Text>
+      <Text style={styles.labelTitle}>Default Hourly Rate</Text>
+      <Text style={styles.fieldHint}>
+        Used to prefill future Buy & Sell posts. You can change it per artwork.
+      </Text>
       <View style={styles.inputBoxRow}>
         <Text style={styles.currencyPrefix}>Php.</Text>
         <TextInput
@@ -194,6 +235,9 @@ export default function PersonalDocs({
         placeholderTextColor="#aaa"
       />
 
+      {errorMessage ? (
+        <Text style={styles.validationError}>{errorMessage}</Text>
+      ) : null}
       <TouchableOpacity style={styles.primaryRedButton} onPress={onNext}>
         <Text style={styles.primaryBtnLabel}>Next</Text>
       </TouchableOpacity>
@@ -238,6 +282,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   helpText: { color: "#6F625D", fontSize: 12, lineHeight: 18 },
+  validationError: {
+    color: "#B84A4A",
+    backgroundColor: "#FFF0EE",
+    borderWidth: 1,
+    borderColor: "#E5B4AE",
+    borderRadius: 8,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 16,
+    padding: 10,
+  },
   inputBoxRow: {
     flexDirection: "row",
     alignItems: "center",

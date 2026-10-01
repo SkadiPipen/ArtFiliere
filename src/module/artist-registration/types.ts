@@ -10,6 +10,8 @@ export interface PortfolioItem {
 export interface DocumentFile {
   name: string;
   uri: string;
+  dataUri: string;
+  mimeType?: string;
 }
 
 export interface ArtistRegistrationData {

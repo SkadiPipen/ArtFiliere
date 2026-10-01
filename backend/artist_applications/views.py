@@ -8,6 +8,21 @@ from users.models import User
 from .models import ArtistApplication, ArtistApplicationLog
 
 
+def submitted_document(value, fallback_name):
+    """Return a safe, reviewable document payload from a submitted value."""
+    if isinstance(value, dict):
+        return str(value.get("data_uri") or ""), str(value.get("name") or fallback_name)
+    return str(value or ""), fallback_name
+
+
+def document_response(data_uri, name, fallback_name):
+    return {
+        "name": name or fallback_name,
+        "data_uri": data_uri if str(data_uri).startswith("data:") else "",
+        "available": str(data_uri).startswith("data:"),
+    }
+
+
 class SubmitArtistApplicationView(AuthenticatedAPIView):
     def get_permissions(self):
         if self.request.method == "POST":
@@ -28,8 +43,8 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
                     "hourly_rate": str(application.hourly_rate),
                     "bio": application.bio or "",
                     "portfolio": application.portfolio,
-                    "bir_certificate": application.bir_certificate,
-                    "sworn_declaration": application.sworn_declaration,
+                    "bir_certificate": document_response(application.bir_certificate, application.bir_certificate_name, "BIR Certificate"),
+                    "sworn_declaration": document_response(application.sworn_declaration, application.sworn_declaration_name, "Sworn Declaration"),
                     "status": application.status,
                     "submitted_at": application.submitted_at.isoformat(),
                 }
@@ -41,8 +56,12 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
         firebase_uid = request.data.get("firebase_uid")
         hourly_rate = request.data.get("hourly_rate")
         tin_number = request.data.get("tinNum", "").replace("-", "")
-        bir_certificate = request.data.get("birCertificate")
-        sworn_declaration = request.data.get("swornDeclaration")
+        bir_certificate, bir_certificate_name = submitted_document(
+            request.data.get("birCertificate"), "BIR Certificate"
+        )
+        sworn_declaration, sworn_declaration_name = submitted_document(
+            request.data.get("swornDeclaration"), "Sworn Declaration"
+        )
         portfolio = request.data.get("portfolio", [])
 
         if not firebase_uid:
@@ -54,6 +73,13 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
         if not all([hourly_rate, tin_number, bir_certificate, sworn_declaration]):
             return Response(
                 {"error": "Please complete all required artist registration fields."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        max_document_size = 7 * 1024 * 1024
+        if len(bir_certificate) > max_document_size or len(sworn_declaration) > max_document_size:
+            return Response(
+                {"error": "Each submitted document must be 5 MB or smaller."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -84,7 +110,9 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
                 "tin_number": tin_number,
                 "bio": request.data.get("bio"),
                 "bir_certificate": bir_certificate,
+                "bir_certificate_name": bir_certificate_name,
                 "sworn_declaration": sworn_declaration,
+                "sworn_declaration_name": sworn_declaration_name,
                 "portfolio": portfolio,
                 "status": ArtistApplication.ApprovalStatus.PENDING,
             },

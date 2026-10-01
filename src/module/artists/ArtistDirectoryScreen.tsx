@@ -17,7 +17,7 @@ type Artist = {
   name: string;
   username: string;
   bio: string;
-  hourly_rate: string | null;
+  is_accepting_commissions: boolean;
   average_rating: number | null;
   rating_count: number;
   completed_commissions: number;
@@ -28,12 +28,12 @@ const sorts = [
   ["rating", "Highest rated"],
   ["completed", "Most completed"],
   ["new", "New artists"],
-  ["price", "Lowest rate"],
 ] as const;
 
 export default function ArtistDirectoryScreen() {
   const router = useRouter();
   const [sort, setSort] = useState<(typeof sorts)[number][0]>("recommended");
+  const [openOnly, setOpenOnly] = useState(true);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +43,7 @@ export default function ArtistDirectoryScreen() {
       try {
         setLoading(true);
         const response = await fetch(
-          `${API_URL}/api/users/artists/?sort=${sort}`,
+          `${API_URL}/api/users/artists/?sort=${sort}&open_only=${openOnly}`,
         );
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
@@ -58,7 +58,7 @@ export default function ArtistDirectoryScreen() {
     return () => {
       cancelled = true;
     };
-  }, [sort]);
+  }, [sort, openOnly]);
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "left", "right"]}>
@@ -104,6 +104,25 @@ export default function ArtistDirectoryScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        <View style={styles.availabilityFilter}>
+          <Text style={styles.filterLabel}>Availability</Text>
+          <TouchableOpacity
+            onPress={() => setOpenOnly((current) => !current)}
+            style={[
+              styles.availabilityPill,
+              openOnly && styles.availabilityPillActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.availabilityPillText,
+                openOnly && styles.availabilityPillTextActive,
+              ]}
+            >
+              {openOnly ? "Open for commissions" : "All artists"}
+            </Text>
+          </TouchableOpacity>
+        </View>
         {loading ? (
           <ActivityIndicator
             color="#C15656"
@@ -130,8 +149,21 @@ export default function ArtistDirectoryScreen() {
               <View style={styles.info}>
                 <View style={styles.nameLine}>
                   <Text style={styles.name}>{artist.name}</Text>
-                  <View style={styles.openBadge}>
-                    <Text style={styles.openBadgeText}>Open</Text>
+                  <View
+                    style={[
+                      styles.openBadge,
+                      !artist.is_accepting_commissions && styles.closedBadge,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.openBadgeText,
+                        !artist.is_accepting_commissions &&
+                          styles.closedBadgeText,
+                      ]}
+                    >
+                      {artist.is_accepting_commissions ? "Open" : "Closed"}
+                    </Text>
                   </View>
                 </View>
                 <Text style={styles.bio} numberOfLines={2}>
@@ -146,17 +178,9 @@ export default function ArtistDirectoryScreen() {
                     <Text style={styles.muted}> ({artist.rating_count})</Text>
                   </View>
                   <Text style={styles.muted}>
-                    {artist.completed_commissions} completed
+                    {artist.completed_commissions} commissions completed
                   </Text>
                 </View>
-              </View>
-              <View style={styles.rate}>
-                <Text style={styles.rateLabel}>Hourly rate</Text>
-                <Text style={styles.rateValue}>
-                  {artist.hourly_rate
-                    ? `₱${Number(artist.hourly_rate).toLocaleString()}`
-                    : "Ask artist"}
-                </Text>
               </View>
             </TouchableOpacity>
           ))
@@ -197,6 +221,22 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
   },
   sortRow: { gap: 8, paddingBottom: 16 },
+  availabilityFilter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 14,
+  },
+  filterLabel: { color: "#75655F", fontSize: 12, fontWeight: "700" },
+  availabilityPill: {
+    backgroundColor: "#F4E7E1",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+  },
+  availabilityPillActive: { backgroundColor: "#E6F4E8" },
+  availabilityPillText: { color: "#9B635D", fontSize: 12, fontWeight: "800" },
+  availabilityPillTextActive: { color: "#3C8048" },
   sortPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -237,19 +277,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   openBadgeText: { color: "#3C8048", fontWeight: "800", fontSize: 10 },
+  closedBadge: { backgroundColor: "#F1ECE9" },
+  closedBadgeText: { color: "#847570" },
   bio: { color: "#75655F", fontSize: 12, lineHeight: 17, marginTop: 4 },
   stats: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 7 },
   rating: { flexDirection: "row", alignItems: "center", gap: 3 },
   ratingText: { color: "#8B5D25", fontWeight: "800", fontSize: 12 },
   muted: { color: "#8E7E78", fontSize: 11 },
-  rate: { alignItems: "flex-end" },
-  rateLabel: { color: "#9B8B84", fontSize: 10 },
-  rateValue: {
-    color: "#C15656",
-    fontSize: 13,
-    fontWeight: "800",
-    marginTop: 3,
-  },
   empty: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",

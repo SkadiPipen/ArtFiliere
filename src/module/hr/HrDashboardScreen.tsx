@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +24,7 @@ import {
   XCircle,
 } from "lucide-react-native";
 import { router } from "expo-router";
+import { onAuthStateChanged } from "firebase/auth";
 
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -41,10 +44,16 @@ type ArtistApplication = {
     imageDataUri?: string;
     imageUri?: string;
   }>;
-  bir_certificate: string;
-  sworn_declaration: string;
+  bir_certificate: SubmittedDocument;
+  sworn_declaration: SubmittedDocument;
   status: ApplicationStatus;
   submitted_at: string;
+};
+
+type SubmittedDocument = {
+  name: string;
+  data_uri: string;
+  available: boolean;
 };
 
 type ArtistApplicationLog = {
@@ -84,6 +93,10 @@ export default function HrDashboardScreen() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [portfolioPreview, setPortfolioPreview] = useState<{
+    title: string;
+    uri: string;
+  } | null>(null);
 
   const getToken = async () => {
     const user = auth.currentUser;
@@ -116,7 +129,17 @@ export default function HrDashboardScreen() {
   };
 
   useEffect(() => {
-    loadApplications();
+    // Firebase restores persisted login asynchronously after a browser refresh.
+    // Wait for it before loading protected HR data instead of treating the
+    // first, temporary null user as an empty dashboard.
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loadApplications();
+      } else {
+        setLoading(false);
+      }
+    });
+    return unsubscribe;
   }, []);
 
   const loadLogs = async () => {
@@ -210,6 +233,43 @@ export default function HrDashboardScreen() {
   const handleLogout = async () => {
     await logOut();
     router.replace("/login");
+  };
+
+  const viewDocument = async (document: SubmittedDocument) => {
+    if (!document.available || !document.data_uri) {
+      Alert.alert(
+        "Document unavailable",
+        "This older application only saved the document filename. New submissions can be viewed here.",
+      );
+      return;
+    }
+    if (Platform.OS === "web") {
+      // Browsers intentionally block direct data: navigations in new tabs.
+      // Open the tab synchronously from the user click, then load a temporary
+      // Blob URL into it once the data URI has been converted.
+      const previewWindow = window.open("", "_blank");
+      if (!previewWindow) {
+        Alert.alert(
+          "Popup blocked",
+          "Allow popups for ArtFiliere, then try viewing the document again.",
+        );
+        return;
+      }
+      try {
+        const blob = await (await fetch(document.data_uri)).blob();
+        const blobUrl = URL.createObjectURL(blob);
+        previewWindow.location.href = blobUrl;
+        window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      } catch {
+        previewWindow.close();
+        Alert.alert(
+          "Document unavailable",
+          "The selected document could not be opened.",
+        );
+      }
+      return;
+    }
+    await Linking.openURL(document.data_uri);
   };
 
   return (
@@ -428,11 +488,20 @@ export default function HrDashboardScreen() {
                           style={styles.portfolioPiece}
                         >
                           {imageUri ? (
-                            <Image
-                              source={{ uri: imageUri }}
-                              style={styles.portfolioImage}
-                              resizeMode="cover"
-                            />
+                            <TouchableOpacity
+                              onPress={() =>
+                                setPortfolioPreview({
+                                  title: item.title || "Portfolio artwork",
+                                  uri: imageUri,
+                                })
+                              }
+                            >
+                              <Image
+                                source={{ uri: imageUri }}
+                                style={styles.portfolioImage}
+                                resizeMode="cover"
+                              />
+                            </TouchableOpacity>
                           ) : (
                             <View style={styles.missingImage}>
                               <FileText size={25} color="#A98E82" />
@@ -457,10 +526,30 @@ export default function HrDashboardScreen() {
                   <Text style={styles.detailValue}>No pieces listed.</Text>
                 )}
                 <Text style={styles.detailLabel}>Submitted documents</Text>
-                <Text style={styles.detailValue}>
-                  {selectedApplication.bir_certificate} ·{" "}
-                  {selectedApplication.sworn_declaration}
-                </Text>
+                <View style={styles.documentActions}>
+                  <TouchableOpacity
+                    style={styles.documentButton}
+                    onPress={() =>
+                      viewDocument(selectedApplication.bir_certificate)
+                    }
+                  >
+                    <FileText size={15} color="#C15656" />
+                    <Text style={styles.documentButtonText} numberOfLines={1}>
+                      View BIR: {selectedApplication.bir_certificate.name}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.documentButton}
+                    onPress={() =>
+                      viewDocument(selectedApplication.sworn_declaration)
+                    }
+                  >
+                    <FileText size={15} color="#C15656" />
+                    <Text style={styles.documentButtonText} numberOfLines={1}>
+                      View sworn declaration
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 {selectedApplication.status === "pending" &&
                   (isRejecting ? (
                     <View style={styles.rejectForm}>
@@ -542,6 +631,37 @@ export default function HrDashboardScreen() {
                   ))}
               </>
             )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <Modal
+        visible={!!portfolioPreview}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPortfolioPreview(null)}
+      >
+        <Pressable
+          style={styles.previewBackdrop}
+          onPress={() => setPortfolioPreview(null)}
+        >
+          <Pressable
+            style={styles.previewCard}
+            onPress={(event) => event.stopPropagation()}
+          >
+            <Text style={styles.previewTitle}>{portfolioPreview?.title}</Text>
+            {portfolioPreview?.uri ? (
+              <Image
+                source={{ uri: portfolioPreview.uri }}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+            ) : null}
+            <TouchableOpacity
+              style={styles.previewClose}
+              onPress={() => setPortfolioPreview(null)}
+            >
+              <Text style={styles.previewCloseText}>Close</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -832,6 +952,51 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 14,
   },
+  documentActions: { gap: 8, marginTop: 3 },
+  documentButton: {
+    alignItems: "center",
+    borderColor: "#E1CCC2",
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  documentButtonText: {
+    color: "#A34B49",
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  previewBackdrop: {
+    alignItems: "center",
+    backgroundColor: "rgba(20, 16, 14, 0.78)",
+    flex: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
+  previewCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    maxWidth: 860,
+    padding: 16,
+    width: "100%",
+  },
+  previewTitle: {
+    color: "#3A2D2A",
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 10,
+  },
+  previewImage: {
+    backgroundColor: "#F2ECE7",
+    height: 520,
+    maxHeight: 520,
+    width: "100%",
+  },
+  previewClose: { alignSelf: "flex-end", paddingHorizontal: 8, paddingTop: 12 },
+  previewCloseText: { color: "#C15656", fontSize: 13, fontWeight: "800" },
   rejectForm: { marginTop: 12 },
   reasonInput: {
     minHeight: 92,

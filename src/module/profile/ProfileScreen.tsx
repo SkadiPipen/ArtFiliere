@@ -10,6 +10,7 @@ import {
   Switch,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -23,6 +24,7 @@ export default function UserProfile() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [profileData, setProfileData] = useState<any>(null);
+  const [defaultHourlyRate, setDefaultHourlyRate] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export default function UserProfile() {
       if (response.ok) {
         const data = await response.json();
         setProfileData(data);
+        setDefaultHourlyRate(data.default_hourly_rate || "");
       }
     } catch (error) {
       console.log("Error fetching profile from Django:", error);
@@ -97,6 +100,35 @@ export default function UserProfile() {
       Alert.alert(
         "Commission availability",
         error.message || "Could not update your availability.",
+      );
+    }
+  };
+
+  const saveDefaultHourlyRate = async () => {
+    if (!auth.currentUser) return;
+    const previous = profileData?.default_hourly_rate || "";
+    const next = defaultHourlyRate.trim();
+    if (next === previous) return;
+    try {
+      const response = await fetch(`${API_URL}/auth/me/`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${await auth.currentUser.getIdToken()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ default_hourly_rate: next }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setProfileData((current: any) => ({
+        ...current,
+        default_hourly_rate: next,
+      }));
+    } catch (error: any) {
+      setDefaultHourlyRate(previous);
+      Alert.alert(
+        "Default hourly rate",
+        error.message || "Could not update your default rate.",
       );
     }
   };
@@ -174,6 +206,22 @@ export default function UserProfile() {
                   thumbColor="#FFFFFF"
                 />
               </View>
+              <View style={styles.defaultRateCard}>
+                <Text style={styles.defaultRateTitle}>Default hourly rate</Text>
+                <Text style={styles.defaultRateHelp}>
+                  Used to prefill future Buy & Sell posts. You can change the
+                  rate for any individual artwork.
+                </Text>
+                <TextInput
+                  value={defaultHourlyRate}
+                  onChangeText={setDefaultHourlyRate}
+                  onBlur={saveDefaultHourlyRate}
+                  placeholder="PHP per hour"
+                  placeholderTextColor="#AA9A94"
+                  keyboardType="decimal-pad"
+                  style={styles.defaultRateInput}
+                />
+              </View>
               <TouchableOpacity
                 style={styles.portfolioButton}
                 onPress={() => router.push("/my-portfolio")}
@@ -232,6 +280,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 4,
+  },
+  defaultRateCard: {
+    backgroundColor: "#FFF9F0",
+    borderWidth: 1,
+    borderColor: "#E8DCD4",
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 10,
+  },
+  defaultRateTitle: { color: "#3A2D2A", fontSize: 15, fontWeight: "800" },
+  defaultRateHelp: {
+    color: "#75655F",
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  defaultRateInput: {
+    color: "#3A2D2A",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DDCEC5",
+    borderRadius: 10,
+    fontSize: 13,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   portfolioButton: {
     alignSelf: "flex-start",

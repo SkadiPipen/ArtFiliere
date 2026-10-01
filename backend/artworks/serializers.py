@@ -7,6 +7,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
     artist_name = serializers.SerializerMethodField()
     similarity_matches = serializers.SerializerMethodField()
     is_sold = serializers.SerializerMethodField()
+    auction_request = serializers.SerializerMethodField()
 
     class Meta:
         model = Artwork
@@ -32,7 +33,11 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "starting_time",
             "end_time",
             "artist",
-            "is_sold"
+            "is_sold",
+            "hours",
+            "hourly_rate",
+            "material_cost",
+            "auction_request",
         ]
         extra_kwargs = {
             'sale_type': {'required': False},
@@ -77,3 +82,24 @@ class ArtworkSerializer(serializers.ModelSerializer):
             ).exists()
         except Exception:
             return False
+
+    def get_auction_request(self, artwork):
+        if not self.context.get("include_similarity"):
+            return None
+        auction = artwork.auction_listings.order_by("-id").first()
+        if not auction:
+            return None
+        return {
+            "id": auction.id,
+            "status": auction.status,
+            "starting_bid": str(auction.starting_bid),
+            "current_bid": str(auction.current_bid),
+            "bid_increment": str(auction.bid_increment),
+            "start_time": auction.start_time.isoformat() if auction.start_time else None,
+            "end_time": auction.end_time.isoformat() if auction.end_time else None,
+            "license_type": auction.license_type,
+            "exclusivity": auction.exclusivity,
+            "delivery_type": auction.delivery_type,
+            "terms": auction.terms_snapshot,
+            "template_name": auction.agreement_template.name if auction.agreement_template else "",
+        }

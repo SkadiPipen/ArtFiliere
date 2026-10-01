@@ -19,8 +19,12 @@ class ArtistApplication(models.Model):
     bio = models.TextField(blank=True, null=True)
 
     # Documents
-    bir_certificate = models.CharField(max_length=255)
-    sworn_declaration = models.CharField(max_length=255)
+    # Stored as data URIs for the local/demo workflow. Production should use
+    # private object storage and save only protected file references here.
+    bir_certificate = models.TextField()
+    bir_certificate_name = models.CharField(max_length=255, blank=True, default="")
+    sworn_declaration = models.TextField()
+    sworn_declaration_name = models.CharField(max_length=255, blank=True, default="")
     portfolio = models.JSONField(default=list)
 
     status = models.CharField(

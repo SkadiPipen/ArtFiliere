@@ -38,13 +38,14 @@ class ArtistDirectoryView(APIView):
 
     def get(self, request):
         sort = request.query_params.get("sort", "recommended")
-        if sort not in {"recommended", "rating", "completed", "new", "price"}:
+        if sort not in {"recommended", "rating", "completed", "new"}:
             return Response({"error": "Unsupported artist sort."}, status=status.HTTP_400_BAD_REQUEST)
 
-        artists = User.objects.filter(
-            role=User.Role.ARTIST,
-            is_accepting_commissions=True,
-        ).select_related("artist_application").annotate(
+        open_only = request.query_params.get("open_only", "true").lower() not in {"false", "0", "no"}
+        artists = User.objects.filter(role=User.Role.ARTIST)
+        if open_only:
+            artists = artists.filter(is_accepting_commissions=True)
+        artists = artists.select_related("artist_application").annotate(
             average_rating=Avg(
                 "artworks__payment_sessions__review__artist_rating",
                 filter=Q(artworks__payment_sessions__status="paid"),
@@ -64,18 +65,16 @@ class ArtistDirectoryView(APIView):
         records = []
         for artist in artists:
             application = getattr(artist, "artist_application", None)
-            hourly_rate = application.hourly_rate if application else None
             rating = float(artist.average_rating) if artist.average_rating is not None else None
             records.append({
                 "id": artist.id,
                 "name": f"{artist.first_name} {artist.last_name}".strip() or artist.username,
                 "username": artist.username,
                 "bio": application.bio if application else "",
-                "hourly_rate": str(hourly_rate) if hourly_rate is not None else None,
                 "average_rating": rating,
                 "rating_count": artist.rating_count,
                 "completed_commissions": artist.completed_commissions,
-                "is_accepting_commissions": True,
+                "is_accepting_commissions": artist.is_accepting_commissions,
                 "joined_at": artist.created_at.isoformat(),
             })
 
@@ -85,8 +84,6 @@ class ArtistDirectoryView(APIView):
             records.sort(key=lambda item: (item["completed_commissions"], item["average_rating"] or 0), reverse=True)
         elif sort == "new":
             records.sort(key=lambda item: item["joined_at"], reverse=True)
-        elif sort == "price":
-            records.sort(key=lambda item: float(item["hourly_rate"]) if item["hourly_rate"] is not None else float("inf"))
         else:
             # Availability is already required; then reward verified rating,
             # completed work, and enough review volume to be meaningful.

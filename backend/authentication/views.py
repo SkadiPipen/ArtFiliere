@@ -1,11 +1,13 @@
 from django.db import IntegrityError, transaction
 from django.utils.dateparse import parse_date
+from decimal import Decimal, InvalidOperation
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from users.models import Address, User
+from artist_applications.models import ArtistApplication
 from .services import verify_token
 
 
@@ -162,6 +164,7 @@ def me(request):
 
     if request.method == 'GET':
         address = getattr(user, 'address', None)
+        artist_application = ArtistApplication.objects.filter(user=user).only('hourly_rate').first()
         return Response({
             'id': user.id,
             'username': user.username,
@@ -171,6 +174,7 @@ def me(request):
             'contact_number': getattr(user, 'contact_number', ''),
             'role': getattr(user, 'role', 'Buyer'),
             'is_accepting_commissions': user.is_accepting_commissions,
+            'default_hourly_rate': str(artist_application.hourly_rate) if artist_application else None,
             'profile_image': getattr(user, 'profile_image', None),
             'address': {field: getattr(address, field, '') if address else '' for field in ('street', 'barangay', 'city', 'province', 'region', 'postal_code')}
         })
@@ -199,7 +203,20 @@ def me(request):
             if not isinstance(data['is_accepting_commissions'], bool):
                 return Response({'error': 'Commission availability must be true or false.'}, status=400)
             user.is_accepting_commissions = data['is_accepting_commissions']
-
+        if 'default_hourly_rate' in data:
+            if user.role != User.Role.ARTIST:
+                return Response({'error': 'Only artists can change a default hourly rate.'}, status=403)
+            try:
+                default_hourly_rate = Decimal(str(data['default_hourly_rate']))
+                if not default_hourly_rate.is_finite() or default_hourly_rate <= 0 or default_hourly_rate > 99999999:
+                    raise InvalidOperation
+            except (InvalidOperation, ValueError, TypeError):
+                return Response({'error': 'Enter a valid default hourly rate.'}, status=400)
+            application = ArtistApplication.objects.filter(user=user).first()
+            if not application:
+                return Response({'error': 'Artist application not found.'}, status=404)
+            application.hourly_rate = default_hourly_rate
+            application.save(update_fields=['hourly_rate'])
         user.save()
 
         if address_updates:
@@ -216,6 +233,7 @@ def me(request):
             'last_name': user.last_name,
             'username': user.username,
             'is_accepting_commissions': user.is_accepting_commissions,
+            'default_hourly_rate': str(ArtistApplication.objects.filter(user=user).values_list('hourly_rate', flat=True).first() or ''),
         })
 
 

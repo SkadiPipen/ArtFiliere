@@ -26,6 +26,7 @@ from .hashing import (
     similarity_confidence,
 )
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 
 class ArtworkView(AuthenticatedAPIView):
@@ -95,6 +96,59 @@ class ArtworkView(AuthenticatedAPIView):
         art_type = request.data.get("art_type")
         if art_type not in ("digital", "physical"):
             return Response({"error": "Choose a valid artwork type."}, status=status.HTTP_400_BAD_REQUEST)
+
+        auction_template = None
+        auction_terms = ""
+        auction_license_type = "personal"
+        auction_exclusivity = "non_exclusive"
+        auction_delivery_type = art_type
+        auction_start_time = None
+        auction_end_time = None
+        if sale_type == "Auction":
+            from messaging.models import AgreementTemplate
+
+            if request.data.get("auction_terms_confirmed") is not True:
+                return Response(
+                    {"error": "Review and confirm the auction Terms & Agreements before submitting."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            auction_terms = (request.data.get("auction_terms") or "").strip()
+            if not auction_terms:
+                return Response({"error": "Auction agreement terms are required."}, status=status.HTTP_400_BAD_REQUEST)
+            if len(auction_terms) > 12000:
+                return Response({"error": "Auction agreement terms must be 12,000 characters or fewer."}, status=status.HTTP_400_BAD_REQUEST)
+            auction_license_type = request.data.get("auction_license_type", "personal")
+            auction_exclusivity = request.data.get("auction_exclusivity", "non_exclusive")
+            auction_delivery_type = request.data.get("auction_delivery_type", art_type)
+            valid = {
+                "auction_license_type": {"personal", "commercial"},
+                "auction_exclusivity": {"non_exclusive", "exclusive", "sole"},
+                "auction_delivery_type": {"digital", "physical"},
+            }
+            selected = {
+                "auction_license_type": auction_license_type,
+                "auction_exclusivity": auction_exclusivity,
+                "auction_delivery_type": auction_delivery_type,
+            }
+            if any(value not in valid[field] for field, value in selected.items()):
+                return Response({"error": "Choose valid auction agreement options."}, status=status.HTTP_400_BAD_REQUEST)
+            auction_template = AgreementTemplate.objects.filter(
+                id=request.data.get("auction_agreement_template_id"), is_active=True
+            ).first()
+            if not auction_template:
+                return Response({"error": "The selected platform agreement template is unavailable. Refresh and try again."}, status=status.HTTP_400_BAD_REQUEST)
+            auction_start_time = parse_datetime(request.data.get("starting_time") or "")
+            auction_end_time = parse_datetime(request.data.get("end_time") or "")
+            if not auction_start_time or not auction_end_time:
+                return Response({"error": "Choose both an auction start and end date."}, status=status.HTTP_400_BAD_REQUEST)
+            if timezone.is_naive(auction_start_time):
+                auction_start_time = timezone.make_aware(auction_start_time)
+            if timezone.is_naive(auction_end_time):
+                auction_end_time = timezone.make_aware(auction_end_time)
+            if auction_start_time.date() < timezone.localdate():
+                return Response({"error": "The auction start date cannot be before today."}, status=status.HTTP_400_BAD_REQUEST)
+            if auction_end_time <= auction_start_time:
+                return Response({"error": "The auction end date must be later than the start date."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             if sale_type == "Auction":
@@ -168,8 +222,8 @@ class ArtworkView(AuthenticatedAPIView):
             )
 
         bid_increment = request.data.get("bid_increment") or 100.00
-        starting_time = request.data.get("starting_time") or None
-        end_time = request.data.get("end_time") or None
+        starting_time = auction_start_time if sale_type == "Auction" else request.data.get("starting_time") or None
+        end_time = auction_end_time if sale_type == "Auction" else request.data.get("end_time") or None
 
         try:
             artwork = Artwork.objects.create(
@@ -246,6 +300,11 @@ class ArtworkView(AuthenticatedAPIView):
                     # it cannot be discovered or bid on until moderation.
                     "status": "PENDING_APPROVAL",
                     "is_physical": artwork.art_type == "physical",
+                    "license_type": auction_license_type,
+                    "exclusivity": auction_exclusivity,
+                    "delivery_type": auction_delivery_type,
+                    "terms_snapshot": auction_terms,
+                    "agreement_template": auction_template,
                 },
             )
 
@@ -300,6 +359,23 @@ class ArtworkTagSuggestionView(AuthenticatedAPIView):
             return Response(
                 {"error": str(error)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
+
+
+class AuctionAgreementDefaultsView(AuthenticatedAPIView):
+    """Returns the editable platform template used to start an auction agreement."""
+
+    permission_classes = [IsArtist]
+
+    def get(self, request):
+        from messaging.models import AgreementTemplate
+
+        template = AgreementTemplate.objects.filter(is_active=True).order_by("-updated_at").first()
+        if not template:
+            return Response(
+                {"error": "No active platform agreement template is configured."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response({"id": template.id, "name": template.name, "body": template.body})
 
 
 class ArtworkReviewView(AuthenticatedAPIView):
@@ -404,7 +480,7 @@ class ArtworkReviewView(AuthenticatedAPIView):
 
                 initial_status = "ACTIVE" if start_time <= now else "SCHEDULED"
 
-                AuctionListing.objects.get_or_create(
+                auction, created = AuctionListing.objects.get_or_create(
                     artwork=artwork,
                     defaults={
                         "artist": artwork.artist,
@@ -417,6 +493,11 @@ class ArtworkReviewView(AuthenticatedAPIView):
                         "is_physical": is_physical,
                     },
                 )
+                if not created and auction.status == "PENDING_APPROVAL":
+                    auction.status = initial_status
+                    auction.start_time = start_time
+                    auction.end_time = end_time
+                    auction.save(update_fields=["status", "start_time", "end_time"])
         ArtworkReviewLog.objects.create(
             artwork=artwork,
             actor=moderator,
