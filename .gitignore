@@ -57,3 +57,4 @@ src/**/firebase*
 __pycache__/
 *.py[cod]
 tools/foundry/
+tools/foundry/
