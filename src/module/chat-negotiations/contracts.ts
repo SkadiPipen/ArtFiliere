@@ -9,6 +9,7 @@ export type Contract = {
   is_proposer: boolean;
   buyer_uid: string; artist_uid: string; created_at: string;
   id: number; artwork_id: number; title: string; buyer: string; artist: string;
+  verification_code?: string;
   price: string; terms: string; status: string;
   buyer_accepted: boolean; artist_accepted: boolean; my_accepted: boolean;
 };

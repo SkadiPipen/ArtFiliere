@@ -25,6 +25,7 @@ def contract_data(item, user):
         "fully_signed": bool(item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image),
         "is_proposer": user.id == proposer_id,
         "id": item.id, "artwork_id": item.artwork_id,
+        "verification_code": item.verification_code,
         "buyer_uid": item.buyer.firebase_uid, "artist_uid": item.artist.firebase_uid,
         "created_at": item.created_at.isoformat(),
         "title": item.artwork.title if item.artwork else "Unavailable artwork",

@@ -9,6 +9,9 @@ class BlockchainTransaction(models.Model):
         FAILED = "failed", "Failed"
     artwork = models.ForeignKey(Artwork, on_delete=models.CASCADE, related_name="blockchain_transactions")
     operation = models.CharField(max_length=30, default="artwork_registration")
+    entity_type = models.CharField(max_length=30, default="artwork")
+    entity_id = models.PositiveBigIntegerField(null=True, blank=True)
+    proof_hash = models.CharField(max_length=64, blank=True, default="")
     transaction_hash = models.CharField(max_length=66, blank=True, default="")
     block_number = models.PositiveBigIntegerField(null=True, blank=True)
     network = models.CharField(max_length=30)

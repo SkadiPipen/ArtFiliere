@@ -7,7 +7,10 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Switch,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -68,10 +71,69 @@ export default function UserProfile() {
     ]);
   };
 
+  const setCommissionAvailability = async (enabled: boolean) => {
+    if (!auth.currentUser) return;
+    const previous = Boolean(profileData?.is_accepting_commissions);
+    setProfileData((current: any) => ({
+      ...current,
+      is_accepting_commissions: enabled,
+    }));
+    try {
+      const response = await fetch(`${API_URL}/auth/me/`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${await auth.currentUser.getIdToken()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ is_accepting_commissions: enabled }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+    } catch (error: any) {
+      setProfileData((current: any) => ({
+        ...current,
+        is_accepting_commissions: previous,
+      }));
+      Alert.alert(
+        "Commission availability",
+        error.message || "Could not update your availability.",
+      );
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#C15656" />
+      </View>
+    );
+  }
+
+  // Browsing the marketplace does not require an account. Account-only details
+  // such as the wallet and purchase history should not be shown to a guest.
+  if (!user) {
+    return (
+      <View style={styles.guestContainer}>
+        <Text style={styles.guestTitle}>Welcome to ArtFiliere</Text>
+        <Text style={styles.guestBody}>
+          Browse artworks as a guest. Create an account or log in when you are
+          ready to message an artist, purchase artwork, or view your wallet.
+        </Text>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => router.push("/login")}
+        >
+          <Text style={styles.loginButtonText}>Log in</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.signUpButton}
+          onPress={() => router.push("/sign-up")}
+        >
+          <Text style={styles.signUpButtonText}>Create an account</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace("/(home)")}>
+          <Text style={styles.continueBrowsing}>Continue browsing</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -92,6 +154,36 @@ export default function UserProfile() {
 
         <View style={styles.contentBody}>
           <WalletCard />
+          {profileData?.role === "artist" && (
+            <>
+              <View style={styles.availabilityCard}>
+                <View style={styles.availabilityCopy}>
+                  <Text style={styles.availabilityTitle}>
+                    Accepting commissions
+                  </Text>
+                  <Text style={styles.availabilityText}>
+                    {profileData?.is_accepting_commissions
+                      ? "Buyers can find you and send a commission request."
+                      : "You are hidden from the commission directory until you turn this on."}
+                  </Text>
+                </View>
+                <Switch
+                  value={Boolean(profileData?.is_accepting_commissions)}
+                  onValueChange={setCommissionAvailability}
+                  trackColor={{ false: "#D9D2CD", true: "#7EAD83" }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.portfolioButton}
+                onPress={() => router.push("/my-portfolio")}
+              >
+                <Text style={styles.portfolioButtonText}>
+                  View my portfolio
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
           <TransactionGrid role={profileData?.role} />
           <PurchaseGallery />
         </View>
@@ -119,5 +211,85 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 1200,
     paddingHorizontal: 20,
+  },
+  availabilityCard: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E8DCD4",
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 18,
+    marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  availabilityCopy: { flex: 1 },
+  availabilityTitle: { color: "#3A2D2A", fontSize: 15, fontWeight: "800" },
+  availabilityText: {
+    color: "#7A6C66",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  portfolioButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#FFF3F1",
+    borderColor: "#C15656",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    marginTop: 10,
+  },
+  portfolioButtonText: { color: "#C15656", fontSize: 12, fontWeight: "800" },
+  guestContainer: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  guestTitle: {
+    color: "#3A2D2A",
+    fontSize: 26,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  guestBody: {
+    color: "#75655F",
+    fontSize: 15,
+    lineHeight: 22,
+    maxWidth: 380,
+    textAlign: "center",
+    marginTop: 12,
+    marginBottom: 28,
+  },
+  loginButton: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#C15656",
+    borderRadius: 10,
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  loginButtonText: { color: "#FFFFFF", fontWeight: "800", fontSize: 15 },
+  signUpButton: {
+    width: "100%",
+    maxWidth: 360,
+    borderColor: "#C15656",
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: "center",
+    paddingVertical: 13,
+    marginTop: 12,
+  },
+  signUpButtonText: { color: "#C15656", fontWeight: "800", fontSize: 15 },
+  continueBrowsing: {
+    color: "#75655F",
+    fontWeight: "700",
+    fontSize: 14,
+    marginTop: 22,
   },
 });

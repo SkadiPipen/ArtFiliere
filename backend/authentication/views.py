@@ -26,10 +26,21 @@ def login(request):
     firebase_uid = decoded["uid"]
     email = decoded["email"]
 
-    user, created = User.objects.get_or_create(
-        firebase_uid=firebase_uid,
-        defaults={"email": email}
-    )
+    # A staff/rider account may be provisioned by an administrator before its
+    # Firebase login is linked. Match the verified Firebase email once, rather
+    # than leaving that account unusable to authenticated API endpoints.
+    user = User.objects.filter(firebase_uid=firebase_uid).first()
+    created = False
+    if not user:
+        user = User.objects.filter(email=email).first()
+        if user:
+            user.firebase_uid = firebase_uid
+            user.save(update_fields=["firebase_uid"])
+        else:
+            user, created = User.objects.get_or_create(
+                firebase_uid=firebase_uid,
+                defaults={"email": email}
+            )
 
     return Response({
         "id": user.id,
@@ -159,6 +170,7 @@ def me(request):
             'last_name': user.last_name,
             'contact_number': getattr(user, 'contact_number', ''),
             'role': getattr(user, 'role', 'Buyer'),
+            'is_accepting_commissions': user.is_accepting_commissions,
             'profile_image': getattr(user, 'profile_image', None),
             'address': {field: getattr(address, field, '') if address else '' for field in ('street', 'barangay', 'city', 'province', 'region', 'postal_code')}
         })
@@ -181,6 +193,12 @@ def me(request):
             user.username = data['username']
         if 'contact_number' in data:
             user.contact_number = data['contact_number']
+        if 'is_accepting_commissions' in data:
+            if user.role != User.Role.ARTIST:
+                return Response({'error': 'Only artists can change commission availability.'}, status=403)
+            if not isinstance(data['is_accepting_commissions'], bool):
+                return Response({'error': 'Commission availability must be true or false.'}, status=400)
+            user.is_accepting_commissions = data['is_accepting_commissions']
 
         user.save()
 
@@ -197,6 +215,7 @@ def me(request):
             'first_name': user.first_name,
             'last_name': user.last_name,
             'username': user.username,
+            'is_accepting_commissions': user.is_accepting_commissions,
         })
 
 

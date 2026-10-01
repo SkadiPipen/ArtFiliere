@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 
 def artwork_hash_bytes32(hex_hash: str) -> bytes:
@@ -9,3 +10,9 @@ def artwork_hash_bytes32(hex_hash: str) -> bytes:
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def sha256_record(data: dict) -> str:
+    """Hash a deterministic, non-sensitive record before it is sent on-chain."""
+    encoded = json.dumps(data, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return sha256_bytes(encoded)

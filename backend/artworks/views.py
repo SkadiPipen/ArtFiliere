@@ -8,8 +8,11 @@ from authentication.permissions import IsArtist, IsCreativeModerator
 from users.models import User
 from .models import Artwork, ArtworkReviewLog, ArtworkSimilarityMatch
 from .serializers import ArtworkSerializer
-from .tagging import generate_tags
+from .tagging import generate_tags, validate_final_tags
 from django.db import IntegrityError
+from django.db.models import Avg, Q
+from rest_framework.views import APIView
+from fulfillment.models import PurchaseReview
 from .hashing import (
     calculate_feature_match_score,
     calculate_color_similarity_score,
@@ -19,6 +22,7 @@ from .hashing import (
     compute_perceptual_hash,
     compute_sha256,
     is_review_worthy,
+    load_image,
     similarity_confidence,
 )
 from django.utils import timezone
@@ -54,7 +58,15 @@ class ArtworkView(AuthenticatedAPIView):
         elif user and user.role == User.Role.CREATIVE_MODERATOR:
             artworks = artworks.all()
         else:
-            artworks = artworks.filter(status=Artwork.Status.APPROVED)
+            # One-of-one works disappear from the public catalogue after a
+            # completed platform payment. Non-exclusive digital licences stay
+            # available because they may be sold to more than one buyer.
+            sold_one_of_one = (
+                Q(art_type="physical", payment_sessions__status="paid")
+                | Q(payment_sessions__status="paid", payment_sessions__agreement__exclusivity__in=["exclusive", "sole"])
+                | Q(auction_listings__status="SETTLED")
+            )
+            artworks = artworks.filter(status=Artwork.Status.APPROVED).exclude(sold_one_of_one).distinct()
 
         return Response(ArtworkSerializer(
             artworks, many=True,
@@ -72,19 +84,46 @@ class ArtworkView(AuthenticatedAPIView):
             )
 
         try:
-            hours = Decimal(str(request.data.get("hours", "")))
-            rate = Decimal(str(request.data.get("hourly_rate", "")))
-            materials = Decimal(str(request.data.get("material_cost", "0")))
-            art_type = request.data.get("art_type")
-            if art_type not in ("digital", "physical") or not all(x.is_finite() for x in (hours, rate, materials)) or hours <= 0 or rate <= 0 or materials < 0 or hours > 999999 or rate > 99999999 or materials > 99999999:
-                raise ValueError()
-            if any(value != value.quantize(Decimal("0.01")) for value in (hours, rate, materials)):
-                raise ValueError()
-            if art_type == "digital": materials = Decimal("0")
-            cost = hours * rate + materials
-            if cost * Decimal("1.1") > Decimal("99999999.99"): raise ValueError()
+            final_tags = validate_final_tags(
+                request.data.get("selected_ai_tags", []),
+                request.data.get("custom_tags", []),
+            )
+        except ValueError as error:
+            return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+        sale_type = request.data.get("sale_type", "Direct Sell")
+        art_type = request.data.get("art_type")
+        if art_type not in ("digital", "physical"):
+            return Response({"error": "Choose a valid artwork type."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if sale_type == "Auction":
+                # An auction begins at an artist-chosen bid. Its price is not
+                # derived from the artist's production hours.
+                listing_price = Decimal(str(request.data.get("starting_bid") or request.data["price"]))
+                if not listing_price.is_finite() or listing_price <= 0 or listing_price > Decimal("99999999.99"):
+                    raise ValueError()
+                listing_price = listing_price.quantize(Decimal("0.01"))
+                hours = None
+                rate = None
+                materials = Decimal("0")
+            else:
+                hours = Decimal(str(request.data.get("hours", "")))
+                rate = Decimal(str(request.data.get("hourly_rate", "")))
+                materials = Decimal(str(request.data.get("material_cost", "0")))
+                if not all(x.is_finite() for x in (hours, rate, materials)) or hours <= 0 or rate <= 0 or materials < 0 or hours > 999999 or rate > 99999999 or materials > 99999999:
+                    raise ValueError()
+                if any(value != value.quantize(Decimal("0.01")) for value in (hours, rate, materials)):
+                    raise ValueError()
+                if art_type == "digital":
+                    materials = Decimal("0")
+                cost = hours * rate + materials
+                listing_price = (cost * Decimal("1.1")).quantize(Decimal("0.01"))
+                if listing_price > Decimal("99999999.99"):
+                    raise ValueError()
         except (InvalidOperation, ValueError):
-            return Response({"error": "Enter valid hours, hourly rate, material costs, and artwork type."}, status=400)
+            message = "Enter a valid starting bid." if sale_type == "Auction" else "Enter valid hours, hourly rate, material costs, and artwork type."
+            return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             sha256_hash = compute_sha256(request.data["image_data"])
@@ -94,6 +133,23 @@ class ArtworkView(AuthenticatedAPIView):
         except ValueError:
             return Response(
                 {"error": "The uploaded image could not be processed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        additional_images = request.data.get("additional_images", [])
+        if not isinstance(additional_images, list) or len(additional_images) > 3:
+            return Response(
+                {"error": "Upload up to three additional artwork images."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            # Gallery images help buyers inspect the work. The cover image alone
+            # remains the item used for similarity checks and blockchain proof.
+            for gallery_image in additional_images:
+                load_image(gallery_image)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "One of the additional images could not be processed."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -111,7 +167,6 @@ class ArtworkView(AuthenticatedAPIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        sale_type = request.data.get("sale_type", "Direct Sell")
         bid_increment = request.data.get("bid_increment") or 100.00
         starting_time = request.data.get("starting_time") or None
         end_time = request.data.get("end_time") or None
@@ -122,12 +177,14 @@ class ArtworkView(AuthenticatedAPIView):
                 title=request.data["title"].strip(),
                 description=request.data["description"].strip(),
                 category=request.data["category"].strip(),
-                price=(cost * Decimal("1.1")).quantize(Decimal("0.01")),
+                tags=final_tags,
+                price=listing_price,
                 hours=hours,
                 hourly_rate=rate,
                 material_cost=materials,
                 art_type=art_type,
                 image_data=request.data["image_data"],
+                additional_images=additional_images,
                 sha256_hash=sha256_hash,
                 perceptual_hash=perceptual_hash,
                 difference_hash=difference_hash,
@@ -176,12 +233,6 @@ class ArtworkView(AuthenticatedAPIView):
             increment = artwork.bid_increment or 100.00
             start_bid = float(artwork.price)
 
-            # Auto-approve for instant visibility across dashboards
-            artwork.status = Artwork.Status.APPROVED
-            artwork.save(update_fields=["status"])
-
-            initial_status = "ACTIVE" if start_time <= now else "SCHEDULED"
-
             AuctionListing.objects.update_or_create(
                 artwork_id=artwork.id,
                 defaults={
@@ -191,7 +242,9 @@ class ArtworkView(AuthenticatedAPIView):
                     "bid_increment": float(increment),
                     "start_time": start_time,
                     "end_time": end_time,
-                    "status": "ACTIVE",
+                    # The listing exists so its configuration is retained, but
+                    # it cannot be discovered or bid on until moderation.
+                    "status": "PENDING_APPROVAL",
                     "is_physical": artwork.art_type == "physical",
                 },
             )
@@ -205,6 +258,30 @@ class ArtworkView(AuthenticatedAPIView):
             payload["similarity_review_required"] = True
             payload["message"] = "Your artwork was submitted and is awaiting similarity review before it can be approved."
         return Response(payload, status=status.HTTP_201_CREATED)
+
+
+class ArtworkReviewsView(APIView):
+    """Public, verified-purchase feedback for one artwork; no reviewer contact data."""
+
+    def get(self, request, artwork_id):
+        if not Artwork.objects.filter(id=artwork_id, status=Artwork.Status.APPROVED).exists():
+            return Response({"error": "Artwork not found."}, status=status.HTTP_404_NOT_FOUND)
+        reviews = PurchaseReview.objects.filter(
+            payment__artwork_id=artwork_id,
+            payment__status="paid",
+        ).select_related("payment__buyer").order_by("-created_at")
+        summary = reviews.aggregate(average=Avg("artwork_rating"))
+        return Response({
+            "average_rating": round(float(summary["average"]), 1) if summary["average"] is not None else None,
+            "review_count": reviews.count(),
+            "reviews": [{
+                "rating": review.artwork_rating,
+                "comment": review.artwork_comment or review.comment,
+                "reviewer": (review.payment.buyer.first_name or "Verified buyer").strip(),
+                "created_at": review.created_at.isoformat(),
+                "verified_purchase": True,
+            } for review in reviews[:20]],
+        })
 
 
 class ArtworkTagSuggestionView(AuthenticatedAPIView):
@@ -314,7 +391,7 @@ class ArtworkReviewView(AuthenticatedAPIView):
             sale_type = str(getattr(artwork, "sale_type", "")).upper()
 
             is_auction = "AUCTION" in sale_type or "AUCTION" in category_str
-            is_physical = "PHYSICAL" in category_str or getattr(artwork, "art_type", "") == "Physical"
+            is_physical = "PHYSICAL" in category_str or getattr(artwork, "art_type", "") == "physical"
 
             if is_auction:
                 starting_price = float(artwork.price)

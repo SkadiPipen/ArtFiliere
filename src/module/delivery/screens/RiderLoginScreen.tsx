@@ -40,15 +40,24 @@ export default function LoginScreen() {
       const token = await userCredentials.user.getIdToken();
 
       try {
-        await fetch(`${API_URL}/auth/login/`, {
+        const backendResponse = await fetch(`${API_URL}/auth/login/`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
+        if (!backendResponse.ok) {
+          throw new Error('Your rider account could not be linked to ArtFiliere. Ask an administrator to check the rider email address.');
+        }
+        // Keep rider access available while an administrator corrects a legacy
+        // account role. The delivery API remains responsible for protecting
+        // individual delivery actions.
+        await backendResponse.json();
       } catch (backendError) {
-        console.warn('Backend sync warning:', backendError);
+        setLoading(false);
+        Alert.alert('Rider access unavailable', backendError instanceof Error ? backendError.message : 'Unable to link this rider account.');
+        return;
       }
 
       setLoading(false);

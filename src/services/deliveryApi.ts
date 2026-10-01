@@ -105,7 +105,7 @@ export async function uploadDeliveryProofApi(
   timestamp?: string,
   proofType?: 'PICKUP' | 'DELIVERY'
 ): Promise<any> {
-  const res = await fetch(`APIURL/api/delivery/orders/{orderId}/proof/`, {
+  const res = await fetch(`${API_URL}/api/delivery/orders/${orderId}/proof/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

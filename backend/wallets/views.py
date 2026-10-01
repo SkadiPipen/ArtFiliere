@@ -21,6 +21,7 @@ from messaging.models import Agreement
 from cart.models import CartItem
 from fulfillment.services import fulfill_payment, physical, png_bytes
 from .models import CancellationReturnRequest, PaymentSession, WalletAccount, WalletLedgerEntry
+from blockchain.proofs import record_sale_proof
 
 PLATFORM_FEE_RATE = Decimal("0.10")
 
@@ -178,6 +179,7 @@ class AgreementCheckoutView(AuthenticatedAPIView):
             session.paid_at = timezone.now()
             session.save(update_fields=['is_simulated', 'status', 'paid_at'])
             fulfill_payment(session)
+            record_sale_proof(session)
             CartItem.objects.filter(cart__buyer=buyer, listing_id=agreement.artwork_id).delete()
             ActivityLog.objects.create(user=buyer, action='checkout_simulated', description='Test checkout completed. No money was charged.', reference_type='payment_session', reference_id=session.id)
             return Response({'simulated': True, 'purchase_id': session.id}, status=201)
@@ -374,6 +376,7 @@ def apply_xendit_status(payment_id, data):
             payment.paid_at = timezone.now()
             payment.save(update_fields=['status', 'xendit_payment_id', 'paid_at'])
             fulfill_payment(payment)
+            record_sale_proof(payment)
             CartItem.objects.filter(cart__buyer=payment.buyer, listing_id=payment.artwork_id).delete()
             ActivityLog.objects.create(user=payment.buyer, action='payment_completed', description=f'Payment for {payment.artwork.title} was confirmed by Xendit.', reference_type='payment_session', reference_id=payment.id)
             ActivityLog.objects.create(user=payment.artist, action='sale_paid', description=f'Payment for {payment.artwork.title} is held pending completion.', reference_type='payment_session', reference_id=payment.id)

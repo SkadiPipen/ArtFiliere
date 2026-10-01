@@ -13,12 +13,17 @@ class Artwork(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     category = models.CharField(max_length=100)
+    # Final listing tags are deliberately separate from the display category.
+    # This lets artists review AI suggestions without making the category field
+    # an unstructured mix of type, category, and keywords.
+    tags = models.JSONField(default=list, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     hours = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     material_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     art_type = models.CharField(max_length=10, default="digital")
     image_data = models.TextField()
+    additional_images = models.JSONField(default=list, blank=True)
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.PENDING
     )

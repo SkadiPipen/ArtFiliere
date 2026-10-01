@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from rest_framework.response import Response
 from authentication.views import AuthenticatedAPIView
 from authentication.permissions import IsAuthenticatedUser
@@ -40,6 +41,14 @@ class CartView(AuthenticatedAPIView):
         artwork = Artwork.objects.filter(pk=listing_id, status=Artwork.Status.APPROVED).first()
         if not artwork or artwork.artist_id == user.id:
             return Response({"error": "This artwork is unavailable or belongs to you."}, status=400)
+        if PaymentSession.objects.filter(buyer=user, artwork=artwork, status=PaymentSession.Status.PAID).exists():
+            return Response({"error": "You have already purchased this artwork. View it in My Purchases instead."}, status=409)
+        # A physical artwork and an exclusive/sole license can only have one buyer.
+        sold_exclusively = PaymentSession.objects.filter(artwork=artwork, status=PaymentSession.Status.PAID).filter(
+            Q(artwork__art_type="physical") | Q(agreement__exclusivity__in=["exclusive", "sole"])
+        ).exists()
+        if sold_exclusively:
+            return Response({"error": "This artwork is no longer available for sale."}, status=409)
         cart, _ = Cart.objects.get_or_create(buyer=user)
         cart = Cart.objects.select_for_update().get(pk=cart.pk)
         item, created = CartItem.objects.get_or_create(cart=cart, listing=artwork, defaults={"quantity": qty})

@@ -71,6 +71,10 @@ class User(models.Model):
         default=Role.BUYER
     ) 
 
+    # Artists opt in before appearing in the commission directory. Keeping the
+    # default off prevents buyers from sending requests to unavailable artists.
+    is_accepting_commissions = models.BooleanField(default=False)
+
     @property
     def address(self):
         # Compatibility for registration/profile and existing delivery consumers.

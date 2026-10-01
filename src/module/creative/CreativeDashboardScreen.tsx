@@ -49,6 +49,7 @@ const label = (value: string) => value.replace("_", " ");
 
 export default function CreativeDashboardScreen() {
   const [items, setItems] = useState<Artwork[]>([]);
+  const [activeTab, setActiveTab] = useState<"pending" | "approved">("pending");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Artwork | null>(null);
   const [reason, setReason] = useState("");
@@ -89,6 +90,13 @@ export default function CreativeDashboardScreen() {
   useEffect(() => {
     load();
   }, []);
+  const visibleItems = items.filter((artwork) => artwork.status === activeTab);
+  const pendingCount = items.filter(
+    (artwork) => artwork.status === "pending",
+  ).length;
+  const approvedCount = items.filter(
+    (artwork) => artwork.status === "approved",
+  ).length;
   const reviewMatch = async (
     match: Match,
     review_status: "confirmed_copy" | "not_a_copy",
@@ -178,15 +186,37 @@ export default function CreativeDashboardScreen() {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={s.title}>Artwork review requests</Text>
+        <Text style={s.title}>Artwork moderation</Text>
         <Text style={s.lead}>
-          Review listing quality and resolve any similarity evidence before
-          approval.
+          Review pending work, then use Approved history for audit and
+          follow-up.
         </Text>
+        <View style={s.tabs}>
+          <TouchableOpacity
+            style={[s.tab, activeTab === "pending" && s.tabActive]}
+            onPress={() => setActiveTab("pending")}
+          >
+            <Text
+              style={[s.tabText, activeTab === "pending" && s.tabTextActive]}
+            >
+              Pending ({pendingCount})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.tab, activeTab === "approved" && s.tabActive]}
+            onPress={() => setActiveTab("approved")}
+          >
+            <Text
+              style={[s.tabText, activeTab === "approved" && s.tabTextActive]}
+            >
+              Approved ({approvedCount})
+            </Text>
+          </TouchableOpacity>
+        </View>
         {loading ? (
           <ActivityIndicator size="large" color="#C15656" style={s.loader} />
-        ) : items.length ? (
-          items.map((item) => (
+        ) : visibleItems.length ? (
+          visibleItems.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={s.card}
@@ -222,7 +252,11 @@ export default function CreativeDashboardScreen() {
             </TouchableOpacity>
           ))
         ) : (
-          <Text style={s.empty}>No artwork requests found.</Text>
+          <Text style={s.empty}>
+            {activeTab === "pending"
+              ? "No artwork is waiting for review."
+              : "No approved artwork yet."}
+          </Text>
         )}
       </ScrollView>
       <Modal
@@ -449,6 +483,18 @@ const s = StyleSheet.create({
   content: { width: "100%", maxWidth: 850, alignSelf: "center", padding: 24 },
   title: { fontSize: 24, fontWeight: "800", color: "#322B29" },
   lead: { fontSize: 13, color: "#746865", marginTop: 5, marginBottom: 18 },
+  tabs: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  tab: {
+    borderWidth: 1,
+    borderColor: "#E3D8CC",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: "#FFFFFF",
+  },
+  tabActive: { backgroundColor: "#C15656", borderColor: "#C15656" },
+  tabText: { color: "#7C6A64", fontSize: 12, fontWeight: "800" },
+  tabTextActive: { color: "#FFFFFF" },
   loader: { marginTop: 60 },
   card: {
     backgroundColor: "#fff",

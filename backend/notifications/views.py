@@ -19,6 +19,7 @@ class UserNotificationView(AuthenticatedAPIView):
                         "title": notification.title,
                         "message": notification.message,
                         "is_read": notification.is_read,
+                        "commission_id": notification.commission_id,
                         "created_at": notification.created_at.isoformat(),
                     }
                     for notification in notifications
@@ -30,6 +31,8 @@ class UserNotificationView(AuthenticatedAPIView):
         user = self.get_request_user(request)
         notification_id = request.data.get("notification_id")
         notifications = user.notifications.filter(is_read=False)
+        if request.data.get("commission_only"):
+            notifications = notifications.filter(commission__isnull=False)
         if notification_id:
             notifications = notifications.filter(id=notification_id)
         notifications.update(is_read=True)

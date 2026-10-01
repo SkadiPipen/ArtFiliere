@@ -335,7 +335,7 @@ export default function NegotiationForm({
         <Text style={styles.previewTitle}>{artwork.title}</Text>
         <Text style={styles.previewArtist}>by {artwork.artist_name}</Text>
         <Text style={styles.previewType}>
-          {artwork.art_type === 'digital' ? '💻 Digital' : '🖼️ Physical'}
+          {artwork.art_type === 'digital' ? 'Digital' : 'Physical'}
         </Text>
       </View>
 

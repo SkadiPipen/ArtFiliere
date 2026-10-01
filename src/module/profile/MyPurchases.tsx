@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, Text,
 
 type Purchase = {
   id: number; title: string; artist: string; status: string; amount: string; agreement_id: number;
+  verification_code?: string;
   is_simulated?: boolean; image?: string; can_download: boolean; can_rate: boolean; checkout_url?: string;
   review?: { artist_rating: number; artwork_rating: number; comment: string; artist_comment?: string; artwork_comment?: string };
   delivery?: { status: string; status_label: string; driver?: string; delivery_address: string; fee: string };
@@ -129,6 +130,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             <Text style={s.title}>{p.title}</Text>
             <Text>by {p.artist}</Text>
             <Text>PHP {p.amount} · {p.status}</Text>
+            {p.status === 'paid' && p.verification_code ? <Text selectable style={{ color: '#5D8A63', fontWeight: '800' }}>Transaction verification code: {p.verification_code}</Text> : null}
 
             {Boolean(p.agreement_id) ? (
               <TouchableOpacity onPress={() => setAgreement(p.agreement_id)}>

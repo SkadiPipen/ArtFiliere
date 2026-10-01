@@ -1,7 +1,13 @@
+import secrets
+
 from django.db import models
 
 from users.models import User
 from artworks.models import Artwork
+
+
+def agreement_verification_code():
+    return f"AF-AGR-{secrets.token_hex(6).upper()}"
 
 
 class DirectMessage(models.Model):
@@ -84,6 +90,7 @@ class Agreement(models.Model):
     buyer_accepted_at = models.DateTimeField(null=True, blank=True)
     artist_accepted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    verification_code = models.CharField(max_length=24, unique=True, default=agreement_verification_code, editable=False)
 
 
 class Message(models.Model):

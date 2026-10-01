@@ -27,6 +27,7 @@ export default function ProposalCard({ contract, onChange, onRevise }: { contrac
     {expanded && <View style={{ gap: 10, marginTop: 12 }}>
       <Text selectable>{contract.terms}</Text>
       <Text>Buyer: {contract.buyer_accepted ? 'accepted' : 'pending'} | Artist: {contract.artist_accepted ? 'accepted' : 'pending'}</Text>
+      {contract.fully_signed && <Text selectable style={{ color: '#5D8A63', fontWeight: '800' }}>Verification code: {contract.verification_code}</Text>}
       {!!error && <Text style={{ color: '#b00020' }}>{error}</Text>}
       {contract.status === 'cancelled' && <TouchableOpacity onPress={() => onRevise(contract)}><Text style={{ color: '#C15656' }}>New proposal</Text></TouchableOpacity>}
       {contract.status === 'proposed' && <View style={{ flexDirection: 'row', gap: 20 }}>

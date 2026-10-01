@@ -18,6 +18,7 @@ from reportlab.lib.pagesizes import A4
 from authentication.views import AuthenticatedAPIView
 from authentication.permissions import IsAuthenticatedUser
 from .models import Agreement
+from blockchain.proofs import record_agreement_proof
 
 
 def party_name(user):
@@ -64,6 +65,7 @@ def signing_data(item, user):
         (user.last_name or '').strip(),
     ) if part)
     return {"id": item.id, "document": text, "document_hash": hashlib.sha256(text.encode()).hexdigest(),
+            "verification_code": item.verification_code,
             "signing_name": signing_name,
             "artist_signature_image": item.artist_signature_image, "buyer_signature_image": item.buyer_signature_image,
             "artist_signature": item.artist_signature, "buyer_signature": item.buyer_signature,
@@ -184,4 +186,7 @@ class AgreementSigningView(AuthenticatedAPIView):
         setattr(item, role + '_signature', name.strip())
         setattr(item, role + '_signed_at', timezone.now())
         item.save()
+        # Only the final document, after both signatures, is eligible for a proof.
+        if item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image:
+            record_agreement_proof(item)
         return Response(signing_data(item, user))

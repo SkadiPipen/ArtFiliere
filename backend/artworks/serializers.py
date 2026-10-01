@@ -17,9 +17,11 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "category",
+            "tags",
             "art_type",
             "price",
             "image_data",
+            "additional_images",
             "status",
             "decline_reason",
             "created_at",
@@ -69,8 +71,9 @@ class ArtworkSerializer(serializers.ModelSerializer):
         try:
             if hasattr(artwork, 'auction_listings') and artwork.auction_listings.filter(status='SETTLED').exists():
                 return True
-            if hasattr(artwork, 'contracts') and artwork.contracts.filter(status__in=['paid', 'completed']).exists():
-                return True
+            paid_sales = artwork.payment_sessions.filter(status='paid')
+            return artwork.art_type == 'physical' and paid_sales.exists() or paid_sales.filter(
+                agreement__exclusivity__in=['exclusive', 'sole']
+            ).exists()
         except Exception:
             return False
-        return False

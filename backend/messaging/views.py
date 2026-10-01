@@ -197,7 +197,7 @@ class AgreementTemplateAdminView(AuthenticatedAPIView):
 
 
 def serialize_agreement(item):
-    return {"id": item.id, "status": item.status, "price": str(item.price), "terms": item.terms_snapshot, "buyer_accepted_at": item.buyer_accepted_at, "artist_accepted_at": item.artist_accepted_at, "license_type": item.license_type, "exclusivity": item.exclusivity, "delivery_type": item.delivery_type, "compensation_type": item.compensation_type}
+    return {"id": item.id, "verification_code": item.verification_code, "status": item.status, "price": str(item.price), "terms": item.terms_snapshot, "buyer_accepted_at": item.buyer_accepted_at, "artist_accepted_at": item.artist_accepted_at, "license_type": item.license_type, "exclusivity": item.exclusivity, "delivery_type": item.delivery_type, "compensation_type": item.compensation_type}
 
 
 def serialize_message(message):

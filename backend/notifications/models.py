@@ -3,6 +3,7 @@ from django.db import models
 from users.models import User
 from artist_applications.models import ArtistApplication
 from artworks.models import Artwork
+from commissions.models import CommissionRequest
 
 
 class UserNotification(models.Model):
@@ -16,6 +17,9 @@ class UserNotification(models.Model):
     )
     artwork = models.ForeignKey(
         Artwork, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True
+    )
+    commission = models.ForeignKey(
+        CommissionRequest, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True
     )
     title = models.CharField(max_length=200)
     message = models.TextField()

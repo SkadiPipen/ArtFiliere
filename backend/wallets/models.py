@@ -1,8 +1,14 @@
+import secrets
+
 from django.db import models
 from django.db.models import Q
 
 from artworks.models import Artwork
 from users.models import User
+
+
+def sale_verification_code():
+    return f"AF-SALE-{secrets.token_hex(6).upper()}"
 
 
 class WalletAccount(models.Model):
@@ -38,6 +44,7 @@ class PaymentSession(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    verification_code = models.CharField(max_length=24, unique=True, default=sale_verification_code, editable=False)
 
 
 class CancellationReturnRequest(models.Model):

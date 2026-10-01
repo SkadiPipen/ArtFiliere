@@ -12,6 +12,7 @@ from authentication.views import AuthenticatedAPIView
 from users.models import User
 from messaging.models import Agreement
 from .models import CommissionRequest, CommissionMilestone, CommissionPhoto
+from notifications.models import UserNotification
 
 
 def resolve_buyer_or_user(view_instance, request):
@@ -88,11 +89,11 @@ class CommissionRequestView(AuthenticatedAPIView):
         role = request.query_params.get('role', 'buyer')
 
         if not user:
-            commissions = CommissionRequest.objects.all().order_by('-commission_req_id')
+            commissions = CommissionRequest.objects.exclude(status='CANCELLED').order_by('-commission_req_id')
         elif role == 'artist':
-            commissions = CommissionRequest.objects.filter(artist=user).order_by('-commission_req_id')
+            commissions = CommissionRequest.objects.filter(artist=user).exclude(status='CANCELLED').order_by('-commission_req_id')
         else:
-            commissions = CommissionRequest.objects.filter(buyer=user).order_by('-commission_req_id')
+            commissions = CommissionRequest.objects.filter(buyer=user).exclude(status='CANCELLED').order_by('-commission_req_id')
 
         data = []
         for c in commissions:
@@ -116,6 +117,8 @@ class CommissionRequestView(AuthenticatedAPIView):
                 "artist_id": c.artist.id,
                 "artist_name": getattr(c.artist, 'username', 'Artist'),
                 "title": c.title,
+                "subject": c.subject,
+                "style": c.style,
                 "description": c.description,
                 "art_type": getattr(c, 'art_type', 'Physical'),
                 "tags": getattr(c, 'tags', ''),
@@ -148,15 +151,31 @@ class CommissionRequestView(AuthenticatedAPIView):
         artist = User.objects.filter(pk=artist_id).first()
         if not artist:
             return Response({"error": "Selected artist does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        if artist.role != User.Role.ARTIST or not artist.is_accepting_commissions:
+            return Response({"error": "This artist is not currently accepting commission requests."}, status=status.HTTP_409_CONFLICT)
+
+        subject = str(data.get('subject') or data.get('title') or '').strip()
+        style = str(data.get('style') or data.get('art_type') or '').strip()
+        if len(subject) < 3 or len(style) < 2:
+            return Response({"error": "Add the commission subject and preferred style."}, status=status.HTTP_400_BAD_REQUEST)
 
         deadline = timezone.now() + timezone.timedelta(days=14)
         if data.get('deadline'):
             try:
                 deadline = timezone.datetime.fromisoformat(data['deadline'])
+                if timezone.is_naive(deadline):
+                    deadline = timezone.make_aware(deadline)
             except Exception:
-                pass
+                return Response({"error": "Enter a valid preferred completion date."}, status=status.HTTP_400_BAD_REQUEST)
+        if deadline <= timezone.now():
+            return Response({"error": "Your preferred completion date must be in the future."}, status=status.HTTP_400_BAD_REQUEST)
 
-        total_price = Decimal(str(data.get('time_duration', 3000.00) or 3000.00))
+        try:
+            total_price = Decimal(str(data.get('proposed_budget') or data.get('time_duration') or '0'))
+            if not total_price.is_finite() or total_price <= 0:
+                raise ValueError()
+        except Exception:
+            return Response({"error": "Enter a valid proposed budget."}, status=status.HTTP_400_BAD_REQUEST)
 
         buyer_pk = getattr(buyer, 'pk', None) or getattr(buyer, 'id', None)
         artist_pk = getattr(artist, 'pk', None) or getattr(artist, 'id', None) or int(artist_id)
@@ -164,7 +183,9 @@ class CommissionRequestView(AuthenticatedAPIView):
         commission = CommissionRequest.objects.create(
             buyer_id=buyer_pk,
             artist_id=artist_pk,
-            title=data.get('title', 'Custom Art Commission'),
+            title=data.get('title') or f"{style} commission: {subject[:55]}",
+            subject=subject,
+            style=style,
             description=data.get('description', ''),
             art_type=data.get('art_type', 'Physical'),
             tags=data.get('tags', ''),
@@ -180,7 +201,7 @@ class CommissionRequestView(AuthenticatedAPIView):
                 artist_id=artist_pk,
                 title=commission.title,
                 price=total_price,
-                terms=f"Commission Contract:\nType: {commission.art_type}\nDescription: {commission.description}\nDeadline: {deadline.strftime('%Y-%m-%d')}",
+                terms=f"Commission Contract:\nSubject: {commission.subject}\nStyle: {commission.style}\nType: {commission.art_type}\nInstructions: {commission.description}\nRequested deadline: {deadline.strftime('%Y-%m-%d')}",
                 status='accepted',
                 buyer_accepted=True,
                 artist_accepted=False,
@@ -220,6 +241,16 @@ class CommissionRequestView(AuthenticatedAPIView):
             amount=p2,
             status='PENDING',
         )
+
+        UserNotification.objects.create(
+            user=artist,
+            commission=commission,
+            title="New commission request",
+            message=(
+                f"{buyer.username} requested a {commission.style or commission.art_type} commission: "
+                f"{commission.subject or commission.title}. Preferred completion: {deadline.strftime('%b %d, %Y')}."
+            ),
+        )
         CommissionMilestone.objects.create(
             commission_req=commission,
             milestone_number=3,
@@ -245,14 +276,29 @@ class ManageCommissionStatusView(AuthenticatedAPIView):
         commission = CommissionRequest.objects.filter(pk=pk).first()
         if not commission:
             return Response({"error": "Commission not found"}, status=status.HTTP_404_NOT_FOUND)
+        artist = self.get_request_user(request)
+        if not artist or artist.id != commission.artist_id:
+            return Response({"error": "Only the assigned artist can update this commission."}, status=status.HTTP_403_FORBIDDEN)
 
         if action == 'ACCEPT':
             commission.status = 'IN_PROGRESS'
             commission.save()
+            UserNotification.objects.create(
+                user=commission.buyer,
+                commission=commission,
+                title="Commission request accepted",
+                message=f"{commission.artist.username} accepted your commission request for {commission.title}. You can now continue the discussion.",
+            )
             return Response({"message": "Commission accepted and in-progress.", "status": commission.status})
         elif action == 'REJECT':
             commission.status = 'CANCELLED'
             commission.save()
+            UserNotification.objects.create(
+                user=commission.buyer,
+                commission=commission,
+                title="Commission request declined",
+                message=f"{commission.artist.username} declined your commission request for {commission.title}.",
+            )
             return Response({"message": "Commission declined.", "status": commission.status})
 
         return Response({"error": "Invalid action. Use ACCEPT or REJECT."}, status=status.HTTP_400_BAD_REQUEST)

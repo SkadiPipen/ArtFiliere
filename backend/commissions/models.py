@@ -17,6 +17,8 @@ class CommissionRequest(models.Model):
     buyer = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='buyer_commissions')
     artist = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='artist_commissions')
     title = models.CharField(max_length=100)
+    subject = models.CharField(max_length=200, blank=True, default='')
+    style = models.CharField(max_length=80, blank=True, default='')
     description = models.TextField(blank=True, null=True)
     art_type = models.CharField(max_length=20, default='Physical')  # Physical or Digital
     tags = models.CharField(max_length=255, blank=True, null=True)

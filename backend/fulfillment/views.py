@@ -61,7 +61,7 @@ class PurchasesView(AuthenticatedAPIView):
             digital = p.agreement.delivery_type == 'digital' if p.agreement else p.artwork.art_type == 'digital'
             rows.append({'id': p.id, 'title': p.artwork.title, 'artist': p.artist.username,
                          'image': ('data:image/png;base64,' + base64.b64encode(bytes(p.artwork_png)).decode() if digital and p.artwork_png else p.artwork.image_data) if paid else None,
-                         'is_simulated': p.is_simulated, 'status': p.status, 'amount': str(p.gross_amount), 'agreement_id': p.agreement_id,
+                         'is_simulated': p.is_simulated, 'status': p.status, 'amount': str(p.gross_amount), 'agreement_id': p.agreement_id, 'verification_code': p.verification_code,
                          'checkout_url': p.checkout_url if p.status == 'pending' else None,
                          'can_download': paid and digital, 'can_rate': paid and not review,
                          'delivery': delivery_data(delivery) if delivery else None,

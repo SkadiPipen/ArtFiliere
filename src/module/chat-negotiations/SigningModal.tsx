@@ -69,6 +69,7 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
         <Text selectable style={{ lineHeight: 24 }}>{data.document}</Text>
         <Text>Artist: {data.artist_signature || 'Awaiting signature'}</Text>
         <Text>Buyer: {data.buyer_signature || 'Awaiting signature'}</Text>
+        {data.fully_signed && <Text selectable style={{ color: '#5D8A63', fontWeight: '800' }}>Verification code: {data.verification_code}</Text>}
         {['artist', 'buyer'].map(role => data[`${role}_signature_image`] ? <View key={role}><Text>{role} signature</Text><Image source={{ uri: data[`${role}_signature_image`] }} style={{ width: 240, height: 80 }} resizeMode="contain" /></View> : null)}
         <TouchableOpacity onPress={preview}><Text style={{ color: '#C15656' }}>Preview / download PDF</Text></TouchableOpacity>
         {signed ? <Text>{data.fully_signed ? 'Both parties have signed. You can close this window and continue checkout.' : 'Your signature is saved. Waiting for the other party to sign.'}</Text> : <>
