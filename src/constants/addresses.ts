@@ -1,61 +1,67 @@
-// TODO: This is static placeholder data so the Address step is usable during
-// development. Replace with a call to the PSGC API (https://psgc.gitlab.io/api/)
-// or a Django endpoint that mirrors it once the backend supports address lookup.
-
 export type AddressOption = {
   code: string;
   name: string;
 };
+const BASE_URL = 'https://psgc.gitlab.io/api';
 
-export const REGIONS: AddressOption[] = [
-  { code: "R08", name: "Eastern Visayas" },
-  { code: "R07", name: "Central Visayas" },
-  { code: "NCR", name: "National Capital Region" },
-];
+// Helper to fetch and normalize PSGC items
+async function fetchPsgc(endpoint: string): Promise<AddressOption[]> {
+  try {
+    const res = await fetch(`${BASE_URL}${endpoint}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data
+      .map((item: any) => ({
+        code: item.code,
+        name: item.name,
+      }))
+      .sort((a: AddressOption, b: AddressOption) => a.name.localeCompare(b.name));
+  } catch (err) {
+    console.warn(`[PSGC Error] Failed fetching ${endpoint}:`, err);
+    return [];
+  }
+}
 
-export const PROVINCES_BY_REGION: Record<string, AddressOption[]> = {
-  R08: [
-    { code: "P0801", name: "Northern Samar" },
-    { code: "P0802", name: "Leyte" },
-  ],
-  R07: [
-    { code: "P0701", name: "Cebu" },
-    { code: "P0702", name: "Bohol" },
-  ],
-  NCR: [{ code: "PNCR", name: "Metro Manila" }],
-};
+export async function getRegions(): Promise<AddressOption[]> {
+  const regions = await fetchPsgc('/regions/');
+  if (regions.length > 0) return regions;
 
-export const CITIES_BY_PROVINCE: Record<string, AddressOption[]> = {
-  P0801: [
-    { code: "C080101", name: "Catarman" },
-    { code: "C080102", name: "Bobon" },
-  ],
-  P0802: [
-    { code: "C080201", name: "Tacloban City" },
-    { code: "C080202", name: "Ormoc City" },
-  ],
-  P0701: [
-    { code: "C070101", name: "Cebu City" },
-    { code: "C070102", name: "Mandaue City" },
-  ],
-  P0702: [{ code: "C070201", name: "Tagbilaran City" }],
-  PNCR: [
-    { code: "C0NCR01", name: "Quezon City" },
-    { code: "C0NCR02", name: "Manila" },
-  ],
-};
+  // Fallback
+  return [
+    { code: '070000000', name: 'Region VII (Central Visayas)' },
+    { code: '130000000', name: 'National Capital Region (NCR)' },
+    { code: '080000000', name: 'Region VIII (Eastern Visayas)' },
+  ];
+}
 
-export const BARANGAYS_BY_CITY: Record<string, AddressOption[]> = {
-  C080101: [
-    { code: "B01", name: "Aguada" },
-    { code: "B02", name: "Bagong Lipunan" },
-    { code: "B03", name: "Poblacion" },
-  ],
-};
+export async function getProvincesByRegion(regionCode: string): Promise<AddressOption[]> {
+  if (!regionCode) return [];
+  // NCR has no provinces, only cities/districts directly
+  if (regionCode === '130000000' || regionCode === 'NCR') {
+    return [{ code: 'NCR_DISTRICTS', name: 'Metro Manila' }];
+  }
+  return fetchPsgc(`/regions/${regionCode}/provinces/`);
+}
 
-// Any city not listed above falls back to this placeholder list so the
-// dropdown always has something selectable during development.
-export const DEFAULT_BARANGAYS: AddressOption[] = [
-  { code: "BDEF01", name: "Barangay 1" },
-  { code: "BDEF02", name: "Barangay 2" },
-];
+export async function getCitiesByProvince(provinceCode: string, regionCode?: string): Promise<AddressOption[]> {
+  if (!provinceCode) return [];
+  if (provinceCode === 'NCR_DISTRICTS' || regionCode === '130000000') {
+    return fetchPsgc('/regions/130000000/cities-municipalities/');
+  }
+  return fetchPsgc(`/provinces/${provinceCode}/cities-municipalities/`);
+}
+
+export async function getBarangaysByCity(cityCode: string): Promise<AddressOption[]> {
+  if (!cityCode) return [];
+  return fetchPsgc(`/cities-municipalities/${cityCode}/barangays/`);
+}
+
+// Checks if the address qualifies for ArtFiliere physical delivery (Cebu area only).
+
+export function isEligibleForDelivery(provinceName: string, cityName?: string): boolean {
+  if (!provinceName) return false;
+  const p = provinceName.toLowerCase();
+  const c = (cityName || '').toLowerCase();
+  return p.includes('cebu') || c.includes('cebu') || c.includes('mandaue') || c.includes('lapu-lapu');
+}
+>>>>>>> efc1fe0ba81ac2e00045948e8df2288ba9e33ee8

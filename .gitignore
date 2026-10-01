@@ -56,3 +56,4 @@ src/**/firebase*
 # Python bytecode
 __pycache__/
 *.py[cod]
+tools/foundry/
