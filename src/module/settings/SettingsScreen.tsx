@@ -82,6 +82,7 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <TouchableOpacity onPress={() => router.push('/support' as any)} style={{ padding: 18 }}><Text style={{ color: '#C15656', fontWeight: '700' }}>Customer Support / Report an issue</Text></TouchableOpacity>
         <View
           style={[styles.discorContainer, isDesktop && styles.desktopContainer]}
         >

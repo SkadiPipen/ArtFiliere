@@ -64,4 +64,3 @@ export function isEligibleForDelivery(provinceName: string, cityName?: string): 
   const c = (cityName || '').toLowerCase();
   return p.includes('cebu') || c.includes('cebu') || c.includes('mandaue') || c.includes('lapu-lapu');
 }
->>>>>>> efc1fe0ba81ac2e00045948e8df2288ba9e33ee8

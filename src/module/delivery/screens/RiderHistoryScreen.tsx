@@ -57,11 +57,7 @@ export default function RiderHistoryScreen() {
       const liveOrders = await fetchDeliveryHistory();
       console.log('>>> [FRONTEND] Fetched history payload:', liveOrders);
 
-      const rawList = Array.isArray(liveOrders)
-        ? liveOrders
-        : liveOrders?.results && Array.isArray(liveOrders.results)
-        ? liveOrders.results
-        : [];
+      const rawList = liveOrders;
 
       const formatted: HistoryOrder[] = rawList
         .filter((item: any) => item != null && typeof item === 'object')

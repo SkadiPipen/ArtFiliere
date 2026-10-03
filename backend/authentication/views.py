@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from users.models import Address, User
 from artist_applications.models import ArtistApplication
-from .services import verify_token
+from .services import verify_token, AccountRestricted, TokenVerificationUnavailable, TokenRejected
 
 
 @api_view(["POST"])
@@ -22,6 +22,10 @@ def login(request):
     try:
         token = header.split(" ")[1]
         decoded = verify_token(token)
+    except AccountRestricted as error:
+        return Response({'error': str(error), 'code': 'account_restricted'}, status=403)
+    except (AccountRestricted, TokenVerificationUnavailable, TokenRejected):
+        raise
     except Exception as e:
         return Response({"error": "Invalid token"}, status=401)
 
@@ -43,6 +47,9 @@ def login(request):
                 firebase_uid=firebase_uid,
                 defaults={"email": email}
             )
+
+    if user.access_restricted:
+        return Response({'error': 'Account access is restricted. Contact customer support.', 'code': 'account_restricted'}, status=403)
 
     return Response({
         "id": user.id,
@@ -67,6 +74,8 @@ def register(request):
     try:
         token = header.split(" ")[1]
         decoded = verify_token(token)
+    except (AccountRestricted, TokenVerificationUnavailable, TokenRejected):
+        raise
     except Exception:
         return Response({"error": "Invalid or expired token"}, status=401)
 
@@ -157,8 +166,12 @@ def me(request):
     try:
         decoded = verify_token(header.split(" ", 1)[1])
         user = User.objects.get(firebase_uid=decoded["uid"])
+    except AccountRestricted as error:
+        return Response({'error': str(error), 'code': 'account_restricted'}, status=403)
     except (User.DoesNotExist, KeyError):
         return Response({"error": "User profile not found."}, status=404)
+    except (AccountRestricted, TokenVerificationUnavailable, TokenRejected):
+        raise
     except Exception:
         return Response({"error": "Invalid or expired token."}, status=401)
 
@@ -260,6 +273,8 @@ class AuthenticatedAPIView(APIView):
         try:
             decoded = verify_token(header.split(" ", 1)[1])
             user = User.objects.get(firebase_uid=decoded["uid"])
+        except (AccountRestricted, TokenVerificationUnavailable, TokenRejected):
+            raise
         except Exception:
             user = None
 

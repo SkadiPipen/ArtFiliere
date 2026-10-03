@@ -9,7 +9,7 @@ from users.models import User
 from .models import Artwork, ArtworkReviewLog, ArtworkSimilarityMatch
 from .serializers import ArtworkSerializer
 from .tagging import generate_tags, validate_final_tags
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Avg, Q
 from rest_framework.views import APIView
 from fulfillment.models import PurchaseReview
@@ -381,6 +381,7 @@ class AuctionAgreementDefaultsView(AuthenticatedAPIView):
 class ArtworkReviewView(AuthenticatedAPIView):
     permission_classes = [IsCreativeModerator]
 
+    @transaction.atomic
     def patch(self, request, artwork_id):
         moderator = self.get_request_user(request)
 
@@ -399,7 +400,7 @@ class ArtworkReviewView(AuthenticatedAPIView):
             )
 
         try:
-            artwork = Artwork.objects.select_related("artist").get(id=artwork_id)
+            artwork = Artwork.objects.select_for_update(of=("self",)).select_related("artist").get(id=artwork_id)
         except Artwork.DoesNotExist:
             return Response(
                 {"error": "Artwork not found."}, status=status.HTTP_404_NOT_FOUND
@@ -522,6 +523,20 @@ class ArtworkReviewView(AuthenticatedAPIView):
             title=f"Artwork {review_status}",
             message=message,
         )
+
+        if previous_status == Artwork.Status.DECLINED:
+            from wallets.models import SupportTicket, SupportReply
+
+            appeals = SupportTicket.objects.select_for_update().filter(
+                artwork=artwork, requester=artwork.artist, concern="rejected_artwork",
+            ).exclude(status__in=[SupportTicket.Status.RESOLVED, SupportTicket.Status.CLOSED])
+            for appeal in appeals:
+                SupportReply.objects.create(
+                    ticket=appeal, sender=moderator,
+                    message=("Your appeal was accepted. " if review_status == Artwork.Status.APPROVED else "Your appeal was declined. ") + message,
+                )
+                appeal.status = SupportTicket.Status.RESOLVED
+                appeal.save(update_fields=["status", "updated_at"])
 
         response_data = ArtworkSerializer(artwork, context={"include_similarity": True}).data
         if blockchain_result is not None:

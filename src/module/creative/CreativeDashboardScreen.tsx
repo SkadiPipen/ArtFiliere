@@ -1,7 +1,7 @@
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import AgreementDocument from "@/module/messages/components/AgreementDocument";
-import { router } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
   CheckCircle2,
   LogOut,
@@ -9,7 +9,7 @@ import {
   X,
   XCircle,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -55,13 +55,16 @@ type Artwork = {
   tags?: string[];
   auction_request?: any;
   status: "pending" | "approved" | "declined";
+  decline_reason?: string;
   similarity_matches: Match[];
 };
 const label = (value: string) => value.replace("_", " ");
 
 export default function CreativeDashboardScreen() {
+  const { artworkId } = useLocalSearchParams<{ artworkId?: string }>();
+  const openedArtwork = useRef<string | undefined>(undefined);
   const [items, setItems] = useState<Artwork[]>([]);
-  const [activeTab, setActiveTab] = useState<"pending" | "approved">("pending");
+  const [activeTab, setActiveTab] = useState<Artwork["status"]>("pending");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Artwork | null>(null);
   const [reason, setReason] = useState("");
@@ -99,9 +102,20 @@ export default function CreativeDashboardScreen() {
       setLoading(false);
     }
   };
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     load();
-  }, []);
+  }, []));
+  useEffect(() => {
+    if (loading || !artworkId || openedArtwork.current === artworkId) return;
+    const artwork = items.find(item => item.id === Number(artworkId));
+    openedArtwork.current = artworkId;
+    if (!artwork) {
+      Alert.alert("Artwork review", "This artwork is unavailable. Refresh the artwork list.");
+      return;
+    }
+    setActiveTab(artwork.status); setSelected(artwork);
+    setDeclining(false); setReason("");
+  }, [loading, items, artworkId]);
   const visibleItems = items.filter((artwork) => artwork.status === activeTab);
   const pendingCount = items.filter(
     (artwork) => artwork.status === "pending",
@@ -163,7 +177,7 @@ export default function CreativeDashboardScreen() {
       if (!response.ok) throw new Error(data.error);
       setItems((all) =>
         all.map((item) =>
-          item.id === selected.id ? { ...item, status } : item,
+          item.id === selected.id ? data : item,
         ),
       );
       setSelected(null);
@@ -200,9 +214,11 @@ export default function CreativeDashboardScreen() {
       <ScrollView contentContainerStyle={s.content}>
         <Text style={s.title}>Artwork moderation</Text>
         <Text style={s.lead}>
-          Review pending work, then use Approved history for audit and
-          follow-up.
+          Review pending work and reconsider declined artwork from artist appeals.
         </Text>
+        <TouchableOpacity accessibilityRole="button" style={[s.tab, { alignSelf: "flex-start", marginBottom: 16 }]} onPress={() => router.push("/moderator-dashboard")}>
+          <Text style={s.tabText}>Artist appeals and reports</Text>
+        </TouchableOpacity>
         <View style={s.tabs}>
           <TouchableOpacity
             style={[s.tab, activeTab === "pending" && s.tabActive]}
@@ -222,6 +238,11 @@ export default function CreativeDashboardScreen() {
               style={[s.tabText, activeTab === "approved" && s.tabTextActive]}
             >
               Approved ({approvedCount})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.tab, activeTab === "declined" && s.tabActive]} onPress={() => setActiveTab("declined")}>
+            <Text style={[s.tabText, activeTab === "declined" && s.tabTextActive]}>
+              Declined ({items.filter(item => item.status === "declined").length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -248,7 +269,7 @@ export default function CreativeDashboardScreen() {
                   <Text
                     style={[
                       s.badge,
-                      item.status === "approved" ? s.approved : s.pending,
+                      item.status === "approved" ? s.approved : item.status === "declined" ? s.alert : s.pending,
                     ]}
                   >
                     {label(item.status)}
@@ -267,7 +288,7 @@ export default function CreativeDashboardScreen() {
           <Text style={s.empty}>
             {activeTab === "pending"
               ? "No artwork is waiting for review."
-              : "No approved artwork yet."}
+              : `No ${activeTab} artwork yet.`}
           </Text>
         )}
       </ScrollView>
@@ -305,6 +326,7 @@ export default function CreativeDashboardScreen() {
                   </Text>
                   <Text style={s.category}>{selected.category}</Text>
                   <Text style={s.description}>{selected.description}</Text>
+                  {selected.status === "declined" && !!selected.decline_reason && <Text style={s.copyResolved}>Rejection reason: {selected.decline_reason}</Text>}
                   <Text style={s.detailTitle}>Submitted details</Text>
                   <Text style={s.detailText}>Sale type: {selected.sale_type || "Direct Sell"}</Text>
                   <Text style={s.detailText}>Artwork type: {selected.art_type || "Not specified"}</Text>
@@ -352,7 +374,7 @@ export default function CreativeDashboardScreen() {
                     selected.similarity_matches.map((match) => (
                       <View key={match.id} style={s.match}>
                         <View style={s.matchTop}>
-                          <Text style={s.matchTitle}>Possible match</Text>
+                          <Text style={s.matchTitle}>Possible match · {label(match.review_status)}</Text>
                           <Text style={s.confidence}>
                             {Math.round(match.confidence_score * 100)}% visual
                             confidence
@@ -380,7 +402,7 @@ export default function CreativeDashboardScreen() {
                             </Text>
                           </View>
                         </View>
-                        {match.review_status === "pending" ? (
+                        {match.review_status === "pending" || selected.status === "declined" ? (
                           <View style={s.matchActions}>
                             <TouchableOpacity
                               disabled={saving}
@@ -413,9 +435,9 @@ export default function CreativeDashboardScreen() {
                       </View>
                     ))
                   )}
-                  {selected.status === "pending" && (
+                  {(selected.status === "pending" || selected.status === "declined") && (
                     <View style={s.decision}>
-                      <Text style={s.sectionTitle}>Artwork decision</Text>
+                      <Text style={s.sectionTitle}>{selected.status === "declined" ? "Reconsider artwork" : "Artwork decision"}</Text>
                       {declining && (
                         <>
                           <Text style={s.reasonLabel}>
@@ -526,7 +548,7 @@ const s = StyleSheet.create({
   content: { width: "100%", maxWidth: 850, alignSelf: "center", padding: 24 },
   title: { fontSize: 24, fontWeight: "800", color: "#322B29" },
   lead: { fontSize: 13, color: "#746865", marginTop: 5, marginBottom: 18 },
-  tabs: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  tabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   tab: {
     borderWidth: 1,
     borderColor: "#E3D8CC",

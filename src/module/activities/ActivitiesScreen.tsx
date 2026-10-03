@@ -30,7 +30,7 @@ const STATUS_COPY = {
   },
   declined: {
     label: "Needs changes",
-    detail: "Review the moderator feedback and submit an updated post.",
+    detail: "Review the moderator feedback. You can appeal this rejection.",
   },
 };
 
@@ -151,6 +151,11 @@ export default function ActivitiesScreen() {
                     <Text style={styles.detail}>{copy.detail}</Text>
                     {artwork.status === 'declined' && !!artwork.decline_reason && (
                       <Text style={styles.reason}>Feedback: {artwork.decline_reason}</Text>
+                    )}
+                    {artwork.status === 'declined' && (
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Appeal rejection of ${artwork.title}`} style={styles.trackButton} onPress={() => router.push({ pathname: "/support", params: { artworkId: String(artwork.id) } })}>
+                        <Text style={styles.trackButtonText}>Appeal rejection</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 </View>
