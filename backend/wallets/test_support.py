@@ -262,3 +262,69 @@ class SupportTests(TestCase):
             self.assertEqual(SupportTicket.objects.get(pk=appeal).status, 'open')
         match.review_status = 'not_a_copy'; match.save()
         self.assertEqual(self.review_appealed_artwork(creative, status='approved').status_code, 200)
+
+    def test_safety_report_requires_and_links_exact_username(self):
+        for concern in ('suspicious', 'harassment'):
+            self.assertEqual(self.report(concern=concern, reference_id=None).status_code, 400)
+            self.assertEqual(self.report(concern=concern, reference_id=None, reported_username='unknown').status_code, 400)
+            self.assertEqual(self.report(concern=concern, reference_id=None, reported_username=self.buyer.username).status_code, 400)
+            response = self.report(concern=concern, reference_id=None, reported_username=' @ARTIST ')
+            self.assertEqual(response.status_code, 201)
+            ticket = SupportTicket.objects.get(pk=response.data['id'])
+            self.assertEqual(ticket.reported_user_id, self.artist.pk)
+            self.assertEqual(ticket.reported_username, 'artist')
+            self.assertNotIn('reported_user', response.data)
+        self.assertEqual(self.report(reported_username='artist').status_code, 400)
+
+    def test_reported_profile_is_scoped_to_customer_support_and_contains_no_private_data(self):
+        pk = self.report(concern='suspicious', reference_id=None, reported_username='artist').data['id']
+        response = self.call(self.support, ticket_id=pk, action='reported-profile')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], self.artist.pk)
+        self.assertEqual(response.data['artworks'][0]['id'], self.art.pk)
+        for key in ('email', 'contact_number', 'firebase_uid', 'date_of_birth', 'address'):
+            self.assertNotIn(key, response.data)
+        self.assertEqual(self.call(self.buyer, ticket_id=pk, action='reported-profile').status_code, 403)
+        self.assertEqual(self.call(self.other, ticket_id=pk, action='reported-profile').status_code, 403)
+        self.assertEqual(self.call(self.admin, ticket_id=pk, action='reported-profile').status_code, 403)
+        self.assertEqual(self.call(self.support, ticket_id=999999, action='reported-profile').status_code, 404)
+        self.artist.username = 'renamed_artist'; self.artist.save(update_fields=['username'])
+        response = self.call(self.support, ticket_id=pk, action='reported-profile')
+        self.assertEqual(response.data['id'], self.artist.pk)
+        self.assertEqual(response.data['username'], 'renamed_artist')
+        self.assertEqual(self.call(self.support, ticket_id=pk).data['reported_username'], 'artist')
+        buyer_pk = self.report(concern='harassment', reference_id=None, reported_username='other').data['id']
+        self.assertEqual(self.call(self.support, ticket_id=buyer_pk, action='reported-profile').data['role'], 'buyer')
+
+    def test_old_reports_remain_readable_without_linked_accounts(self):
+        ticket = SupportTicket.objects.create(requester=self.buyer, concern='suspicious', details='Existing legacy report')
+        self.assertEqual(self.call(self.buyer, ticket_id=ticket.pk).status_code, 200)
+        self.assertEqual(self.call(self.support, ticket_id=ticket.pk, action='reported-profile').status_code, 400)
+
+    def test_account_search_returns_only_matching_usernames_and_avatars(self):
+        from types import SimpleNamespace
+        from django.core.cache import cache
+        cache.clear()
+        self.assertEqual(self.call(None, data={'q': 'ar'}, action='accounts').status_code, 403)
+        with patch('wallets.support.firebase_auth.get_users') as lookup:
+            lookup.return_value = SimpleNamespace(users=[SimpleNamespace(uid='artist', photo_url='https://example.com/artist.jpg')])
+            self.assertEqual(self.call(self.buyer, data={'q': 'a'}, action='accounts').data['results'], [])
+            lookup.assert_not_called()
+            response = self.call(self.buyer, data={'q': ' @ART '}, action='accounts')
+            self.assertEqual(response.data['results'], [{'username': 'artist', 'profile_image': 'https://example.com/artist.jpg'}])
+            self.call(self.buyer, data={'q': 'art'}, action='accounts')
+            self.assertEqual(lookup.call_count, 1)
+            self.assertEqual(self.call(self.buyer, data={'q': 'buyer'}, action='accounts').data['results'], [])
+        cache.clear()
+
+    def test_account_search_is_bounded_and_survives_avatar_failure(self):
+        from django.core.cache import cache
+        cache.clear()
+        for n in range(10):
+            User.objects.create(username=f'searchmember{n}', firebase_uid=f'searchmember{n}', email=f'searchmember{n}@example.com')
+        with patch('wallets.support.firebase_auth.get_users', side_effect=RuntimeError('Avatar provider unavailable')):
+            rows = self.call(self.buyer, data={'q': 'searchmember'}, action='accounts').data['results']
+        self.assertEqual(len(rows), 8)
+        self.assertTrue(all(row['profile_image'] is None for row in rows))
+        self.assertTrue(all(set(row) == {'username', 'profile_image'} for row in rows))
+        cache.clear()

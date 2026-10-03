@@ -3,6 +3,8 @@ import binascii
 from io import BytesIO
 
 from PIL import Image, UnidentifiedImageError
+from firebase_admin import auth as firebase_auth
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -98,6 +100,7 @@ def page(request, rows):
 
 
 class TicketInput(serializers.Serializer):
+    reported_username = serializers.CharField(max_length=151, required=False, allow_blank=True, default='')
     concern = serializers.CharField(max_length=60)
     reference_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     details = serializers.CharField(max_length=4000, min_length=10)
@@ -132,6 +135,9 @@ def ticket_data(ticket, detail=False, viewer=None):
                   requester=ticket.requester.username or 'Member', status=ticket.status, department=department(ticket.concern),
                   created_at=ticket.created_at.isoformat(), updated_at=ticket.updated_at.isoformat(),
                   reference=reference_data(linked[1], linked[0]) if linked else None)
+    result['reported_username'] = ticket.reported_username
+    if viewer and viewer.role == User.Role.CUSTOMER_SUPPORT and ticket.reported_user_id:
+        result['reported_user'] = dict(id=ticket.reported_user_id, username=ticket.reported_user.username, role=ticket.reported_user.role)
     if detail:
         result.update(details=ticket.details, evidence=ticket.evidence, image_data=ticket.image_data,
                       replies=[dict(id=r.pk, message=r.message, is_staff=is_moderator(r.sender) and r.sender_id != ticket.requester_id,
@@ -157,6 +163,33 @@ class SupportView(AuthenticatedAPIView):
 
     def get(self, request, action=None, ticket_id=None):
         user = self.get_request_user(request)
+        if action == 'accounts':
+            query = request.query_params.get('q', '').strip().removeprefix('@')[:150]
+            if len(query) < 2:
+                return Response({'results': []})
+            members = list(User.objects.filter(username__icontains=query).exclude(pk=user.pk).order_by('username', 'pk')[:8])
+            pictures = {}
+            missing = []
+            for member in members:
+                picture = cache.get(f'support-avatar:{member.firebase_uid}')
+                if picture is None:
+                    missing.append(member)
+                else:
+                    pictures[member.firebase_uid] = picture
+            if missing:
+                try:
+                    records = firebase_auth.get_users([firebase_auth.UidIdentifier(member.firebase_uid) for member in missing])
+                    for record in records.users:
+                        picture = record.photo_url or ''
+                        pictures[record.uid] = picture
+                        cache.set(f'support-avatar:{record.uid}', picture, 300)
+                    for member in missing:
+                        if member.firebase_uid not in pictures:
+                            cache.set(f'support-avatar:{member.firebase_uid}', '', 300)
+                except Exception:
+                    # Account lookup remains usable while the avatar provider is unavailable.
+                    pass
+            return Response({'results': [dict(username=member.username, profile_image=pictures.get(member.firebase_uid) or None) for member in members]})
         if action == 'catalog':
             artist = user.role == User.Role.ARTIST
             return Response(dict(user_id=user.pk, is_moderator=is_moderator(user), role=user.role, department_label=DEPARTMENTS.get(user.role, ''), concerns=[c for c in CONCERNS if not c['artist_only'] or artist],
@@ -185,6 +218,21 @@ class SupportView(AuthenticatedAPIView):
             rows, next_offset = page(request, rows)
             return Response(dict(results=[reference_data(row, kind, image=True) for row in rows], next_offset=next_offset))
         if ticket_id:
+            if action == 'reported-profile':
+                if user.role != User.Role.CUSTOMER_SUPPORT:
+                    raise PermissionDenied('Customer Support access is required.')
+                ticket = self.ticket(request, ticket_id)
+                if department(ticket.concern) != user.role or not ticket.reported_user_id:
+                    raise ValidationError({'error': 'This report has no reported account profile.'})
+                member = ticket.reported_user
+                application = getattr(member, 'artist_application', None)
+                return Response(dict(
+                    id=member.pk, username=member.username,
+                    name=f'{member.first_name} {member.last_name}'.strip() or member.username,
+                    role=member.role, joined_at=member.created_at.isoformat(),
+                    bio=application.bio if application else '', restricted=member.access_restricted,
+                    artworks=list(member.artworks.filter(status=Artwork.Status.APPROVED).values('id', 'title', 'image_data')[:20]),
+                ))
             return Response(ticket_data(self.ticket(request, ticket_id), detail=True, viewer=user))
         rows = SupportTicket.objects.select_related('requester', 'payment__artwork', 'artwork', 'commission', 'auction__artwork')
         if request.query_params.get('admin') == '1':
@@ -242,6 +290,20 @@ class SupportView(AuthenticatedAPIView):
         data.is_valid(raise_exception=True)
         values = data.validated_data
         item = get_concern(values['concern'], user)
+        username = values.pop('reported_username', '').strip().removeprefix('@')
+        reported = {}
+        if item['id'] in ('suspicious', 'harassment'):
+            if not username:
+                raise ValidationError({'reported_username': 'Enter the username of the account you are reporting.'})
+            members = list(User.objects.filter(username__iexact=username)[:2])
+            if len(members) != 1:
+                raise ValidationError({'reported_username': 'Enter an exact, existing username.'})
+            member = members[0]
+            if member.pk == user.pk:
+                raise ValidationError({'reported_username': 'You cannot report your own account.'})
+            reported = dict(reported_user=member, reported_username=member.username)
+        elif username:
+            raise ValidationError({'reported_username': 'A reported username is only used for account safety reports.'})
         rows, kind = references(item, user)
         ref_id = values.pop('reference_id', None)
         linked = {}
@@ -264,7 +326,7 @@ class SupportView(AuthenticatedAPIView):
             ).exclude(status__in=[SupportTicket.Status.RESOLVED, SupportTicket.Status.CLOSED]).first()
             if existing:
                 return Response({'error': 'An active appeal already exists for this artwork. Open it in My reports to follow up.', 'ticket_id': existing.pk}, status=409)
-        ticket = SupportTicket.objects.create(requester=user, **linked, **values)
+        ticket = SupportTicket.objects.create(requester=user, **linked, **reported, **values)
         return Response(ticket_data(ticket, detail=True), status=201)
 
     @transaction.atomic
