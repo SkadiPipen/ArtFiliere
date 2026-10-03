@@ -1,4 +1,5 @@
 import SigningModal from '@/module/chat-negotiations/SigningModal';
+import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
 import { downloadPurchase, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -16,6 +17,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [deliveryCheckout, setDeliveryCheckout] = useState<{ agreementId: number; context: AuctionCheckoutContext } | null>(null);
   const [reviewing, setReviewing] = useState<number | null>(null);
   const [artistRating, setArtistRating] = useState(0);
   const [artworkRating, setArtworkRating] = useState(0);
@@ -92,6 +94,16 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
+      {deliveryCheckout && <AuctionDeliveryCheckout agreementId={deliveryCheckout.agreementId} context={deliveryCheckout.context}
+        busy={busy} onClose={() => setDeliveryCheckout(null)} onPay={async token => {
+          setBusy(true);
+          try {
+            const result = await purchaseRequest(`checkout/agreements/${deliveryCheckout.agreementId}/`, 'POST', { delivery_quote: token });
+            setDeliveryCheckout(null);
+            if (result.checkout_url) await Linking.openURL(result.checkout_url);
+            await load(true);
+          } finally { setBusy(false); }
+        }} />}
       {agreement !== null ? (
         <SigningModal id={agreement} onClose={() => setAgreement(null)} onSigned={() => load(true)} />
       ) : null}
@@ -146,6 +158,11 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
 
             {p.status === 'expired' ? (
               <TouchableOpacity disabled={busy} onPress={() => run(async () => {
+                const context = await purchaseRequest(`checkout/agreements/${p.agreement_id}/`);
+                if (context.is_auction && context.delivery_type === 'physical') {
+                  setDeliveryCheckout({ agreementId: p.agreement_id, context });
+                  return;
+                }
                 const result = await purchaseRequest(`checkout/agreements/${p.agreement_id}/`, 'POST');
                 if (result.checkout_url) await Linking.openURL(result.checkout_url);
                 await load(true);

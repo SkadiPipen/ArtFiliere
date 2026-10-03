@@ -5,6 +5,7 @@ import { MessageSquare, SlidersHorizontal } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -37,6 +38,7 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
   const [chatVisible, setChatVisible] = useState(false);
   const isDesktop = width >= 768;
+  const hasSidebar = Platform.OS === 'web' && isDesktop;
 
   useEffect(
     () =>
@@ -62,6 +64,8 @@ export default function Dashboard() {
         });
         if (!response.ok || cancelled) return;
         const profile = await response.json();
+        if (profile.role === "customer_support")
+          router.replace("/customer-service-dashboard");
         if (profile.role === "creative_moderator")
           router.replace("/creative-dashboard");
         if (profile.role === "platform_admin")
@@ -148,7 +152,7 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 120 + insets.bottom },
+          { paddingBottom: (hasSidebar ? 32 : 120) + insets.bottom },
         ]}
       >
         {isDesktop ? (
@@ -242,7 +246,7 @@ export default function Dashboard() {
 
       {/* Floating chat button */}
       <TouchableOpacity
-        style={[styles.msgFab, { bottom: 85 + insets.bottom }]}
+        style={[styles.msgFab, { bottom: (hasSidebar ? 24 : 85) + insets.bottom }]}
         onPress={handleOpenChat}
         accessibilityRole="button"
         accessibilityLabel="Open messages"

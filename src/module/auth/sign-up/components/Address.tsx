@@ -1,18 +1,5 @@
-<<<<<<< HEAD
-import { View, TextInput } from "react-native";
-import { COLORS } from "@/constants/colors";
-import Dropdown from "./Dropdown";
-import type {
-  SignUpFormData,
-  UpdateSignUpField,
-} from "@/module/auth/sign-up/types";
-=======
->>>>>>> efc1fe0ba81ac2e00045948e8df2288ba9e33ee8
 import {
   AddressOption,
-<<<<<<< HEAD
-} from "@/constants/addresses";
-=======
   getBarangaysByCity,
   getCitiesByProvince,
   getProvincesByRegion,
@@ -24,74 +11,12 @@ import type { SignUpFormData, UpdateSignUpField } from '@/module/auth/sign-up/ty
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TextInput, View } from 'react-native';
 import Dropdown from './Dropdown';
->>>>>>> efc1fe0ba81ac2e00045948e8df2288ba9e33ee8
 
 type AddressProps = {
   formData: SignUpFormData;
   updateField: UpdateSignUpField;
 };
 
-<<<<<<< HEAD
-function findCodeByName(
-  options: AddressOption[],
-  name: string,
-): string | undefined {
-  return options.find((option) => option.name === name)?.code;
-}
-
-export default function Address({ formData, updateField }: AddressProps) {
-  const regionCode = findCodeByName(REGIONS, formData.region);
-  const provinces = regionCode ? (PROVINCES_BY_REGION[regionCode] ?? []) : [];
-
-  const provinceCode = provinces.length
-    ? findCodeByName(provinces, formData.province)
-    : undefined;
-  const cities = provinceCode ? (CITIES_BY_PROVINCE[provinceCode] ?? []) : [];
-
-  const cityCode = cities.length
-    ? findCodeByName(cities, formData.city)
-    : undefined;
-  const barangays = cityCode
-    ? (BARANGAYS_BY_CITY[cityCode] ?? DEFAULT_BARANGAYS)
-    : DEFAULT_BARANGAYS;
-
-  return (
-    <View>
-      <Dropdown
-        placeholder="Region"
-        value={formData.region}
-        options={REGIONS}
-        onSelect={(name) => {
-          updateField("region", name);
-          updateField("province", "");
-          updateField("city", "");
-          updateField("barangay", "");
-        }}
-      />
-
-      <Dropdown
-        placeholder="Province"
-        value={formData.province}
-        options={provinces}
-        disabled={!formData.region}
-        onSelect={(name) => {
-          updateField("province", name);
-          updateField("city", "");
-          updateField("barangay", "");
-        }}
-      />
-
-      <Dropdown
-        placeholder="City / Municipality"
-        value={formData.city}
-        options={cities}
-        disabled={!formData.province}
-        onSelect={(name) => {
-          updateField("city", name);
-          updateField("barangay", "");
-        }}
-      />
-=======
 export default function Address({ formData, updateField }: AddressProps) {
   // Option lists
   const [regions, setRegions] = useState<AddressOption[]>([]);
@@ -247,7 +172,6 @@ export default function Address({ formData, updateField }: AddressProps) {
           onSelect={handleSelectCity}
         />
       )}
->>>>>>> efc1fe0ba81ac2e00045948e8df2288ba9e33ee8
 
       <TextInput
         style={inputStyle}
@@ -258,15 +182,6 @@ export default function Address({ formData, updateField }: AddressProps) {
         keyboardType="number-pad"
       />
 
-<<<<<<< HEAD
-      <Dropdown
-        placeholder="Barangay"
-        value={formData.barangay}
-        options={barangays}
-        disabled={!formData.city}
-        onSelect={(name) => updateField("barangay", name)}
-      />
-=======
       {/* Barangay */}
       {loadingBarangays ? (
         <ActivityIndicator color={COLORS.red || '#BC5454'} style={{ marginBottom: 14 }} />
@@ -279,7 +194,6 @@ export default function Address({ formData, updateField }: AddressProps) {
           onSelect={(name) => updateField('barangay', name)}
         />
       )}
->>>>>>> efc1fe0ba81ac2e00045948e8df2288ba9e33ee8
 
       <TextInput
         style={inputStyle}

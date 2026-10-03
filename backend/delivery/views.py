@@ -11,15 +11,32 @@ from .models import Order, RiderProfile
 from .serializers import OrderSerializer, RiderProfileSerializer
 from artworks.models import Artwork
 from rest_framework.parsers import MultiPartParser, FormParser
+import urllib.parse
+import urllib.request
+import json
 
 CEBU_COORDINATES = {
     'cebu city': (10.3157, 123.8854),
-    'mandaue': (10.3333, 123.9333),
-    'lapu-lapu': (10.3111, 123.9494),
-    'talisay': (10.2447, 123.8494),
     'lahug': (10.3382, 123.8967),
+    'it park': (10.3298, 123.9063),
+    'mabolo': (10.3225, 123.9144),
     'banilad': (10.3400, 123.9100),
+    'talamban': (10.3674, 123.9184),
+    'guadalupe': (10.3242, 123.8831),
+    'labangon': (10.3060, 123.8760),
+    'pardo': (10.2885, 123.8568),
+    'mandaue': (10.3333, 123.9333),
+    'subangdaku': (10.3283, 123.9261),
+    'tipolo': (10.3291, 123.9304),
+    'bakilid': (10.3350, 123.9380),
+    'lapu-lapu': (10.3111, 123.9494),
+    'mactan': (10.2980, 123.9790),
+    'marigondon': (10.2780, 123.9870),
+    'talisay': (10.2447, 123.8494),
+    'bulacao': (10.2760, 123.8540),
     'consolacion': (10.3778, 123.9575),
+    'liloan': (10.4000, 123.9980),
+    'minglanilla': (10.2450, 123.7970),
 }
 
 try:
@@ -29,6 +46,40 @@ except ImportError:
 
 User = get_user_model()
 
+def resolve_cebu_coords(address_str, default_coords=(10.3157, 123.8854)):
+    if not address_str:
+        return default_coords
+    addr_lower = str(address_str).lower()
+    for key, coords in CEBU_COORDINATES.items():
+        if key in addr_lower:
+            return coords
+    return default_coords
+
+def geocode_address_nominatim(address_str, fallback_coords=(10.3157, 123.8854)):
+    if not address_str:
+        return fallback_coords
+
+    search_query = str(address_str).strip()
+    if 'cebu' not in search_query.lower():
+        search_query += ", Cebu, Philippines"
+    elif 'philippines' not in search_query.lower():
+        search_query += ", Philippines"
+
+    encoded_query = urllib.parse.quote(search_query)
+    url = f"https://nominatim.openstreetmap.org/search?q={encoded_query}&format=json&limit=1&countrycodes=ph"
+    headers = {'User-Agent': 'ArtFiliere-DeliveryApp/1.0 (artfiliere.ph)'}
+
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=4) as response:
+            if response.status == 200:
+                payload = json.loads(response.read().decode('utf-8'))
+                if payload and len(payload) > 0:
+                    return (float(payload[0]['lat']), float(payload[0]['lon']))
+    except Exception as e:
+        print(f"[Nominatim Geocoding Warning] Could not geocode '{address_str}': {e}")
+
+    return resolve_cebu_coords(address_str, default_coords=fallback_coords)
 
 def format_address_str(addr):
     """Safely converts an Address model instance or dict to a plain string for JSON serialization."""
@@ -232,7 +283,8 @@ def serialize_active_order(order):
             "name": order.buyer_name or (order.payment.buyer.username if order.payment and order.payment.buyer else f"Customer #{order.buyerId}"),
             "phone": order.buyer_phone or "No phone on file",
             "address": order.address,
-            "instructions": "Please handle the artwork with care.",
+            "instructions": ((order.payment.agreement.delivery_details or {}).get('delivery_notes')
+                             if order.payment and order.payment.agreement else None) or "Please handle the artwork with care.",
             "latitude": float(order.delivery_latitude),
             "longitude": float(order.delivery_longitude),
         },
@@ -327,13 +379,30 @@ class RiderDeliveryHistoryView(APIView):
         queryset = Order.objects.filter(status__in=['DELIVERED', 'COMPLETED']).order_by('-id')
         data = []
         for o in queryset:
+            created_dt = getattr(o, 'created_at', None)
+            updated_dt = getattr(o, 'updated_at', created_dt)
+
+            fee_val = float(o.delivery_fee) if getattr(o, 'delivery_fee', None) else 129.50
+
             data.append({
                 "id": o.id,
+                "order_id": o.id,
+                "buyer_id": o.buyerId,
+                "customer_name": o.buyer_name or f"Customer #{o.buyerId}",
                 "artwork_title": getattr(o, 'item_name', f"Artwork #{o.id}"),
-                "customer_name": getattr(o, 'buyer_name', f"Customer #{o.buyerId}"),
+                "artwork_name": getattr(o, 'artist_name'),
+                "pickup_address": getattr(o, 'pickup_address'),
+                "delivery_address": o.address,
                 "address": o.address,
-                "delivered_at": o.created_at.isoformat() if hasattr(o, 'created_at') and o.created_at else None,
-                "fee": "129.50",
+                "status": o.status,
+                "paymentMethod": getattr(o, 'paymentMethod'),
+                "items_count": getattr(o, 'items_count', 1),
+                "distance": getattr(o, 'distance', '2.5 km'),
+                "estimatedTime": getattr(o, 'estimatedTime', '20 mins'),
+                "earnings": fee_val,
+                "rider_earnings": fee_val,
+                "created_at": created_dt.isoformat() if created_dt else None,
+                "delivered_at": updated_dt.isoformat() if updated_dt else (created_dt.isoformat() if created_dt else None),
             })
         return Response(data, status=status.HTTP_200_OK)
 
@@ -390,12 +459,12 @@ def create_delivery_and_notify_driver_order(
     payment,
     buyer_id, 
     address, 
-    payment_method='PAYPAL', 
-    artwork_title='Artwork Asset', 
+    payment_method, 
+    artwork_title, 
     price=0.0, 
     is_physical=True, 
     is_priority=False, 
-    distance_km=5.0,
+    distance_km=None,
     delivery_coords=None,
     pickup_coords=None
 ):
@@ -410,7 +479,7 @@ def create_delivery_and_notify_driver_order(
     artist = getattr(payment, 'artist', getattr(artwork, 'artist', None)) if (payment or artwork) else None
     buyer = getattr(payment, 'buyer', None)
 
-    # 1. Dynamic Artist Data
+    # Artist Details
     a_name = ''
     if artist:
         a_name = f"{getattr(artist, 'first_name', '')} {getattr(artist, 'last_name', '')}".strip() or artist.username
@@ -425,8 +494,10 @@ def create_delivery_and_notify_driver_order(
         pickup_str = format_address_str(a_addr) if a_addr else ''
     if not pickup_str and agreement and hasattr(agreement, 'delivery_details'):
         pickup_str = str(agreement.delivery_details.get('pickup_address', ''))
+    if not pickup_str:
+        pickup_str = 'Cebu City Art Studio, Cebu City'
 
-    # 2. Dynamic Buyer Data
+    # Buyer Details
     b_name = ''
     if buyer:
         b_name = f"{getattr(buyer, 'first_name', '')} {getattr(buyer, 'last_name', '')}".strip() or buyer.username
@@ -435,35 +506,50 @@ def create_delivery_and_notify_driver_order(
         b_prof = getattr(buyer, 'profile', None)
         b_phone = getattr(b_prof, 'phone_number', '') or getattr(buyer, 'phone', '')
 
-    # 3. Coordinates
-    p_lat = pickup_coords[0] if pickup_coords else 10.3157
-    p_lng = pickup_coords[1] if pickup_coords else 123.8854
-    d_lat = delivery_coords[0] if delivery_coords else 10.3333
-    d_lng = delivery_coords[1] if delivery_coords else 123.9333
+    delivery_info = (agreement.delivery_details or {}) if agreement else {}
+    b_name = delivery_info.get('recipient_name') or b_name
+    b_phone = delivery_info.get('recipient_phone') or b_phone
+
+    # Geocoding via Nominatim with Cebu Fallbacks
+    if pickup_coords:
+        p_lat, p_lng = pickup_coords
+    else:
+        p_lat, p_lng = geocode_address_nominatim(pickup_str, fallback_coords=(10.3157, 123.8854))
+
+    if delivery_coords:
+        d_lat, d_lng = delivery_coords
+    else:
+        d_lat, d_lng = geocode_address_nominatim(address, fallback_coords=(10.3333, 123.9333))
+
+    # Accurate Haversine Distance & Fare Calculation
+    calculated_km = calculate_haversine_km(p_lat, p_lng, d_lat, d_lng)
+    actual_distance = float(distance_km) if distance_km is not None else max(1.5, calculated_km)
 
     base_fare = 50.00
     base_km = 2.0
-    dist_fee = max(0.0, float(distance_km) - base_km) * 15.00
+    dist_fee = max(0.0, actual_distance - base_km) * 15.00
     prio_fee = 40.00 if is_priority else 0.00
     total_fee = round(base_fare + dist_fee + prio_fee, 2)
+    est_mins = int(actual_distance * 3 + 10)
 
+    # Persist Order
     order = Order.objects.create(
         payment=payment,
         buyerId=str(buyer_id),
         buyer_name=b_name or f"Customer #{buyer_id}",
         buyer_phone=b_phone,
-        address=address,
+        address=str(address),
         delivery_latitude=d_lat,
         delivery_longitude=d_lng,
         artist_name=a_name or 'Artist',
         artist_phone=a_phone,
-        pickup_address=pickup_str or 'Artist Studio',
+        pickup_address=pickup_str,
         pickup_latitude=p_lat,
         pickup_longitude=p_lng,
         item_name=artwork_title,
         items_count=1,
-        distance=f"{distance_km:.1f} km",
-        estimatedTime=f"{int(distance_km * 3 + 10)} mins",
+        distance=f"{actual_distance:.1f} km",
+        estimatedTime=f"{est_mins} mins",
         delivery_fee=total_fee,
         is_priority=is_priority,
         paymentMethod=payment_method,

@@ -81,17 +81,7 @@ export default function Header({ activeCategory, onSelectCategory }: HeaderProps
 
   return (
     <View style={[styles.header, isDesktop && styles.desktopHeader]}>
-      <View style={styles.innerContainer}>
-        {isDesktop && (
-          <View style={styles.desktopNav}>
-            <Text style={styles.brand}>ArtFiliere</Text>
-            <View style={styles.desktopLinks}>
-              <Text style={styles.activeLink}>Home</Text>
-              <Text style={styles.desktopLink}>About</Text>
-              <TouchableOpacity onPress={() => router.push('/(home)/profile')} style={styles.avatar}><Text style={styles.avatarText}>A</Text></TouchableOpacity>
-            </View>
-          </View>
-        )}
+      <View style={[styles.innerContainer, isDesktop && styles.desktopInnerContainer]}>
         <View style={styles.topRow}>
           <View style={styles.searchBox}>
             <TextInput style={styles.input} placeholder="Search Artwork..." placeholderTextColor="#888" />
@@ -168,6 +158,7 @@ const styles = StyleSheet.create({
   header: { backgroundColor: '#C15656', width: '100%', alignItems: 'center', paddingVertical: 12 },
   desktopHeader: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E9DDD6', paddingTop: 0 },
   innerContainer: { width: '100%', maxWidth: 1200, paddingHorizontal: 15 },
+  desktopInnerContainer: { maxWidth: '100%' },
   desktopNav: { height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { color: '#C15656', fontSize: 18, fontWeight: '800' },
   desktopLinks: { flexDirection: 'row', alignItems: 'center', gap: 24 },

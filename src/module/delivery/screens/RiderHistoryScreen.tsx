@@ -57,21 +57,25 @@ export default function RiderHistoryScreen() {
       const liveOrders = await fetchDeliveryHistory();
       console.log('>>> [FRONTEND] Fetched history payload:', liveOrders);
 
-      const rawList = Array.isArray(liveOrders)
-        ? liveOrders
-        : liveOrders?.results && Array.isArray(liveOrders.results)
-        ? liveOrders.results
+      const dataObj = liveOrders as any;
+      const rawList = Array.isArray(dataObj)
+        ? dataObj
+        : Array.isArray(dataObj.results)
+        ? dataObj.results
         : [];
 
       const formatted: HistoryOrder[] = rawList
         .filter((item: any) => item != null && typeof item === 'object')
         .map((item: any) => {
-          const orderDate = item?.created_at ? new Date(item.created_at) : new Date();
+          const rawDateStr = item?.delivered_at || item?.created_at;
+          const orderDate = rawDateStr ? new Date(rawDateStr) : new Date();
           const validDate = isNaN(orderDate.getTime()) ? new Date() : orderDate;
           const timeStr = validDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
           const safeId = item?.id ?? Math.floor(Math.random() * 10000);
           const safeBuyerId = item?.buyerId ?? item?.buyer_id ?? 'Unknown';
+
+          const earningsNumber = Number(item?.rider_earnings ?? item?.earnings ?? item?.delivery_fee ?? 129.50);
 
           return {
             id: safeId,
@@ -83,7 +87,7 @@ export default function RiderHistoryScreen() {
             items_count: Number(item?.items_count) || 1,
             distance: item?.distance || '1.0 km',
             estimatedTime: item?.estimatedTime || '15 mins',
-            earnings: Number(item?.rider_earnings ?? item?.earnings ?? 85.00),
+            earnings: earningsNumber,
             deliveredAt: timeStr,
             rawDate: validDate,
             artistName: item?.artist_name || 'ArtFiliere Partner Studio',

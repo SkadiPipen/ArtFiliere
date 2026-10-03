@@ -128,6 +128,16 @@ class ArtworkCheckoutView(AuthenticatedAPIView):
 
 class AgreementCheckoutView(AuthenticatedAPIView):
     """Creates a checkout only after both parties have accepted the same agreement revision."""
+    def get(self, request, agreement_id):
+        from .auction_delivery import checkout_context
+        buyer = self.get_request_user(request)
+        if not buyer:
+            return Response({'error': 'Authentication is required.'}, status=401)
+        agreement = Agreement.objects.select_related('buyer').filter(pk=agreement_id, buyer=buyer).first()
+        if not agreement:
+            return Response({'error': 'Agreement not found.'}, status=404)
+        return Response(checkout_context(agreement))
+
     @transaction.atomic
     def post(self, request, agreement_id):
         buyer = self.get_request_user(request)
@@ -157,7 +167,17 @@ class AgreementCheckoutView(AuthenticatedAPIView):
 
         if physical(agreement.artwork) != (agreement.delivery_type == 'physical'):
             return Response({"error": "Artwork delivery type changed. A new agreement is required."}, status=409)
-        if agreement.delivery_type == 'physical' and not agreement.delivery_details:
+        from .auction_delivery import auction_agreement, verify_delivery
+        is_auction = auction_agreement(agreement)
+        if agreement.delivery_type == 'physical' and is_auction:
+            try:
+                details, fee = verify_delivery(agreement, request.data.get('delivery_quote'))
+            except ValueError as error:
+                return Response({'error': str(error), 'delivery_required': True}, status=400)
+            agreement.delivery_details = details
+            agreement.delivery_fee = fee
+            agreement.save(update_fields=['delivery_details', 'delivery_fee'])
+        elif agreement.delivery_type == 'physical' and not agreement.delivery_details:
             return Response({"error": "This physical agreement has no delivery details. Please negotiate a new agreement."}, status=409)
         artwork_png = None
         if agreement.delivery_type == 'digital':
@@ -165,7 +185,7 @@ class AgreementCheckoutView(AuthenticatedAPIView):
                 artwork_png = png_bytes(agreement.artwork)
             except ValueError as error:
                 return Response({"error": str(error)}, status=409)
-        gross = agreement.price
+        gross = agreement.price + agreement.delivery_fee if is_auction else agreement.price
         artwork_amount = gross - agreement.delivery_fee
         platform_fee = (artwork_amount - artwork_amount / (Decimal("1") + PLATFORM_FEE_RATE)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         session = PaymentSession.objects.create(
@@ -270,7 +290,7 @@ class PlatformAdminWalletView(AuthenticatedAPIView):
                 "artwork": payment.artwork.title, "artist": payment.artist.username, "buyer": payment.buyer.username,
                 "gross_amount": str(payment.gross_amount), "artist_amount": str(payment.artist_amount), "platform_fee": str(payment.platform_fee),
                 "paid_at": payment.paid_at.isoformat() if payment.paid_at else None,
-                "can_release": payment.status == PaymentSession.Status.PAID and not payment.ledger_entries.filter(entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE).exists(),
+                "can_release": payment.status == PaymentSession.Status.PAID and not payment.ledger_entries.filter(entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE).exists() and not payment.incident_reports.filter(status__in=['open', 'under_review']).exists() and not payment.cancellation_requests.filter(status__in=['pending', 'approved']).exists() and not payment.financial_authorizations.filter(status='authorized').exists(),
             } for payment in payments],
         })
 
@@ -285,6 +305,8 @@ class PlatformAdminWalletView(AuthenticatedAPIView):
                 return Response({"error": "Paid transaction not found."}, status=status.HTTP_404_NOT_FOUND)
             wallet = WalletAccount.objects.select_for_update().get(user=payment.artist)
             if action == "release":
+                if payment.incident_reports.filter(status__in=['open', 'under_review']).exists() or payment.cancellation_requests.filter(status__in=['pending', 'approved']).exists() or payment.financial_authorizations.filter(status='authorized').exists():
+                    return Response({'error': 'Resolve open reports, transaction requests, and pending compensation authorizations before releasing funds.'}, status=409)
                 if WalletLedgerEntry.objects.filter(payment_session=payment, entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE).exists():
                     return Response({"error": "Funds have already been released."}, status=status.HTTP_409_CONFLICT)
                 WalletLedgerEntry.objects.create(wallet=wallet, payment_session=payment, entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE, amount=payment.artist_amount)
@@ -308,13 +330,16 @@ class PlatformAdminRequestView(AuthenticatedAPIView):
         rows = CancellationReturnRequest.objects.select_related("requester", "payment_session__artwork").all()[:100]
         return Response([{**serialize_request(row), "requester": row.requester.username} for row in rows])
 
+    @transaction.atomic
     def patch(self, request, request_id):
         decision = request.data.get("status")
         if decision not in {CancellationReturnRequest.Status.APPROVED, CancellationReturnRequest.Status.DECLINED}:
             return Response({"error": "status must be approved or declined."}, status=400)
-        row = CancellationReturnRequest.objects.filter(id=request_id, status=CancellationReturnRequest.Status.PENDING).first()
+        row = CancellationReturnRequest.objects.select_for_update().filter(id=request_id, status=CancellationReturnRequest.Status.PENDING).first()
         if not row:
             return Response({"error": "Pending request not found."}, status=404)
+        if decision == 'approved' and row.request_type == 'cancellation' and row.counterpart_decision != 'accepted':
+            return Response({'error': 'The other party must accept the cancellation before approval.'}, status=409)
         row.status, row.admin_note, row.reviewed_by, row.reviewed_at = decision, (request.data.get("admin_note") or "").strip(), self.get_request_user(request), timezone.now()
         row.save(update_fields=["status", "admin_note", "reviewed_by", "reviewed_at"])
         ActivityLog.objects.create(user=row.requester, action=f"{row.request_type}_{decision}", description=f"Your {row.request_type} request for transaction #{row.payment_session_id} was {decision}.", reference_type="payment_session", reference_id=row.payment_session_id)

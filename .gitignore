@@ -58,3 +58,4 @@ __pycache__/
 *.py[cod]
 tools/foundry/
 tools/foundry/
+.local/

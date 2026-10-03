@@ -3,6 +3,7 @@ import ContractPanel from '@/module/chat-negotiations/ContractPanel';
 import { Contract, contractRequest, isAgreed, readApiResponse } from '@/module/chat-negotiations/contracts';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import MyPurchases from '@/module/profile/MyPurchases';
+import AuctionDeliveryCheckout, { AuctionCheckoutContext } from './components/AuctionDeliveryCheckout';
 import API_URL from '@/services/api';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, MoreHorizontal } from 'lucide-react-native';
@@ -61,6 +62,7 @@ export default function CartScreen() {
   };
 
   const [checkoutError, setCheckoutError] = useState('');
+  const [deliveryCheckout, setDeliveryCheckout] = useState<{ agreementId: number; context: AuctionCheckoutContext } | null>(null);
   const [showPurchases, setShowPurchases] = useState(false);
   const { cartItems, removeFromCart, loading: cartLoading, error: cartError, refreshCart } = useCart();
   const refreshCartRef = useRef(refreshCart);
@@ -263,7 +265,7 @@ export default function CartScreen() {
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (deliveryQuote?: string) => {
     setCheckoutError('');
     const selected = filteredItems.filter((item) => selectedItems.includes(item.id));
     if (selected.length !== 1) {
@@ -289,16 +291,28 @@ export default function CartScreen() {
       }
       const user = auth.currentUser;
       if (!user) throw new Error('Please log in again.');
+      if (!deliveryQuote) {
+        const contextResponse = await fetch(`${API_URL}/api/checkout/agreements/${agreement.id}/`, {
+          headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+        });
+        const context = await readApiResponse(contextResponse);
+        if (!contextResponse.ok) throw new Error(context.error || 'Unable to load checkout.');
+        if (context.is_auction && context.delivery_type === 'physical') {
+          setDeliveryCheckout({ agreementId: agreement.id, context });
+          return;
+        }
+      }
       const response = await fetch(`${API_URL}/api/checkout/agreements/${agreement.id}/`, {
         method: 'POST', 
         headers: { 
           Authorization: `Bearer ${await user.getIdToken()}`, 
           'Content-Type': 'application/json' 
         }, 
-        body: JSON.stringify({}),
+        body: JSON.stringify(deliveryQuote ? { delivery_quote: deliveryQuote } : {}),
       });
       const data = await readApiResponse(response);
       if (!response.ok || (!data.simulated && !data.checkout_url)) throw new Error(data.error || 'Unable to create checkout.');
+      setDeliveryCheckout(null);
       
       // Mark as paid/dismissed so it immediately disappears from cart
       dismissContract(String(agreement.id), `contract-art-${agreement.id}`);
@@ -313,6 +327,7 @@ export default function CartScreen() {
       }
     } catch (error: any) {
       setCheckoutError(error.message || 'Unable to open checkout.');
+      if (deliveryQuote) throw error;
     } finally {
       setCheckingOut(false);
     }
@@ -320,6 +335,8 @@ export default function CartScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {deliveryCheckout && <AuctionDeliveryCheckout agreementId={deliveryCheckout.agreementId} context={deliveryCheckout.context}
+        busy={checkingOut} onClose={() => setDeliveryCheckout(null)} onPay={handleCheckout} />}
       {!!checkoutError && (
         <View accessibilityRole="alert" style={{ position: 'absolute', bottom: 140, left: 16, right: 16, zIndex: 20, backgroundColor: '#FFF1F2', borderColor: '#BE123C', borderWidth: 1, borderRadius: 8, padding: 14 }}>
           <Text style={{ color: '#9F1239' }}>{checkoutError}</Text>
@@ -416,7 +433,7 @@ export default function CartScreen() {
           selectedCount={selectedItems.length}
           totalPrice={total}
           onToggleSelectAll={toggleSelectAll}
-          onCheckout={handleCheckout}
+          onCheckout={() => handleCheckout()}
           checkingOut={checkingOut}
           signaturesRequired={filteredItems.some(item => selectedItems.includes(item.id) && !!agreedFor(item.artworkId) && !agreedFor(item.artworkId)?.fully_signed)}
           onSign={() => {

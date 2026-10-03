@@ -232,7 +232,10 @@ export default function UserProfile() {
               </TouchableOpacity>
             </>
           )}
-          <TransactionGrid role={profileData?.role} />
+            <TouchableOpacity onPress={() => router.push('/report-management')} style={{ padding: 16, marginVertical: 12, backgroundColor: '#F6E8E1', borderRadius: 12 }}>
+              <Text style={{ color: '#A74646', fontWeight: '700' }}>Reports, disputes & transaction requests</Text>
+            </TouchableOpacity>
+            <TransactionGrid role={profileData?.role} />
           <PurchaseGallery />
         </View>
       </ScrollView>

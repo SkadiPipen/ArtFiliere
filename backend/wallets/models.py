@@ -66,10 +66,67 @@ class CancellationReturnRequest(models.Model):
     reviewed_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name="reviewed_cancellation_requests")
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
+    counterpart_decision = models.CharField(max_length=12, default='pending')
+    counterpart_note = models.TextField(blank=True, default='')
+    responded_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='transaction_request_responses')
+    responded_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
         constraints = [models.UniqueConstraint(fields=["payment_session", "requester", "request_type"], condition=Q(status="pending"), name="unique_open_request_type")]
+
+
+class IncidentReport(models.Model):
+    reporter = models.ForeignKey(User, on_delete=models.PROTECT, related_name='incident_reports')
+    reported_user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='reports_received')
+    payment = models.ForeignKey(PaymentSession, on_delete=models.PROTECT, null=True, blank=True, related_name='incident_reports')
+    category = models.CharField(max_length=20, default='incident')
+    title = models.CharField(max_length=150)
+    description = models.TextField()
+    evidence = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=20, default='open')
+    resolution = models.TextField(blank=True, default='')
+    reviewed_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='reports_reviewed')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class ReportAttachment(models.Model):
+    report = models.ForeignKey(IncidentReport, on_delete=models.CASCADE, related_name='attachments')
+    name = models.CharField(max_length=200)
+    content_type = models.CharField(max_length=100)
+    content = models.BinaryField()
+    size = models.PositiveIntegerField()
+
+
+class AccountActionRequest(models.Model):
+    report = models.ForeignKey(IncidentReport, on_delete=models.PROTECT, related_name='account_actions')
+    target = models.ForeignKey(User, on_delete=models.PROTECT, related_name='account_action_requests')
+    initiated_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='initiated_account_actions')
+    action = models.CharField(max_length=12)
+    reason = models.TextField()
+    duration_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    status = models.CharField(max_length=12, default='pending')
+    reviewed_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='approved_account_actions')
+    review_note = models.TextField(blank=True, default='')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_account_action')]
+
+
+class FinancialAuthorization(models.Model):
+    report = models.ForeignKey(IncidentReport, on_delete=models.PROTECT, related_name='financial_authorizations')
+    payment = models.ForeignKey(PaymentSession, on_delete=models.PROTECT, related_name='financial_authorizations')
+    recipient = models.ForeignKey(User, on_delete=models.PROTECT, related_name='financial_authorizations_received')
+    authorized_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='financial_authorizations_given')
+    kind = models.CharField(max_length=20, choices=[('refund', 'Refund'), ('wallet_credit', 'Wallet credit')])
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reason = models.TextField()
+    status = models.CharField(max_length=20, default='authorized')
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class WalletLedgerEntry(models.Model):

@@ -1,1 +1,359 @@
-{"abi":[{"type":"function","name":"artworks","inputs":[{"name":"","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"artworkHash","type":"bytes32","internalType":"bytes32"},{"name":"registeredBy","type":"address","internalType":"address"},{"name":"timestamp","type":"uint256","internalType":"uint256"},{"name":"exists","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"getArtwork","inputs":[{"name":"id","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bytes32","internalType":"bytes32"},{"name":"","type":"address","internalType":"address"},{"name":"","type":"uint256","internalType":"uint256"},{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"getLicense","inputs":[{"name":"agreementId","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bytes32","internalType":"bytes32"},{"name":"","type":"address","internalType":"address"},{"name":"","type":"uint256","internalType":"uint256"},{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"getSale","inputs":[{"name":"paymentId","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bytes32","internalType":"bytes32"},{"name":"","type":"address","internalType":"address"},{"name":"","type":"uint256","internalType":"uint256"},{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"recordLicense","inputs":[{"name":"agreementId","type":"uint256","internalType":"uint256"},{"name":"documentHash","type":"bytes32","internalType":"bytes32"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"recordSale","inputs":[{"name":"paymentId","type":"uint256","internalType":"uint256"},{"name":"saleHash","type":"bytes32","internalType":"bytes32"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"registerArtwork","inputs":[{"name":"artworkId","type":"uint256","internalType":"uint256"},{"name":"artworkHash","type":"bytes32","internalType":"bytes32"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"verifyArtwork","inputs":[{"name":"id","type":"uint256","internalType":"uint256"},{"name":"h","type":"bytes32","internalType":"bytes32"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"verifyLicense","inputs":[{"name":"agreementId","type":"uint256","internalType":"uint256"},{"name":"documentHash","type":"bytes32","internalType":"bytes32"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"verifySale","inputs":[{"name":"paymentId","type":"uint256","internalType":"uint256"},{"name":"saleHash","type":"bytes32","internalType":"bytes32"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"event","name":"ArtworkRegistered","inputs":[{"name":"artworkId","type":"uint256","indexed":true,"internalType":"uint256"},{"name":"artworkHash","type":"bytes32","indexed":false,"internalType":"bytes32"},{"name":"registeredBy","type":"address","indexed":true,"internalType":"address"},{"name":"timestamp","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"type":"event","name":"ArtworkSold","inputs":[{"name":"paymentId","type":"uint256","indexed":true,"internalType":"uint256"},{"name":"saleHash","type":"bytes32","indexed":false,"internalType":"bytes32"},{"name":"recordedBy","type":"address","indexed":true,"internalType":"address"},{"name":"timestamp","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"type":"event","name":"LicenseRecorded","inputs":[{"name":"agreementId","type":"uint256","indexed":true,"internalType":"uint256"},{"name":"documentHash","type":"bytes32","indexed":false,"internalType":"bytes32"},{"name":"recordedBy","type":"address","indexed":true,"internalType":"address"},{"name":"timestamp","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false}],"bytecode":{"object":"0x608060405234801561000f575f80fd5b50610d8d8061001d5f395ff3fe608060405234801561000f575f80fd5b506004361061009c575f3560e01c8063a9f3df1211610064578063a9f3df121461016e578063b2dd12121461018a578063c9ad9797146101bd578063d5c79ce4146101ed578063d8f6d5961461021d5761009c565b8063167ddf6e146100a05780634b602673146100d35780637f3023e91461010657806393a82c601461012257806399edb74014610152575b5f80fd5b6100ba60048036038101906100b59190610a79565b610250565b6040516100ca9493929190610b24565b60405180910390f35b6100ed60048036038101906100e89190610a79565b610317565b6040516100fd9493929190610b24565b60405180910390f35b610120600480360381019061011b9190610b91565b61036d565b005b61013c60048036038101906101379190610b91565b6104e6565b6040516101499190610bcf565b60405180910390f35b61016c60048036038101906101679190610b91565b61052e565b005b61018860048036038101906101839190610b91565b6106a9565b005b6101a4600480360381019061019f9190610a79565b610824565b6040516101b49493929190610b24565b60405180910390f35b6101d760048036038101906101d29190610b91565b6108ec565b6040516101e49190610bcf565b60405180910390f35b61020760048036038101906102029190610b91565b610934565b6040516102149190610bcf565b60405180910390f35b61023760048036038101906102329190610a79565b61097a565b6040516102479493929190610b24565b60405180910390f35b5f805f805f805f8781526020019081526020015f206040518060800160405290815f8201548152602001600182015f9054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200160028201548152602001600382015f9054906101000a900460ff1615151515815250509050805f01518160200151826040015183606001519450945094509450509193509193565b5f602052805f5260405f205f91509050805f015490806001015f9054906101000a900473ffffffffffffffffffffffffffffffffffffffff1690806002015490806003015f9054906101000a900460ff16905084565b5f808381526020019081526020015f206003015f9054906101000a900460ff16156103cd576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016103c490610c42565b60405180910390fd5b60405180608001604052808281526020013373ffffffffffffffffffffffffffffffffffffffff168152602001428152602001600115158152505f808481526020019081526020015f205f820151815f01556020820151816001015f6101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550604082015181600201556060820151816003015f6101000a81548160ff0219169083151502179055509050503373ffffffffffffffffffffffffffffffffffffffff16827f4ec1d99eff68f84ca9ee715ebfdf8afc99cf2aadb001d284383d2c6615b4722b83426040516104da929190610c60565b60405180910390a35050565b5f60015f8481526020019081526020015f206003015f9054906101000a900460ff16801561052657508160015f8581526020019081526020015f205f0154145b905092915050565b60015f8381526020019081526020015f206003015f9054906101000a900460ff161561058f576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161058690610cd1565b60405180910390fd5b60405180608001604052808281526020013373ffffffffffffffffffffffffffffffffffffffff1681526020014281526020016001151581525060015f8481526020019081526020015f205f820151815f01556020820151816001015f6101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550604082015181600201556060820151816003015f6101000a81548160ff0219169083151502179055509050503373ffffffffffffffffffffffffffffffffffffffff16827f2471ca76c404441c54c68fbcc6b0d51dd4a88aa9c9d6e56f651487c96ac09a01834260405161069d929190610c60565b60405180910390a35050565b60025f8381526020019081526020015f206003015f9054906101000a900460ff161561070a576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161070190610d39565b60405180910390fd5b60405180608001604052808281526020013373ffffffffffffffffffffffffffffffffffffffff1681526020014281526020016001151581525060025f8481526020019081526020015f205f820151815f01556020820151816001015f6101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550604082015181600201556060820151816003015f6101000a81548160ff0219169083151502179055509050503373ffffffffffffffffffffffffffffffffffffffff16827fc2c5a1c6aaa005a64d1940a40b2ec36785bebbae341c3cafa1e5acef67fed22d8342604051610818929190610c60565b60405180910390a35050565b5f805f805f60015f8781526020019081526020015f206040518060800160405290815f8201548152602001600182015f9054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200160028201548152602001600382015f9054906101000a900460ff1615151515815250509050805f01518160200151826040015183606001519450945094509450509193509193565b5f60025f8481526020019081526020015f206003015f9054906101000a900460ff16801561092c57508160025f8581526020019081526020015f205f0154145b905092915050565b5f805f8481526020019081526020015f206003015f9054906101000a900460ff1680156109725750815f808581526020019081526020015f205f0154145b905092915050565b5f805f805f60025f8781526020019081526020015f206040518060800160405290815f8201548152602001600182015f9054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200160028201548152602001600382015f9054906101000a900460ff1615151515815250509050805f01518160200151826040015183606001519450945094509450509193509193565b5f80fd5b5f819050919050565b610a5881610a46565b8114610a62575f80fd5b50565b5f81359050610a7381610a4f565b92915050565b5f60208284031215610a8e57610a8d610a42565b5b5f610a9b84828501610a65565b91505092915050565b5f819050919050565b610ab681610aa4565b82525050565b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f610ae582610abc565b9050919050565b610af581610adb565b82525050565b610b0481610a46565b82525050565b5f8115159050919050565b610b1e81610b0a565b82525050565b5f608082019050610b375f830187610aad565b610b446020830186610aec565b610b516040830185610afb565b610b5e6060830184610b15565b95945050505050565b610b7081610aa4565b8114610b7a575f80fd5b50565b5f81359050610b8b81610b67565b92915050565b5f8060408385031215610ba757610ba6610a42565b5b5f610bb485828601610a65565b9250506020610bc585828601610b7d565b9150509250929050565b5f602082019050610be25f830184610b15565b92915050565b5f82825260208201905092915050565b7f416c7265616479207265676973746572656400000000000000000000000000005f82015250565b5f610c2c601283610be8565b9150610c3782610bf8565b602082019050919050565b5f6020820190508181035f830152610c5981610c20565b9050919050565b5f604082019050610c735f830185610aad565b610c806020830184610afb565b9392505050565b7f4c6963656e736520616c7265616479207265636f7264656400000000000000005f82015250565b5f610cbb601883610be8565b9150610cc682610c87565b602082019050919050565b5f6020820190508181035f830152610ce881610caf565b9050919050565b7f53616c6520616c7265616479207265636f7264656400000000000000000000005f82015250565b5f610d23601583610be8565b9150610d2e82610cef565b602082019050919050565b5f6020820190508181035f830152610d5081610d17565b905091905056fea264697066735822122062f1748c37e04b2158aba47fed7806745651c6e16acc806d398b048f1cb6be3c64736f6c63430008140033","sourceMap":"149:3071:0:-:0;;;;;;;;;;;;;;;;;;;","linkReferences":{}},"deployedBytecode":{"object":"0x608060405234801561000f575f80fd5b506004361061009c575f3560e01c8063a9f3df1211610064578063a9f3df121461016e578063b2dd12121461018a578063c9ad9797146101bd578063d5c79ce4146101ed578063d8f6d5961461021d5761009c565b8063167ddf6e146100a05780634b602673146100d35780637f3023e91461010657806393a82c601461012257806399edb74014610152575b5f80fd5b6100ba60048036038101906100b59190610a79565b610250565b6040516100ca9493929190610b24565b60405180910390f35b6100ed60048036038101906100e89190610a79565b610317565b6040516100fd9493929190610b24565b60405180910390f35b610120600480360381019061011b9190610b91565b61036d565b005b61013c60048036038101906101379190610b91565b6104e6565b6040516101499190610bcf565b60405180910390f35b61016c60048036038101906101679190610b91565b61052e565b005b61018860048036038101906101839190610b91565b6106a9565b005b6101a4600480360381019061019f9190610a79565b610824565b6040516101b49493929190610b24565b60405180910390f35b6101d760048036038101906101d29190610b91565b6108ec565b6040516101e49190610bcf565b60405180910390f35b61020760048036038101906102029190610b91565b610934565b6040516102149190610bcf565b60405180910390f35b61023760048036038101906102329190610a79565b61097a565b6040516102479493929190610b24565b60405180910390f35b5f805f805f805f8781526020019081526020015f206040518060800160405290815f8201548152602001600182015f9054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200160028201548152602001600382015f9054906101000a900460ff1615151515815250509050805f01518160200151826040015183606001519450945094509450509193509193565b5f602052805f5260405f205f91509050805f015490806001015f9054906101000a900473ffffffffffffffffffffffffffffffffffffffff1690806002015490806003015f9054906101000a900460ff16905084565b5f808381526020019081526020015f206003015f9054906101000a900460ff16156103cd576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016103c490610c42565b60405180910390fd5b60405180608001604052808281526020013373ffffffffffffffffffffffffffffffffffffffff168152602001428152602001600115158152505f808481526020019081526020015f205f820151815f01556020820151816001015f6101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550604082015181600201556060820151816003015f6101000a81548160ff0219169083151502179055509050503373ffffffffffffffffffffffffffffffffffffffff16827f4ec1d99eff68f84ca9ee715ebfdf8afc99cf2aadb001d284383d2c6615b4722b83426040516104da929190610c60565b60405180910390a35050565b5f60015f8481526020019081526020015f206003015f9054906101000a900460ff16801561052657508160015f8581526020019081526020015f205f0154145b905092915050565b60015f8381526020019081526020015f206003015f9054906101000a900460ff161561058f576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161058690610cd1565b60405180910390fd5b60405180608001604052808281526020013373ffffffffffffffffffffffffffffffffffffffff1681526020014281526020016001151581525060015f8481526020019081526020015f205f820151815f01556020820151816001015f6101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550604082015181600201556060820151816003015f6101000a81548160ff0219169083151502179055509050503373ffffffffffffffffffffffffffffffffffffffff16827f2471ca76c404441c54c68fbcc6b0d51dd4a88aa9c9d6e56f651487c96ac09a01834260405161069d929190610c60565b60405180910390a35050565b60025f8381526020019081526020015f206003015f9054906101000a900460ff161561070a576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161070190610d39565b60405180910390fd5b60405180608001604052808281526020013373ffffffffffffffffffffffffffffffffffffffff1681526020014281526020016001151581525060025f8481526020019081526020015f205f820151815f01556020820151816001015f6101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550604082015181600201556060820151816003015f6101000a81548160ff0219169083151502179055509050503373ffffffffffffffffffffffffffffffffffffffff16827fc2c5a1c6aaa005a64d1940a40b2ec36785bebbae341c3cafa1e5acef67fed22d8342604051610818929190610c60565b60405180910390a35050565b5f805f805f60015f8781526020019081526020015f206040518060800160405290815f8201548152602001600182015f9054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200160028201548152602001600382015f9054906101000a900460ff1615151515815250509050805f01518160200151826040015183606001519450945094509450509193509193565b5f60025f8481526020019081526020015f206003015f9054906101000a900460ff16801561092c57508160025f8581526020019081526020015f205f0154145b905092915050565b5f805f8481526020019081526020015f206003015f9054906101000a900460ff1680156109725750815f808581526020019081526020015f205f0154145b905092915050565b5f805f805f60025f8781526020019081526020015f206040518060800160405290815f8201548152602001600182015f9054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200160028201548152602001600382015f9054906101000a900460ff1615151515815250509050805f01518160200151826040015183606001519450945094509450509193509193565b5f80fd5b5f819050919050565b610a5881610a46565b8114610a62575f80fd5b50565b5f81359050610a7381610a4f565b92915050565b5f60208284031215610a8e57610a8d610a42565b5b5f610a9b84828501610a65565b91505092915050565b5f819050919050565b610ab681610aa4565b82525050565b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f610ae582610abc565b9050919050565b610af581610adb565b82525050565b610b0481610a46565b82525050565b5f8115159050919050565b610b1e81610b0a565b82525050565b5f608082019050610b375f830187610aad565b610b446020830186610aec565b610b516040830185610afb565b610b5e6060830184610b15565b95945050505050565b610b7081610aa4565b8114610b7a575f80fd5b50565b5f81359050610b8b81610b67565b92915050565b5f8060408385031215610ba757610ba6610a42565b5b5f610bb485828601610a65565b9250506020610bc585828601610b7d565b9150509250929050565b5f602082019050610be25f830184610b15565b92915050565b5f82825260208201905092915050565b7f416c7265616479207265676973746572656400000000000000000000000000005f82015250565b5f610c2c601283610be8565b9150610c3782610bf8565b602082019050919050565b5f6020820190508181035f830152610c5981610c20565b9050919050565b5f604082019050610c735f830185610aad565b610c806020830184610afb565b9392505050565b7f4c6963656e736520616c7265616479207265636f7264656400000000000000005f82015250565b5f610cbb601883610be8565b9150610cc682610c87565b602082019050919050565b5f6020820190508181035f830152610ce881610caf565b9050919050565b7f53616c6520616c7265616479207265636f7264656400000000000000000000005f82015250565b5f610d23601583610be8565b9150610d2e82610cef565b602082019050919050565b5f6020820190508181035f830152610d5081610d17565b905091905056fea264697066735822122062f1748c37e04b2158aba47fed7806745651c6e16acc806d398b048f1cb6be3c64736f6c63430008140033","sourceMap":"149:3071:0:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1295:207;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;;;;;;;;;:::i;:::-;;;;;;;;448:43;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;;;;;;;;;:::i;:::-;;;;;;;;968:321;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;2817:209;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;;;;;;:::i;:::-;;;;;;;;1665:342;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;2013:306;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;2325:245;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;;;;;;;;;:::i;:::-;;;;;;;;3032:186;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;;;;;;:::i;:::-;;;;;;;;1508:151;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;;;;;;:::i;:::-;;;;;;;;2576:235;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;;;;;;;;;:::i;:::-;;;;;;;;1295:207;1350:7;1359;1368;1377:4;1393:16;1412:8;:12;1421:2;1412:12;;;;;;;;;;;1393:31;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1442:1;:13;;;1457:1;:14;;;1473:1;:11;;;1486:1;:8;;;1434:61;;;;;;;;;1295:207;;;;;:::o;448:43::-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;:::o;968:321::-;1061:8;:19;1070:9;1061:19;;;;;;;;;;;:26;;;;;;;;;;;;1060:27;1052:58;;;;;;;;;;;;:::i;:::-;;;;;;;;;1142:55;;;;;;;;1150:11;1142:55;;;;1163:10;1142:55;;;;;;1175:15;1142:55;;;;1192:4;1142:55;;;;;1120:8;:19;1129:9;1120:19;;;;;;;;;;;:77;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1254:10;1212:70;;1230:9;1212:70;1241:11;1266:15;1212:70;;;;;;;:::i;:::-;;;;;;;;968:321;;:::o;2817:209::-;2906:4;2929:13;:26;2943:11;2929:26;;;;;;;;;;;:33;;;;;;;;;;;;:90;;;;;3007:12;2966:13;:26;2980:11;2966:26;;;;;;;;;;;:37;;;:53;2929:90;2922:97;;2817:209;;;;:::o;1665:342::-;1759:13;:26;1773:11;1759:26;;;;;;;;;;;:33;;;;;;;;;;;;1758:34;1750:71;;;;;;;;;;;;:::i;:::-;;;;;;;;;1860:54;;;;;;;;1866:12;1860:54;;;;1880:10;1860:54;;;;;;1892:15;1860:54;;;;1909:4;1860:54;;;;;1831:13;:26;1845:11;1831:26;;;;;;;;;;;:83;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1972:10;1929:71;;1945:11;1929:71;1958:12;1984:15;1929:71;;;;;;;:::i;:::-;;;;;;;;1665:342;;:::o;2013:306::-;2098:10;:21;2109:9;2098:21;;;;;;;;;;;:28;;;;;;;;;;;;2097:29;2089:63;;;;;;;;;;;;:::i;:::-;;;;;;;;;2186:50;;;;;;;;2192:8;2186:50;;;;2202:10;2186:50;;;;;;2214:15;2186:50;;;;2231:4;2186:50;;;;;2162:10;:21;2173:9;2162:21;;;;;;;;;;;:74;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2284:10;2251:61;;2263:9;2251:61;2274:8;2296:15;2251:61;;;;;;;:::i;:::-;;;;;;;;2013:306;;:::o;2325:245::-;2389:7;2398;2407;2416:4;2432:18;2453:13;:26;2467:11;2453:26;;;;;;;;;;;2432:47;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2497:5;:16;;;2515:5;:16;;;2533:5;:15;;;2550:5;:12;;;2489:74;;;;;;;;;2325:245;;;;;:::o;3032:186::-;3112:4;3135:10;:21;3146:9;3135:21;;;;;;;;;;;:28;;;;;;;;;;;;:76;;;;;3203:8;3167:10;:21;3178:9;3167:21;;;;;;;;;;;:32;;;:44;3135:76;3128:83;;3032:186;;;;:::o;1508:151::-;1577:4;1600:8;:12;1609:2;1600:12;;;;;;;;;;;:19;;;;;;;;;;;;:52;;;;;1651:1;1623:8;:12;1632:2;1623:12;;;;;;;;;;;:24;;;:29;1600:52;1593:59;;1508:151;;;;:::o;2576:235::-;2635:7;2644;2653;2662:4;2678:18;2699:10;:21;2710:9;2699:21;;;;;;;;;;;2678:42;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2738:5;:16;;;2756:5;:16;;;2774:5;:15;;;2791:5;:12;;;2730:74;;;;;;;;;2576:235;;;;;:::o;88:117:1:-;197:1;194;187:12;334:77;371:7;400:5;389:16;;334:77;;;:::o;417:122::-;490:24;508:5;490:24;:::i;:::-;483:5;480:35;470:63;;529:1;526;519:12;470:63;417:122;:::o;545:139::-;591:5;629:6;616:20;607:29;;645:33;672:5;645:33;:::i;:::-;545:139;;;;:::o;690:329::-;749:6;798:2;786:9;777:7;773:23;769:32;766:119;;;804:79;;:::i;:::-;766:119;924:1;949:53;994:7;985:6;974:9;970:22;949:53;:::i;:::-;939:63;;895:117;690:329;;;;:::o;1025:77::-;1062:7;1091:5;1080:16;;1025:77;;;:::o;1108:118::-;1195:24;1213:5;1195:24;:::i;:::-;1190:3;1183:37;1108:118;;:::o;1232:126::-;1269:7;1309:42;1302:5;1298:54;1287:65;;1232:126;;;:::o;1364:96::-;1401:7;1430:24;1448:5;1430:24;:::i;:::-;1419:35;;1364:96;;;:::o;1466:118::-;1553:24;1571:5;1553:24;:::i;:::-;1548:3;1541:37;1466:118;;:::o;1590:::-;1677:24;1695:5;1677:24;:::i;:::-;1672:3;1665:37;1590:118;;:::o;1714:90::-;1748:7;1791:5;1784:13;1777:21;1766:32;;1714:90;;;:::o;1810:109::-;1891:21;1906:5;1891:21;:::i;:::-;1886:3;1879:34;1810:109;;:::o;1925:541::-;2096:4;2134:3;2123:9;2119:19;2111:27;;2148:71;2216:1;2205:9;2201:17;2192:6;2148:71;:::i;:::-;2229:72;2297:2;2286:9;2282:18;2273:6;2229:72;:::i;:::-;2311;2379:2;2368:9;2364:18;2355:6;2311:72;:::i;:::-;2393:66;2455:2;2444:9;2440:18;2431:6;2393:66;:::i;:::-;1925:541;;;;;;;:::o;2472:122::-;2545:24;2563:5;2545:24;:::i;:::-;2538:5;2535:35;2525:63;;2584:1;2581;2574:12;2525:63;2472:122;:::o;2600:139::-;2646:5;2684:6;2671:20;2662:29;;2700:33;2727:5;2700:33;:::i;:::-;2600:139;;;;:::o;2745:474::-;2813:6;2821;2870:2;2858:9;2849:7;2845:23;2841:32;2838:119;;;2876:79;;:::i;:::-;2838:119;2996:1;3021:53;3066:7;3057:6;3046:9;3042:22;3021:53;:::i;:::-;3011:63;;2967:117;3123:2;3149:53;3194:7;3185:6;3174:9;3170:22;3149:53;:::i;:::-;3139:63;;3094:118;2745:474;;;;;:::o;3225:210::-;3312:4;3350:2;3339:9;3335:18;3327:26;;3363:65;3425:1;3414:9;3410:17;3401:6;3363:65;:::i;:::-;3225:210;;;;:::o;3441:169::-;3525:11;3559:6;3554:3;3547:19;3599:4;3594:3;3590:14;3575:29;;3441:169;;;;:::o;3616:168::-;3756:20;3752:1;3744:6;3740:14;3733:44;3616:168;:::o;3790:366::-;3932:3;3953:67;4017:2;4012:3;3953:67;:::i;:::-;3946:74;;4029:93;4118:3;4029:93;:::i;:::-;4147:2;4142:3;4138:12;4131:19;;3790:366;;;:::o;4162:419::-;4328:4;4366:2;4355:9;4351:18;4343:26;;4415:9;4409:4;4405:20;4401:1;4390:9;4386:17;4379:47;4443:131;4569:4;4443:131;:::i;:::-;4435:139;;4162:419;;;:::o;4587:332::-;4708:4;4746:2;4735:9;4731:18;4723:26;;4759:71;4827:1;4816:9;4812:17;4803:6;4759:71;:::i;:::-;4840:72;4908:2;4897:9;4893:18;4884:6;4840:72;:::i;:::-;4587:332;;;;;:::o;4925:174::-;5065:26;5061:1;5053:6;5049:14;5042:50;4925:174;:::o;5105:366::-;5247:3;5268:67;5332:2;5327:3;5268:67;:::i;:::-;5261:74;;5344:93;5433:3;5344:93;:::i;:::-;5462:2;5457:3;5453:12;5446:19;;5105:366;;;:::o;5477:419::-;5643:4;5681:2;5670:9;5666:18;5658:26;;5730:9;5724:4;5720:20;5716:1;5705:9;5701:17;5694:47;5758:131;5884:4;5758:131;:::i;:::-;5750:139;;5477:419;;;:::o;5902:171::-;6042:23;6038:1;6030:6;6026:14;6019:47;5902:171;:::o;6079:366::-;6221:3;6242:67;6306:2;6301:3;6242:67;:::i;:::-;6235:74;;6318:93;6407:3;6318:93;:::i;:::-;6436:2;6431:3;6427:12;6420:19;;6079:366;;;:::o;6451:419::-;6617:4;6655:2;6644:9;6640:18;6632:26;;6704:9;6698:4;6694:20;6690:1;6679:9;6675:17;6668:47;6732:131;6858:4;6732:131;:::i;:::-;6724:139;;6451:419;;;:::o","linkReferences":{}},"methodIdentifiers":{"artworks(uint256)":"4b602673","getArtwork(uint256)":"167ddf6e","getLicense(uint256)":"b2dd1212","getSale(uint256)":"d8f6d596","recordLicense(uint256,bytes32)":"99edb740","recordSale(uint256,bytes32)":"a9f3df12","registerArtwork(uint256,bytes32)":"7f3023e9","verifyArtwork(uint256,bytes32)":"d5c79ce4","verifyLicense(uint256,bytes32)":"93a82c60","verifySale(uint256,bytes32)":"c9ad9797"},"rawMetadata":"{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"artworkId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"artworkHash\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"registeredBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"ArtworkRegistered\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"paymentId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"saleHash\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recordedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"ArtworkSold\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"agreementId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"documentHash\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recordedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"LicenseRecorded\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"artworks\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"artworkHash\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"registeredBy\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"exists\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"}],\"name\":\"getArtwork\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"agreementId\",\"type\":\"uint256\"}],\"name\":\"getLicense\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"paymentId\",\"type\":\"uint256\"}],\"name\":\"getSale\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"agreementId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"documentHash\",\"type\":\"bytes32\"}],\"name\":\"recordLicense\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"paymentId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"saleHash\",\"type\":\"bytes32\"}],\"name\":\"recordSale\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"artworkId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"artworkHash\",\"type\":\"bytes32\"}],\"name\":\"registerArtwork\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"h\",\"type\":\"bytes32\"}],\"name\":\"verifyArtwork\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"agreementId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"documentHash\",\"type\":\"bytes32\"}],\"name\":\"verifyLicense\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"paymentId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"saleHash\",\"type\":\"bytes32\"}],\"name\":\"verifySale\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"Stores compact, tamper-evident proofs only. Full records remain in PostgreSQL.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/ArtFiliereRegistry.sol\":\"ArtFiliereRegistry\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/ArtFiliereRegistry.sol\":{\"keccak256\":\"0xe8198b3b369814d0954d075464a258f229c1ac435c9719a485e7aa38482f87bd\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://7fab1a3eae285601124b817a1680093ce7674dc23c0b524a13b02903c8a91fcb\",\"dweb:/ipfs/QmfCjj5oKhUdA2F6sqSo1Na2Nc2zVH5HZLE5S2EgspM95d\"]}},\"version\":1}","metadata":{"compiler":{"version":"0.8.20+commit.a1b79de6"},"language":"Solidity","output":{"abi":[{"inputs":[{"internalType":"uint256","name":"artworkId","type":"uint256","indexed":true},{"internalType":"bytes32","name":"artworkHash","type":"bytes32","indexed":false},{"internalType":"address","name":"registeredBy","type":"address","indexed":true},{"internalType":"uint256","name":"timestamp","type":"uint256","indexed":false}],"type":"event","name":"ArtworkRegistered","anonymous":false},{"inputs":[{"internalType":"uint256","name":"paymentId","type":"uint256","indexed":true},{"internalType":"bytes32","name":"saleHash","type":"bytes32","indexed":false},{"internalType":"address","name":"recordedBy","type":"address","indexed":true},{"internalType":"uint256","name":"timestamp","type":"uint256","indexed":false}],"type":"event","name":"ArtworkSold","anonymous":false},{"inputs":[{"internalType":"uint256","name":"agreementId","type":"uint256","indexed":true},{"internalType":"bytes32","name":"documentHash","type":"bytes32","indexed":false},{"internalType":"address","name":"recordedBy","type":"address","indexed":true},{"internalType":"uint256","name":"timestamp","type":"uint256","indexed":false}],"type":"event","name":"LicenseRecorded","anonymous":false},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function","name":"artworks","outputs":[{"internalType":"bytes32","name":"artworkHash","type":"bytes32"},{"internalType":"address","name":"registeredBy","type":"address"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"bool","name":"exists","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"id","type":"uint256"}],"stateMutability":"view","type":"function","name":"getArtwork","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"},{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"bool","name":"","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"agreementId","type":"uint256"}],"stateMutability":"view","type":"function","name":"getLicense","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"},{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"bool","name":"","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"paymentId","type":"uint256"}],"stateMutability":"view","type":"function","name":"getSale","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"},{"internalType":"address","name":"","type":"address"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"bool","name":"","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"agreementId","type":"uint256"},{"internalType":"bytes32","name":"documentHash","type":"bytes32"}],"stateMutability":"nonpayable","type":"function","name":"recordLicense"},{"inputs":[{"internalType":"uint256","name":"paymentId","type":"uint256"},{"internalType":"bytes32","name":"saleHash","type":"bytes32"}],"stateMutability":"nonpayable","type":"function","name":"recordSale"},{"inputs":[{"internalType":"uint256","name":"artworkId","type":"uint256"},{"internalType":"bytes32","name":"artworkHash","type":"bytes32"}],"stateMutability":"nonpayable","type":"function","name":"registerArtwork"},{"inputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"bytes32","name":"h","type":"bytes32"}],"stateMutability":"view","type":"function","name":"verifyArtwork","outputs":[{"internalType":"bool","name":"","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"agreementId","type":"uint256"},{"internalType":"bytes32","name":"documentHash","type":"bytes32"}],"stateMutability":"view","type":"function","name":"verifyLicense","outputs":[{"internalType":"bool","name":"","type":"bool"}]},{"inputs":[{"internalType":"uint256","name":"paymentId","type":"uint256"},{"internalType":"bytes32","name":"saleHash","type":"bytes32"}],"stateMutability":"view","type":"function","name":"verifySale","outputs":[{"internalType":"bool","name":"","type":"bool"}]}],"devdoc":{"kind":"dev","methods":{},"version":1},"userdoc":{"kind":"user","methods":{},"version":1}},"settings":{"remappings":[],"optimizer":{"enabled":false,"runs":200},"metadata":{"bytecodeHash":"ipfs"},"compilationTarget":{"contracts/ArtFiliereRegistry.sol":"ArtFiliereRegistry"},"evmVersion":"shanghai","libraries":{}},"sources":{"contracts/ArtFiliereRegistry.sol":{"keccak256":"0xe8198b3b369814d0954d075464a258f229c1ac435c9719a485e7aa38482f87bd","urls":["bzz-raw://7fab1a3eae285601124b817a1680093ce7674dc23c0b524a13b02903c8a91fcb","dweb:/ipfs/QmfCjj5oKhUdA2F6sqSo1Na2Nc2zVH5HZLE5S2EgspM95d"],"license":"MIT"}},"version":1},"id":0}
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "artworks",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "artworkHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "registeredBy",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "timestamp",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "exists",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getArtwork",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getLicense",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getSale",
+      "inputs": [
+        {
+          "name": "paymentId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "recordLicense",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "documentHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "recordSale",
+      "inputs": [
+        {
+          "name": "paymentId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "saleHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "registerArtwork",
+      "inputs": [
+        {
+          "name": "artworkId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "artworkHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "verifyArtwork",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "h",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "verifyLicense",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "documentHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "verifySale",
+      "inputs": [
+        {
+          "name": "paymentId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "saleHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "ArtworkRegistered",
+      "inputs": [
+        {
+          "name": "artworkId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "artworkHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "registeredBy",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "timestamp",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ArtworkSold",
+      "inputs": [
+        {
+          "name": "paymentId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "saleHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "recordedBy",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "timestamp",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "LicenseRecorded",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "documentHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "recordedBy",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "timestamp",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    }
+  ]
+}

@@ -25,6 +25,7 @@ from .hashing import (
     load_image,
     similarity_confidence,
 )
+from datetime import timedelta
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -259,9 +260,6 @@ class ArtworkView(AuthenticatedAPIView):
         category_str = str(artwork.category or "").upper()
         sale_type_str = str(sale_type or "").upper()
         if "AUCTION" in sale_type_str or "AUCTION" in category_str:
-            from datetime import timedelta
-            from django.utils import timezone
-            from django.utils.dateparse import parse_datetime
             from auctions.models import AuctionListing
 
             now = timezone.now()

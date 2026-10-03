@@ -118,6 +118,9 @@ export default function PlatformAdminScreen() {
       </View>
       <ScrollView contentContainerStyle={s.content}>
         <Text style={s.title}>Platform finances</Text>
+        <TouchableOpacity onPress={() => router.push('/report-management')} style={{ padding: 16, backgroundColor: '#F6E8E1', borderRadius: 12, marginVertical: 14 }}>
+          <Text style={{ color: '#A74646', fontWeight: '700' }}>Reports, transaction requests & account approvals</Text>
+        </TouchableOpacity>
         <Text style={s.lead}>
           Release artist funds only after delivery and dispute checks.
         </Text>

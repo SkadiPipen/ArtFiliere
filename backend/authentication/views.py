@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from users.models import Address, User
 from artist_applications.models import ArtistApplication
-from .services import verify_token
+from .services import verify_token, AccountRestrictedError
 
 
 @api_view(["POST"])
@@ -22,6 +22,8 @@ def login(request):
     try:
         token = header.split(" ")[1]
         decoded = verify_token(token)
+    except AccountRestrictedError as error:
+        return Response({'error': str(error)}, status=403)
     except Exception as e:
         return Response({"error": "Invalid token"}, status=401)
 
@@ -157,6 +159,8 @@ def me(request):
     try:
         decoded = verify_token(header.split(" ", 1)[1])
         user = User.objects.get(firebase_uid=decoded["uid"])
+    except AccountRestrictedError as error:
+        return Response({'error': str(error)}, status=403)
     except (User.DoesNotExist, KeyError):
         return Response({"error": "User profile not found."}, status=404)
     except Exception:
@@ -260,6 +264,9 @@ class AuthenticatedAPIView(APIView):
         try:
             decoded = verify_token(header.split(" ", 1)[1])
             user = User.objects.get(firebase_uid=decoded["uid"])
+        except AccountRestrictedError as error:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(str(error))
         except Exception:
             user = None
 
