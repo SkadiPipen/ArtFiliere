@@ -1,4 +1,5 @@
 from django.urls import path
+from .management import TransactionRequestsView
 from .support import SupportView
 from .moderation import AccountModerationView, ModeratorUsersView, TicketReturnReviewView
 

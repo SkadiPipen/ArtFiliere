@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
                 ('report', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='account_actions', to='wallets.incidentreport')),
             ],
             options={
-                'constraints': [models.UniqueConstraint(condition=models.Q(('status', 'pending')), fields=('target',), name='one_pending_account_action')],
+                'constraints': [models.UniqueConstraint(condition=models.Q(('status', 'pending')), fields=('target',), name='one_pending_incident_account_action')],
             },
         ),
     ]

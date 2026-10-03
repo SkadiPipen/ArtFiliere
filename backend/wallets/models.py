@@ -170,7 +170,7 @@ class AccountActionRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_account_action')]
+        constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_incident_account_action')]
 
 
 class FinancialAuthorization(models.Model):
