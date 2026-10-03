@@ -22,10 +22,18 @@ class AccountRestricted(APIException):
     default_code = 'account_restricted'
     default_detail = 'Account access is restricted. Contact customer support.'
 
-class AccountRestrictedError(ValueError):
+class AccountRestrictedError(AccountRestricted, ValueError):
     pass
 
-def verify_token(id_token):
+def account_access(user):
+    from wallets.restrictions import restriction_rows
+    rows = restriction_rows(user)
+    banned = user.is_banned or any(row.action == 'ban' for _, row in rows)
+    suspended = not banned and (user.access_restricted or bool(rows))
+    return {'banned': banned, 'suspended': suspended, 'read_only': suspended}
+
+
+def verify_token(id_token, allow_restricted=False, allow_suspended=False):
     
     try:
         decoded_token = auth.verify_id_token(id_token, clock_skew_seconds=5)
@@ -48,6 +56,12 @@ def verify_token(id_token):
         raise TokenVerificationUnavailable() from error
     from users.models import User
     user = User.objects.filter(firebase_uid=decoded_token.get('uid')).first()
-    if user and user.access_restricted:
-        raise AccountRestricted('Account access is restricted. Contact customer support.')
+    if allow_restricted:
+        return decoded_token
+    if user:
+        access = account_access(user)
+        decoded_token['artfiliere_read_only'] = access['read_only']
+        if access['banned'] or (access['suspended'] and not allow_suspended):
+            message = 'This account is banned. View your decision or submit an appeal.' if access['banned'] else 'Your account is suspended and has view-only access. Changes are unavailable until the suspension ends.'
+            raise AccountRestrictedError(message)
     return decoded_token

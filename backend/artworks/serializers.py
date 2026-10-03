@@ -102,4 +102,9 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "delivery_type": auction.delivery_type,
             "terms": auction.terms_snapshot,
             "template_name": auction.agreement_template.name if auction.agreement_template else "",
+            'signed_document': auction.signed_document,
+            'signed_document_hash': auction.signed_document_hash,
+            'artist_signature': auction.artist_signature,
+            'artist_signed_at': auction.artist_signed_at,
+            'artist_signature_image': auction.artist_signature_image if self.context.get('include_similarity') else '',
         }

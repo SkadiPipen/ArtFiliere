@@ -27,6 +27,8 @@ def party_name(user):
 
 
 def document_text(item):
+    if getattr(item, 'artist_presigned_document', ''):
+        return item.artist_presigned_document + '\n\nAUCTION WINNER DETAILS (license terms above remain unchanged)\n\n' + f'Winning buyer: {party_name(item.buyer)}\nFinal winning bid: PHP {item.price:.2f}\nShipping fees and delivery details, if applicable, are completed at checkout under the delivery policy above.\nThe artist signature covers the original auction terms above. The buyer signs the same terms together with these completed purchase details.'
     # Use the supplied wording with accepted values, without invented dates or fees.
     title = item.artwork.title if item.artwork else "Unavailable artwork"
     rights = (
@@ -65,6 +67,8 @@ def signing_data(item, user):
         (user.last_name or '').strip(),
     ) if part)
     return {"id": item.id, "document": text, "document_hash": hashlib.sha256(text.encode()).hexdigest(),
+            "artist_presigned_document": item.artist_presigned_document,
+            "artist_presigned_hash": hashlib.sha256(item.artist_presigned_document.encode()).hexdigest() if item.artist_presigned_document else '',
             "verification_code": item.verification_code,
             "signing_name": signing_name,
             "artist_signature_image": item.artist_signature_image, "buyer_signature_image": item.buyer_signature_image,

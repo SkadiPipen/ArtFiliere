@@ -58,10 +58,13 @@ class AccountModerationRequest(models.Model):
     review_note = models.TextField(blank=True, max_length=4000)
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revoked_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='reversed_ticket_restrictions')
+    reversal_reason = models.TextField(blank=True)
 
     class Meta:
         ordering = ['-created_at']
-        constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_account_action')]
+        constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_moderation_request')]
 
 
 class WalletAccount(models.Model):
@@ -146,7 +149,8 @@ class IncidentReport(models.Model):
 
 
 class ReportAttachment(models.Model):
-    report = models.ForeignKey(IncidentReport, on_delete=models.CASCADE, related_name='attachments')
+    report = models.ForeignKey(IncidentReport, on_delete=models.CASCADE, related_name='attachments', null=True, blank=True)
+    appeal = models.ForeignKey('RestrictionAppeal', on_delete=models.CASCADE, related_name='attachments', null=True, blank=True)
     name = models.CharField(max_length=200)
     content_type = models.CharField(max_length=100)
     content = models.BinaryField()
@@ -166,9 +170,31 @@ class AccountActionRequest(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revoked_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='reversed_report_restrictions')
+    reversal_reason = models.TextField(blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_account_action')]
+
+
+class RestrictionAppeal(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='restriction_appeals')
+    source = models.CharField(max_length=10)
+    restriction_id = models.PositiveIntegerField()
+    explanation = models.TextField()
+    links = models.JSONField(default=list)
+    status = models.CharField(max_length=20, default='pending')
+    recommendation = models.CharField(max_length=20, blank=True)
+    moderator_note = models.TextField(blank=True)
+    recommended_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='recommended_restriction_appeals')
+    decision_note = models.TextField(blank=True)
+    decided_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='decided_restriction_appeals')
+    created_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['user', 'source', 'restriction_id'], condition=Q(status__in=['pending', 'recommended']), name='one_open_restriction_appeal')]
 
 
 class FinancialAuthorization(models.Model):

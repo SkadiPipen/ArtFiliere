@@ -264,6 +264,8 @@ class AccountActionsView(AuthenticatedAPIView):
         if row.target.role not in REPORTERS:
             raise ValidationError({'error': 'The target account role changed. Submit a new request after review.'})
         status = request.data.get('status')
+        if status == 'rejected':
+            status = 'declined'
         if status not in {'approved', 'declined'}:
             raise ValidationError({'error': 'Choose approved or declined.'})
         row.status, row.reviewed_by, row.reviewed_at = status, admin, timezone.now()

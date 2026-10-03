@@ -70,7 +70,7 @@ class ContractsView(AuthenticatedAPIView):
             if not artwork:
                 return Response({"error": "Artwork is unavailable."}, status=404)
             contracts = contracts.filter(artwork_id=artwork_id)
-            artwork_data = {"id": artwork.id, "title": artwork.title, "price": str(base_cost(artwork)), "artist": artwork.artist.username, "artist_uid": artwork.artist.firebase_uid, "buyer_uid": user.firebase_uid, "buyer_name": user.username, "image_url": artwork.image_data, "art_type": "physical" if physical(artwork) else "digital", "can_propose": user.role in (User.Role.BUYER, User.Role.ARTIST) and user.id != artwork.artist_id}
+            artwork_data = {"id": artwork.id, "title": artwork.title, "price": str(base_cost(artwork)), "artist": artwork.artist.username, "artist_uid": artwork.artist.firebase_uid, "buyer_uid": user.firebase_uid, "buyer_name": user.username, "image_url": artwork.image_data, "art_type": "physical" if physical(artwork) else "digital", "is_auction": str(artwork.sale_type).lower() == "auction", "can_propose": str(artwork.sale_type).lower() != "auction" and user.role in (User.Role.BUYER, User.Role.ARTIST) and user.id != artwork.artist_id}
         return Response({"artwork": artwork_data, "contracts": [contract_data(item, user) for item in contracts]})
 
     @transaction.atomic
@@ -80,6 +80,8 @@ class ContractsView(AuthenticatedAPIView):
         artwork = Artwork.objects.select_for_update().filter(id=artwork_id, status=Artwork.Status.APPROVED).first()
         if not artwork:
             return Response({"error": "Artwork is unavailable."}, status=404)
+        if str(artwork.sale_type).lower() == 'auction':
+            return Response({'error': 'Auction license terms are fixed. The winning buyer signs the auction agreement after the auction ends.'}, status=409)
         revision_id = request.data.get("revision_of")
         original = None
         buyer = user

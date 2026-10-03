@@ -145,6 +145,7 @@ def ticket_data(ticket, detail=False, viewer=None):
 
 
 class SupportView(AuthenticatedAPIView):
+    allow_suspended_support = True
     permission_classes = [IsAuthenticatedUser]
 
     def ticket(self, request, ticket_id, lock=False):
@@ -271,6 +272,9 @@ class SupportView(AuthenticatedAPIView):
     def patch(self, request, ticket_id):
         ticket = self.ticket(request, ticket_id, lock=True)
         user = self.get_request_user(request)
+        from authentication.services import account_access
+        if account_access(user)['suspended'] and (ticket.requester_id != user.pk or request.data.get('action') or request.data.get('status')):
+            raise PermissionDenied('View-only accounts can contact support only about their own tickets.')
         action = request.data.get('action')
         if action:
             if user.role != User.Role.CUSTOMER_SUPPORT or department(ticket.concern) != user.role or ticket.requester_id == user.pk:

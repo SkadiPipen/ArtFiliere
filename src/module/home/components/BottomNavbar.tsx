@@ -3,7 +3,8 @@ import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { usePathname, useRouter } from 'expo-router';
 import { Clock, Disc, Home, Plus, ShoppingCart, User } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { AuthContext } from '@/context/AuthContext';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +13,7 @@ export default function BottomNavBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const [isArtist, setIsArtist] = useState(false);
+  const { readOnly } = useContext(AuthContext);
   const { cartItems } = useCart();
   const cartCount = cartItems.length;
 
@@ -46,6 +48,7 @@ export default function BottomNavBar() {
 
         {/* Artists post from the dashboard; buyers retain the auction action. */}
         <TouchableOpacity 
+          disabled={isArtist && readOnly}
           style={styles.auctionContainer} 
           onPress={() => { 
             if (isArtist) {

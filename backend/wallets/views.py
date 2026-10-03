@@ -31,7 +31,11 @@ class WalletView(AuthenticatedAPIView):
         user = self.get_request_user(request)
         if not user:
             return Response({"error": "Authentication is required."}, status=status.HTTP_401_UNAUTHORIZED)
-        wallet, _ = WalletAccount.objects.get_or_create(user=user)
+        wallet = WalletAccount.objects.filter(user=user).first()
+        if not wallet and getattr(user, 'view_only', False):
+            return Response({'currency': 'PHP', 'pending_balance': '0.00', 'available_balance': '0.00', 'paid_out_balance': '0.00', 'entries': []})
+        if not wallet:
+            wallet, _ = WalletAccount.objects.get_or_create(user=user)
         entries = wallet.entries.select_related("payment_session__artwork")[:30]
         return Response({
             "currency": wallet.currency,

@@ -1,4 +1,5 @@
 from django.urls import path
+from .workspace import CommissionWorkspaceView, CommissionAccessReviewView
 from .views import (
     CommissionRequestView,
     ManageCommissionStatusView,
@@ -10,6 +11,10 @@ from .views import (
 )
 
 urlpatterns = [
+    path('workspace/', CommissionWorkspaceView.as_view()),
+    path('workspace/<int:pk>/', CommissionWorkspaceView.as_view()),
+    path('access-reviews/', CommissionAccessReviewView.as_view()),
+    path('access-reviews/<int:pk>/', CommissionAccessReviewView.as_view()),
     path('request/', CommissionRequestView.as_view(), name='create-commission'),
     path('requests/', CommissionRequestView.as_view(), name='commission-requests'),
     path('requests/<int:pk>/manage/', ManageCommissionStatusView.as_view(), name='manage-commission'),

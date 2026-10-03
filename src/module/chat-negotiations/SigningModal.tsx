@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Modal, ScrollView, View, Text, TextInput, TouchableOpacity, Platform, Image } from 'react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
+import AgreementPaper from '@/module/messages/components/AgreementPaper';
 import { contractRequest } from './contracts';
 
 export default function SigningModal({ id, onClose, onSigned }: { id: number; onClose: () => void; onSigned: () => void | Promise<void> }) {
@@ -63,10 +64,10 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
   return <Modal visible animationType="slide" onRequestClose={onClose}>
     <ScrollView scrollEnabled={!drawing} contentContainerStyle={{ padding: 24, paddingTop: 50, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' }}>
       <TouchableOpacity onPress={onClose}><Text>Close</Text></TouchableOpacity>
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Art Licensing Agreement</Text>
       {!!error && <Text style={{ color: '#b00020' }}>{error}</Text>}
       {!data ? <Text>Loading agreement...</Text> : <>
-        <Text selectable style={{ lineHeight: 24 }}>{data.document}</Text>
+        <AgreementPaper document={data.document} />
+        {!!data.artist_presigned_document && <Text>The artist signed the fixed auction terms on {new Date(data.artist_signed_at).toLocaleString()}. Your signature confirms those terms and the completed winner details shown above.</Text>}
         <Text>Artist: {data.artist_signature || 'Awaiting signature'}</Text>
         <Text>Buyer: {data.buyer_signature || 'Awaiting signature'}</Text>
         {data.fully_signed && <Text selectable style={{ color: '#5D8A63', fontWeight: '800' }}>Verification code: {data.verification_code}</Text>}

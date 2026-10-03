@@ -16,7 +16,8 @@ import {
   UploadCloud,
   XCircle,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { AuthContext } from '@/context/AuthContext';
 import {
   ActivityIndicator,
   Alert,
@@ -37,6 +38,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function CommissionsScreen() {
   const router = useRouter();
+  const { readOnly } = useContext(AuthContext);
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width,
   );
@@ -138,7 +140,7 @@ export default function CommissionsScreen() {
             `${API_URL}/api/commissions/milestones/${milestoneId}/verify/`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` },
             },
           );
           if (res.ok) {
@@ -450,7 +452,7 @@ export default function CommissionsScreen() {
         `${API_URL}/api/commissions/requests/${selectedCommission.commission_req_id}/track/`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` },
           body: JSON.stringify({
             image_url: imageUrlInput,
             stage_number: selectedStage,
@@ -495,7 +497,7 @@ export default function CommissionsScreen() {
         `${API_URL}/api/commissions/requests/${cancellingId}/cancel/`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` },
           body: JSON.stringify({
             reason: cancelReason,
             feedback: cancelFeedback,
@@ -638,6 +640,7 @@ export default function CommissionsScreen() {
           <View style={s.actionRow}>
             <TouchableOpacity
               style={[s.btn, s.btnAccept]}
+              disabled={readOnly}
               onPress={() => handleManage(item.commission_req_id, "ACCEPT")}
             >
               <CheckCircle2 color="#fff" size={14} />
@@ -659,7 +662,7 @@ export default function CommissionsScreen() {
           item.status !== "PENDING" && (
             <TouchableOpacity
               style={s.updateProgressBtn}
-              onPress={() => handleSelectForUpload(item)}
+              onPress={() => readOnly ? router.push('/commission-workspace' as any) : handleSelectForUpload(item)}
             >
               <Paintbrush color="#FFF" size={14} />
               <Text style={s.updateProgressText}>
@@ -669,6 +672,7 @@ export default function CommissionsScreen() {
           )}
 
         <View style={s.utilityRow}>
+          <TouchableOpacity style={s.chatBtn} onPress={() => router.push('/commission-workspace' as any)}><Text style={s.chatBtnText}>Commission workspace</Text></TouchableOpacity>
           <TouchableOpacity
             style={s.chatBtn}
             onPress={() => {

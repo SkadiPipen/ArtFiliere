@@ -1,6 +1,7 @@
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import AgreementDocument from "@/module/messages/components/AgreementDocument";
+import AgreementPaper from '@/module/messages/components/AgreementPaper';
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
   CheckCircle2,
@@ -67,6 +68,8 @@ export default function CreativeDashboardScreen() {
   const [activeTab, setActiveTab] = useState<Artwork["status"]>("pending");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Artwork | null>(null);
+  const [viewingAgreement, setViewingAgreement] = useState(false);
+  useEffect(() => { setViewingAgreement(false); }, [selected?.id]);
   const [reason, setReason] = useState("");
   const [declining, setDeclining] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -344,13 +347,10 @@ export default function CreativeDashboardScreen() {
                       <Text style={s.detailText}>Starts: {new Date(selected.auction_request.start_time).toLocaleString()}</Text>
                       <Text style={s.detailText}>Ends: {new Date(selected.auction_request.end_time).toLocaleString()}</Text>
                       <Text style={s.detailText}>Starting bid: ₱{selected.auction_request.starting_bid} · Increment: ₱{selected.auction_request.bid_increment}</Text>
-                      <AgreementDocument terms={{
-                        terms: selected.auction_request.terms,
-                        licenseType: selected.auction_request.license_type,
-                        exclusivity: selected.auction_request.exclusivity,
-                        deliveryType: selected.auction_request.delivery_type,
-                        compensationType: "one_time",
-                      }} />
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel="View auction license agreement" style={s.agreementButton} onPress={() => setViewingAgreement(true)}>
+                        <Text style={s.agreementButtonText}>View auction license agreement</Text>
+                        <Text style={s.detailText}>Open the full terms and licensing details</Text>
+                      </TouchableOpacity>
                     </View>
                   )}
                   <View style={s.sectionHeader}>
@@ -503,6 +503,31 @@ export default function CreativeDashboardScreen() {
                     </View>
                   )}
                 </ScrollView>
+                <Modal visible={viewingAgreement} animationType="slide" onRequestClose={() => setViewingAgreement(false)}>
+                  <View style={s.agreementPage}>
+                    <View style={s.agreementHeader}>
+                      <View style={{ flex: 1 }}><Text style={s.modalTitle}>Auction license agreement</Text><Text style={s.detailText}>{selected.title} · {selected.artist_name}</Text></View>
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close auction license agreement" style={s.close} onPress={() => setViewingAgreement(false)}><X size={22} color="#6D5C57" /></TouchableOpacity>
+                    </View>
+                    <ScrollView contentContainerStyle={s.agreementContent}>
+                      <Text style={s.detailText}>Artist-submitted auction terms · Moderator review</Text>
+                      {selected.auction_request?.signed_document ? <>
+                        <AgreementPaper document={selected.auction_request.signed_document} />
+                        <Text style={s.detailText}>Artist: {selected.auction_request.artist_signature} · Signed {new Date(selected.auction_request.artist_signed_at).toLocaleString()}</Text>
+                        {!!selected.auction_request.artist_signature_image && <Image source={{ uri: selected.auction_request.artist_signature_image }} style={{ width: '100%', height: 100 }} resizeMode="contain" />}
+                        <Text selectable style={s.detailText}>Document reference: {selected.auction_request.signed_document_hash}</Text>
+                        <Text style={s.detailText}>Buyer: winning bidder—to be determined. Buyer signs after the auction ends.</Text>
+                      </> : selected.auction_request && <AgreementDocument terms={{
+                        terms: selected.auction_request.terms || 'No agreement terms were provided.',
+                        licenseType: selected.auction_request.license_type || 'not_specified',
+                        exclusivity: selected.auction_request.exclusivity || 'not_specified',
+                        deliveryType: selected.auction_request.delivery_type || 'not_specified',
+                        compensationType: 'one_time',
+                      }} />}
+                      <TouchableOpacity accessibilityRole="button" style={s.agreementButton} onPress={() => setViewingAgreement(false)}><Text style={s.agreementButtonText}>Back to artwork review</Text></TouchableOpacity>
+                    </ScrollView>
+                  </View>
+                </Modal>
               </>
             )}
           </Pressable>
@@ -513,6 +538,11 @@ export default function CreativeDashboardScreen() {
 }
 
 const s = StyleSheet.create({
+  agreementButton: { padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#D8A39A', backgroundColor: '#FFF4EE', gap: 4, marginTop: 10 },
+  agreementButtonText: { color: '#A34E45', fontWeight: '700', fontSize: 14 },
+  agreementPage: { flex: 1, backgroundColor: '#FFFDF8', paddingTop: 40 },
+  agreementHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderBottomWidth: 1, borderBottomColor: '#E8DCD7' },
+  agreementContent: { width: '100%', maxWidth: 800, alignSelf: 'center', padding: 20, paddingBottom: 50, gap: 14 },
   detailTitle: { color: "#7A4B43", fontWeight: "900", fontSize: 15, marginTop: 14 },
   detailText: { color: "#5F514C", fontSize: 13, lineHeight: 20 },
   auctionDetails: { marginTop: 8, gap: 4 },

@@ -71,6 +71,7 @@ class Agreement(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2)
     terms_snapshot = models.TextField()
     document_snapshot = models.TextField(blank=True, default="")
+    artist_presigned_document = models.TextField(blank=True, default='')
     artist_signature_image = models.TextField(blank=True, default="")
     buyer_signature_image = models.TextField(blank=True, default="")
     artist_signature = models.CharField(max_length=200, blank=True, default="")
@@ -91,6 +92,16 @@ class Agreement(models.Model):
     artist_accepted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     verification_code = models.CharField(max_length=24, unique=True, default=agreement_verification_code, editable=False)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            original = type(self).objects.filter(pk=self.pk).first()
+            if original and original.artist_presigned_document:
+                locked = ('artist_presigned_document', 'artist_id', 'buyer_id', 'artwork_id', 'price', 'license_type', 'exclusivity', 'delivery_type', 'compensation_type', 'terms_snapshot', 'artist_signature', 'artist_signature_image', 'artist_signed_at')
+                if any(getattr(original, field) != getattr(self, field) for field in locked):
+                    from django.core.exceptions import ValidationError
+                    raise ValidationError('The artist-signed auction license terms and winning bid are fixed.')
+        super().save(*args, **kwargs)
 
 
 class Message(models.Model):

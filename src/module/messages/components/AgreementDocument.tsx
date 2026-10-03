@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AgreementPaper from './AgreementPaper';
 
 export type AgreementTerms = {
   terms: string;
@@ -45,6 +46,14 @@ export default function AgreementDocument({ terms, editable = false, onChange }:
     onChange?.({ ...terms, [key]: value });
   };
 
+  if (!editable) {
+    const details = (Object.keys(choices) as (keyof typeof choices)[]).map(key => {
+      const value = terms[key] || 'not_specified';
+      return `${labelFor[key]}: ${value.replace(/_/g, ' ')}${agreementExplanations[value] ? `\n${agreementExplanations[value]}` : ''}`;
+    });
+    return <AgreementPaper document={[terms.terms, ...details].filter(Boolean).join('\n\n')} />;
+  }
+
   return (
     <View style={styles.document}>
       <Text style={styles.title}>Art License Agreement</Text>
@@ -58,7 +67,7 @@ export default function AgreementDocument({ terms, editable = false, onChange }:
           </Text>
         </View>
       ) : (
-        <Text style={styles.terms}>{terms.terms}</Text>
+        <Text selectable style={styles.terms}>{terms.terms}</Text>
       )}
 
       {(Object.keys(choices) as (keyof typeof choices)[]).map((key) => (

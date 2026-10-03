@@ -98,7 +98,7 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
       <View style={s.header}><Text style={s.heading}>Negotiate a contract</Text><TouchableOpacity onPress={onClose}><Text style={s.link}>Close</Text></TouchableOpacity></View>
       <Text>Both buyer and artist must accept the same terms before checkout. The contract price covers one artwork purchase.</Text>
       {loading && <ActivityIndicator />}
-      {artwork && !artwork.can_propose && <Text accessibilityRole="alert" style={s.error}>You are signed in as {artwork.buyer_name}. Buyer and artist accounts can negotiate purchases of another artist's work. You cannot negotiate your own artwork.</Text>}
+      {artwork && !artwork.can_propose && <Text accessibilityRole="alert" style={s.error}>{artwork.is_auction ? 'Auction license terms are fixed. The winning buyer signs the auction agreement after the auction ends.' : `You are signed in as ${artwork.buyer_name}. Buyer and artist accounts can negotiate purchases of another artist’s work. You cannot negotiate your own artwork.`}</Text>}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       <TouchableOpacity onPress={load}><Text style={s.link}>Refresh contracts</Text></TouchableOpacity>
       {data?.artwork && <Text style={s.heading}>{data.artwork.title} / {data.artwork.artist}</Text>}
