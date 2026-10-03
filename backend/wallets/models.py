@@ -9,6 +9,59 @@ from users.models import User
 
 def sale_verification_code():
     return f"AF-SALE-{secrets.token_hex(6).upper()}"
+class SupportTicket(models.Model):
+    class Status(models.TextChoices):
+        OPEN = 'open', 'Open'
+        IN_PROGRESS = 'in_progress', 'In progress'
+        AWAITING_CUSTOMER = 'awaiting_customer', 'Awaiting your reply'
+        RESOLVED = 'resolved', 'Resolved'
+        CLOSED = 'closed', 'Closed'
+
+    requester = models.ForeignKey(User, on_delete=models.PROTECT, related_name='support_tickets')
+    assigned_to = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT, related_name='assigned_support_tickets')
+    transfer_to = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='incoming_support_transfers')
+    concern = models.CharField(max_length=60)
+    payment = models.ForeignKey('PaymentSession', null=True, blank=True, on_delete=models.PROTECT)
+    artwork = models.ForeignKey(Artwork, null=True, blank=True, on_delete=models.PROTECT)
+    commission = models.ForeignKey('commissions.CommissionRequest', null=True, blank=True, on_delete=models.PROTECT)
+    auction = models.ForeignKey('auctions.AuctionListing', null=True, blank=True, on_delete=models.PROTECT)
+    details = models.TextField(max_length=4000)
+    evidence = models.TextField(blank=True, max_length=2000)
+    image_data = models.TextField(blank=True)
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.OPEN)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at', '-pk']
+
+
+class SupportReply(models.Model):
+    ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name='replies')
+    sender = models.ForeignKey(User, on_delete=models.PROTECT)
+    message = models.TextField(max_length=4000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+
+
+class AccountModerationRequest(models.Model):
+    ticket = models.ForeignKey(SupportTicket, on_delete=models.PROTECT, related_name='account_requests')
+    target = models.ForeignKey(User, on_delete=models.PROTECT, related_name='account_moderation_requests')
+    requested_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='requested_account_actions')
+    action = models.CharField(max_length=12, choices=[('suspend', 'Suspend'), ('ban', 'Ban'), ('restore', 'Restore access')])
+    duration_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    reason = models.TextField(max_length=4000)
+    status = models.CharField(max_length=12, default='pending', choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')])
+    reviewed_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reviewed_account_actions', null=True, blank=True)
+    review_note = models.TextField(blank=True, max_length=4000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_account_action')]
 
 
 class WalletAccount(models.Model):
@@ -49,6 +102,7 @@ class PaymentSession(models.Model):
 
 class CancellationReturnRequest(models.Model):
     class RequestType(models.TextChoices):
+        REFUND = 'refund', 'Refund'
         CANCELLATION = "cancellation", "Cancellation"
         RETURN = "return", "Return"
 

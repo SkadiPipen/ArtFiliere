@@ -34,6 +34,13 @@ class User(models.Model):
     contact_number = models.CharField(
         max_length=20
     )
+    is_banned = models.BooleanField(default=False)
+    suspended_until = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def access_restricted(self):
+        from django.utils import timezone
+        return self.is_banned or bool(self.suspended_until and self.suspended_until > timezone.now())
 
     class RoyaltyStatus(models.TextChoices):
         YES = "yes", "Yes"

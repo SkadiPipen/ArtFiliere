@@ -1,5 +1,6 @@
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
+import SupportScreen from '@/module/support/SupportScreen';
 import { Contract, contractRequest } from './contracts';
 // ========================================
 // FILE: chatList.tsx
@@ -85,6 +86,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
     return () => { active = false; };
   }, [currentUser?.uid]);
   const [activeTab, setActiveTab] = useState<'artists' | 'drivers' | 'support'>('artists');
+  const [supportOpen, setSupportOpen] = useState(false);
   const [contractChats, setContractChats] = useState<ChatListItem[]>([]);
   useEffect(() => {
     let active = true;
@@ -293,6 +295,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
   ] as const;
   const filters = accountRole === 'artist' ? ['all', 'buying', 'selling'] as const : ['all', 'buying'] as const;
   const visible = merged.filter(chat => category(chat) === activeTab && (activeTab !== 'artists' || artworkFilter === 'all' || !!chat[artworkFilter]));
+  if (supportOpen) return <SupportScreen key={currentUser?.uid} embedded onClose={() => setSupportOpen(false)} />;
   return <View style={{ flex: 1 }}>
     <View style={styles.tabs}>
       {tabs.map(tab => <TouchableOpacity key={tab.key} accessibilityRole="tab" accessibilityState={{ selected: activeTab === tab.key }} onPress={() => setActiveTab(tab.key)} style={[styles.tab, activeTab === tab.key && styles.activeTab, activeTab === tab.key && (tab.key === 'drivers' ? styles.driverTab : tab.key === 'support' ? styles.supportTab : null)]}>
@@ -308,6 +311,14 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
       </View>
       <Text style={{ fontSize: 11, color: '#75655F' }}>Buying and Selling follow your role in each proposal. Chats without a proposal appear in All.</Text>
     </View>}
+    {activeTab === 'support' && <View style={styles.supportIntro}>
+      <Text style={styles.chatName}>How can we help?</Text>
+      <Text style={styles.emptySubtext}>{accountRole === 'artist' ? 'Get help with your purchases, artwork, or account. You can also appeal a rejected artwork here and follow up in My reports.' : 'Get help with your purchases, artwork, or account. Send a concern and follow up with our support team in My reports.'}</Text>
+      <TouchableOpacity accessibilityRole="button" onPress={() => setSupportOpen(true)} style={styles.supportButton}>
+        <Ionicons name="chatbubbles-outline" size={20} color="#FFFFFF" />
+        <Text style={styles.supportButtonText}>Contact customer support / My reports</Text>
+      </TouchableOpacity>
+    </View>}
     {loading ? <View style={styles.centered}><ActivityIndicator size="large" color="#C15656" /></View> :
       <FlatList data={visible} keyExtractor={item => item.id} renderItem={renderChatItem} contentContainerStyle={visible.length ? styles.listContent : { flexGrow: 1 }}
         ListEmptyComponent={<View style={styles.centered}><Ionicons name="chatbubble-outline" size={48} color="#C7C7CC" /><Text style={styles.emptyText}>No {activeTab === 'artists' ? 'artwork' : activeTab === 'drivers' ? 'driver' : 'customer support'} conversations yet</Text></View>} />}
@@ -316,6 +327,9 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
 
 // III. Styles
 const styles = StyleSheet.create({
+  supportIntro: { padding: 16, gap: 8, backgroundColor: '#FFFDF8' },
+  supportButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#A84949', borderRadius: 10, padding: 14, marginTop: 4 },
+  supportButtonText: { flexShrink: 1, color: '#FFFFFF', fontWeight: '700' },
   tabs: { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 0, paddingHorizontal: 10, gap: 5, borderBottomWidth: 3, borderBottomColor: '#D48C62', backgroundColor: '#FFF' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 34, paddingVertical: 7, paddingHorizontal: 6, borderTopLeftRadius: 14, borderTopRightRadius: 14 },
   activeTab: { backgroundColor: '#D48C62', minHeight: 38, borderTopLeftRadius: 10, borderTopRightRadius: 22 },

@@ -101,6 +101,7 @@ export default function PlatformAdminScreen() {
           <Text style={s.role}>PLATFORM ADMIN</Text>
         </View>
         <View style={s.headActions}>
+          <TouchableOpacity onPress={() => router.push('/moderation-approvals' as any)} style={s.round}><Text>Account action approvals</Text></TouchableOpacity>
           <TouchableOpacity onPress={load} style={s.round}>
             <RefreshCcw size={16} color="#5A4039" />
           </TouchableOpacity>

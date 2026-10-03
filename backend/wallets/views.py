@@ -453,3 +453,28 @@ def xendit_payment_session_webhook(request):
     except ValueError as error:
         return Response({'error': str(error)}, status=400)
     return Response({'received': True})
+
+
+class CustomerSupportRequestView(AuthenticatedAPIView):
+    from authentication.permissions import IsCustomerSupport
+    permission_classes = [IsCustomerSupport]
+
+    def get(self, request):
+        rows = CancellationReturnRequest.objects.select_related("requester", "payment_session__artwork").all()[:100]
+        return Response([{**serialize_request(row), "requester": row.requester.username} for row in rows])
+
+    @transaction.atomic
+    def patch(self, request, request_id):
+        decision = request.data.get("status")
+        if decision not in {CancellationReturnRequest.Status.APPROVED, CancellationReturnRequest.Status.DECLINED}:
+            return Response({"error": "status must be approved or declined."}, status=400)
+        note = request.data.get('admin_note', '')
+        if not isinstance(note, str) or not 10 <= len(note.strip()) <= 2000:
+            return Response({'error': 'Enter a decision note between 10 and 2000 characters.'}, status=400)
+        row = CancellationReturnRequest.objects.select_for_update().filter(id=request_id, status=CancellationReturnRequest.Status.PENDING).first()
+        if not row:
+            return Response({"error": "Pending request not found."}, status=404)
+        row.status, row.admin_note, row.reviewed_by, row.reviewed_at = decision, (request.data.get("admin_note") or "").strip(), self.get_request_user(request), timezone.now()
+        row.save(update_fields=["status", "admin_note", "reviewed_by", "reviewed_at"])
+        ActivityLog.objects.create(user=row.requester, action=f"{row.request_type}_{decision}", description=f"Your {row.request_type} request for transaction #{row.payment_session_id} was {decision}.", reference_type="payment_session", reference_id=row.payment_session_id)
+        return Response(serialize_request(row))

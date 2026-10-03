@@ -43,6 +43,11 @@ class IsPlatformAdmin(_BaseRolePermission):
     message = "Platform Admin access is required."
 
 
+class IsCustomerSupport(_BaseRolePermission):
+    required_role = User.Role.CUSTOMER_SUPPORT
+    message = 'Customer Support moderator access is required.'
+
+
 class IsAuthenticatedUser(BasePermission):
     """Just requires a resolvable Firebase-authenticated user, any role."""
 

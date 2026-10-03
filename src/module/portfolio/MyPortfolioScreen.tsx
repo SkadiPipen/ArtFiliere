@@ -1,8 +1,8 @@
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, Plus } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -40,7 +40,7 @@ export default function MyPortfolioScreen() {
     [artworks, filter],
   );
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const load = async () => {
       try {
         if (!auth.currentUser) return;
@@ -56,7 +56,7 @@ export default function MyPortfolioScreen() {
       }
     };
     load();
-  }, []);
+  }, []));
 
   return (
     <SafeAreaView style={s.page} edges={["top", "left", "right"]}>
@@ -125,9 +125,9 @@ export default function MyPortfolioScreen() {
         ) : visibleArtworks.length ? (
           <View style={s.grid}>
             {visibleArtworks.map((artwork) => (
+              <View key={artwork.id} style={s.card}>
               <TouchableOpacity
-                key={artwork.id}
-                style={s.card}
+                accessibilityRole="button"
                 onPress={() =>
                   router.push({
                     pathname: "/(home)/view-post",
@@ -162,6 +162,17 @@ export default function MyPortfolioScreen() {
                   ) : null}
                 </View>
               </TouchableOpacity>
+              {artwork.status === "declined" && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={`Appeal rejection of ${artwork.title}`}
+                  style={s.appeal}
+                  onPress={() => router.push({ pathname: "/support", params: { artworkId: String(artwork.id) } })}
+                >
+                  <Text style={s.postText}>Appeal rejection</Text>
+                </TouchableOpacity>
+              )}
+              </View>
             ))}
           </View>
         ) : (
@@ -269,6 +280,7 @@ const s = StyleSheet.create({
   status_approved: { color: "#407648", backgroundColor: "#E5F2E6" },
   status_declined: { color: "#A34C46", backgroundColor: "#FCE7E4" },
   price: { color: "#C15656", fontSize: 14, fontWeight: "800", marginTop: 7 },
+  appeal: { backgroundColor: "#C15656", margin: 12, marginTop: 0, borderRadius: 8, padding: 10, alignItems: "center" },
   reason: { color: "#96625C", fontSize: 11, lineHeight: 16, marginTop: 7 },
   empty: {
     marginTop: 25,

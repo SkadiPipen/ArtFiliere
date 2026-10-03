@@ -1,10 +1,12 @@
+import { platformAccessError } from '@/services/platformAccess';
 import { COLORS } from '@/constants/colors';
 import API_URL from '@/services/api';
-import { loginUser } from '@/services/auth';
+import { loginUser, logOut } from '@/services/auth';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -38,11 +40,16 @@ export default function HomeScreen() {
 
       const data = await response.json();
 
-      console.log(data);
+      if (!response.ok) {
+        if (data.code === 'account_restricted') await logOut();
+        throw new Error(data.error || data.detail || 'Unable to sign in.');
+      }
+      const accessError = platformAccessError(String(data.role).toLowerCase(), Platform.OS);
+      if (accessError) { await logOut(); throw new Error(accessError); }
 
       alert('Login Successfully!');
 
-      router.replace(data.role === 'customer_support' ? '/customer-service-dashboard' : data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : (['rider', 'driver'].includes(data.role?.toLowerCase())) ? '/rider/(tabs)' as any : '/(home)');
+      router.replace(data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'customer_support' ? '/moderator-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : (['rider', 'driver'].includes(data.role?.toLowerCase())) ? '/rider/(tabs)' as any : '/(home)');
     } catch (error: any) {
       alert(error.message);
     }
