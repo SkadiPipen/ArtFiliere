@@ -44,6 +44,8 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "blockchain:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-blockchain.ps1",
+    "blockchain:check": "venv\\Scripts\\python.exe scripts/local-blockchain.py --check",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",

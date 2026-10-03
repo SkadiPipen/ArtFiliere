@@ -180,6 +180,9 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        <TouchableOpacity onPress={() => router.push('/report-management')} style={{ padding: 16, marginVertical: 12, backgroundColor: '#F6E8E1', borderRadius: 12 }}>
+          <Text style={{ color: '#A74646', fontWeight: '700' }}>File an incident / dispute report</Text>
+        </TouchableOpacity>
         {/* License Information */}
         <Text style={styles.sectionHeading}>Driver's License</Text>
         <View style={styles.gridCard}>

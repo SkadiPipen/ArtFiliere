@@ -11,8 +11,8 @@ const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   // Time Clock State
-  const [isClockedIn, setIsClockedIn] = useState(true);
-  const [startTime, setStartTime] = useState<string | null>("00:00 PHT");
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [startTime, setStartTime] = useState<string | null>(null);
   const [endTime, setEndTime] = useState<string | null>(null);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
@@ -81,7 +81,7 @@ export default function HomeScreen() {
     return `${hrs}:${mins}:${secs}`;
   };
 
-  const handleClockToggle = () => {
+  const handleClockIn = () => {
     // Logic for clocking in
     const now = new Date();
     const formattedTime = now.toLocaleTimeString('en-US', {
@@ -89,22 +89,35 @@ export default function HomeScreen() {
       minute: '2-digit',
       timeZone: 'Asia/Manila'
     });
+    setStartTime(formattedTime);
+    setIsClockedIn(true);
+  };
 
-    if (!isClockedIn) {
-      setStartTime(formattedTime);
-      setEndTime(null);
-      setIsClockedIn(true);
+  const handleClockOut = () => {
+    const doClockOut = () => {
+      const now = new Date();
+      const formattedTime = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Manila',
+      });
+      setEndTime(formattedTime);
+      setIsClockedIn(false);
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Are you sure you want to clock out for today?');
+      if (confirmed) {
+        doClockOut();
+      }
     } else {
-
       Alert.alert('Clock Out', 'Are you sure you want to clock out for today?', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Clock Out', 
-          style: 'destructive', 
-          onPress: () => {
-            setEndTime(formattedTime); 
-            setIsClockedIn(false);
-          } 
-        }
+        {
+          text: 'Clock Out',
+          style: 'destructive',
+          onPress: doClockOut,
+        },
       ]);
     }
   };
@@ -139,74 +152,50 @@ export default function HomeScreen() {
 
   // GPS tracker handler
   const handleLocationPress = async () => {
-    // Check permission and get location
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Please enable location services to access the map.');
-      return;
-    }
-
-    // Show map modal
     setShowMap(true);
+    setAddressName('Acquiring rider location...');
 
     try {
-      // Get the postion
-      let currentLoc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      let lat = 10.3157;
+      let lng = 123.8854;
 
-      setDriverLocation({
-        latitude: currentLoc.coords.latitude,
-        longitude: currentLoc.coords.longitude,
-      });
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 });
+        }).catch(() => null);
 
-      // Coordinates into place name
-      const reverseGeocode = await Location.reverseGeocodeAsync({
-        latitude: currentLoc.coords.latitude,
-        longitude: currentLoc.coords.longitude,
-      });
-
-      if (reverseGeocode.length > 0) {
-        const place = reverseGeocode[0];
-        const formattedAddress = [place.streetNumber, place.street || place.name, place.city]
-          .filter(Boolean)
-          .join(' ');
-
-          setAddressName(formattedAddress || `${place.city || 'Cebu'}, Philippines`)
-      }
-
-      // Clear any previous watchers before new one
-      if (locationSubscriptionRef.current) {
-        locationSubscriptionRef.current.remove();
-      }
-
-      // Begin active watcher
-      locationSubscriptionRef.current = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 4000,
-          distanceInterval: 10,
-        },
-        async (newLocation) => {
-          setDriverLocation({
-            latitude: newLocation.coords.latitude,
-            longitude: newLocation.coords.longitude,
-          });
-
-          // Update place name according on movement
-          try {
-            await updateRiderLocationApi(
-              1, 
-              newLocation.coords.latitude, 
-              newLocation.coords.longitude
-            );
-          } catch (apiErr) {
-            console.log('Django location sync error:', apiErr);
-          }
+        if (pos) {
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
         }
-      );
+      } else {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const currentLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          lat = currentLoc.coords.latitude;
+          lng = currentLoc.coords.longitude;
+        }
+      }
+
+      setDriverLocation({ latitude: lat, longitude: lng });
+
+      try {
+        const reverse = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        if (reverse.length > 0) {
+          const place = reverse[0];
+          const formatted = [place.street, place.district, place.city].filter(Boolean).join(', ');
+          setAddressName(formatted || 'Cebu City, Philippines');
+        } else {
+          setAddressName('Current GPS Location (Cebu)');
+        }
+      } catch {
+        setAddressName('Current Rider Location');
+      }
+
+      updateRiderLocationApi(1, lat, lng).catch(() => {});
     } catch (error) {
-      console.error("GPS Tracking Initialization Error", error);
+      console.warn('GPS error:', error);
+      setAddressName('Cebu City, Philippines');
     }
   };
 
@@ -242,6 +231,7 @@ export default function HomeScreen() {
             />
           }
         >
+        
         {/* Time Clock */}
         <View style={styles.clockCard}>
           <View style={styles.clockHeaderRow}>
@@ -257,25 +247,37 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.timeInRow}>
-            {startTime && (
-              <Text style={styles.startedText}> Started at: <Text style={{ fontWeight: '600' }}>{startTime}</Text></Text>
-            )}
-
-            {!isClockedIn && endTime && (
-              <Text style={styles.startedText}> | Ended at: <Text style={{ fontWeight: '600' }}>{endTime}</Text></Text>
-            )}
+            <Text style={styles.startedText}>
+              Started at: <Text style={{ fontWeight: '600' }}>{startTime || ' '}</Text>
+            </Text>
+            <Text style={[styles.startedText, { marginLeft: 12 }]}>
+              Ended at: <Text style={{ fontWeight: '600' }}>{endTime || ' '}</Text>
+            </Text>
           </View>
 
           <Text style={styles.timerDigits}>
-            {isClockedIn ? formatTimer(secondsElapsed) : '00:00:00'}
+            {formatTimer(secondsElapsed)}
           </Text>
 
-          <TouchableOpacity 
-            style={[styles.clockButton, isClockedIn ? styles.buttonOut : styles.buttonIn]}
-            onPress={handleClockToggle}
-            activeOpacity={0.8}>
-              <Text style={styles.clockButtonText}>{isClockedIn ? 'Clock Out' : 'Clock In'}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+            <TouchableOpacity 
+              style={[styles.clockButton, { flex: 1, backgroundColor: isClockedIn ? '#D5D8DC' : '#27AE60' }]}
+              onPress={handleClockIn}
+              disabled={isClockedIn}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.clockButtonText}>Clock In</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.clockButton, { flex: 1, backgroundColor: !isClockedIn ? '#D5D8DC' : '#C0392B' }]}
+              onPress={handleClockOut}
+              disabled={!isClockedIn}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.clockButtonText}>Clock Out</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Metrics */}
@@ -325,14 +327,35 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            <View style={styles.detailRow}>
-              <Ionicons name="person-outline" size={16} color="#7F8C8D" style={{ marginRight: 6 }}/>
-              <Text style={styles.detailText}>
-                {['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step)
-                  ? `Pickup: $delivery.artist?.name || 'Artist'}`
-                  : `Drop-off: ${delivery.buyer?.name || 'Customer'}`}
-              </Text>
-            </View>
+            {['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step) ? (
+              <View>
+                <View style={styles.detailRow}>
+                  <Ionicons name="storefront-outline" size={16} color="#BC5454" style={{ marginRight: 6 }}/>
+                  <Text style={[styles.detailText, { fontWeight: '700', color: '#BC5454'}]}>
+                    Pickup: {delivery.artist?.name || 'Artist'}
+                  </Text>
+                </View>
+                <View style={[styles.detailRow, { marginTop: -6, paddingLeft: 22 }]}>
+                  <Text style={[styles.detailText, { color: '#7F8C8D', fontSize: 12}]} numberOfLines={1}>
+                    {delivery.artist?.address || 'Artist'}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View>
+                <View style={styles.detailRow}>
+                  <Ionicons name="person-outline" size={16} color="#27AE60" style={{ marginRight: 6 }}/>
+                  <Text style={[styles.detailText, { fontWeight: '700', color: '#27AE60'}]}>
+                    Deliver to: {delivery.buyer?.name || 'Buyer'}
+                  </Text>
+                </View>
+                <View style={[styles.detailRow, { marginTop: -6, paddingLeft: 22 }]}>
+                  <Text style={[styles.detailText, { color: '#7F8C8D', fontSize: 12}]} numberOfLines={1}>
+                    {delivery.buyer?.address || 'Buyer'}
+                  </Text>
+                </View>
+              </View>
+            )}
 
             <View style={styles.resumeButton}>
               <Text style={styles.resumeButtonText}>Open Delivery Details</Text>

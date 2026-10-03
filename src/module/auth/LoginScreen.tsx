@@ -79,7 +79,7 @@ export default function HomeScreen() {
               style={{ position: 'absolute', top: 24, left: 24 }}
             >
               <Text style={{ color: COLORS.red, fontWeight: '600', fontSize: 14 }}>
-                ‹ Back to Home
+                â€¹ Back to Home
               </Text>
             </Pressable>
 

@@ -22,6 +22,9 @@ class AccountRestricted(APIException):
     default_code = 'account_restricted'
     default_detail = 'Account access is restricted. Contact customer support.'
 
+class AccountRestrictedError(ValueError):
+    pass
+
 def verify_token(id_token):
     
     try:

@@ -37,7 +37,7 @@ def create_auction_agreement(auction, buyer, amount):
         conversation=conversation, template=template, artwork=auction.artwork,
         buyer=buyer, artist=auction.artist, price=amount,
         terms_snapshot=auction_terms(auction, buyer.username, amount), license_type=auction.license_type,
-        exclusivity=auction.exclusivity, delivery_type=auction.delivery_type,
+        exclusivity=auction.exclusivity, delivery_type=auction.artwork.art_type,
         compensation_type="one_time", status=Agreement.Status.ACCEPTED,
         buyer_accepted_at=timezone.now(), artist_accepted_at=timezone.now(),
     )

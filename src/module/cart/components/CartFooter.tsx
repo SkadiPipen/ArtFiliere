@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 interface Props {
   isAllSelected: boolean;
@@ -18,8 +18,10 @@ export default function CartFooter({
   totalPrice,
   onToggleSelectAll, onCheckout, checkingOut, agreementRequired, signaturesRequired, onSign,
 }: Props) {
+  const { width } = useWindowDimensions();
+  const desktop = Platform.OS === 'web' && width >= 768;
   return (
-    <View style={styles.bottomStickyFooter}>
+    <View style={[styles.bottomStickyFooter, desktop && { bottom: 0 }]}>
       <View style={styles.selectAllContainer}>
         <TouchableOpacity
           style={[styles.checkboxSquare, isAllSelected && styles.checkboxSquareChecked]}
