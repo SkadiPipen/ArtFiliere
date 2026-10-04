@@ -1,5 +1,6 @@
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
+import AgreementPaper from '@/module/messages/components/AgreementPaper';
 import { FileText, Pencil, Plus } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
@@ -26,6 +27,7 @@ export default function AgreementTemplateManager() {
     [body, setBody] = useState(standard),
     [active, setActive] = useState(true),
     [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const h = async () => {
     if (!auth.currentUser) throw Error("Please log in again.");
     return {
@@ -59,6 +61,7 @@ export default function AgreementTemplateManager() {
     setName(x?.name || "ArtFiliere standard agreement");
     setBody(x?.body || standard);
     setActive(x?.is_active ?? true);
+    setMode('edit');
     setShow(true);
   };
   const close = () => {
@@ -66,7 +69,7 @@ export default function AgreementTemplateManager() {
     setEdit(null);
   };
   const save = async () => {
-    if (!name || !body)
+    if (!name.trim() || !body.trim())
       return Alert.alert(
         "Agreement template",
         "Name and wording are required.",
@@ -134,40 +137,46 @@ export default function AgreementTemplateManager() {
         onRequestClose={close}
       >
         <View style={s.overlay}>
-          <ScrollView contentContainerStyle={s.modal}>
+          <ScrollView style={s.modalScroll} contentContainerStyle={s.modal}>
             <Text style={s.modalTitle}>
               {edit ? "Edit" : "New"} agreement template
             </Text>
             <Text style={s.help}>
-              Use the placeholders buyer name, artist name, and amount by
-              keeping their double curly-brace format from the default template.
+              Edit the wording and paragraph spacing, then preview the full document before saving. Keep placeholders such as {'{{buyer_name}}'}, {'{{artist_name}}'} and {'{{amount}}'} for the actual agreement details.
             </Text>
             <TextInput
               value={name}
               onChangeText={setName}
               style={s.field}
               placeholder="Template name"
+              accessibilityLabel="Agreement template name"
+              editable={!saving}
             />
-            <TextInput
+            <View style={s.tabs}>{(['edit', 'preview'] as const).map(tab => <TouchableOpacity key={tab} accessibilityRole="button" accessibilityState={{ selected: mode === tab }} style={[s.tab, mode === tab && s.selectedTab]} onPress={() => setMode(tab)}><Text style={s.tabText}>{tab === 'edit' ? 'Edit agreement' : 'Document preview'}</Text></TouchableOpacity>)}</View>
+            {mode === 'edit' ? <View style={s.documentEditor}><Text style={s.documentTitle}>Art Licensing Agreement</Text><TextInput
               value={body}
               onChangeText={setBody}
               multiline
               textAlignVertical="top"
-              style={[s.field, s.body]}
-            />
+              accessibilityLabel="Full agreement wording"
+              editable={!saving}
+              style={s.body}
+            /></View> : <AgreementPaper document={body} />}
+            <Text style={s.help}>The preview preserves your exact wording. Buyer, artist and amount placeholders are filled when an agreement is created.</Text>
             <View style={s.switch}>
               <Text>Available for new agreements</Text>
               <Switch
                 value={active}
+                disabled={saving}
                 onValueChange={setActive}
                 trackColor={{ true: "#C15656" }}
               />
             </View>
             <View style={s.actions}>
-              <TouchableOpacity onPress={close}>
+              <TouchableOpacity onPress={close} disabled={saving}>
                 <Text>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={save} style={s.save}>
+              <TouchableOpacity onPress={save} disabled={saving} style={s.save}>
                 <Text style={s.white}>
                   {saving ? "Saving…" : "Save template"}
                 </Text>
@@ -237,7 +246,7 @@ const s = StyleSheet.create({
   modal: {
     backgroundColor: "#fff",
     width: "100%",
-    maxWidth: 600,
+    maxWidth: 1000,
     borderRadius: 14,
     padding: 20,
   },
@@ -250,7 +259,14 @@ const s = StyleSheet.create({
     padding: 11,
     marginBottom: 10,
   },
-  body: { height: 245 },
+  modalScroll: { width: '100%', maxWidth: 1000, maxHeight: '92%' },
+  tabs: { flexDirection: 'row', gap: 10, marginVertical: 16 },
+  tab: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#DDD4CF' },
+  selectedTab: { backgroundColor: '#FFF0E9', borderColor: '#C15656' },
+  tabText: { color: '#704F46', fontWeight: '700' },
+  documentEditor: { backgroundColor: '#FFFFFF', padding: 28, borderWidth: 1, borderColor: '#ECE7E2' },
+  documentTitle: { fontSize: 28, fontWeight: '700', color: '#111111', marginBottom: 26 },
+  body: { minHeight: 650, fontSize: 16, lineHeight: 29, color: '#171717', padding: 0 },
   switch: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -138,6 +138,18 @@ class ArtworkView(AuthenticatedAPIView):
             ).first()
             if not auction_template:
                 return Response({"error": "The selected platform agreement template is unavailable. Refresh and try again."}, status=status.HTTP_400_BAD_REQUEST)
+            from auctions.licensing import request_document
+            from messaging.signature_images import signature_image
+            auction_document, auction_document_hash = request_document(user, request.data)
+            signature_name = request.data.get('auction_signature_name', '')
+            if not isinstance(signature_name, str) or not 2 <= len(signature_name.strip()) <= 200 or request.data.get('auction_signature_consent') is not True:
+                return Response({'error': 'Review the auction document, enter your name and consent to sign.'}, status=400)
+            if request.data.get('auction_document_hash') != auction_document_hash:
+                return Response({'error': 'The auction agreement changed. Review and sign it again.'}, status=409)
+            try:
+                auction_signature_image = signature_image(request.data)
+            except ValueError as error:
+                return Response({'error': str(error)}, status=400)
             auction_start_time = parse_datetime(request.data.get("starting_time") or "")
             auction_end_time = parse_datetime(request.data.get("end_time") or "")
             if not auction_start_time or not auction_end_time:
@@ -259,7 +271,7 @@ class ArtworkView(AuthenticatedAPIView):
 
         category_str = str(artwork.category or "").upper()
         sale_type_str = str(sale_type or "").upper()
-        if "AUCTION" in sale_type_str or "AUCTION" in category_str:
+        if sale_type == "Auction":
             from auctions.models import AuctionListing
 
             now = timezone.now()
@@ -303,6 +315,11 @@ class ArtworkView(AuthenticatedAPIView):
                     "delivery_type": auction_delivery_type,
                     "terms_snapshot": auction_terms,
                     "agreement_template": auction_template,
+                    'signed_document': auction_document,
+                    'signed_document_hash': auction_document_hash,
+                    'artist_signature': signature_name.strip(),
+                    'artist_signature_image': auction_signature_image,
+                    'artist_signed_at': timezone.now(),
                 },
             )
 
@@ -374,6 +391,15 @@ class AuctionAgreementDefaultsView(AuthenticatedAPIView):
                 status=status.HTTP_409_CONFLICT,
             )
         return Response({"id": template.id, "name": template.name, "body": template.body})
+
+
+class AuctionAgreementPreviewView(AuthenticatedAPIView):
+    permission_classes = [IsArtist]
+
+    def post(self, request):
+        from auctions.licensing import request_document
+        document, digest = request_document(self.get_request_user(request), request.data)
+        return Response({'document': document, 'document_hash': digest})
 
 
 class ArtworkReviewView(AuthenticatedAPIView):

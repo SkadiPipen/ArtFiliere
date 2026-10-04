@@ -11,6 +11,8 @@ from users.models import User
 
 
 def auction_terms(auction, buyer_name="the winning buyer", amount="the winning bid"):
+    if auction.signed_document:
+        return auction.signed_document
     terms = auction.terms_snapshot or (
         f"Auction license: {auction.license_type}. Exclusivity: {auction.exclusivity}. "
         f"Delivery: {auction.delivery_type}. The winning bid is the final core price."
@@ -37,9 +39,13 @@ def create_auction_agreement(auction, buyer, amount):
         conversation=conversation, template=template, artwork=auction.artwork,
         buyer=buyer, artist=auction.artist, price=amount,
         terms_snapshot=auction_terms(auction, buyer.username, amount), license_type=auction.license_type,
-        exclusivity=auction.exclusivity, delivery_type=auction.artwork.art_type,
+        exclusivity=auction.exclusivity, delivery_type=auction.delivery_type if auction.signed_document else auction.artwork.art_type,
         compensation_type="one_time", status=Agreement.Status.ACCEPTED,
-        buyer_accepted_at=timezone.now(), artist_accepted_at=timezone.now(),
+        buyer_accepted_at=timezone.now(), artist_accepted_at=auction.artist_signed_at or timezone.now(),
+        artist_presigned_document=auction.signed_document,
+        artist_signature=auction.artist_signature,
+        artist_signature_image=auction.artist_signature_image,
+        artist_signed_at=auction.artist_signed_at,
     )
     Message.objects.create(conversation=conversation, sender=None, message_type=Message.Type.SYSTEM,
         body="Auction terms were accepted at bid time. Only delivery details may be discussed.", agreement=agreement)

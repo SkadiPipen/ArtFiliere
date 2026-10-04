@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from users.models import Address, User
 from artist_applications.models import ArtistApplication
-from .services import verify_token, AccountRestricted, TokenVerificationUnavailable, TokenRejected
+from .services import verify_token, account_access, AccountRestricted, TokenVerificationUnavailable, TokenRejected
 
 
 @api_view(["POST"])
@@ -21,7 +21,7 @@ def login(request):
 
     try:
         token = header.split(" ")[1]
-        decoded = verify_token(token)
+        decoded = verify_token(token, allow_suspended=True)
     except AccountRestricted as error:
         return Response({'error': str(error), 'code': 'account_restricted'}, status=403)
     except (AccountRestricted, TokenVerificationUnavailable, TokenRejected):
@@ -48,7 +48,8 @@ def login(request):
                 defaults={"email": email}
             )
 
-    if user.access_restricted:
+    access = account_access(user)
+    if access['banned']:
         return Response({'error': 'Account access is restricted. Contact customer support.', 'code': 'account_restricted'}, status=403)
 
     return Response({
@@ -60,6 +61,7 @@ def login(request):
         "last_name": user.last_name,
         "role": user.role,
         "new_user": created,
+        "read_only": access['read_only'],
     })
 
 
@@ -164,7 +166,7 @@ def me(request):
         return Response({"error": "Authentication is required."}, status=401)
 
     try:
-        decoded = verify_token(header.split(" ", 1)[1])
+        decoded = verify_token(header.split(" ", 1)[1], allow_suspended=request.method in ('GET', 'HEAD', 'OPTIONS'))
         user = User.objects.get(firebase_uid=decoded["uid"])
     except AccountRestricted as error:
         return Response({'error': str(error), 'code': 'account_restricted'}, status=403)
@@ -186,6 +188,7 @@ def me(request):
             'last_name': user.last_name,
             'contact_number': getattr(user, 'contact_number', ''),
             'role': getattr(user, 'role', 'Buyer'),
+            'read_only': account_access(user)['read_only'],
             'is_accepting_commissions': user.is_accepting_commissions,
             'default_hourly_rate': str(artist_application.hourly_rate) if artist_application else None,
             'profile_image': getattr(user, 'profile_image', None),
@@ -271,8 +274,9 @@ class AuthenticatedAPIView(APIView):
             return None
 
         try:
-            decoded = verify_token(header.split(" ", 1)[1])
+            decoded = verify_token(header.split(" ", 1)[1], allow_suspended=request.method in ('GET', 'HEAD', 'OPTIONS') or (getattr(self, 'allow_suspended_support', False) and request.method in ('POST', 'PATCH')))
             user = User.objects.get(firebase_uid=decoded["uid"])
+            user.view_only = decoded.get('artfiliere_read_only', False)
         except (AccountRestricted, TokenVerificationUnavailable, TokenRejected):
             raise
         except Exception:

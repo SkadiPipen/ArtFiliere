@@ -41,7 +41,7 @@ export default function HomeScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.code === 'account_restricted') await logOut();
+        if (data.code === 'account_restricted') { router.replace('/account-appeal' as any); return; }
         throw new Error(data.error || data.detail || 'Unable to sign in.');
       }
       const accessError = platformAccessError(String(data.role).toLowerCase(), Platform.OS);

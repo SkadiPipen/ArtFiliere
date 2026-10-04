@@ -13,6 +13,37 @@ from .management import ReportUserSearchView
 
 
 class ManagementTests(TestCase):
+    def test_approval_source_is_required_when_ids_overlap(self):
+        from .models import AccountModerationRequest, SupportTicket
+        from .moderation import AccountModerationView
+        report_action = AccountActionRequest.objects.create(report=self.report, target=self.artist, initiated_by=self.mod, action='ban', reason='Reviewed evidence')
+        ticket = SupportTicket.objects.create(requester=self.buyer, concern='incident', details='A reported incident')
+        ticket_action = AccountModerationRequest.objects.create(pk=report_action.pk, ticket=ticket, target=self.artist, requested_by=self.mod, action='ban', reason='Reviewed evidence')
+        response = self.call(AccountModerationView, self.admin, 'patch', {'status': 'approved', 'review_note': 'Evidence reviewed'}, action_id=report_action.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(AccountActionRequest.objects.get(pk=report_action.pk).status, 'pending')
+        ticket_action.refresh_from_db()
+        self.assertEqual(ticket_action.status, 'pending')
+
+    def test_report_suspension_reaches_admin_approval_queue(self):
+        from .moderation import AccountModerationView
+        response = self.call(AccountActionsView, self.mod, 'post', {'report_id': self.report.pk, 'action': 'suspension', 'duration_days': 7, 'reason': 'Repeated incidents'})
+        self.assertEqual(response.status_code, 201)
+        pk = response.data['id']
+        queue = self.call(AccountModerationView, self.admin).data['results']
+        self.assertTrue(any(r['id'] == pk and r['source'] == 'report' and r['status'] == 'pending' for r in queue))
+        request = self.factory.patch('/', {'status': 'approved', 'review_note': 'Evidence reviewed'}, format='json')
+        with patch('authentication.views.AuthenticatedAPIView.get_request_user', return_value=self.admin):
+            result = AccountModerationView.as_view()(request, action_id=pk)
+        self.assertEqual(result.status_code, 200, result.data)
+        self.assertEqual(result.data['status'], 'approved')
+        self.assertEqual(AccountActionRequest.objects.get(pk=pk).reviewed_by, self.admin)
+
+    def test_management_and_delivery_routes_are_registered(self):
+        from django.urls import resolve
+        for path in ['management/', 'management/report-users/', 'management/reports/', 'management/reports/1/', 'management/attachments/1/', 'management/account-actions/', 'management/account-actions/1/', 'management/financial-authorizations/', 'transactions/requests/1/respond/', 'checkout/agreements/1/delivery/']:
+            self.assertIsNotNone(resolve('/api/' + path).func)
+
     def test_report_username_search_requires_typing_and_limits_matches(self):
         def search(query):
             request = self.factory.get('/', {'q': query})

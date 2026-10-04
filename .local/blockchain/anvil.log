@@ -1,0 +1,627 @@
+2026-10-03T02:58:11.424833Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:11.577010Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:18.156027Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:18.170624Z  INFO node::user: eth_chainId
+2026-10-03T02:58:18.177087Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:18.194171Z  INFO node::user: eth_getCode
+2026-10-03T02:58:19.726535Z  INFO node::user: evm_snapshot
+2026-10-03T02:58:19.730673Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:19.747943Z  INFO node::user: eth_getTransactionCount
+2026-10-03T02:58:19.751008Z  INFO node::user: eth_gasPrice
+2026-10-03T02:58:19.765858Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T02:58:19.771223Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T02:58:19.783237Z  INFO node::user: 
+2026-10-03T02:58:19.783996Z  INFO node::user:     Transaction: 0xb20730a8e941b7a712b8c6e7ff744f6ba3bb00d638dde911ddf99696a14ccac4
+2026-10-03T02:58:19.784223Z  INFO node::user:     Gas used: 113750
+2026-10-03T02:58:19.784482Z  INFO node::user: 
+2026-10-03T02:58:19.784821Z  INFO node::user:     Block Number: 39
+2026-10-03T02:58:19.785217Z  INFO node::user:     Block Hash: 0xbe45caf432ac12db65b29f1bac8bd2790268af0dede1093a78c81f29623df68d
+2026-10-03T02:58:19.785421Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 02:57:52 +0000"
+
+2026-10-03T02:58:19.875722Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T02:58:19.882221Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:19.890849Z  INFO node::user: eth_chainId
+2026-10-03T02:58:19.894582Z  INFO node::user: eth_call
+2026-10-03T02:58:19.897333Z  INFO node::user: eth_chainId
+2026-10-03T02:58:19.902288Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:19.917700Z  INFO node::user: eth_chainId
+2026-10-03T02:58:19.920920Z  INFO node::user: eth_call
+2026-10-03T02:58:19.924617Z  INFO node::user: eth_chainId
+2026-10-03T02:58:19.929240Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:19.939436Z  INFO node::user: eth_getTransactionCount
+2026-10-03T02:58:19.942535Z  INFO node::user: eth_gasPrice
+2026-10-03T02:58:19.953490Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T02:58:19.958845Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T02:58:19.968512Z  INFO node::user: 
+2026-10-03T02:58:19.968988Z  INFO node::user:     Transaction: 0x59b8a9c60a3f821add1e99fec55f5cb3e539d80f39c17dce51246c6caf1cc36e
+2026-10-03T02:58:19.972022Z  INFO node::user:     Gas used: 113794
+2026-10-03T02:58:19.972194Z  INFO node::user: 
+2026-10-03T02:58:19.972317Z  INFO node::user:     Block Number: 40
+2026-10-03T02:58:19.972435Z  INFO node::user:     Block Hash: 0x2486f87542dc423f05afdb7eea6ed3895f3562b73df4e1e970af18080304a010
+2026-10-03T02:58:19.972614Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 02:57:52 +0000"
+
+2026-10-03T02:58:20.061976Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T02:58:20.078407Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:20.087005Z  INFO node::user: eth_chainId
+2026-10-03T02:58:20.103338Z  INFO node::user: eth_call
+2026-10-03T02:58:20.109640Z  INFO node::user: eth_chainId
+2026-10-03T02:58:20.126135Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:20.171284Z  INFO node::user: eth_chainId
+2026-10-03T02:58:20.177356Z  INFO node::user: eth_call
+2026-10-03T02:58:20.181073Z  INFO node::user: eth_chainId
+2026-10-03T02:58:20.205522Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:20.217630Z  INFO node::user: eth_getTransactionCount
+2026-10-03T02:58:20.220296Z  INFO node::user: eth_gasPrice
+2026-10-03T02:58:20.232312Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T02:58:20.240876Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T02:58:20.251767Z  INFO node::user: 
+2026-10-03T02:58:20.252284Z  INFO node::user:     Transaction: 0x69215396768bd3f79d4182ffc17a957ac919a051eeee550301712862460a536b
+2026-10-03T02:58:20.252463Z  INFO node::user:     Gas used: 113705
+2026-10-03T02:58:20.252617Z  INFO node::user: 
+2026-10-03T02:58:20.252948Z  INFO node::user:     Block Number: 41
+2026-10-03T02:58:20.253129Z  INFO node::user:     Block Hash: 0x7a24839c08e7b791fb9604c3ca27038fedd8607c12e1316a129500c830bdf0aa
+2026-10-03T02:58:20.253351Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 02:57:53 +0000"
+
+2026-10-03T02:58:20.344545Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T02:58:20.351380Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:20.357638Z  INFO node::user: eth_chainId
+2026-10-03T02:58:20.360592Z  INFO node::user: eth_call
+2026-10-03T02:58:20.363381Z  INFO node::user: eth_chainId
+2026-10-03T02:58:20.378046Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:20.387185Z  INFO node::user: eth_chainId
+2026-10-03T02:58:20.390656Z  INFO node::user: eth_call
+2026-10-03T02:58:20.392970Z  INFO node::user: eth_chainId
+2026-10-03T02:58:20.398260Z  INFO node::user: evm_revert
+2026-10-03T02:58:31.972409Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:31.998058Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.000514Z  INFO node::user: eth_call
+2026-10-03T02:58:32.003062Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.009828Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.017014Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.020368Z  INFO node::user: eth_call
+2026-10-03T02:58:32.022914Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.027571Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.033555Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.035916Z  INFO node::user: eth_call
+2026-10-03T02:58:32.038725Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.044095Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.050555Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.053444Z  INFO node::user: eth_call
+2026-10-03T02:58:32.056257Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.062333Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.072868Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.079434Z  INFO node::user: eth_call
+2026-10-03T02:58:32.083206Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.098937Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.104944Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.108158Z  INFO node::user: eth_call
+2026-10-03T02:58:32.111937Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.116651Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.122877Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.126346Z  INFO node::user: eth_call
+2026-10-03T02:58:32.128983Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.133415Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.139380Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.144162Z  INFO node::user: eth_call
+2026-10-03T02:58:32.147090Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.152516Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.159724Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.163202Z  INFO node::user: eth_call
+2026-10-03T02:58:32.166040Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.186546Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.197161Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.200057Z  INFO node::user: eth_call
+2026-10-03T02:58:32.202818Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.206921Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.213901Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.217261Z  INFO node::user: eth_call
+2026-10-03T02:58:32.220075Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.234618Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.242724Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.245984Z  INFO node::user: eth_call
+2026-10-03T02:58:32.249357Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.258467Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.265073Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.267980Z  INFO node::user: eth_call
+2026-10-03T02:58:32.270478Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.275022Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.282558Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.285176Z  INFO node::user: eth_call
+2026-10-03T02:58:32.287756Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.292506Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.298420Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.300872Z  INFO node::user: eth_call
+2026-10-03T02:58:32.303273Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.307829Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.317688Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.320834Z  INFO node::user: eth_call
+2026-10-03T02:58:32.325152Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.355173Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.363371Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.368578Z  INFO node::user: eth_call
+2026-10-03T02:58:32.373117Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.403627Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.411480Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.415308Z  INFO node::user: eth_call
+2026-10-03T02:58:32.417783Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.423818Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.431015Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.435591Z  INFO node::user: eth_call
+2026-10-03T02:58:32.438493Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.444056Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.452248Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.457107Z  INFO node::user: eth_call
+2026-10-03T02:58:32.461257Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.476469Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.483624Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.486327Z  INFO node::user: eth_call
+2026-10-03T02:58:32.488808Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.493759Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.500173Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.503510Z  INFO node::user: eth_call
+2026-10-03T02:58:32.506646Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.523778Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.534840Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.538899Z  INFO node::user: eth_call
+2026-10-03T02:58:32.542277Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.548784Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.555476Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.560290Z  INFO node::user: eth_call
+2026-10-03T02:58:32.565043Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.571308Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.581457Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.584691Z  INFO node::user: eth_call
+2026-10-03T02:58:32.589365Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.594389Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.602013Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.606164Z  INFO node::user: eth_call
+2026-10-03T02:58:32.611377Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.618634Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.627664Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.630126Z  INFO node::user: eth_call
+2026-10-03T02:58:32.633930Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.638380Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.645426Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.648033Z  INFO node::user: eth_call
+2026-10-03T02:58:32.650468Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.654874Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.661368Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.663992Z  INFO node::user: eth_call
+2026-10-03T02:58:32.666787Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.684672Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.692190Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.697843Z  INFO node::user: eth_call
+2026-10-03T02:58:32.701465Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.706071Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.714083Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.716611Z  INFO node::user: eth_call
+2026-10-03T02:58:32.719167Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.724365Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.731116Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.733760Z  INFO node::user: eth_call
+2026-10-03T02:58:32.736407Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.740483Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.747738Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.750319Z  INFO node::user: eth_call
+2026-10-03T02:58:32.752848Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.757250Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.765679Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.768274Z  INFO node::user: eth_call
+2026-10-03T02:58:32.771071Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.776033Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.784776Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.787333Z  INFO node::user: eth_call
+2026-10-03T02:58:32.790261Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.795863Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.802127Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.804838Z  INFO node::user: eth_call
+2026-10-03T02:58:32.807688Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.814347Z  INFO node::user: web3_clientVersion
+2026-10-03T02:58:32.822212Z  INFO node::user: eth_chainId
+2026-10-03T02:58:32.826671Z  INFO node::user: eth_call
+2026-10-03T02:58:32.829853Z  INFO node::user: eth_chainId
+2026-10-03T02:59:42.715586Z  INFO node::user: web3_clientVersion
+2026-10-03T02:59:42.767631Z  INFO node::user: eth_chainId
+2026-10-03T02:59:42.777357Z  INFO node::user: eth_call
+2026-10-03T02:59:42.786171Z  INFO node::user: eth_chainId
+2026-10-03T02:59:43.013850Z  INFO node::user: web3_clientVersion
+2026-10-03T02:59:43.031588Z  INFO node::user: eth_chainId
+2026-10-03T02:59:43.038323Z  INFO node::user: eth_call
+2026-10-03T02:59:43.046970Z  INFO node::user: eth_chainId
+2026-10-03T03:00:39.543830Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:09.960154Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:09.973683Z  INFO node::user: eth_chainId
+2026-10-03T03:01:09.981389Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:10.101802Z  INFO node::user: eth_getCode
+2026-10-03T03:01:16.703200Z  INFO node::user: evm_snapshot
+2026-10-03T03:01:16.755906Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:16.819044Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:01:16.828041Z  INFO node::user: eth_gasPrice
+2026-10-03T03:01:16.851408Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:01:16.872468Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:16.890348Z  INFO node::user: 
+2026-10-03T03:01:16.891495Z  INFO node::user:     Transaction: 0xb20730a8e941b7a712b8c6e7ff744f6ba3bb00d638dde911ddf99696a14ccac4
+2026-10-03T03:01:16.892279Z  INFO node::user:     Gas used: 113750
+2026-10-03T03:01:16.892590Z  INFO node::user: 
+2026-10-03T03:01:16.894127Z  INFO node::user:     Block Number: 39
+2026-10-03T03:01:16.895135Z  INFO node::user:     Block Hash: 0x75439853d028ff41b03dc319c78e6fdc8a205585f66894b83b96f4358b8d124d
+2026-10-03T03:01:16.896855Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:00:49 +0000"
+
+2026-10-03T03:01:16.981967Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:16.993805Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:17.009084Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.015329Z  INFO node::user: eth_call
+2026-10-03T03:01:17.021768Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.032661Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:17.064455Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.070346Z  INFO node::user: eth_call
+2026-10-03T03:01:17.076663Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.094489Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:17.113611Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:01:17.130425Z  INFO node::user: eth_gasPrice
+2026-10-03T03:01:17.152406Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:01:17.160834Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:17.166361Z  INFO node::user: 
+2026-10-03T03:01:17.167171Z  INFO node::user:     Transaction: 0x59b8a9c60a3f821add1e99fec55f5cb3e539d80f39c17dce51246c6caf1cc36e
+2026-10-03T03:01:17.168105Z  INFO node::user:     Gas used: 113794
+2026-10-03T03:01:17.168837Z  INFO node::user: 
+2026-10-03T03:01:17.169340Z  INFO node::user:     Block Number: 40
+2026-10-03T03:01:17.169642Z  INFO node::user:     Block Hash: 0x5d9196f099624694d9600908d6a904e49406e41f30680d38ed39e010d19d33b5
+2026-10-03T03:01:17.170247Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:00:50 +0000"
+
+2026-10-03T03:01:17.270640Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:17.285709Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:17.300182Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.306573Z  INFO node::user: eth_call
+2026-10-03T03:01:17.312930Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.322237Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:17.435954Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.444586Z  INFO node::user: eth_call
+2026-10-03T03:01:17.451840Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.483017Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:17.506037Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:01:17.512343Z  INFO node::user: eth_gasPrice
+2026-10-03T03:01:17.532022Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:01:17.540366Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:17.542869Z  INFO node::user: 
+2026-10-03T03:01:17.543477Z  INFO node::user:     Transaction: 0x69215396768bd3f79d4182ffc17a957ac919a051eeee550301712862460a536b
+2026-10-03T03:01:17.543744Z  INFO node::user:     Gas used: 113705
+2026-10-03T03:01:17.543938Z  INFO node::user: 
+2026-10-03T03:01:17.544105Z  INFO node::user:     Block Number: 41
+2026-10-03T03:01:17.544426Z  INFO node::user:     Block Hash: 0x22e25e0e7d4d905f147e4e39251c47e0dcf2a3487c3f82cbe2678ae381acc3b5
+2026-10-03T03:01:17.544673Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:00:50 +0000"
+
+2026-10-03T03:01:17.663911Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:17.672087Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:17.684473Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.691354Z  INFO node::user: eth_call
+2026-10-03T03:01:17.698183Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.708408Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:17.724966Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.730088Z  INFO node::user: eth_call
+2026-10-03T03:01:17.740337Z  INFO node::user: eth_chainId
+2026-10-03T03:01:17.763541Z  INFO node::user: evm_revert
+2026-10-03T03:01:48.980499Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:48.990345Z  INFO node::user: eth_chainId
+2026-10-03T03:01:48.999200Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:49.029285Z  INFO node::user: eth_getCode
+2026-10-03T03:01:51.523241Z  INFO node::user: evm_snapshot
+2026-10-03T03:01:51.533334Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:51.563409Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:01:51.570548Z  INFO node::user: eth_gasPrice
+2026-10-03T03:01:51.594370Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:01:51.601008Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:51.603959Z  INFO node::user: 
+2026-10-03T03:01:51.604848Z  INFO node::user:     Transaction: 0xb20730a8e941b7a712b8c6e7ff744f6ba3bb00d638dde911ddf99696a14ccac4
+2026-10-03T03:01:51.605394Z  INFO node::user:     Gas used: 113750
+2026-10-03T03:01:51.605733Z  INFO node::user: 
+2026-10-03T03:01:51.606069Z  INFO node::user:     Block Number: 39
+2026-10-03T03:01:51.606392Z  INFO node::user:     Block Hash: 0x55328a9d2eaee6b13fde636db1219c2154f0d42f6a2643dee67b1091f4c3581a
+2026-10-03T03:01:51.606621Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:01:24 +0000"
+
+2026-10-03T03:01:51.706311Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:51.716329Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:51.728023Z  INFO node::user: eth_chainId
+2026-10-03T03:01:51.733140Z  INFO node::user: eth_call
+2026-10-03T03:01:51.737335Z  INFO node::user: eth_chainId
+2026-10-03T03:01:51.756635Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:51.778613Z  INFO node::user: eth_chainId
+2026-10-03T03:01:51.783033Z  INFO node::user: eth_call
+2026-10-03T03:01:51.787344Z  INFO node::user: eth_chainId
+2026-10-03T03:01:51.794703Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:51.808222Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:01:51.812798Z  INFO node::user: eth_gasPrice
+2026-10-03T03:01:51.828434Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:01:51.832862Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:51.850660Z  INFO node::user: 
+2026-10-03T03:01:51.852067Z  INFO node::user:     Transaction: 0x59b8a9c60a3f821add1e99fec55f5cb3e539d80f39c17dce51246c6caf1cc36e
+2026-10-03T03:01:51.852489Z  INFO node::user:     Gas used: 113794
+2026-10-03T03:01:51.852873Z  INFO node::user: 
+2026-10-03T03:01:51.853151Z  INFO node::user:     Block Number: 40
+2026-10-03T03:01:51.853396Z  INFO node::user:     Block Hash: 0xae201a7f89e7092b1456dcd3f86bf84d9e81434934096c06193bf172af587bb5
+2026-10-03T03:01:51.853590Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:01:24 +0000"
+
+2026-10-03T03:01:51.938489Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:51.946307Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:51.957523Z  INFO node::user: eth_chainId
+2026-10-03T03:01:51.961723Z  INFO node::user: eth_call
+2026-10-03T03:01:51.966112Z  INFO node::user: eth_chainId
+2026-10-03T03:01:51.973129Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:52.031798Z  INFO node::user: eth_chainId
+2026-10-03T03:01:52.036320Z  INFO node::user: eth_call
+2026-10-03T03:01:52.040809Z  INFO node::user: eth_chainId
+2026-10-03T03:01:52.047962Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:52.064948Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:01:52.076224Z  INFO node::user: eth_gasPrice
+2026-10-03T03:01:52.096133Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:01:52.104675Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:52.119664Z  INFO node::user: 
+2026-10-03T03:01:52.119993Z  INFO node::user:     Transaction: 0x69215396768bd3f79d4182ffc17a957ac919a051eeee550301712862460a536b
+2026-10-03T03:01:52.120678Z  INFO node::user:     Gas used: 113705
+2026-10-03T03:01:52.120928Z  INFO node::user: 
+2026-10-03T03:01:52.121064Z  INFO node::user:     Block Number: 41
+2026-10-03T03:01:52.121176Z  INFO node::user:     Block Hash: 0x1fc44649fa33b474b5770e076a0b6dd3f7c57190715aa791fdb340fec4806d3c
+2026-10-03T03:01:52.121287Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:01:25 +0000"
+
+2026-10-03T03:01:52.210430Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:01:52.218379Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:52.228338Z  INFO node::user: eth_chainId
+2026-10-03T03:01:52.232218Z  INFO node::user: eth_call
+2026-10-03T03:01:52.235386Z  INFO node::user: eth_chainId
+2026-10-03T03:01:52.241228Z  INFO node::user: web3_clientVersion
+2026-10-03T03:01:52.249819Z  INFO node::user: eth_chainId
+2026-10-03T03:01:52.252413Z  INFO node::user: eth_call
+2026-10-03T03:01:52.255032Z  INFO node::user: eth_chainId
+2026-10-03T03:01:52.258185Z  INFO node::user: evm_revert
+2026-10-03T03:06:07.476471Z  INFO node::user: web3_clientVersion
+2026-10-03T03:06:07.630337Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:06:07.638323Z  INFO node::user: eth_gasPrice
+2026-10-03T03:06:07.682576Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:06:07.694580Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:06:07.697020Z  INFO node::user: 
+2026-10-03T03:06:07.697627Z  INFO node::user:     Transaction: 0xaca94fcde4f4bcc75515d6de5c0d3b867daedb3d20f1696509574b258af7b02e
+2026-10-03T03:06:07.697917Z  INFO node::user:     Gas used: 113654
+2026-10-03T03:06:07.698480Z  INFO node::user: 
+2026-10-03T03:06:07.698899Z  INFO node::user:     Block Number: 39
+2026-10-03T03:06:07.699231Z  INFO node::user:     Block Hash: 0x2eaadf5ce9275573b594bf699e88c1ffc06eb9fe1c3c229592b377dbe15ba850
+2026-10-03T03:06:07.699656Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:05:40 +0000"
+
+2026-10-03T03:06:07.804366Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:08:41.540193Z  INFO node::user: web3_clientVersion
+2026-10-03T03:08:41.560434Z  INFO node::user: eth_chainId
+2026-10-03T03:08:41.562792Z  INFO node::user: eth_call
+2026-10-03T03:08:41.567119Z  INFO node::user: eth_chainId
+2026-10-03T03:11:49.837679Z  INFO node::user: web3_clientVersion
+2026-10-03T03:11:49.872138Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:11:49.874111Z  INFO node::user: eth_gasPrice
+2026-10-03T03:11:49.900557Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:11:49.907076Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:11:49.920828Z  INFO node::user: 
+2026-10-03T03:11:49.921212Z  INFO node::user:     Transaction: 0xb3d48b4ab10e058cac3d6d8e47578fb4b7e943bd3aedc1fcfbdf33ca5d451fea
+2026-10-03T03:11:49.921358Z  INFO node::user:     Gas used: 113710
+2026-10-03T03:11:49.921465Z  INFO node::user: 
+2026-10-03T03:11:49.921569Z  INFO node::user:     Block Number: 40
+2026-10-03T03:11:49.921668Z  INFO node::user:     Block Hash: 0x284617efa4cf1d02278e93c11b576d77a03fa7cd7b2564b9d67855141638f025
+2026-10-03T03:11:49.921759Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:11:22 +0000"
+
+2026-10-03T03:11:50.013239Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:12:41.197001Z  INFO node::user: web3_clientVersion
+2026-10-03T03:12:41.223531Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:12:41.233108Z  INFO node::user: eth_gasPrice
+2026-10-03T03:12:41.269500Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:12:41.281897Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:12:41.283512Z  INFO node::user: 
+2026-10-03T03:12:41.283894Z  INFO node::user:     Transaction: 0x72f71737c15994dbbe93bdc009b44b6a650735396ce6a1288002e80b46993ca1
+2026-10-03T03:12:41.284076Z  INFO node::user:     Gas used: 113621
+2026-10-03T03:12:41.284190Z  INFO node::user: 
+2026-10-03T03:12:41.284301Z  INFO node::user:     Block Number: 41
+2026-10-03T03:12:41.284406Z  INFO node::user:     Block Hash: 0xacf704caa7fb2a220b323911b9a9537ac636a3c3082ff20888ff9bead36b826b
+2026-10-03T03:12:41.284553Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:12:14 +0000"
+
+2026-10-03T03:12:41.387922Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:16:48.178898Z  INFO node::user: web3_clientVersion
+2026-10-03T03:16:48.206051Z  INFO node::user: eth_chainId
+2026-10-03T03:16:48.209894Z  INFO node::user: eth_call
+2026-10-03T03:16:48.215442Z  INFO node::user: eth_chainId
+2026-10-03T03:17:59.260445Z  INFO node::user: web3_clientVersion
+2026-10-03T03:17:59.268009Z  INFO node::user: eth_chainId
+2026-10-03T03:17:59.269872Z  INFO node::user: eth_call
+2026-10-03T03:17:59.272422Z  INFO node::user: eth_chainId
+2026-10-03T03:35:26.490653Z  INFO node::user: web3_clientVersion
+2026-10-03T03:35:26.600587Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:35:26.603362Z  INFO node::user: eth_gasPrice
+2026-10-03T03:35:26.625028Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:35:26.631335Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:35:26.646449Z  INFO node::user: 
+2026-10-03T03:35:26.646681Z  INFO node::user:     Transaction: 0xf245941afb10cc391ee5dd3746e8b1042d27f5541a7bf90298dd2678fcc95778
+2026-10-03T03:35:26.646834Z  INFO node::user:     Gas used: 113710
+2026-10-03T03:35:26.646949Z  INFO node::user: 
+2026-10-03T03:35:26.647055Z  INFO node::user:     Block Number: 42
+2026-10-03T03:35:26.647153Z  INFO node::user:     Block Hash: 0x173b45aad18015233d27a8b9d56bd888352a274bf494d553245bb6795bb875a0
+2026-10-03T03:35:26.647257Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:34:59 +0000"
+
+2026-10-03T03:35:26.737559Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:37:12.242522Z  INFO node::user: web3_clientVersion
+2026-10-03T03:37:12.259183Z  INFO node::user: eth_getTransactionCount
+2026-10-03T03:37:12.263273Z  INFO node::user: eth_gasPrice
+2026-10-03T03:37:12.274284Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T03:37:12.280329Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T03:37:12.294702Z  INFO node::user: 
+2026-10-03T03:37:12.295035Z  INFO node::user:     Transaction: 0x228db5136d22eb96b22f1f75f6dc57babe7c720940400e69022e0013b473dc4a
+2026-10-03T03:37:12.295189Z  INFO node::user:     Gas used: 113621
+2026-10-03T03:37:12.295332Z  INFO node::user: 
+2026-10-03T03:37:12.295461Z  INFO node::user:     Block Number: 43
+2026-10-03T03:37:12.295690Z  INFO node::user:     Block Hash: 0x20298406ff8ff7ccaa0605c0f99e84b4300b7730205dc9593884525b38b7e36f
+2026-10-03T03:37:12.295856Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 03:36:45 +0000"
+
+2026-10-03T03:37:12.386112Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T05:16:06.009308Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T05:19:45.028479Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T05:20:31.379847Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T05:23:02.867838Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T05:26:32.382301Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T05:35:00.004146Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T05:40:05.443658Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T05:53:25.926313Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:01:29.524464Z  INFO node::user: web3_clientVersion
+2026-10-03T06:01:29.819323Z  INFO node::user: eth_getTransactionCount
+2026-10-03T06:01:29.825000Z  INFO node::user: eth_gasPrice
+2026-10-03T06:01:29.844546Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T06:01:29.857708Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T06:01:29.905108Z  INFO node::user: 
+2026-10-03T06:01:29.905299Z  INFO node::user:     Transaction: 0x0bf4af9066ba5d404a0e59464e9f69744246013e9ed86cf326feaed3886c2e08
+2026-10-03T06:01:29.905560Z  INFO node::user:     Gas used: 113666
+2026-10-03T06:01:29.905666Z  INFO node::user: 
+2026-10-03T06:01:29.905993Z  INFO node::user:     Block Number: 44
+2026-10-03T06:01:29.906102Z  INFO node::user:     Block Hash: 0x89e10966713f3ec1b93556f7e9f58c021833fe4dbed2db21ccc12e26114fc027
+2026-10-03T06:01:29.906464Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 06:01:02 +0000"
+
+2026-10-03T06:01:29.962324Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T06:04:43.811049Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:05:24.431825Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:09:10.254758Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:10:58.242073Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:24:36.767074Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:24:50.994548Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:31:25.656843Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:34:20.274869Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:34:31.507670Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:39:33.601211Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:43:27.698759Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T06:51:18.036668Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:00:49.745109Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:06:25.894996Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:08:34.427124Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:22:59.607632Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:24:42.666850Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:28:48.494578Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:29:01.848765Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:31:25.622222Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:31:38.841721Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:32:55.329624Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:33:16.920261Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:33:37.284070Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:36:01.008032Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:37:52.133175Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:38:47.265727Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:39:42.209565Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T07:46:11.019185Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:01:10.760601Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:01:15.850642Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:03:01.165169Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:04:03.600072Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:04:30.328562Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:16:13.445703Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:17:34.993412Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:20:19.474710Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:22:55.373790Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:24:18.339237Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:25:21.476325Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:30:26.144198Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:36:31.897034Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:41:13.080925Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:41:45.610556Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:43:31.929596Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:44:47.366838Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T08:47:48.078723Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:01:25.675291Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:04:58.355532Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:06:42.053769Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:07:10.781056Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:07:16.854421Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:10:35.962522Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:13:12.062735Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:16:53.540408Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T09:17:49.516461Z  INFO node::user: web3_clientVersion
+2026-10-03T09:17:49.606926Z  INFO node::user: eth_getTransactionCount
+2026-10-03T09:17:49.613315Z  INFO node::user: eth_gasPrice
+2026-10-03T09:17:49.641983Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T09:17:49.655968Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T09:17:49.697977Z  INFO node::user: 
+2026-10-03T09:17:49.698195Z  INFO node::user:     Transaction: 0xdb5d84f2a6ce3078a18094de6b212b2ccb621d68d816c62984c4eb1b25f751ad
+2026-10-03T09:17:49.698609Z  INFO node::user:     Gas used: 113666
+2026-10-03T09:17:49.698864Z  INFO node::user: 
+2026-10-03T09:17:49.699448Z  INFO node::user:     Block Number: 45
+2026-10-03T09:17:49.699900Z  INFO node::user:     Block Hash: 0x2722ecf8f96a82dd2d7308ed7b2759d1812ce5189ca88b1428c8b8277ca64a7f
+2026-10-03T09:17:49.700359Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 09:17:22 +0000"
+
+2026-10-03T09:17:49.763412Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T10:13:42.893128Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:16:59.076524Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:17:24.911367Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:18:37.875445Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:18:57.303087Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:21:24.396976Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:23:37.350796Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:30:42.772668Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:39:11.559724Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:40:39.144609Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:42:31.731513Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:45:32.599346Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T10:54:18.002009Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:07:31.206315Z  INFO node::user: web3_clientVersion
+2026-10-03T11:07:31.262933Z  INFO node::user: eth_getTransactionCount
+2026-10-03T11:07:31.270043Z  INFO node::user: eth_gasPrice
+2026-10-03T11:07:31.296169Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T11:07:31.308284Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T11:07:31.350878Z  INFO node::user: 
+2026-10-03T11:07:31.351091Z  INFO node::user:     Transaction: 0xebf59d10c7843911dbe2d55b5f3bb56ac5cf20e9d59980c6e7fd8158316faeec
+2026-10-03T11:07:31.351509Z  INFO node::user:     Gas used: 113666
+2026-10-03T11:07:31.351681Z  INFO node::user: 
+2026-10-03T11:07:31.352004Z  INFO node::user:     Block Number: 46
+2026-10-03T11:07:31.352123Z  INFO node::user:     Block Hash: 0x71eb6a716545ec50061d5659a5a67dfeaa3ef2dca2a8a07da9d82264bcbf5856
+2026-10-03T11:07:31.352525Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 11:07:04 +0000"
+
+2026-10-03T11:07:31.412557Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T11:12:49.077378Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:13:31.825679Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:16:48.186277Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:16:57.385550Z  INFO node::user: web3_clientVersion
+2026-10-03T11:16:57.541374Z  INFO node::user: eth_getTransactionCount
+2026-10-03T11:16:57.570781Z  INFO node::user: eth_gasPrice
+2026-10-03T11:16:57.669634Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T11:16:57.700204Z  INFO node::user: 
+2026-10-03T11:16:57.701368Z  INFO node::user:     Transaction: 0x9e4b78dd4dbfe732ab28b447f1266c409bd2b4013b0f8bbd1bcd9d2f09ccecff
+2026-10-03T11:16:57.702013Z  INFO node::user:     Gas used: 113710
+2026-10-03T11:16:57.702333Z  INFO node::user: 
+2026-10-03T11:16:57.702681Z  INFO node::user:     Block Number: 47
+2026-10-03T11:16:57.703266Z  INFO node::user:     Block Hash: 0xd2148af2c2d54453c20023a55e10a259b104c04ee12d7ad004ca7e3a2ae50c91
+2026-10-03T11:16:57.703604Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 11:16:30 +0000"
+
+2026-10-03T11:16:57.704681Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T11:18:26.320891Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:19:09.235294Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:19:11.988101Z  INFO node::user: web3_clientVersion
+2026-10-03T11:19:12.064531Z  INFO node::user: eth_getTransactionCount
+2026-10-03T11:19:12.069605Z  INFO node::user: eth_gasPrice
+2026-10-03T11:19:12.103559Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T11:19:12.115102Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T11:19:12.117989Z  INFO node::user: 
+2026-10-03T11:19:12.118908Z  INFO node::user:     Transaction: 0x9a65ad4ef43a1cb6afcdc8acb247be8c284a232d2b9bfaf01f0479713dd3b97f
+2026-10-03T11:19:12.119452Z  INFO node::user:     Gas used: 113621
+2026-10-03T11:19:12.119817Z  INFO node::user: 
+2026-10-03T11:19:12.120315Z  INFO node::user:     Block Number: 48
+2026-10-03T11:19:12.120617Z  INFO node::user:     Block Hash: 0xf34efe5e7327ea28fbcdf7bcabf629108a1fe0081413ff18a10f24714793300a
+2026-10-03T11:19:12.120819Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 11:18:45 +0000"
+
+2026-10-03T11:19:12.234879Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T11:21:31.201213Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:21:41.533015Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:27:44.781257Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:29:03.595495Z  INFO node::user: web3_clientVersion
+2026-10-03T11:29:03.712913Z  INFO node::user: eth_getTransactionCount
+2026-10-03T11:29:03.720725Z  INFO node::user: eth_gasPrice
+2026-10-03T11:29:03.816914Z  INFO node::user: eth_sendRawTransaction
+2026-10-03T11:29:03.837785Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T11:29:03.880235Z  INFO node::user: 
+2026-10-03T11:29:03.880660Z  INFO node::user:     Transaction: 0xf9c710791b052d0449b5aef31e80afa000afbc5e143fcd5b5ba81f79d21ff9b4
+2026-10-03T11:29:03.881129Z  INFO node::user:     Gas used: 113666
+2026-10-03T11:29:03.881348Z  INFO node::user: 
+2026-10-03T11:29:03.882044Z  INFO node::user:     Block Number: 49
+2026-10-03T11:29:03.882300Z  INFO node::user:     Block Hash: 0xa134cf89cc63e4cd284c7f4e05f8d75c90ef44378c9a5780b232dbc3fabc6099
+2026-10-03T11:29:03.882687Z  INFO node::user:     Block Time: "Sat, 3 Oct 2026 11:28:36 +0000"
+
+2026-10-03T11:29:03.966524Z  INFO node::user: eth_getTransactionReceipt
+2026-10-03T11:33:25.388868Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:33:55.914598Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }
+2026-10-03T11:36:23.428656Z ERROR anvil::cmd: Failed to dump state err=CreateFile { source: Os { code: 1224, kind: Uncategorized, message: "The requested operation cannot be performed on a file with a user-mapped section open." }, path: "C:\\Users\\DELL\\Desktop\\Artfiliere\\ArtFiliere\\.local\\blockchain\\state.json" }

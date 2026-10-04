@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['-created_at'],
-                'constraints': [models.UniqueConstraint(condition=models.Q(('status', 'pending')), fields=('target',), name='one_pending_account_action')],
+                'constraints': [models.UniqueConstraint(condition=models.Q(('status', 'pending')), fields=('target',), name='one_pending_moderation_request')],
             },
         ),
     ]

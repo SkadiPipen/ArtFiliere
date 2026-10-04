@@ -1,5 +1,6 @@
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
+import { parseProposedBudget } from './budget';
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Plus, X } from "lucide-react-native";
@@ -176,10 +177,11 @@ export default function CommissionRequestScreen() {
       showAlert("Required", "Choose the style you would like.");
       return;
     }
-    if (!Number(proposedBudget) || Number(proposedBudget) <= 0) {
+    const budget = parseProposedBudget(proposedBudget);
+    if (!budget) {
       showAlert(
         "Required",
-        "Enter your proposed budget. The artist can still negotiate it with you.",
+        "Enter a budget greater than zero, such as 1000 or 1,000.00 (up to two decimal places). The artist can still negotiate it with you.",
       );
       return;
     }
@@ -219,7 +221,7 @@ export default function CommissionRequestScreen() {
         tags: requestTags.join(", "),
         is_rush_job: isRush,
         deadline: targetDate.toISOString(),
-        proposed_budget: proposedBudget,
+        proposed_budget: budget,
         reference_images: refImages,
       };
 
@@ -422,10 +424,11 @@ export default function CommissionRequestScreen() {
             <Text style={s.labelRed}>Proposed budget (PHP): *</Text>
             <TextInput
               style={s.budgetInput}
+              accessibilityLabel="Proposed budget in PHP"
               value={proposedBudget}
               onChangeText={setProposedBudget}
               keyboardType="decimal-pad"
-              placeholder="Your budget; final price is agreed in chat"
+              placeholder="Example: 1,000.00"
               placeholderTextColor="#999"
             />
 

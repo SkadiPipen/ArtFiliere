@@ -133,6 +133,7 @@ export default function ReportManagementScreen() {
       {!!message && <Text style={s.success}>{message}</Text>}
       {!!data && <>
         <View style={s.row}>
+          {staff && button('Review restriction appeals', () => router.push((admin ? '/moderation-approvals' : '/moderator-dashboard') as any), true)}
           {!staff && button('File a report', () => open('report'))}
           {trader && button('Request cancellation or return', () => open('request'), true)}
         </View>

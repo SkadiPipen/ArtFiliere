@@ -30,6 +30,9 @@ def resolve_buyer_or_user(view_instance, request):
 
     if user:
         return user
+    if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+        # Body identifiers cannot replace authentication for changes.
+        return None
 
     user_id = request.data.get('user_id') or request.data.get('buyer_id') or request.query_params.get('user_id')
     if user_id:
@@ -153,6 +156,9 @@ class CommissionRequestView(AuthenticatedAPIView):
             return Response({"error": "Selected artist does not exist."}, status=status.HTTP_404_NOT_FOUND)
         if artist.role != User.Role.ARTIST or not artist.is_accepting_commissions:
             return Response({"error": "This artist is not currently accepting commission requests."}, status=status.HTTP_409_CONFLICT)
+        from authentication.services import account_access
+        if any(account_access(artist)[key] for key in ('banned', 'suspended')):
+            return Response({'error': 'This artist is not currently accepting commission requests.'}, status=409)
 
         subject = str(data.get('subject') or data.get('title') or '').strip()
         style = str(data.get('style') or data.get('art_type') or '').strip()
@@ -281,6 +287,9 @@ class ManageCommissionStatusView(AuthenticatedAPIView):
             return Response({"error": "Only the assigned artist can update this commission."}, status=status.HTTP_403_FORBIDDEN)
 
         if action == 'ACCEPT':
+            if commission.status != 'PENDING':
+                return Response({'error': 'Only pending commissions can be accepted.'}, status=409)
+            commission.accepted_at = timezone.now()
             commission.status = 'IN_PROGRESS'
             commission.save()
             UserNotification.objects.create(
@@ -313,6 +322,10 @@ class CancelCommissionView(AuthenticatedAPIView):
         commission = CommissionRequest.objects.filter(pk=pk).first()
         if not commission:
             return Response({"error": "Commission not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        buyer = self.get_request_user(request)
+        if not buyer or buyer.pk != commission.buyer_id:
+            return Response({'error': 'Only the commission buyer can cancel.'}, status=403)
 
         current_progress = commission.current_progress()
         if current_progress >= 100 or commission.status == 'COMPLETE':
@@ -352,6 +365,10 @@ class PayMilestoneView(AuthenticatedAPIView):
         milestone = CommissionMilestone.objects.select_related('commission_req', 'commission_req__buyer').filter(pk=milestone_id).first()
         if not milestone:
             return Response({"error": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        buyer = self.get_request_user(request)
+        if not buyer or buyer.pk != milestone.commission_req.buyer_id:
+            return Response({'error': 'Only the commission buyer can pay.'}, status=403)
 
         if milestone.status == 'PAID':
             return Response({"error": "Milestone is already paid."}, status=status.HTTP_400_BAD_REQUEST)
@@ -478,6 +495,10 @@ class VerifyMilestonePaymentView(AuthenticatedAPIView):
         if not milestone:
             return Response({"error": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        buyer = self.get_request_user(request)
+        if not buyer or buyer.pk != milestone.commission_req.buyer_id:
+            return Response({'error': 'Only the commission buyer can verify payment.'}, status=403)
+
         if milestone.status != 'PAID':
             milestone.status = 'PAID'
             milestone.paid_at = timezone.now()
@@ -542,6 +563,12 @@ class ProcessTrackView(AuthenticatedAPIView):
         commission = CommissionRequest.objects.filter(pk=pk).first()
         if not commission:
             return Response({"error": "Commission not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        artist = self.get_request_user(request)
+        if not artist or artist.pk != commission.artist_id:
+            return Response({'error': 'Only the assigned artist can submit progress.'}, status=403)
+        if commission.status not in ('IN_PROGRESS', 'STAGE_1', 'STAGE_2', 'STAGE_3'):
+            return Response({'error': 'Only active accepted commissions can receive progress.'}, status=409)
 
         image_url = request.data.get('image_url')
         if not image_url:

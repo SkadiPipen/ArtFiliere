@@ -3,8 +3,11 @@ import { useCart } from '@/context/CartContext';
 import API_URL from '@/services/api';
 import { Link, usePathname, type Href } from 'expo-router';
 import { Clock, Compass, Flag, Home, PanelLeftClose, PanelLeftOpen, Plus, Settings, ShoppingCart, User, type LucideIcon } from 'lucide-react-native';
-import { useContext, useEffect, useState } from 'react';
+import { createElement, useContext, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+// React Native Web supports dataSet; native React Native types omit it.
+const webLabel = { dataSet: { sidebarLabel: 'true' } } as any;
 
 function NavItem({ label, href, icon: Icon, active, compact, count }: {
   label: string; href: Href; icon: LucideIcon; active: boolean; compact: boolean; count?: number;
@@ -19,7 +22,7 @@ function NavItem({ label, href, icon: Icon, active, compact, count }: {
         hovered && !active && s.hoverItem, focused && s.focusItem])}>
       <View><Icon size={21} strokeWidth={active ? 2.3 : 1.8} color={active ? '#A74646' : '#766C66'} />
         {compact && !!count && <View style={s.dot} />}</View>
-      {!compact && <><Text style={[s.label, active && s.activeLabel]}>{label}</Text>
+      {!compact && <><Text {...webLabel} style={[s.label, active && s.activeLabel]}>{label}</Text>
         {!!count && <View style={s.badge}><Text style={s.badgeText}>{count > 99 ? '99+' : count}</Text></View>}
         {active && !count && <View style={s.activeDot} />}</>}
     </Pressable>
@@ -27,17 +30,10 @@ function NavItem({ label, href, icon: Icon, active, compact, count }: {
 }
 
 export default function WebSidebar({ compact: collapsed, onToggle }: { compact: boolean; onToggle: () => void }) {
-  const [sidebarHovered, setSidebarHovered] = useState(false);
-  const minimized = collapsed && !sidebarHovered;
-  const [compact, setCompact] = useState(collapsed);
-  useEffect(() => {
-    if (!minimized) { setCompact(false); return; }
-    // Keep labels mounted while the panel closes, then restore the icon layout.
-    const timer = setTimeout(() => setCompact(true), 180);
-    return () => clearTimeout(timer);
-  }, [minimized]);
+  // A fixed layout avoids React renders and text reflow on pointer entry/exit.
+  const compact = false;
   const pathname = usePathname();
-  const { user } = useContext(AuthContext);
+  const { user, readOnly } = useContext(AuthContext);
   const { cartItems } = useCart();
   const [profile, setProfile] = useState<{ role?: string; username?: string; first_name?: string } | null>(null);
   useEffect(() => {
@@ -58,39 +54,46 @@ export default function WebSidebar({ compact: collapsed, onToggle }: { compact: 
     <NavItem key={label} {...{ label, href, icon, active, compact, count }} />;
   // Keep the page's reserved width stable while hover expansion overlays it.
   return <View style={{ width: collapsed ? 84 : 256, height: '100%', flexShrink: 0, zIndex: 20 }}>
-  <Pressable onHoverIn={() => setSidebarHovered(true)} onHoverOut={() => setSidebarHovered(false)} style={[s.sidebar, { position: 'absolute', top: 0, bottom: 0, left: 0, width: minimized ? 84 : 256, overflow: 'hidden' }, { transitionProperty: 'width, box-shadow', transitionDuration: '180ms', transitionTimingFunction: 'ease-out' } as any, collapsed && sidebarHovered && { boxShadow: '8px 0 24px rgba(60,48,42,0.12)' }]} accessibilityLabel="Main navigation">
+  {createElement('style', null, `
+    #artfiliere-sidebar-compact { clip-path: inset(0 172px 0 0); transition: clip-path 150ms ease-out; will-change: clip-path; }
+    #artfiliere-sidebar-compact:hover, #artfiliere-sidebar-compact:focus-within { clip-path: inset(0); }
+    #artfiliere-sidebar-compact [data-sidebar-label] { opacity: 0; transition: opacity 100ms ease-out; }
+    #artfiliere-sidebar-compact:hover [data-sidebar-label], #artfiliere-sidebar-compact:focus-within [data-sidebar-label] { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { #artfiliere-sidebar-compact { transition: none; } }
+  `)}
+  <View nativeID={collapsed ? 'artfiliere-sidebar-compact' : 'artfiliere-sidebar-expanded'} style={[s.sidebar, { position: 'absolute', top: 0, bottom: 0, left: 0, width: 256, overflow: 'hidden' }]} accessibilityLabel="Main navigation">
     <Link href="/(home)" asChild><Pressable accessibilityLabel="ArtFiliere home" style={StyleSheet.flatten([s.brand, { width: compact ? 84 : 256 }, compact && { justifyContent: 'center', paddingHorizontal: 0 }])}>
       <Image source={require('../../../../assets/images/logo.png')} style={s.brandMark} resizeMode="contain" accessibilityLabel="ArtFiliere logo" />
-      {!compact && <View><Text style={s.brandName}>ArtFiliere</Text><Text style={s.brandCaption}>A space for art.</Text></View>}
+      {!compact && <View {...webLabel}><Text style={s.brandName}>ArtFiliere</Text><Text style={s.brandCaption}>A space for art.</Text></View>}
     </Pressable></Link>
     <ScrollView style={{ flex: 1, width: compact ? 84 : 256 }} contentContainerStyle={s.links} showsVerticalScrollIndicator={false}>
-      {!compact && <Text style={s.section}>DISCOVER</Text>}
+      {!compact && <Text {...webLabel} style={s.section}>DISCOVER</Text>}
       {item('Home', '/(home)', Home, home)}
       {item('Activities', '/(home)/activities', Clock, pathname === '/activities')}
       {item('Auctions', '/auction-dashboard', Compass, pathname === '/auction-dashboard')}
       <View style={s.divider} />
-      {!compact && <Text style={s.section}>YOUR SPACE</Text>}
+      {!compact && <Text {...webLabel} style={s.section}>YOUR SPACE</Text>}
       {item('Cart', '/(home)/cart', ShoppingCart, pathname === '/cart', cartItems.length)}
       {item('Profile', '/(home)/profile', User, pathname === '/profile' || pathname === '/edit-profile')}
       {item('Settings', '/(home)/settings', Settings, pathname === '/settings')}
       {item('Reports & disputes', '/report-management', Flag, pathname === '/report-management')}
-      {artist && <Link href="/artist-post" asChild><Pressable accessibilityLabel="Create an artwork listing"
+      {artist && !readOnly && <Link href="/artist-post" asChild><Pressable accessibilityLabel="Create an artwork listing"
         style={StyleSheet.flatten([s.create, compact && { paddingHorizontal: 0 }])}>
-        <Plus size={21} color="#fff" />{!compact && <Text style={s.createLabel}>Create artwork</Text>}
+        <Plus size={21} color="#fff" />{!compact && <Text {...webLabel} style={s.createLabel}>Create artwork</Text>}
       </Pressable></Link>}
     </ScrollView>
     <View style={[s.footer, { width: compact ? 84 : 256 }]}>
       <Link href="/(home)/profile" asChild><Pressable accessibilityLabel={`Open profile for ${name}`} style={StyleSheet.flatten([s.account, compact && { justifyContent: 'center' }])}>
         <View style={s.avatar}><Text style={s.initial}>{name.slice(0, 1).toUpperCase()}</Text></View>
-        {!compact && <View style={{ flex: 1 }}><Text numberOfLines={1} style={s.accountName}>{name}</Text>
+        {!compact && <View {...webLabel} style={{ flex: 1 }}><Text numberOfLines={1} style={s.accountName}>{name}</Text>
           <Text style={s.accountRole}>{artist ? 'Artist account' : 'Art enthusiast'}</Text></View>}
       </Pressable></Link>
       <Pressable onPress={onToggle} accessibilityRole="button" accessibilityLabel={collapsed ? 'Keep navigation expanded' : 'Collapse navigation'}
-        style={({ hovered }) => [s.collapse, hovered && s.hoverItem]}>
-        {compact ? <PanelLeftOpen size={18} color="#766C66" /> : <>{collapsed ? <PanelLeftOpen size={18} color="#766C66" /> : <PanelLeftClose size={18} color="#766C66" />}<Text style={s.collapseLabel}>{collapsed ? 'Keep sidebar expanded' : 'Collapse sidebar'}</Text></>}
+        style={({ hovered }) => [s.collapse, { justifyContent: 'flex-start', paddingHorizontal: 14 }, hovered && s.hoverItem]}>
+        {compact ? <PanelLeftOpen size={18} color="#766C66" /> : <>{collapsed ? <PanelLeftOpen size={18} color="#766C66" /> : <PanelLeftClose size={18} color="#766C66" />}<Text {...webLabel} style={s.collapseLabel}>{collapsed ? 'Keep sidebar expanded' : 'Collapse sidebar'}</Text></>}
       </Pressable>
     </View>
-  </Pressable></View>;
+  </View></View>;
 }
 
 const s = StyleSheet.create({

@@ -27,6 +27,7 @@ class CommissionRequest(models.Model):
     is_rush_job = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    accepted_at = models.DateTimeField(null=True, blank=True)
 
     # Cancellation & Refund Feedback
     cancel_reason = models.CharField(max_length=255, blank=True, null=True)
@@ -67,3 +68,19 @@ class CommissionPhoto(models.Model):
     progress_percentage = models.IntegerField(default=33)
     caption = models.CharField(max_length=255, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+class CommissionMessage(models.Model):
+    commission = models.ForeignKey(CommissionRequest, on_delete=models.CASCADE, related_name='workspace_messages')
+    sender = models.ForeignKey('users.User', on_delete=models.PROTECT)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CommissionAccessDecision(models.Model):
+    commission = models.ForeignKey(CommissionRequest, on_delete=models.CASCADE, related_name='access_decisions')
+    restriction_key = models.CharField(max_length=255)
+    approved = models.BooleanField(default=False)
+    note = models.TextField()
+    reviewed_by = models.ForeignKey('users.User', on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)

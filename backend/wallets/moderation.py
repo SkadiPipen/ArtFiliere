@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from authentication.views import AuthenticatedAPIView
 from authentication.permissions import IsAuthenticatedUser
 from users.models import User
-from .models import AccountModerationRequest, SupportTicket, SupportReply, CancellationReturnRequest
+from .models import AccountModerationRequest, AccountActionRequest, SupportTicket, SupportReply, CancellationReturnRequest
 from .support import TicketInput, can_handle, page
 
 
@@ -25,6 +25,7 @@ def account_action_data(row):
     return dict(id=row.pk, ticket_id=row.ticket_id, target_id=row.target_id, target=row.target.username,
                 requested_by=row.requested_by.username, action=row.action, duration_days=row.duration_days,
                 reason=row.reason, status=row.status, review_note=row.review_note,
+                revoked_at=row.revoked_at.isoformat() if row.revoked_at else None, reversal_reason=row.reversal_reason,
                 created_at=row.created_at.isoformat(), reviewed_at=row.reviewed_at.isoformat() if row.reviewed_at else None)
 
 
@@ -35,9 +36,22 @@ class AccountModerationView(AuthenticatedAPIView):
         user = self.get_request_user(request)
         if user.role not in (User.Role.CUSTOMER_SUPPORT, User.Role.PLATFORM_ADMIN):
             raise PermissionDenied('Customer Support or admin approval access is required.')
-        rows = AccountModerationRequest.objects.select_related('target', 'requested_by')
-        rows, next_offset = page(request, rows)
-        return Response(dict(results=[account_action_data(r) for r in rows], next_offset=next_offset))
+        try:
+            offset = max(0, int(request.query_params.get('offset', 0)))
+        except (ValueError, TypeError):
+            raise ValidationError({'error': 'Invalid page.'})
+        tickets = AccountModerationRequest.objects.select_related('target', 'requested_by').order_by('-created_at', '-pk')
+        reports = AccountActionRequest.objects.select_related('target', 'initiated_by').order_by('-created_at', '-pk')
+        limit = offset + 20
+        combined = [{**account_action_data(r), 'source': 'ticket'} for r in tickets[:limit]]
+        combined += [dict(id=r.pk, report_id=r.report_id, ticket_id=None, target_id=r.target_id, target=r.target.username,
+                         requested_by=r.initiated_by.username, action=r.action, duration_days=r.duration_days,
+                         reason=r.reason, status=r.status, review_note=r.review_note, source='report',
+                         revoked_at=r.revoked_at.isoformat() if r.revoked_at else None, reversal_reason=r.reversal_reason,
+                         created_at=r.created_at.isoformat()) for r in reports[:limit]]
+        combined.sort(key=lambda r: (r['created_at'], r['source'], r['id']), reverse=True)
+        count = tickets.count() + reports.count()
+        return Response(dict(results=combined[offset:limit], next_offset=limit if count > limit else None))
 
     @transaction.atomic
     def post(self, request):
@@ -62,6 +76,18 @@ class AccountModerationView(AuthenticatedAPIView):
         admin = self.get_request_user(request)
         if admin.role != User.Role.PLATFORM_ADMIN:
             raise PermissionDenied('Only Platform Admin can approve account restrictions.')
+        source = request.query_params.get('source') or request.data.get('source')
+        if source not in (None, 'report', 'ticket'):
+            raise ValidationError({'error': 'Invalid account action source.'})
+        if source is None:
+            ticket_exists = AccountModerationRequest.objects.filter(pk=action_id).exists()
+            report_exists = AccountActionRequest.objects.filter(pk=action_id).exists()
+            if ticket_exists and report_exists:
+                raise ValidationError({'error': 'Refresh the approval list before reviewing this request; its source is required.'})
+            source = 'report' if report_exists else 'ticket'
+        if source == 'report':
+            from .management import AccountActionsView
+            return AccountActionsView().patch(request, action_id)
         decision = serializers.ChoiceField(choices=['approved', 'rejected']).run_validation(request.data.get('status'))
         note = serializers.CharField(min_length=5, max_length=4000).run_validation(request.data.get('review_note'))
         row = get_object_or_404(AccountModerationRequest.objects.select_for_update(), pk=action_id)
@@ -78,6 +104,9 @@ class AccountModerationView(AuthenticatedAPIView):
                     raise ValidationError({'error': 'A banned account needs an approved restoration first.'})
                 target.suspended_until = timezone.now() + timedelta(days=row.duration_days)
             else:
+                from .restrictions import restriction_rows, reverse_restriction
+                for source, restriction in restriction_rows(target):
+                    reverse_restriction(admin, source, restriction.pk, note)
                 target.is_banned = False; target.suspended_until = None
             target.save(update_fields=['is_banned', 'suspended_until'])
         row.status = decision; row.review_note = note; row.reviewed_by = admin; row.reviewed_at = timezone.now()

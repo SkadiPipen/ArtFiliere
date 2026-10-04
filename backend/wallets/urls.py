@@ -6,6 +6,22 @@ from .moderation import AccountModerationView, ModeratorUsersView, TicketReturnR
 from .views import PaymentStatusView, AgreementCheckoutView, ActivityHistoryView, ArtworkCheckoutView, CancellationReturnRequestView, CustomerSupportRequestView, PlatformAdminRequestView, PlatformAdminUserView, WalletView, PlatformAdminWalletView, xendit_payment_session_webhook
 
 urlpatterns = [
+    path('account/restrictions/', RestrictionStatusView.as_view()),
+    path('account/appeals/', RestrictionAppealsView.as_view()),
+    path('account/appeal-attachments/<int:attachment_id>/', AppealAttachmentView.as_view()),
+    path('moderation/appeals/', RestrictionAppealsView.as_view()),
+    path('moderation/appeals/<int:appeal_id>/', RestrictionAppealsView.as_view()),
+    path('moderation/restrictions/<str:source>/<int:restriction_id>/reverse/', ReverseRestrictionView.as_view()),
+    path('management/', ManagementView.as_view()),
+    path('management/report-users/', ReportUserSearchView.as_view()),
+    path('management/reports/', ReportsView.as_view()),
+    path('management/reports/<int:report_id>/', ReportsView.as_view()),
+    path('management/attachments/<int:attachment_id>/', ReportAttachmentView.as_view()),
+    path('management/account-actions/', AccountActionsView.as_view()),
+    path('management/account-actions/<int:action_id>/', AccountActionsView.as_view()),
+    path('management/financial-authorizations/', FinancialAuthorizationsView.as_view()),
+    path('transactions/requests/<int:request_id>/respond/', TransactionRequestsView.as_view()),
+    path('checkout/agreements/<int:agreement_id>/delivery/', AuctionDeliveryQuoteView.as_view()),
     path('admin/requests/', PlatformAdminRequestView.as_view(), name='platform_admin_requests'),
     path('admin/requests/<int:request_id>/', PlatformAdminRequestView.as_view(), name='platform_admin_request'),
     path('moderation/account-actions/', AccountModerationView.as_view()),

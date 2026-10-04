@@ -29,9 +29,10 @@ class DirectMessageView(AuthenticatedAPIView):
             | Q(sender_id=recipient_id, recipient=user)
         ).select_related("sender")
 
-        DirectMessage.objects.filter(
-            sender_id=recipient_id, recipient=user, is_read=False
-        ).update(is_read=True)
+        if not getattr(user, 'view_only', False):
+            DirectMessage.objects.filter(
+                sender_id=recipient_id, recipient=user, is_read=False
+            ).update(is_read=True)
 
         return Response(
             [
@@ -68,7 +69,8 @@ class ConversationView(AuthenticatedAPIView):
             conversation = Conversation.objects.filter(id=conversation_id, participants__user=user).first()
             if not conversation:
                 return Response({"error": "Conversation not found."}, status=404)
-            ConversationParticipant.objects.filter(conversation=conversation, user=user).update(last_read_at=timezone.now())
+            if not getattr(user, 'view_only', False):
+                ConversationParticipant.objects.filter(conversation=conversation, user=user).update(last_read_at=timezone.now())
             return Response({"id": conversation.id, "status": conversation.status, "current_user_id": user.id, "artwork_id": conversation.artwork_id, "messages": [serialize_message(message) for message in conversation.messages.select_related("sender", "agreement").all()]})
         conversations = Conversation.objects.filter(participants__user=user).prefetch_related("participants__user", "messages").distinct().order_by("-updated_at")
         payload = []
@@ -137,6 +139,8 @@ class AgreementView(AuthenticatedAPIView):
         artwork_id = request.data.get("artwork_id") or conversation.artwork_id
         if artwork_id and not Artwork.objects.filter(id=artwork_id, artist=artist).exists():
             return Response({"error": "The selected artwork does not belong to the agreement artist."}, status=400)
+        if artwork_id and Artwork.objects.filter(id=artwork_id, sale_type='Auction').exists():
+            return Response({'error': 'Auction license terms are fixed. Use the winning auction agreement.'}, status=409)
         agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=request.data.get("exclusivity", "non_exclusive"), delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
         Message.objects.create(conversation_id=conversation_id, sender=user, message_type=Message.Type.AGREEMENT, agreement=agreement, body="Agreement proposed")
         return Response(serialize_agreement(agreement), status=201)

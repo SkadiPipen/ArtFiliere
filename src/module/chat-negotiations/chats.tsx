@@ -26,6 +26,7 @@ import {
 } from 'react-native';
 import { auth, db } from '../../firebase/config';
 import API_URL from '@/services/api';
+import { purchaseRequest } from '@/services/purchases';
 
 // ========================================
 // II. INTERFACES
@@ -205,6 +206,8 @@ export const chatService = {
     type: string = 'text',
     negotiationData: any = null
   ) {
+    const access = await purchaseRequest('account/restrictions/');
+    if (access.restricted) throw new Error('Use the commission workspace for approved existing work. General messages are unavailable while your account is restricted.');
     const sortedParticipants = [senderId, recipientId].sort();
     const correctChatId = sortedParticipants.join('_');
     const finalChatId = chatId.includes('_') ? chatId : correctChatId;

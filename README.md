@@ -1,6 +1,44 @@
 # Welcome to your Expo app 👋
 
+New auction requests require the artist to preview the complete license agreement,
+draw or upload a transparent PNG signature, enter their name and consent to sign.
+The server validates the document hash, records the signed text/signature/time,
+and locks its license terms. Creative Moderator sees the full signed document.
+When a winner is selected, their identity and winning bid are appended separately;
+the original artist-signed document and signature are preserved. The buyer signs
+through the existing agreement signing screen before checkout. Later template
+edits apply to future requests. Older unsigned auctions retain their existing
+signing process; signatures are never backfilled or invented.
+
 ## Reports, disputes and transaction management
+
+Approved suspensions and bans show a blocking notice with the reason and expiry
+on the user's next login, app focus, or account check (every 30 seconds).
+Suspended users can log in and browse with a persistent view-only banner. Read
+requests remain available; mutations are rejected by backend authentication and
+middleware, with appeals and their own Customer Service conversations exempted.
+Banned users retain access to their notice, appeal status, appeal evidence and
+existing commission workspace. Suspended artists can message the buyer and
+submit progress/final artwork for active commissions accepted before restriction.
+Banned artists require Customer Service approval for each commission in the
+moderator dashboard. Approval can be revoked, expires when the commission closes,
+and does not carry over to a new restriction. New requests to restricted artists
+and accepting pending commissions remain blocked. Commission messages are stored
+separately from general chat and scoped to the commission's buyer and artist.
+Legacy commissions had no acceptance timestamp: migration 0008 uses their first
+progress upload timestamp, or creation timestamp when no progress exists; new
+acceptances store the exact time.
+The dedicated workspace enforces permissions in Django. Existing general chat
+writes directly to Firebase and now checks account restriction status before
+sending in the app; deployed Firestore security rules were not changed here.
+Appeals accept an explanation, five links and five image/PDF files
+(5 MB each); one appeal per restriction can await review at a time.
+Suspension and ban appeals notify Platform Admin directly. Admin reviews pending
+appeals under Account action approvals and approves or denies them with a reason.
+Customer Service can add an optional recommendation, but it is not required.
+Regular reports and disputes still go to Customer Service. Admin
+can also lift an approved restriction directly with a reason. Original approvals
+and reversal details remain in the history; other active restrictions still apply.
 
 Open Reports & disputes in the web sidebar or the profile menu. Customer service moderators and
 Platform Admin have links in their dashboards; drivers can file reports from

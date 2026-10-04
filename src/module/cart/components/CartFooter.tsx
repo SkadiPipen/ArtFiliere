@@ -1,4 +1,6 @@
 import { Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { useContext } from 'react';
+import { AuthContext } from '@/context/AuthContext';
 
 interface Props {
   isAllSelected: boolean;
@@ -19,6 +21,7 @@ export default function CartFooter({
   onToggleSelectAll, onCheckout, checkingOut, agreementRequired, signaturesRequired, onSign,
 }: Props) {
   const { width } = useWindowDimensions();
+  const { readOnly } = useContext(AuthContext);
   const desktop = Platform.OS === 'web' && width >= 768;
   return (
     <View style={[styles.bottomStickyFooter, desktop && { bottom: 0 }]}>
@@ -40,11 +43,11 @@ export default function CartFooter({
       <View style={{ alignItems: 'center', gap: 4 }}>
       {signaturesRequired && !agreementRequired && selectedCount === 1 && <TouchableOpacity onPress={onSign}><Text style={{ color: '#C15656', fontWeight: '600' }}>Sign / view signatures</Text></TouchableOpacity>}
       <TouchableOpacity
-        style={[styles.solidCheckoutBtn, (selectedCount !== 1 || agreementRequired || signaturesRequired) && { backgroundColor: '#A0A0A0' }]}
-        disabled={selectedCount !== 1 || checkingOut || agreementRequired || signaturesRequired}
+        style={[styles.solidCheckoutBtn, (readOnly || selectedCount !== 1 || agreementRequired || signaturesRequired) && { backgroundColor: '#A0A0A0' }]}
+        disabled={readOnly || selectedCount !== 1 || checkingOut || agreementRequired || signaturesRequired}
         onPress={onCheckout}
       >
-        <Text style={styles.checkoutBtnText}>{checkingOut ? 'Opening checkout...' : agreementRequired ? 'Agreement required' : signaturesRequired ? 'Both signatures required' : `Checkout (${selectedCount})`}</Text>
+        <Text style={styles.checkoutBtnText}>{readOnly ? 'View-only access' : checkingOut ? 'Opening checkout...' : agreementRequired ? 'Agreement required' : signaturesRequired ? 'Both signatures required' : `Checkout (${selectedCount})`}</Text>
       </TouchableOpacity>
       </View>
     </View>

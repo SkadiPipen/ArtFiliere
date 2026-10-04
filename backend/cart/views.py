@@ -28,7 +28,12 @@ class CartView(AuthenticatedAPIView):
     permission_classes = [IsAuthenticatedUser]
 
     def get(self, request):
-        cart, _ = Cart.objects.get_or_create(buyer=self.get_request_user(request))
+        user = self.get_request_user(request)
+        cart = Cart.objects.filter(buyer=user).first()
+        if not cart and getattr(user, 'view_only', False):
+            return Response({'cart_id': None, 'items': []})
+        if not cart:
+            cart, _ = Cart.objects.get_or_create(buyer=user)
         return Response(payload(cart))
 
     @transaction.atomic
