@@ -21,6 +21,8 @@ class SupportTicket(models.Model):
     assigned_to = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT, related_name='assigned_support_tickets')
     transfer_to = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='incoming_support_transfers')
     concern = models.CharField(max_length=60)
+    reported_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT, related_name='account_reports')
+    reported_username = models.CharField(max_length=150, blank=True, default='')
     payment = models.ForeignKey('PaymentSession', null=True, blank=True, on_delete=models.PROTECT)
     artwork = models.ForeignKey(Artwork, null=True, blank=True, on_delete=models.PROTECT)
     commission = models.ForeignKey('commissions.CommissionRequest', null=True, blank=True, on_delete=models.PROTECT)
@@ -175,7 +177,7 @@ class AccountActionRequest(models.Model):
     reversal_reason = models.TextField(blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_account_action')]
+        constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_incident_account_action')]
 
 
 class RestrictionAppeal(models.Model):

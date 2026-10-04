@@ -1,7 +1,5 @@
 from django.urls import path
-from .restrictions import RestrictionStatusView, RestrictionAppealsView, ReverseRestrictionView, AppealAttachmentView
-from .management import TransactionRequestsView, ManagementView, ReportsView, ReportUserSearchView, ReportAttachmentView, AccountActionsView, FinancialAuthorizationsView
-from .auction_delivery import AuctionDeliveryQuoteView
+from .management import TransactionRequestsView
 from .support import SupportView
 from .moderation import AccountModerationView, ModeratorUsersView, TicketReturnReviewView
 
@@ -32,9 +30,11 @@ urlpatterns = [
     path('moderation/tickets/<int:ticket_id>/return-review/', TicketReturnReviewView.as_view()),
     path('support/catalog/', SupportView.as_view(), {'action': 'catalog'}),
     path('support/agents/', SupportView.as_view(), {'action': 'agents'}),
+    path('support/accounts/', SupportView.as_view(), {'action': 'accounts'}),
     path('support/references/', SupportView.as_view(), {'action': 'references'}),
     path('support/tickets/', SupportView.as_view()),
     path('support/tickets/<int:ticket_id>/', SupportView.as_view()),
+    path('support/tickets/<int:ticket_id>/reported-profile/', SupportView.as_view(), {'action': 'reported-profile'}),
     path("payments/<int:payment_id>/refresh/", PaymentStatusView.as_view()),
     path("wallet/", WalletView.as_view(), name="wallet"),
     path("checkout/artworks/<int:artwork_id>/", ArtworkCheckoutView.as_view(), name="artwork_checkout"),
