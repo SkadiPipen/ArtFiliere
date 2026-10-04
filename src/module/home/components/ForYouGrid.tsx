@@ -1,19 +1,21 @@
 
 import { Watermark } from '@/module/artwork/components/Watermark';
 import { ArtItem, FOR_YOU_DATA } from '@/module/home/types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 interface ForYouGridProps {
   activeCategory: string;
   onSelect: (item: ArtItem, type: string) => void;
   items?: ArtItem[];
+  webFiltered?: boolean;
 }
 
 export default function ForYouGrid({
   activeCategory,
   onSelect,
   items,
+  webFiltered = false,
 }: ForYouGridProps) {
   const { width } = useWindowDimensions();
   const [gridPage, setGridPage] = useState(1);
@@ -22,15 +24,18 @@ export default function ForYouGrid({
   const numColumns = width > 768 ? 2 : 2;
   const itemsPerPage = numColumns * 2;
 
-  const sourceItems = items?.length ? items : FOR_YOU_DATA;
+  const sourceItems = webFiltered ? (items || []) : items?.length ? items : FOR_YOU_DATA;
   const filteredForYou =
     activeCategory === "All"
       ? sourceItems
       : sourceItems.filter((item) => item.type === activeCategory);
 
+  const pageCount = webFiltered ? Math.max(1, Math.ceil(filteredForYou.length / itemsPerPage)) : 5;
+  useEffect(() => { if (webFiltered) setGridPage(1); }, [items, activeCategory, webFiltered]);
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>For You</Text>
+      {webFiltered && !filteredForYou.length && <Text style={{ padding: 16, color: '#766C66' }}>No artwork matches your search and filters.</Text>}
       <View style={styles.grid}>
         {filteredForYou
           .slice((gridPage - 1) * itemsPerPage, gridPage * itemsPerPage)
@@ -71,7 +76,7 @@ export default function ForYouGrid({
         >
           <Text style={styles.pageArrow}>◀ prev</Text>
         </TouchableOpacity>
-        {[1, 2, 3, 4, 5].map((p) => (
+        {Array.from({ length: pageCount }, (_, index) => index + 1).map((p) => (
           <TouchableOpacity
             key={p}
             style={[styles.pageDot, gridPage === p && styles.activePageDot]}
@@ -83,7 +88,7 @@ export default function ForYouGrid({
           </TouchableOpacity>
         ))}
         <TouchableOpacity
-          onPress={() => setGridPage(Math.min(5, gridPage + 1))}
+          onPress={() => setGridPage(Math.min(pageCount, gridPage + 1))}
         >
           <Text style={styles.pageArrow}>next ▶</Text>
         </TouchableOpacity>

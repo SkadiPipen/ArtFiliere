@@ -33,6 +33,7 @@ export default function Dashboard() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState("All");
   const [approvedArtworks, setApprovedArtworks] = useState<ArtItem[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
@@ -140,12 +141,28 @@ export default function Dashboard() {
       .catch(() => undefined);
   }, []);
 
+  const webItems = approvedArtworks.filter(item => {
+    const data = item as ArtItem & { description?: string; tags?: string[]; category?: string };
+    const words = [item.artist, item.artistName, data.description, data.category, ...(data.tags || [])].join(' ').toLowerCase();
+    if (!searchQuery.trim().toLowerCase().split(/\s+/).every(word => words.includes(word))) return false;
+    const category = activeCategory.toLowerCase();
+    if (category === 'all' || category === 'trending') return true;
+    if (category === 'digital' || category === 'physical') return item.artType?.toLowerCase() === category;
+    if (category === 'paintings') return /paint|watercolor|acrylic|oil/.test([item.type, ...(data.tags || [])].join(' ').toLowerCase());
+    if (category === 'sketches') return /sketch|drawing|pencil|charcoal/.test([item.type, ...(data.tags || [])].join(' ').toLowerCase());
+    return item.type?.toLowerCase() === category;
+  });
+  // The API has no popularity metric; show the newest available artwork for Trending.
+  if (activeCategory === 'Trending') webItems.sort((a, b) => Number(b.id) - Number(a.id));
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       {/* Header */}
       <Header
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       <ScrollView
@@ -209,11 +226,13 @@ export default function Dashboard() {
                 <Text style={styles.filterOption}>Artist Style</Text>
               </View>
               <View style={styles.catalogueContent}>
-                <Text style={styles.catalogueTitle}>Artwork for you</Text>
+                <Text style={styles.catalogueTitle}>{searchQuery.trim() ? `Search results for ${searchQuery.trim()}` : activeCategory === "All" ? "Artwork for you" : activeCategory}</Text>
+                {activeCategory === "Trending" && <Text>Newest artwork</Text>}
                 <ForYouGrid
-                  activeCategory={activeCategory}
+                  activeCategory={hasSidebar ? "All" : activeCategory}
                   onSelect={handleViewPost}
-                  items={approvedArtworks}
+                  items={hasSidebar ? webItems : approvedArtworks}
+                  webFiltered={hasSidebar}
                 />
               </View>
             </View>

@@ -1,7 +1,7 @@
-import { platformAccessError } from '@/services/platformAccess';
 import { COLORS } from '@/constants/colors';
 import API_URL from '@/services/api';
 import { loginUser, logOut } from '@/services/auth';
+import { platformAccessError } from '@/services/platformAccess';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -79,7 +79,7 @@ export default function HomeScreen() {
               style={{ position: 'absolute', top: 24, left: 24 }}
             >
               <Text style={{ color: COLORS.red, fontWeight: '600', fontSize: 14 }}>
-                â€¹ Back to Home
+                Back to Home
               </Text>
             </Pressable>
 

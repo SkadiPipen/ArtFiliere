@@ -1,5 +1,20 @@
 from django.urls import path
-from .management import TransactionRequestsView
+from .management import (
+    AccountActionsView,
+    FinancialAuthorizationsView,
+    ManagementView,
+    ReportAttachmentView,
+    ReportsView,
+    ReportUserSearchView,
+    TransactionRequestsView,
+)
+from .restrictions import (
+    AppealAttachmentView,
+    RestrictionAppealsView,
+    RestrictionStatusView,
+    ReverseRestrictionView,
+)
+from .auction_delivery import AuctionDeliveryQuoteView
 from .support import SupportView
 from .moderation import AccountModerationView, ModeratorUsersView, TicketReturnReviewView
 
