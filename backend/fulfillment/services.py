@@ -61,6 +61,8 @@ def png_bytes(artwork):
 
 
 def fulfill_payment(payment):
+    from .certificates import issue_certificate
+    issue_certificate(payment)
     # Safely resolve agreement and artwork
     agreement = getattr(payment, 'agreement', None)
     artwork = getattr(payment, 'artwork', None)
@@ -115,6 +117,7 @@ def fulfill_payment(payment):
         if is_physical else
         f"Payment confirmed for {artwork_title}. Your high-resolution file is ready in My Purchases. You can now rate the artist and artwork."
     )
+    buyer_msg += ' Your certificate of authenticity is available in My Purchases.'
     UserNotification.objects.create(
         user=payment.buyer,
         artwork=artwork,

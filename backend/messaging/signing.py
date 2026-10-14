@@ -19,6 +19,7 @@ from authentication.views import AuthenticatedAPIView
 from authentication.permissions import IsAuthenticatedUser
 from .models import Agreement
 from blockchain.proofs import record_agreement_proof
+from .compensation import compensation_summary
 
 
 def party_name(user):
@@ -37,8 +38,8 @@ def document_text(item):
         f"The Artist grants the Client an {item.exclusivity.replace('_', '-')}, worldwide license to reproduce, publicly display, and distribute the Images solely for personal, non-commercial purposes."
     )
     exclusivity = {
-        "exclusive": "During the term of this Agreement, the Artist shall not license, sell, or otherwise transfer the same Images to any other party for any purpose.",
-        "sole": "During the term of this Agreement, the Artist shall not license, sell, or otherwise transfer the same Images to any other party, and shall not create any derivative works based on the Images.",
+        "exclusive": "Within the licensed scope and term, only the Client may exercise the licensed rights. The Artist shall not exercise those rights or grant them to any other party, except for the portfolio and promotional display expressly reserved below.",
+        "sole": "Within the licensed scope and term, the Client is the only licensee. The Artist may continue to exercise the licensed rights themselves, but shall not grant those rights to any other party.",
     }.get(item.exclusivity, "The Artist retains the right to license the same Images to other parties.")
     sections = [
         "ART LICENSING AGREEMENT",
@@ -47,11 +48,22 @@ def document_text(item):
         '1. Scope of this Agreement',
         f'This Agreement applies to the artwork titled "{title}" (the "IMAGES"). This Agreement governs the relationship between the parties and no communication or other exchange shall modify the terms of this Agreement unless agreed to in writing.',
         '2. Rights', rights, exclusivity,
-        'The Artist retains the right to display the Images in their portfolio, website, and for self-promotional purposes.',
+        'Copyright ownership remains with the Artist. This Agreement grants a license and does not assign copyright ownership to the Client.',
+        'The Artist retains the right to display the Images in their portfolio, website, and for self-promotional purposes. Public viewing of this display does not grant any viewer a license.',
         '3. Term and agreed details', item.terms_snapshot,
         '4. Fees', f'The Client shall pay a total license fee of PHP {item.price}.',
         "The total fee is due and payable through the Platform's payment system no later than ten (10) business days from the delivery of the Images.",
     ]
+    if getattr(item, 'compensation_terms', None):
+        # The commercial schedule must not be overridden by the legacy ten-day clause.
+        sections[-3:] = [
+            '4. Fees and commercial compensation',
+            f'Artwork purchase payable through platform checkout: PHP {item.price} (including PHP {item.delivery_fee} delivery).',
+            compensation_summary(item.compensation_type, item.compensation_terms),
+            'The agreed schedules and royalty calculations above govern commercial obligations. The artwork checkout does not collect future royalties. Approved royalties may be collected through the reporting service only with structured agreed terms and separate payer authorization. Scheduled flat-fee payments remain contractual obligations.',
+        ]
+        if item.compensation_type == 'hybrid' and item.compensation_terms.get('subtype', '').startswith('upfront_'):
+            sections.append(f'The upfront fee is PHP {item.price - item.delivery_fee}; delivery is separate. Royalties are payable in addition to this fee.')
     if item.delivery_type == "digital":
         sections += ['5. Digital Delivery', "The Artist shall deliver the Images to the Client in digital format via the Platform's delivery system or such other electronic means as the parties may agree. It is the Client's responsibility to verify that the Images are suitable for reproduction and to notify the Artist within five (5) business days if the Images are not deemed suitable."]
     sections += ['6. Termination for Breach', 'If either party materially breaches this Agreement and fails to cure within fifteen (15) days after written notice, the non-breaching party may terminate this Agreement immediately. Upon termination for breach by Client, all rights granted shall immediately cease, and Client shall destroy all copies of the Images and certify such destruction in writing.']
@@ -97,6 +109,23 @@ class NumberedCanvas(Canvas):
         super().save()
 
 
+
+def branded_document_header(canvas, doc, title='ART LICENSE AGREEMENT'):
+    width, height = A4
+    canvas.saveState()
+    logo = Path(__file__).resolve().parents[2] / 'assets' / 'images' / 'logo.png'
+    if logo.exists(): canvas.drawImage(str(logo), width/2-82, height-83, width=60, height=60, preserveAspectRatio=True, mask='auto')
+    canvas.setFillColor(HexColor('#CB5053'))
+    canvas.setFont('Times-Bold', 26)
+    canvas.drawString(width/2-14, height-62, 'ArtFilier')
+    canvas.setFillColor(HexColor('#000000')); canvas.setFont('Times-Roman', 9)
+    for i, line in enumerate(['ArtFilier', 'Cebu, Philippines', '+63 931 445 5671', 'artfilier@gmail.com']):
+        canvas.drawRightString(width-24, height-32-i*10, line)
+    canvas.setFillColor(HexColor('#CB5053')); canvas.rect(0, height-138, width, 36, fill=1, stroke=0)
+    canvas.setFillColor(HexColor('#FFFFFF')); canvas.setFont('Times-Bold', 21)
+    canvas.drawCentredString(width/2, height-126, title)
+    canvas.restoreState()
+
 def render_pdf(item):
     output = BytesIO()
     styles = getSampleStyleSheet()
@@ -108,6 +137,9 @@ def render_pdf(item):
     flow = []
     for block in (item.document_snapshot or document_text(item)).split('\n\n'):
         heading = block == 'ART LICENSING AGREEMENT' or (len(block) < 80 and block[:1].isdigit() and '. ' in block)
+        if block.strip().upper() == 'ART LICENSING AGREEMENT':
+            block = 'Art Licensing Agreement'
+            heading = True
         flow.append(Paragraph(escape(block).replace('\n', '<br/>'), styles['Heading2'] if heading else styles['BodyText']))
     signatures = [Paragraph('SIGNATURES', styles['Heading2'])]
     for role, label in [('artist', 'ARTIST'), ('buyer', 'BUYER / CLIENT')]:
@@ -124,25 +156,10 @@ def render_pdf(item):
         signatures.append(Paragraph(escape(f"Date (UTC): {date.strftime('%Y-%m-%d %H:%M') if date else 'Pending'}"), styles['BodyText']))
     signatures.append(Paragraph(f'Document ID: {item.id}', styles['BodyText']))
     flow.append(KeepTogether(signatures))
-    def header(canvas, doc):
-        width, height = A4
-        canvas.saveState()
-        logo = Path(__file__).resolve().parents[2] / 'assets' / 'images' / 'logo.png'
-        if logo.exists(): canvas.drawImage(str(logo), width/2-82, height-83, width=60, height=60, preserveAspectRatio=True, mask='auto')
-        canvas.setFillColor(HexColor('#CB5053'))
-        canvas.setFont('Times-Bold', 26)
-        canvas.drawString(width/2-14, height-62, 'ArtFilier')
-        canvas.setFillColor(HexColor('#000000')); canvas.setFont('Times-Roman', 9)
-        for i, line in enumerate(['ArtFilier', 'Cebu, Philippines', '+63 931 445 5671', 'artfilier@gmail.com']):
-            canvas.drawRightString(width-24, height-32-i*10, line)
-        canvas.setFillColor(HexColor('#CB5053')); canvas.rect(0, height-138, width, 36, fill=1, stroke=0)
-        canvas.setFillColor(HexColor('#FFFFFF')); canvas.setFont('Times-Bold', 21)
-        canvas.drawCentredString(width/2, height-126, 'ART LICENSE AGREEMENT')
-        canvas.restoreState()
     doc = SimpleDocTemplate(output, pagesize=A4, title='Art License Agreement', author='ArtFilier', leftMargin=36, rightMargin=36, topMargin=160, bottomMargin=35)
     def canvas_factory(*args, **kwargs):
         canvas = NumberedCanvas(*args, **kwargs)
-        canvas.draw_header = header
+        canvas.draw_header = branded_document_header
         return canvas
     doc.build(flow, canvasmaker=canvas_factory)
     return output.getvalue()
@@ -190,6 +207,8 @@ class AgreementSigningView(AuthenticatedAPIView):
         setattr(item, role + '_signature', name.strip())
         setattr(item, role + '_signed_at', timezone.now())
         item.save()
+        from .notifications import notify_negotiation
+        notify_negotiation(item, user, 'signed')
         # Only the final document, after both signatures, is eligible for a proof.
         if item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image:
             record_agreement_proof(item)

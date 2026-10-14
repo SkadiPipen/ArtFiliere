@@ -1,12 +1,13 @@
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
-import { downloadPurchase, purchaseRequest } from '@/services/purchases';
+import { downloadPurchase, downloadCertificate, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 type Purchase = {
   id: number; title: string; artist: string; status: string; amount: string; agreement_id: number;
   verification_code?: string;
+  certificate_code?: string; certificate_path?: string;
   is_simulated?: boolean; image?: string; can_download: boolean; can_rate: boolean; checkout_url?: string;
   review?: { artist_rating: number; artwork_rating: number; comment: string; artist_comment?: string; artwork_comment?: string };
   delivery?: { status: string; status_label: string; driver?: string; delivery_address: string; fee: string };
@@ -196,6 +197,11 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
                 <Text style={s.white}>Download artwork PNG</Text>
               </TouchableOpacity>
             ) : null}
+
+            {p.certificate_path && p.certificate_code && <TouchableOpacity disabled={busy} style={s.button} onPress={() => run(() => downloadCertificate(p.certificate_path!, p.certificate_code!))}>
+              <Text style={s.white}>Download certificate of authenticity (PDF)</Text>
+            </TouchableOpacity>}
+            {p.certificate_code && <Text selectable>Certificate: {p.certificate_code}</Text>}
 
             {Boolean(p.delivery) ? (
               <View style={s.gap}>

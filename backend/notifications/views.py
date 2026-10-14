@@ -9,7 +9,7 @@ class UserNotificationView(AuthenticatedAPIView):
 
     def get(self, request):
         user = self.get_request_user(request)
-        notifications = user.notifications.all()[:50]
+        notifications = user.notifications.select_related('agreement__buyer', 'agreement__artist').all()[:50]
         return Response(
             {
                 "unread_count": user.notifications.filter(is_read=False).count(),
@@ -20,12 +20,21 @@ class UserNotificationView(AuthenticatedAPIView):
                         "message": notification.message,
                         "is_read": notification.is_read,
                         "commission_id": notification.commission_id,
+                        'agreement_id': notification.agreement_id,
+                        'negotiation_partner': self.partner_data(notification.agreement, user),
                         "created_at": notification.created_at.isoformat(),
                     }
                     for notification in notifications
                 ],
             }
         )
+
+    @staticmethod
+    def partner_data(agreement, user):
+        if not agreement or user.pk not in (agreement.buyer_id, agreement.artist_id):
+            return None
+        partner = agreement.artist if agreement.buyer_id == user.pk else agreement.buyer
+        return {'id': partner.firebase_uid, 'displayName': partner.username, 'email': '', 'photoURL': '', 'role': partner.role}
 
     def patch(self, request):
         user = self.get_request_user(request)

@@ -1,6 +1,8 @@
+import InfoAccordion from '@/module/chat-negotiations/InfoAccordion';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import AgreementDocument from "./components/AgreementDocument";
+import { CompensationSettings, CompensationCategory, CompensationTerms, compensationError } from '@/module/chat-negotiations/compensation';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, FileText, Send } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -46,8 +48,8 @@ const explain: Record<string, string> = {
   personal: "Private, non-business use only.",
   commercial: "Business, marketing, product, or income-related use is allowed.",
   non_exclusive: "The artist may license the artwork to others.",
-  exclusive: "Only this buyer may use it for the agreed purpose.",
-  sole: "Buyer has exclusive use; artist may still show it in a portfolio.",
+  exclusive: "Only this buyer may exercise the licensed rights; artist portfolio and promotional display are reserved. Copyright stays with the artist.",
+  sole: "This buyer is the only licensee, but the artist may continue their own use. Copyright stays with the artist.",
   digital: "Buyer receives a downloadable file.",
   physical: "A physical item is delivered; agree shipping in chat.",
   one_time: "The listed price is the complete payment.",
@@ -65,13 +67,14 @@ export default function DirectMessageScreen() {
     [body, setBody] = useState(""),
     [loading, setLoading] = useState(true),
     [form, setForm] = useState(false),
-    [guide, setGuide] = useState(false),
     [view, setView] = useState<A | null>(null),
     [price, setPrice] = useState(""),
     [license, setLicense] = useState("personal"),
     [exclusive, setExclusive] = useState("non_exclusive"),
     [delivery, setDelivery] = useState("digital"),
-    [comp, setComp] = useState("one_time");
+    [comp, setComp] = useState<CompensationCategory>('one_time');
+  const [compensationTerms, setCompensationTerms] = useState<CompensationTerms>({ subtype: 'one_time_payment' });
+  const [royaltyEnabled, setRoyaltyEnabled] = useState(false);
   const h = async () => ({
     Authorization: `Bearer ${await auth.currentUser!.getIdToken()}`,
     "Content-Type": "application/json",
@@ -81,6 +84,8 @@ export default function DirectMessageScreen() {
       setLoading(true);
       let id = q.conversationId,
         heads = await h();
+      const profile = await fetch(`${API_URL}/auth/me/`, { headers: heads });
+      if (profile.ok) setRoyaltyEnabled((await profile.json()).royalty_enabled === true);
       if (!id) {
         const r = await fetch(`${API_URL}/api/users/conversations/`, {
             headers: heads,
@@ -129,6 +134,10 @@ export default function DirectMessageScreen() {
   };
   const propose = async () => {
     if (!price || !chat) return;
+    const category = license === 'commercial' ? comp : 'one_time';
+    const settings = license === 'commercial' ? compensationTerms : { subtype: 'one_time_payment' };
+    const error = compensationError(category, settings, Number(price));
+    if (error) return Alert.alert('Commercial compensation', error);
     const r = await fetch(
       `${API_URL}/api/users/conversations/${chat.id}/agreements/`,
       {
@@ -140,11 +149,12 @@ export default function DirectMessageScreen() {
           license_type: license,
           exclusivity: exclusive,
           delivery_type: delivery,
-          compensation_type: comp,
+          compensation_type: category,
+          compensation_terms: settings,
         }),
       },
     );
-    if (!r.ok) return Alert.alert("Agreement", "Unable to send.");
+    if (!r.ok) { const error = await r.json(); return Alert.alert('Agreement', error.error || 'Unable to send.'); }
     setForm(false);
     load();
   };
@@ -165,7 +175,7 @@ export default function DirectMessageScreen() {
   return (
     <SafeAreaView style={s.page}>
       <View style={s.head}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/messages-inbox')}>
           <ArrowLeft color="#C15656" />
         </TouchableOpacity>
         <Text style={s.name}>{q.artistName || "Conversation"}</Text>
@@ -214,9 +224,6 @@ export default function DirectMessageScreen() {
           <Pressable style={s.modal} onPress={(e) => e.stopPropagation()}>
             <ScrollView>
               <Text style={s.title}>Create license agreement</Text>
-              <TouchableOpacity onPress={() => setGuide(true)}>
-                <Text style={s.learn}>Learn more about license terms</Text>
-              </TouchableOpacity>
               <TextInput
                 value={price}
                 onChangeText={setPrice}
@@ -252,35 +259,9 @@ export default function DirectMessageScreen() {
                   ["physical", "Physical"],
                 ]}
               />
-              <Pick
-                title="Compensation"
-                value={comp}
-                set={setComp}
-                choices={[
-                  ["one_time", "One-time"],
-                  ["royalty", "Royalty"],
-                ]}
-              />
+              {license === 'commercial' && <CompensationSettings expectedTotal={Number(price) || 0} enabled={royaltyEnabled} onAccessChange={setRoyaltyEnabled} category={comp} terms={compensationTerms} onChange={(category, terms) => { setComp(category); setCompensationTerms(terms); }} />}
               <TouchableOpacity onPress={propose} style={s.red}>
                 <Text style={s.white}>Send agreement</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-      <Modal visible={guide} transparent onRequestClose={() => setGuide(false)}>
-        <Pressable style={s.overlay} onPress={() => setGuide(false)}>
-          <Pressable style={s.modal} onPress={(e) => e.stopPropagation()}>
-            <ScrollView>
-              <Text style={s.title}>License terms guide</Text>
-              {Object.entries(explain).map(([k, v]) => (
-                <View key={k}>
-                  <Text style={s.label}>{k.replace(/_/g, " ")}</Text>
-                  <Text style={s.meaning}>{v}</Text>
-                </View>
-              ))}
-              <TouchableOpacity onPress={() => setGuide(false)} style={s.red}>
-                <Text style={s.white}>Close</Text>
               </TouchableOpacity>
             </ScrollView>
           </Pressable>
@@ -327,13 +308,12 @@ function Pick({
     <View>
       <Text style={s.label}>{title}</Text>
       {choices.map(([v, t]) => (
-        <TouchableOpacity key={v} onPress={() => set(v)} style={s.pick}>
-          <Text style={value === v ? s.selected : s.normal}>●</Text>
-          <View>
+        <InfoAccordion key={v} title={t} description={explain[v]} choice={
+          <TouchableOpacity accessibilityRole="radio" accessibilityState={{ checked: value === v }} onPress={() => set(v)} style={s.pick}>
+            <Text style={value === v ? s.selected : s.normal}>{value === v ? '?' : '?'}</Text>
             <Text>{t}</Text>
-            <Text style={s.meaning}>{explain[v]}</Text>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        } />
       ))}
     </View>
   );

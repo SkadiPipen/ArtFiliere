@@ -87,6 +87,12 @@ class Agreement(models.Model):
     exclusivity = models.CharField(max_length=30, default="non_exclusive")
     delivery_type = models.CharField(max_length=30, default="digital")
     compensation_type = models.CharField(max_length=30, default="one_time")
+    compensation_terms = models.JSONField(default=dict, blank=True)
+    revision_of = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='revisions')
+    negotiation_key = models.CharField(max_length=36, blank=True, default='')
+    closure_reason = models.CharField(max_length=20, blank=True, default='')
+    cancelled_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='cancelled_negotiations')
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROPOSED)
     buyer_accepted_at = models.DateTimeField(null=True, blank=True)
     artist_accepted_at = models.DateTimeField(null=True, blank=True)
@@ -119,3 +125,43 @@ class Message(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+
+
+class RoyaltyPeriod(models.Model):
+    agreement = models.ForeignKey(Agreement, on_delete=models.PROTECT, related_name='royalty_periods')
+    starts_on = models.DateField()
+    ends_on = models.DateField()  # exclusive; deadline is seven days after this date
+    due_on = models.DateField()
+    terms = models.JSONField()
+    metrics = models.JSONField(default=dict)
+    evidence = models.JSONField(default=list)
+    history = models.JSONField(default=list)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, null=True)
+    status = models.CharField(max_length=20, default='awaiting_report')
+    review_note = models.CharField(max_length=1000, blank=True)
+    submitted_at = models.DateTimeField(null=True)
+    approved_at = models.DateTimeField(null=True)
+    provider_request_id = models.CharField(max_length=100, blank=True)
+    collection_error = models.CharField(max_length=250, blank=True)
+    paid_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['agreement', 'starts_on'], name='unique_royalty_period')]
+
+
+class RoyaltyMandate(models.Model):
+    agreement = models.OneToOneField(Agreement, on_delete=models.PROTECT, related_name='royalty_mandate')
+    session_id = models.CharField(max_length=100, blank=True)
+    token_id = models.CharField(max_length=100, blank=True)
+    status = models.CharField(max_length=20, default='pending')
+    consented_at = models.DateTimeField(null=True)
+    revoked_at = models.DateTimeField(null=True)
+    reference = models.CharField(max_length=64, unique=True)
+    checkout_url = models.URLField(max_length=1000, blank=True)
+
+
+class RoyaltyReceipt(models.Model):
+    period = models.OneToOneField(RoyaltyPeriod, on_delete=models.PROTECT, related_name='receipt')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    provider_payment_id = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)

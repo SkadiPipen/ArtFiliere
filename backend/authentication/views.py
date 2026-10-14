@@ -6,7 +6,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.models import Address, User
+from users.models import Address, User, RoyaltyApplication
+from users.royalty_validation import validate_permit
 from artist_applications.models import ArtistApplication
 from .services import verify_token, account_access, AccountRestricted, TokenVerificationUnavailable, TokenRejected
 
@@ -119,6 +120,13 @@ def register(request):
     if User.objects.filter(username=username).exists():
         return Response({"error": "Username already taken"}, status=409)
 
+    royalty_values = None
+    if data.get('wants_royalty') == 'yes':
+        try:
+            royalty_values = validate_permit(data)
+        except ValueError as error:
+            return Response({'error': str(error)}, status=400)
+
     # Database Creation
     try:
         with transaction.atomic():
@@ -133,6 +141,9 @@ def register(request):
                 contact_number=contact_number,
                 wants_royalty=data.get("wants_royalty", User.RoyaltyStatus.NO),
             )
+
+            if royalty_values:
+                RoyaltyApplication.objects.create(user=user, **royalty_values)
 
             Address.objects.create(
                 is_default=True,
@@ -185,11 +196,14 @@ def me(request):
             'username': user.username,
             'email': user.email,
             'first_name': user.first_name,
+            'middle_name': user.middle_name,
+            'date_of_birth': user.date_of_birth,
             'last_name': user.last_name,
             'contact_number': getattr(user, 'contact_number', ''),
             'role': getattr(user, 'role', 'Buyer'),
             'read_only': account_access(user)['read_only'],
             'is_accepting_commissions': user.is_accepting_commissions,
+            'royalty_enabled': user.royalty_enabled,
             'default_hourly_rate': str(artist_application.hourly_rate) if artist_application else None,
             'profile_image': getattr(user, 'profile_image', None),
             'address': {field: getattr(address, field, '') if address else '' for field in ('street', 'barangay', 'city', 'province', 'region', 'postal_code')}

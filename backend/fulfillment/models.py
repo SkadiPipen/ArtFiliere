@@ -3,6 +3,18 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
+class CertificateOfAuthenticity(models.Model):
+    payment = models.OneToOneField('wallets.PaymentSession', null=True, blank=True, on_delete=models.PROTECT, related_name='certificate')
+    commission = models.OneToOneField('commissions.CommissionRequest', null=True, blank=True, on_delete=models.PROTECT, related_name='certificate')
+    code = models.CharField(max_length=40, unique=True)
+    snapshot = models.JSONField()
+    pdf = models.BinaryField()
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=(models.Q(payment__isnull=False, commission__isnull=True) | models.Q(payment__isnull=True, commission__isnull=False)), name='certificate_has_one_purchase')]
+
+
 class DeliveryRoute(models.Model):
     """Verified city routes; no guessed distances or addresses."""
     pickup_city = models.CharField(max_length=150)

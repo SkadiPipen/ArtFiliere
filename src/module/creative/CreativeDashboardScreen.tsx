@@ -1,3 +1,4 @@
+import ArtistRecordReviews from './ArtistRecordReviews';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import AgreementDocument from "@/module/messages/components/AgreementDocument";
@@ -215,6 +216,7 @@ export default function CreativeDashboardScreen() {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={s.content}>
+        <ArtistRecordReviews />
         <Text style={s.title}>Artwork moderation</Text>
         <Text style={s.lead}>
           Review pending work and reconsider declined artwork from artist appeals.

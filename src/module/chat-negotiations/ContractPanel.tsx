@@ -1,3 +1,4 @@
+import { proposalPayload } from './proposalPayload';
 import { auth } from '@/firebase/config';
 import { ChatWindow } from './chats';
 import NegotiationForm from './negotiationForm';
@@ -31,26 +32,10 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
   const agreed = data?.contracts.some(isAgreed);
   const artwork = data?.artwork;
   const sendProposal = async (proposal: any) => {
-    const total = Number(proposal.finalPrice) + Number(proposal.deliveryFee || 0);
-    const terms = [
-      `License: ${proposal.licenseType}`,
-      `Exclusivity: ${proposal.exclusivity}`,
-      `Product: ${artwork?.art_type}`,
-      proposal.durationMonths ? `License duration: ${proposal.durationMonths} months` : 'License duration: no fixed duration specified',
-      `Compensation: ${proposal.isRoyalty ? `one-time price plus ${proposal.royaltyPercentage}% royalties` : 'one-time payment'}`,
-      `Base price: PHP ${Number(proposal.basePrice).toFixed(2)}`,
-      `License multiplier: ${proposal.licenseMultiplier}; exclusivity multiplier: ${proposal.exclusivityMultiplier}`,
-      `Platform fee included: PHP ${Number(proposal.platformFee).toFixed(2)}`,
-      proposal.requiresDelivery ? `Delivery: ${proposal.deliveryAddress}; PHP ${Number(proposal.deliveryFee).toFixed(2)}` : 'No shipping included',
-      `Total: PHP ${total.toFixed(2)}`,
-      proposal.note ? `Additional terms: ${proposal.note}` : '',
-    ].filter(Boolean).join('\n');
     try {
       await contractRequest(`artworks/${artworkId}/`, 'POST', {
-        price: total.toFixed(2), terms, revision_of: revision?.id,
-        delivery_quote: proposal.deliveryQuote,
-        license_type: proposal.licenseType, exclusivity: proposal.exclusivity.replace('-', '_'),
-        delivery_type: artwork?.art_type, compensation_type: proposal.isRoyalty ? 'royalty' : 'one_time',
+        ...proposalPayload(proposal, artwork?.art_type || 'digital', revision?.restart ? undefined : revision?.id),
+        ...(revision?.restart ? { restart_of: revision.id } : {}),
       });
       if (revision) { onClose(); return; }
       setFormSubmitted(true); setRevising(false); await load();
@@ -72,11 +57,12 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
         <View style={s.header}><Text style={s.heading}>Negotiate a contract</Text><TouchableOpacity onPress={cancelForm}><Text style={s.link}>Cancel</Text></TouchableOpacity></View>
         <View style={{ flex: 1 }}>
         <NegotiationForm
-          artwork={{ id: artwork.id, title: artwork.title, artist_name: artwork.artist, art_type: artwork.art_type, base_price: Number(artwork.price), image_url: artwork.image_url }}
+          artwork={{ id: artwork.id, title: artwork.title, artist_name: artwork.artist, art_type: artwork.art_type, base_price: Number(artwork.price), image_url: artwork.image_url, royalty_enabled: artwork.royalty_enabled }}
           buyerId={artwork.buyer_uid} buyerName={artwork.buyer_name}
           artistId={artwork.artist_uid} artistName={artwork.artist}
           chatId={[artwork.buyer_uid, artwork.artist_uid].sort().join('_')}
-          revisionId={revision?.id}
+          revisionId={revision?.restart ? undefined : revision?.id}
+          initialProposal={revision}
           initialDelivery={revision?.delivery_details}
           onSend={sendProposal} onCancel={cancelForm}
         />

@@ -1,11 +1,13 @@
-import LicenseInfoModal from './LicenseInfoModal';
+import type { Contract } from './contracts';
+import { CompensationSettings, CompensationCategory, CompensationTerms, compensationError } from './compensation';
+import InfoAccordion from './InfoAccordion';
 // ========================================
 // FILE: src/app/chat-negotiations/negotiationForm.tsx
 // PURPOSE: Negotiation form for chat
 // ========================================
 
 import { CheckCircle, Circle, Info } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -37,6 +39,7 @@ interface NegotiationFormProps {
   chatId: string;
   onSend: (proposal: any) => void | Promise<void>;
   onCancel: () => void;
+  initialProposal?: Contract;
   revisionId?: number;
   initialDelivery?: { route_id?: number; delivery_address?: string };
 }
@@ -51,10 +54,14 @@ export default function NegotiationForm({
   onSend,
   onCancel,
   initialDelivery,
+  initialProposal,
   revisionId,
 }: NegotiationFormProps) {
-  const [offer, setOffer] = useState('');
+  const [royaltyEnabled, setRoyaltyEnabled] = useState(!!artwork.royalty_enabled);
+  useEffect(() => setRoyaltyEnabled(!!artwork.royalty_enabled), [artwork.royalty_enabled]);
+  const [offer, setOffer] = useState(initialProposal ? String(Number(initialProposal.price) - Number(initialProposal.delivery_fee || 0)) : '');
   const [sending, setSending] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // ========================================
   // GET AVAILABLE OPTIONS FROM ARTWORK
@@ -67,24 +74,22 @@ export default function NegotiationForm({
 
   // Form state
   const [licenseType, setLicenseType] = useState<'personal' | 'commercial'>(
-    availableLicenses.includes('personal') ? 'personal' : availableLicenses[0] || 'personal'
+    initialProposal?.license_type || (availableLicenses.includes('personal') ? 'personal' : availableLicenses[0] || 'personal')
   );
   const [exclusivity, setExclusivity] = useState<'non-exclusive' | 'exclusive' | 'sole'>(
-    availableExclusivity.includes('non-exclusive') ? 'non-exclusive' : availableExclusivity[0] || 'non-exclusive'
+    (initialProposal?.exclusivity?.replace('_', '-') as ExclusivityType) || (availableExclusivity.includes('non-exclusive') ? 'non-exclusive' : availableExclusivity[0] || 'non-exclusive')
   );
-  const [durationMonths, setDurationMonths] = useState('12');
+  const [durationMonths, setDurationMonths] = useState(String(initialProposal?.compensation_terms?.reporting_duration_months || 12));
   const requiresDelivery = !isDigital;
   const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
-  const [royaltyPercentage, setRoyaltyPercentage] = useState('');
-  const [isRoyalty, setIsRoyalty] = useState(false);
+  const [compensationCategory, setCompensationCategory] = useState<CompensationCategory>(initialProposal?.compensation_type || 'one_time');
+  const [compensationTerms, setCompensationTerms] = useState<CompensationTerms>(initialProposal?.compensation_terms?.subtype ? initialProposal.compensation_terms : { subtype: 'one_time_payment' });
+  const effectiveCategory = licenseType === 'commercial' ? compensationCategory : 'one_time';
+  const effectiveTerms = licenseType === 'commercial' ? compensationTerms : { subtype: 'one_time_payment' };
   const [note, setNote] = useState('');
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
 
   // Info popups
-  const [showLicenseInfo, setShowLicenseInfo] = useState(false);
-  const [showExclusivityInfo, setShowExclusivityInfo] = useState(false);
-  const [selectedInfoKey, setSelectedInfoKey] = useState('');
-  const [selectedInfoType, setSelectedInfoType] = useState<'license' | 'exclusivity'>('license');
 
   // Update the price display section with safe formatting
   const formatPrice = (price: any): string => {
@@ -100,10 +105,10 @@ export default function NegotiationForm({
     const settings = platformSettings;
     const licenseMultipliers = settings.license_multipliers || { personal: 1.0, commercial: 1.5 };
     const exclusivityMultipliers = settings.exclusivity_multipliers || { 'non-exclusive': 1.0, exclusive: 1.3, sole: 1.5 };
-    
+
     const licenseMult = licenseMultipliers[licenseType] || 1.0;
     const exclusivityMult = exclusivityMultipliers[exclusivity] || 1.0;
-    
+
     const subtotal = basePrice * licenseMult * exclusivityMult;
     const platformFee = subtotal * (settings.platform_fee_percentage / 100);
     const finalPrice = subtotal + platformFee;
@@ -111,7 +116,7 @@ export default function NegotiationForm({
     const baseDeliveryFee = requiresDelivery ? Number(deliveryQuote?.base_fee ?? (deliveryQuote?.is_priority ? Math.max(0, (deliveryQuote?.fee || 0) - 40) : (deliveryQuote?.fee || 0))) : 0;
     const priorityFee = requiresDelivery && deliveryQuote?.is_priority ? 40 : 0;
     const totalDeliveryFee = baseDeliveryFee + priorityFee;
-    
+
     return {
       basePrice,
       licenseMultiplier: licenseMult,
@@ -134,11 +139,12 @@ export default function NegotiationForm({
     : `Price cannot be below PHP ${minimumPrice.toFixed(2)} for the selected license and exclusivity.`;
 
   const handleSend = async () => {
-    console.log('🔵 SEND PROPOSAL PRESSED');
-    console.log('🔵 Artwork:', artwork.title);
-    console.log('🔵 Artist ID:', artistId);
-    console.log('🔵 Buyer ID:', buyerId);
-    
+    setSubmitError('');
+
+
+
+
+
     const offeredPrice = offer.trim() ? Number(offer) : Number(prices.finalPrice.toFixed(2));
     if (!Number.isFinite(offeredPrice) || offeredPrice < Number(prices.finalPrice.toFixed(2))) {
       Alert.alert('Price too low', `Minimum price for these terms is PHP ${prices.finalPrice.toFixed(2)}.`);
@@ -146,7 +152,7 @@ export default function NegotiationForm({
     }
     // Validate
     const duration = parseInt(durationMonths);
-    
+
     // ========================================
     // VALIDATION - Duration only for commercial
     // ========================================
@@ -160,14 +166,15 @@ export default function NegotiationForm({
         return;
       }
     }
-    
+
     if (requiresDelivery && !deliveryQuote) {
       Alert.alert('Delivery required', 'Calculate delivery before sending your proposal.');
       return;
     }
 
-    if (isRoyalty && (!royaltyPercentage || !Number.isFinite(Number(royaltyPercentage)) || Number(royaltyPercentage) <= 0 || Number(royaltyPercentage) > 100)) {
-      Alert.alert('Error', 'Please enter a valid royalty percentage');
+    const compensationValidation = compensationError(effectiveCategory, effectiveTerms, offeredPrice);
+    if (compensationValidation || (effectiveCategory !== 'one_time' && !royaltyEnabled)) {
+      setSubmitError(compensationValidation || 'Admin approval is required for royalty access.');
       return;
     }
 
@@ -192,7 +199,9 @@ export default function NegotiationForm({
       finalPrice: offeredPrice,
       requiresDelivery,
       deliveryFee: prices.deliveryFee,
-      isRoyalty,
+      isRoyalty: effectiveCategory !== 'one_time',
+      compensationCategory: effectiveCategory,
+      compensationTerms: { ...effectiveTerms, reporting_duration_months: Number(durationMonths) },
       status: 'pending' as const,
       chatId,
     };
@@ -218,41 +227,25 @@ export default function NegotiationForm({
       proposal.is_priority = Boolean(deliveryQuote.is_priority);
     }
 
-    // ONLY add royaltyPercentage if isRoyalty is true
-    if (isRoyalty) {
-      proposal.royaltyPercentage = parseFloat(royaltyPercentage);
-    }
-
     // ONLY add note if it has content
     if (note.trim()) {
       proposal.note = note.trim();
     }
 
-    console.log('📤 Proposal data:', JSON.stringify(proposal, null, 2));
-    console.log('📤 Calling onSend...');
-    
+
+
+
     setSending(true);
     try {
       await onSend(proposal);
     } catch (error) {
-      console.error('❌ Error in handleSend:', error);
-      Alert.alert('Error', 'Failed to send proposal');
+
+      setSubmitError(error instanceof Error ? error.message : 'Failed to send proposal.');
     } finally {
       setSending(false);
     }
   };
 
-  const showInfo = (type: 'license' | 'exclusivity', key: string) => {
-    setSelectedInfoType(type);
-    setSelectedInfoKey(key);
-    if (type === 'license') {
-      setShowLicenseInfo(true);
-    } else {
-      setShowExclusivityInfo(true);
-    }
-  };
-
-  // Info data
   const licenseInfo = {
     personal: {
       title: 'Personal Use',
@@ -300,27 +293,27 @@ export default function NegotiationForm({
     },
     exclusive: {
       title: 'Exclusive',
-      description: 'Artist will not license to anyone else for the duration.',
+      description: 'Only the buyer may exercise the licensed rights within the agreed scope and term. Copyright remains with the artist.',
       permitted: [
         'Exclusive rights',
-        'Artist retains own use rights',
+        'Artist portfolio and promotional display remain reserved',
         'Higher value'
       ],
       restrictions: [
-        'Artist cannot license to others',
+        'Artist cannot exercise or license the agreed rights to others',
         'Higher price point'
       ]
     },
     sole: {
       title: 'Sole',
-      description: 'Artist gives up all rights except portfolio use.',
+      description: 'The buyer is the only licensee within the agreed scope and term. The artist may continue their own use and retains copyright.',
       permitted: [
-        'Complete control',
-        'Highest exclusivity',
+        'Buyer is the only licensee',
+        'Artist retains own use rights',
         'Premium pricing'
       ],
       restrictions: [
-        'Artist cannot use the artwork',
+        'Artist cannot grant the agreed rights to other licensees',
         'Most expensive option'
       ]
     }
@@ -328,7 +321,6 @@ export default function NegotiationForm({
 
   return (
     <>
-    <LicenseInfoModal visible={showLicenseInfo || showExclusivityInfo} onClose={() => { setShowLicenseInfo(false); setShowExclusivityInfo(false); }} data={selectedInfoType === 'license' ? licenseInfo[selectedInfoKey as keyof typeof licenseInfo] || null : exclusivityInfo[selectedInfoKey as keyof typeof exclusivityInfo] || null} />
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Artwork Preview */}
       <View style={styles.preview}>
@@ -344,37 +336,17 @@ export default function NegotiationForm({
         <Text style={styles.sectionTitle}>License Type *</Text>
         <Text style={styles.sectionSubtitle}>Choose one option</Text>
         <View style={styles.optionsContainer}>
-          {availableLicenses.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.optionButton,
-                licenseType === option && styles.optionSelected,
-              ]}
-              onPress={() => setLicenseType(option as any)}
-            >
-              <View style={styles.optionRow}>
-                {licenseType === option ? (
-                  <CheckCircle size={20} color="#D48C62" />
-                ) : (
-                  <Circle size={20} color="#C7C7CC" />
-                )}
-                <Text style={[
-                  styles.optionText,
-                  licenseType === option && styles.optionTextSelected
-                ]}>
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
-                  {option === 'commercial' && ' (×1.5)'}
-                </Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.infoButton}
-                onPress={() => showInfo('license', option)}
-              >
-                <Info size={16} color="#D48C62" />
+          {availableLicenses.map(option => {
+            const details = licenseInfo[option as keyof typeof licenseInfo];
+            return <InfoAccordion key={option} {...details} choice={
+              <TouchableOpacity accessibilityRole="radio" accessibilityState={{ checked: licenseType === option }} onPress={() => setLicenseType(option as any)} style={[styles.optionButton, licenseType === option && styles.optionSelected]}>
+                <View style={styles.optionRow}>
+                  {licenseType === option ? <CheckCircle size={20} color="#D48C62" /> : <Circle size={20} color="#C7C7CC" />}
+                  <Text style={styles.optionText}>{details.title}</Text>
+                </View>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+            } />;
+          })}
         </View>
       </View>
 
@@ -383,38 +355,17 @@ export default function NegotiationForm({
         <Text style={styles.sectionTitle}>Exclusivity *</Text>
         <Text style={styles.sectionSubtitle}>Choose one option</Text>
         <View style={styles.optionsContainer}>
-          {availableExclusivity.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.optionButton,
-                exclusivity === option && styles.optionSelected,
-              ]}
-              onPress={() => setExclusivity(option as any)}
-            >
-              <View style={styles.optionRow}>
-                {exclusivity === option ? (
-                  <CheckCircle size={20} color="#D48C62" />
-                ) : (
-                  <Circle size={20} color="#C7C7CC" />
-                )}
-                <Text style={[
-                  styles.optionText,
-                  exclusivity === option && styles.optionTextSelected
-                ]}>
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
-                  {option === 'exclusive' && ' (×1.3)'}
-                  {option === 'sole' && ' (×1.5)'}
-                </Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.infoButton}
-                onPress={() => showInfo('exclusivity', option)}
-              >
-                <Info size={16} color="#D48C62" />
+          {availableExclusivity.map(option => {
+            const details = exclusivityInfo[option as keyof typeof exclusivityInfo];
+            return <InfoAccordion key={option} {...details} choice={
+              <TouchableOpacity accessibilityRole="radio" accessibilityState={{ checked: exclusivity === option }} onPress={() => setExclusivity(option as any)} style={[styles.optionButton, exclusivity === option && styles.optionSelected]}>
+                <View style={styles.optionRow}>
+                  {exclusivity === option ? <CheckCircle size={20} color="#D48C62" /> : <Circle size={20} color="#C7C7CC" />}
+                  <Text style={styles.optionText}>{details.title}</Text>
+                </View>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+            } />;
+          })}
         </View>
       </View>
 
@@ -437,30 +388,9 @@ export default function NegotiationForm({
 
       {!isDigital && <DeliveryAddressPicker artworkId={artwork.id} revisionId={revisionId} onQuote={setDeliveryQuote} />}
 
-      {/* Royalty (Commercial only) */}
-      {licenseType === 'commercial' && (
-        <View style={styles.section}>
-          <View style={styles.switchRow}>
-            <Text style={styles.sectionTitle}>Royalty Option</Text>
-            <Switch
-              value={isRoyalty}
-              onValueChange={setIsRoyalty}
-              trackColor={{ false: '#E5E5EA', true: '#D48C62' }}
-            />
-          </View>
-
-          {isRoyalty && (
-            <TextInput
-              style={styles.input}
-              placeholder="Royalty percentage (e.g., 5)"
-              value={royaltyPercentage}
-              onChangeText={setRoyaltyPercentage}
-              keyboardType="numeric"
-              placeholderTextColor="#C7C7CC"
-            />
-          )}
-        </View>
-      )}
+      {licenseType === 'commercial' && <View style={styles.section}>
+        <CompensationSettings expectedTotal={offer.trim() && Number.isFinite(Number(offer)) ? Number(offer) : minimumPrice} enabled={royaltyEnabled} onAccessChange={setRoyaltyEnabled} category={compensationCategory} terms={{ ...compensationTerms, reporting_duration_months: Number(durationMonths) }} onChange={(category, terms) => { setCompensationCategory(category); setCompensationTerms(terms); if (terms.reporting_duration_months !== undefined) setDurationMonths(String(terms.reporting_duration_months)); }} />
+      </View>}
 
       {/* Note */}
       <View style={styles.section}>
@@ -543,6 +473,7 @@ export default function NegotiationForm({
                 prices.deliveryFee
             )}`}
       </Text>
+      {!!submitError && <Text accessibilityRole="alert" style={styles.offerError}>{submitError}</Text>}
       {/* Actions */}
       <View style={styles.actionContainer}>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>

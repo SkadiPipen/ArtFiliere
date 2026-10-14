@@ -31,7 +31,7 @@ export default function VerificationScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => router.back()}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
+      <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
       <View style={styles.card}>
         <ShieldCheck size={42} color="#5D8A63" />
         <Text style={styles.title}>Verify an ArtFiliere record</Text>

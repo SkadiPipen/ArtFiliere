@@ -37,16 +37,20 @@ class WalletView(AuthenticatedAPIView):
         if not wallet:
             wallet, _ = WalletAccount.objects.get_or_create(user=user)
         entries = wallet.entries.select_related("payment_session__artwork")[:30]
+        from messaging.models import RoyaltyReceipt
+        royalty_entries = [{'id': f'royalty-{receipt.pk}', 'type': 'royalty_received', 'amount': str(receipt.amount),
+                            'artwork_title': receipt.period.agreement.artwork.title if receipt.period.agreement.artwork else 'Artwork',
+                            'created_at': receipt.created_at.isoformat()}
+                           for receipt in RoyaltyReceipt.objects.filter(period__agreement__artist=user).select_related('period__agreement__artwork').order_by('-created_at')[:30]]
+        sale_entries = [{'id': entry.id, 'type': entry.entry_type, 'amount': str(entry.amount),
+                         'artwork_title': entry.payment_session.artwork.title, 'created_at': entry.created_at.isoformat()}
+                        for entry in entries]
         return Response({
             "currency": wallet.currency,
             "pending_balance": str(wallet.pending_balance),
             "available_balance": str(wallet.available_balance),
             "paid_out_balance": str(wallet.paid_out_balance),
-            "entries": [{
-                "id": entry.id, "type": entry.entry_type, "amount": str(entry.amount),
-                "artwork_title": entry.payment_session.artwork.title,
-                "created_at": entry.created_at.isoformat(),
-            } for entry in entries],
+            "entries": sorted(sale_entries + royalty_entries, key=lambda entry: entry['created_at'], reverse=True)[:30],
         })
 
 def create_delivery_and_notify(payment):

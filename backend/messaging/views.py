@@ -11,6 +11,9 @@ from .models import Agreement, AgreementTemplate, Conversation, ConversationPart
 from django.utils import timezone
 from authentication.permissions import IsPlatformAdmin
 from delivery.views import create_delivery_and_notify_driver_order
+from .compensation import validate_compensation, compensation_summary, validate_schedule_total
+from .notifications import notify_negotiation
+from django.db import transaction
 
 
 class DirectMessageView(AuthenticatedAPIView):
@@ -121,6 +124,7 @@ class ConversationMessageView(AuthenticatedAPIView):
 
 class AgreementView(AuthenticatedAPIView):
     permission_classes = [IsAuthenticatedUser]
+    @transaction.atomic
     def post(self, request, conversation_id):
         user = self.get_request_user(request)
         participants = list(ConversationParticipant.objects.filter(conversation_id=conversation_id).select_related("user"))
@@ -141,17 +145,29 @@ class AgreementView(AuthenticatedAPIView):
             return Response({"error": "The selected artwork does not belong to the agreement artist."}, status=400)
         if artwork_id and Artwork.objects.filter(id=artwork_id, sale_type='Auction').exists():
             return Response({'error': 'Auction license terms are fixed. Use the winning auction agreement.'}, status=409)
-        agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=request.data.get("exclusivity", "non_exclusive"), delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
+        try:
+            compensation_terms = validate_compensation(request.data, user, request.data.get('license_type', 'personal'))
+            validate_schedule_total(compensation_terms, price)
+        except PermissionError as error:
+            return Response({'error': str(error)}, status=403)
+        except ValueError as error:
+            return Response({'error': str(error)}, status=400)
+        if compensation_terms:
+            terms += '\n\n' + compensation_summary(request.data.get('compensation_type', 'one_time'), compensation_terms)
+        agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, compensation_terms=compensation_terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=request.data.get("exclusivity", "non_exclusive"), delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
         Message.objects.create(conversation_id=conversation_id, sender=user, message_type=Message.Type.AGREEMENT, agreement=agreement, body="Agreement proposed")
+        notify_negotiation(agreement, user, 'proposed')
         return Response(serialize_agreement(agreement), status=201)
 
+    @transaction.atomic
     def patch(self, request, agreement_id):
         user = self.get_request_user(request)
-        agreement = Agreement.objects.filter(id=agreement_id).first()
+        agreement = Agreement.objects.select_for_update().filter(id=agreement_id).first()
         if not agreement or user.id not in {agreement.buyer_id, agreement.artist_id}:
             return Response({"error": "Agreement not found."}, status=404)
         if agreement.status != Agreement.Status.PROPOSED:
             return Response({"error": "This agreement is already closed."}, status=409)
+        already_accepted = bool(agreement.buyer_accepted_at if user.id == agreement.buyer_id else agreement.artist_accepted_at)
         if user.id == agreement.buyer_id: agreement.buyer_accepted_at = timezone.now()
         else: agreement.artist_accepted_at = timezone.now()
         if agreement.buyer_accepted_at and agreement.artist_accepted_at:
@@ -179,11 +195,12 @@ class AgreementView(AuthenticatedAPIView):
                     is_priority=bool(request.data.get('is_priority', False)), 
                     distance_km=float(request.data.get('distance_km', 5.0)) 
                 ) 
-                print(f"Triggered delivery order for physical agreement #{agreement.id}") 
-            except Exception as e: 
-                print("Warning: delivery order could not be generated:", e) 
+            except Exception:
+                pass
                 
         agreement.save()
+        if not already_accepted:
+            notify_negotiation(agreement, user, 'accepted')
         return Response(serialize_agreement(agreement))
 
 
@@ -201,7 +218,8 @@ class AgreementTemplateAdminView(AuthenticatedAPIView):
 
 
 def serialize_agreement(item):
-    return {"id": item.id, "verification_code": item.verification_code, "status": item.status, "price": str(item.price), "terms": item.terms_snapshot, "buyer_accepted_at": item.buyer_accepted_at, "artist_accepted_at": item.artist_accepted_at, "license_type": item.license_type, "exclusivity": item.exclusivity, "delivery_type": item.delivery_type, "compensation_type": item.compensation_type}
+    # Structured payment settings accompany the immutable text snapshot.
+    return {"id": item.id, "verification_code": item.verification_code, "status": item.status, "price": str(item.price), "terms": item.terms_snapshot, "buyer_accepted_at": item.buyer_accepted_at, "artist_accepted_at": item.artist_accepted_at, "license_type": item.license_type, "exclusivity": item.exclusivity, "delivery_type": item.delivery_type, "compensation_type": item.compensation_type, 'compensation_terms': item.compensation_terms}
 
 
 def serialize_message(message):

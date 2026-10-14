@@ -1,4 +1,7 @@
-import { View, Text, Pressable } from "react-native";
+import { useState } from 'react';
+import { View, Text, Pressable, Image } from "react-native";
+import CalendarDateField from '@/components/CalendarDateField';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/colors";
 import type {
@@ -15,11 +18,21 @@ export default function RoyaltyInfo({
   formData,
   updateField,
 }: RoyaltyInfoProps) {
-  function pickFile() {
-    // TODO: wire an actual file/image picker, e.g. expo-document-picker
-    // or expo-image-picker, and upload the real file as multipart/form-data
-    // to match the backend's royalty_proof FileField.
-    updateField("royaltyFileName", "id-sample.jpg");
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function pickFile() {
+    setError(''); setBusy(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.8 });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset.base64) throw Error('Unable to read this image. Please choose another image.');
+      if (asset.base64.length > Math.ceil(5 * 1024 * 1024 / 3) * 4) throw Error('Please choose a business permit image smaller than 5 MB.');
+      const mime = asset.base64.startsWith('iVBORw0KGgo') ? 'image/png' : asset.base64.startsWith('UklGR') ? 'image/webp' : 'image/jpeg';
+      updateField('businessPermitImage', `data:${mime};base64,${asset.base64}`);
+      updateField('royaltyFileName', asset.fileName || 'business-permit.jpg');
+    } catch (e: any) { setError(e.message || 'Unable to open the image picker.'); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -32,10 +45,10 @@ export default function RoyaltyInfo({
           marginBottom: 6,
         }}
       >
-        Do you want to apply for Royalty Percentage?
+        Apply for royalty access?
       </Text>
       <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 16 }}>
-        Royalty mapping and information of royalty percentage.
+        You can use your account immediately. Royalty-based and hybrid commercial agreements require admin approval of your business permit. Access ends when the permit expires.
       </Text>
 
       <View style={{ flexDirection: "row", marginBottom: 20 }}>
@@ -99,11 +112,11 @@ export default function RoyaltyInfo({
           <Text
             style={{ fontSize: 13, color: COLORS.textDark, marginBottom: 8 }}
           >
-            Upload a file or image of your ID within a proof to make your
-            application for royalty approve.
+            Business permit image (required). Upload a clear JPEG, PNG, or WebP image up to 5 MB. The reviewing admin can view your permit.
           </Text>
 
           <Pressable
+            disabled={busy}
             onPress={pickFile}
             style={{
               borderWidth: 1,
@@ -125,7 +138,7 @@ export default function RoyaltyInfo({
             >
               {formData.royaltyFileName
                 ? formData.royaltyFileName
-                : "or drag a file or image to upload and select"}
+                : "Choose an image of your business permit"}
             </Text>
             <View
               style={{
@@ -145,10 +158,14 @@ export default function RoyaltyInfo({
                   fontWeight: "600",
                 }}
               >
-                Browse
+                {busy ? 'Opening…' : 'Browse images'}
               </Text>
             </View>
           </Pressable>
+          {!!formData.businessPermitImage && <Image source={{ uri: formData.businessPermitImage }} resizeMode="contain" accessibilityLabel="Selected business permit" style={{ width: '100%', height: 180, marginTop: 12 }} />}
+          {!!error && <Text accessibilityRole="alert" style={{ color: COLORS.red }}>{error}</Text>}
+          <Text style={{ marginTop: 14, marginBottom: 8, color: COLORS.textDark }}>Permit expiration date (required)</Text>
+          <CalendarDateField label="Business permit expiration date" value={formData.permitExpiresOn} onChange={value => updateField('permitExpiresOn', value)} minimumDate={new Date(new Date().setHours(0, 0, 0, 0))} />
         </View>
       )}
     </View>

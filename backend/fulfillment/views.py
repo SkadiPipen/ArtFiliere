@@ -12,6 +12,7 @@ from .models import DeliveryOrder, PurchaseReview
 from .services import delivery_context, png_bytes
 from messaging.models import Agreement
 from commissions.models import CommissionRequest, CommissionPhoto
+from .certificates import issue_certificate
 
 
 class DeliveryRoutesView(AuthenticatedAPIView):
@@ -58,12 +59,15 @@ class PurchasesView(AuthenticatedAPIView):
             delivery = getattr(p, 'delivery_order', None)
             review = getattr(p, 'review', None)
             paid = p.status == 'paid'
+            certificate = issue_certificate(p) if paid else None
             digital = p.agreement.delivery_type == 'digital' if p.agreement else p.artwork.art_type == 'digital'
             rows.append({'id': p.id, 'title': p.artwork.title, 'artist': p.artist.username,
                          'image': ('data:image/png;base64,' + base64.b64encode(bytes(p.artwork_png)).decode() if digital and p.artwork_png else p.artwork.image_data) if paid else None,
                          'is_simulated': p.is_simulated, 'status': p.status, 'amount': str(p.gross_amount), 'agreement_id': p.agreement_id, 'verification_code': p.verification_code,
                          'checkout_url': p.checkout_url if p.status == 'pending' else None,
                          'can_download': paid and digital, 'can_rate': paid and not review,
+                         'certificate_code': certificate.code if certificate else None,
+                         'certificate_path': f'purchases/{p.id}/coa/' if certificate else None,
                          'delivery': delivery_data(delivery) if delivery else None,
                          'review': {'artist_rating': review.artist_rating, 'artwork_rating': review.artwork_rating, 'comment': review.comment, 'artist_comment': review.artist_comment, 'artwork_comment': review.artwork_comment} if review else None})
 
@@ -77,6 +81,7 @@ class PurchasesView(AuthenticatedAPIView):
             img_url = latest_photo.image_url if latest_photo else None
 
             comm_status = 'paid' if is_complete else ('in_progress' if has_paid_any else 'pending')
+            certificate = issue_certificate(c, commission=True)
 
             rows.append({
                 'id': 100000 + c.commission_req_id,
@@ -92,6 +97,8 @@ class PurchasesView(AuthenticatedAPIView):
                 'checkout_url': None,
                 'can_download': is_complete and is_digital and bool(img_url),
                 'can_rate': is_complete,
+                'certificate_code': certificate.code if certificate else None,
+                'certificate_path': f'commissions/{c.pk}/coa/' if certificate else None,
                 'delivery': {
                     'status': 'in_transit' if not is_complete else 'delivered',
                     'status_label': 'In Progress / Production' if not is_complete else 'Completed & Dispatched',
@@ -103,6 +110,24 @@ class PurchasesView(AuthenticatedAPIView):
             })
             
         return Response(rows)
+
+
+class PurchaseCertificateView(AuthenticatedAPIView):
+    permission_classes = [IsAuthenticatedUser]
+
+    def get(self, request, payment_id=None, commission_id=None):
+        user = self.get_request_user(request)
+        if commission_id is not None:
+            source = CommissionRequest.objects.filter(pk=commission_id, buyer=user).first()
+        else:
+            source = PaymentSession.objects.filter(pk=payment_id, buyer=user, status='paid').first()
+        certificate = issue_certificate(source, commission=commission_id is not None) if source else None
+        if not certificate:
+            return Response({'error': 'A certificate is available only for your confirmed purchase or fully paid completed commission.'}, status=404)
+        response = HttpResponse(bytes(certificate.pdf), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{certificate.code}.pdf"'
+        response['Cache-Control'] = 'private, no-store'
+        return response
 
 
 class PurchaseDownloadView(AuthenticatedAPIView):

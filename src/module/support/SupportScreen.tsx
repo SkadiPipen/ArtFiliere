@@ -1,12 +1,13 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { AuthContext } from '@/context/AuthContext';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import TicketActions from '@/module/moderation/TicketActions';
+import { ArrowLeft, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react-native';
 
 type Concern = { id: string; label: string; category: string; reference: string };
 type FAQ = { id: string; question: string; answer: string; concern: string };
@@ -33,7 +34,8 @@ async function request<T>(path: string, method = 'GET', body?: object): Promise<
   return data;
 }
 function Button({ children, onPress, disabled = false, primary = false }: { children: React.ReactNode; onPress: () => void; disabled?: boolean; primary?: boolean }) {
-  return <TouchableOpacity accessibilityRole="button" disabled={disabled} onPress={onPress} style={[s.button, primary && s.primary, disabled && s.disabled]}><Text style={[s.buttonText, primary && s.white]}>{children}</Text></TouchableOpacity>;
+  const [hovered, setHovered] = useState(false);
+  return <Pressable accessibilityRole="button" disabled={disabled} onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)} onPress={onPress} style={({ pressed }) => [s.button, (primary || (!disabled && (hovered || pressed))) && s.primary, disabled && s.disabled]}>{({ pressed }) => <Text style={[s.buttonText, (primary || (!disabled && (hovered || pressed))) && s.white]}>{children}</Text>}</Pressable>;
 }
 function AccountAvatar({ account }: { account: AccountSuggestion }) {
   const [failed, setFailed] = useState(false);
@@ -196,19 +198,20 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
   }, [reportedUsername, accountReport, chosenAccount, mode, review, user?.uid]);
   const ready = concern && (concern.reference === 'none' || reference);
   return <SafeAreaView style={s.page} edges={embedded ? [] : undefined}><KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <View style={s.header}><View><Text style={s.title}>{moderator ? `${catalog?.department_label || 'Moderator'} reports` : 'Customer support'}</Text><Text style={s.muted}>{moderator ? 'Review concerns and reply to members' : 'Guided help and report tracking'}</Text></View><Button onPress={close}>Close</Button></View>
+    <View style={s.header}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={close} style={s.iconButton}><ArrowLeft size={23} color="#62493E" /></TouchableOpacity><View style={{ flex: 1 }}><Text style={s.brand}>ArtFiliere</Text><Text style={s.muted}>{moderator ? `${catalog?.department_label || 'Moderator'} reports` : 'Support & account safety'}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh customer support" disabled={busy} style={[s.iconButton, busy && s.disabled]} onPress={() => { if (selected) run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))); else if (mode === 'tickets' && catalog) run(() => loadTickets()); else loadCatalog(); }}><RefreshCw size={22} color="#984E43" /></TouchableOpacity></View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
+      <View style={s.hero}><ShieldCheck size={34} color="#B65B50" /><Text accessibilityRole="header" style={s.heroTitle}>{moderator ? 'Review concerns and reply to members' : 'Customer support'}</Text><Text style={s.heroCopy}>{moderator ? 'Review concerns and reply to members' : 'Guided help and report tracking'}</Text></View>
       {!catalog ? <><Text>{authLoading ? 'Checking your session...' : user ? 'Connecting to customer support...' : 'Sign in to view help and your reports.'}</Text>{!authLoading && <Button disabled={busy} onPress={loadCatalog}>Retry connection</Button>}{!authLoading && !user && <Button onPress={() => router.push('/login')}>Sign in</Button>}</> : moderator && !catalog.is_moderator ? <Text>Moderator access is required.</Text> : <>
         <View style={s.row}>{!moderator && <Button disabled={busy} primary={mode === 'new'} onPress={() => { setMode('new'); setSelected(null); }}>New report / FAQs</Button>}<Button disabled={busy} primary={mode === 'tickets'} onPress={() => { setMode('tickets'); setSelected(null); run(() => loadTickets()); }}>{assignments ? 'Concern queues' : moderator ? 'Department reports' : 'My reports'}</Button></View>
         {assignments && <View style={s.row}>{(['waiting', 'mine', 'transfers'] as const).map(value => <Button key={value} disabled={busy} primary={queue === value} onPress={() => { setQueue(value); setSelected(null); setStatusFilter(''); }}>{value === 'waiting' ? 'Waiting' : value === 'mine' ? 'My concerns' : 'Incoming transfers'}</Button>)}</View>}
         {mode === 'new' ? <>
-          <Bubble>Welcome to ArtFiliere support. Choose a topic below. This guided chat can answer common questions or send a report to our support team.</Bubble>
-          {!category && catalog.concerns.some(c => c.id === 'rejected_artwork') && <Button primary disabled={busy} onPress={() => { const item = catalog.concerns.find(c => c.id === 'rejected_artwork'); if (item) chooseConcern(item); }}>Appeal a rejected artwork</Button>}
+          <View style={s.introduction}><Text style={s.bubbleText}>Welcome to ArtFiliere support. Choose a topic below. This guided chat can answer common questions or send a report to our support team.</Text></View>
+          {!category && catalog.concerns.some(c => c.id === 'rejected_artwork') && <Button disabled={busy} onPress={() => { const item = catalog.concerns.find(c => c.id === 'rejected_artwork'); if (item) chooseConcern(item); }}>Appeal a rejected artwork</Button>}
           {!category && <View style={s.options}>{[...new Set(catalog.concerns.map(c => c.category)), 'FAQs'].map(c => <Button key={c} disabled={busy} onPress={() => setCategory(c)}>{c}</Button>)}</View>}
-          {!!category && <><Bubble mine>{category}</Bubble><Button disabled={busy} onPress={reset}>Start over</Button></>}
+          {!!category && !concern && <><Bubble mine>{category}</Bubble><TouchableOpacity accessibilityRole="button" disabled={busy} onPress={reset} style={[s.restartButton, busy && s.disabled]}><RotateCcw size={17} color="#FFF" /><Text style={s.restartText}>Start over</Text></TouchableOpacity></>}
           {category === 'FAQs' && <>{!faq ? <View style={s.options}>{catalog.faqs.map(f => <Button key={f.id} onPress={() => setFaq(f)}>{f.question}</Button>)}</View> : <><Bubble mine>{faq.question}</Bubble><Bubble>{faq.answer}</Bubble><Text>Did this answer your question?</Text><View style={s.row}><Button onPress={() => { reset(); }}>Yes, thanks</Button><Button disabled={busy} onPress={() => { const item = catalog.concerns.find(c => c.id === faq.concern); if (item) chooseConcern(item); }}>No, contact support</Button></View></>}</>}
           {!!category && category !== 'FAQs' && !concern && <><Bubble>What would you like help with?</Bubble><View style={s.options}>{catalog.concerns.filter(c => c.category === category).map(c => <Button disabled={busy} key={c.id} onPress={() => chooseConcern(c)}>{c.label}</Button>)}</View></>}
-          {concern && <><Bubble mine>{concern.label}</Bubble>
+          {concern && <View style={s.concernCard}><View style={s.concernHeader}><View style={{ flex: 1, gap: 6 }}><Text style={s.muted}>{concern.category}</Text><Text accessibilityRole="header" style={s.concernTitle}>{concern.label}</Text><Text style={s.muted}>{review ? 'Review your report' : 'Report details'}</Text></View><TouchableOpacity accessibilityRole="button" disabled={busy} onPress={reset} style={[s.restartButton, busy && s.disabled]}><RotateCcw size={17} color="#FFF" /><Text style={s.restartText}>Start over</Text></TouchableOpacity></View>
             {concern.reference !== 'none' && !reference && <>
               <Bubble>{concern.reference.includes('artwork') ? 'Select the artwork this report concerns.' : concern.reference === 'commission' ? 'Which commission is this about?' : concern.reference === 'auction' ? 'Which auction is this about?' : 'Which transaction is this about?'}</Bubble>
               <View style={s.row}><TextInput accessibilityLabel="Search linked records" style={[s.input, s.flex]} placeholder="Search by title or record number" value={search} onChangeText={setSearch} /><Button disabled={busy} onPress={() => run(() => loadReferences(concern, 0, search))}>Search</Button></View>
@@ -242,7 +245,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
               <Text style={s.muted}>Support will review your report. Submission does not automatically approve artwork, cancel an order, or issue a refund.</Text>
               <View style={s.row}><Button disabled={busy} onPress={() => setReview(false)}>Edit</Button><Button primary disabled={busy} onPress={submit}>{concern.id === 'rejected_artwork' ? 'Submit appeal' : 'Submit report'}</Button></View>
             </>)}
-          </>}
+          </View>}
         </> : selected ? <>
           <View style={s.row}><Button disabled={busy} onPress={() => { setSelected(null); setReply(''); run(() => loadTickets()); }}>Back to reports</Button><Button disabled={busy} onPress={() => run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`)))}>Refresh replies</Button></View>
           <Text style={s.title}>{selected.number}</Text><Text style={s.bold}>{selected.label}</Text><Text>Assigned to: {selected.department_label}</Text><Text>Status: {catalog.statuses[selected.status]}</Text><Text style={s.muted}>Submitted {new Date(selected.created_at).toLocaleString()}{moderator ? ` by ${selected.requester}` : ''}</Text>
@@ -298,10 +301,21 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FFFDF8' }, header: { padding: 18, borderBottomWidth: 1, borderColor: '#E8DAD2', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  page: { flex: 1, backgroundColor: '#FAF7F3' }, header: { padding: 18, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#E8DAD2', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  brand: { fontSize: 23, fontWeight: '800', color: '#B54848', marginBottom: 4 },
+  iconButton: { padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  hero: { gap: 16, paddingVertical: 12, marginBottom: 8 },
+  heroTitle: { fontSize: 29, lineHeight: 37, fontWeight: '800', color: '#3E322B' },
+  heroCopy: { fontSize: 16, lineHeight: 24, color: '#74665D' },
+  restartButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#52687C', borderRadius: 10, paddingVertical: 13, paddingHorizontal: 18, minHeight: 46 },
+  restartText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  introduction: { width: '100%', paddingVertical: 16, paddingHorizontal: 18, borderRadius: 14, backgroundColor: '#F1E8DF' },
+  concernCard: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3D7D0', borderRadius: 16, padding: 18, gap: 16 },
+  concernHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 14, borderBottomWidth: 1, borderBottomColor: '#EEE4DD', paddingBottom: 16 },
+  concernTitle: { fontSize: 21, lineHeight: 28, fontWeight: '700', color: '#603C36' },
   title: { fontSize: 21, fontWeight: '700', color: '#603C36' }, content: { padding: 20, paddingBottom: 60, gap: 14, maxWidth: 850, width: '100%', alignSelf: 'center' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }, flex: { flex: 1, minWidth: 150 }, options: { gap: 8 },
-  button: { borderWidth: 1, borderColor: '#CFAFA2', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#fff' }, buttonText: { color: '#82443D', fontWeight: '600' }, primary: { backgroundColor: '#A84949', borderColor: '#A84949' }, white: { color: '#fff' }, disabled: { opacity: 0.45 },
+  button: { borderWidth: 1, borderColor: '#E2D2C8', borderRadius: 11, paddingVertical: 14, paddingHorizontal: 18, backgroundColor: '#fff' }, buttonText: { color: '#82443D', fontWeight: '600' }, primary: { backgroundColor: '#B65B50', borderColor: '#B65B50' }, white: { color: '#fff' }, disabled: { opacity: 0.45 },
   bubble: { padding: 16, borderRadius: 14, backgroundColor: '#F1E8DF', maxWidth: '94%', alignSelf: 'flex-start' }, mine: { alignSelf: 'flex-end', backgroundColor: '#F9DDCF' }, bubbleText: { color: '#453731', lineHeight: 22 },
   input: { borderWidth: 1, borderColor: '#CABDB3', borderRadius: 8, padding: 12, backgroundColor: '#fff', color: '#322B29' }, multiline: { minHeight: 110, textAlignVertical: 'top' },
   card: { borderWidth: 1, borderColor: '#E3D7D0', backgroundColor: '#fff', borderRadius: 12, padding: 16, gap: 8 }, record: { flexDirection: 'row', gap: 12, alignItems: 'center', padding: 12, borderWidth: 1, borderColor: '#E3D7D0', borderRadius: 10 },

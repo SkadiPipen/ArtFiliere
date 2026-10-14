@@ -2,6 +2,17 @@ import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 
 export type Contract = {
+  negotiation_key?: string;
+  restart?: boolean;
+  proposed_by?: { uid: string; name: string; role: string } | null;
+  attempt_action?: 'proposed' | 'edited' | 'renegotiated';
+  closure_reason?: string;
+  cancelled_by?: { uid: string; name: string } | null;
+  cancelled_at?: string | null;
+  license_type?: 'personal' | 'commercial'; exclusivity?: string; compensation_type?: 'one_time' | 'royalty' | 'hybrid'; compensation_terms?: import('./compensation').CompensationTerms;
+  revision_of?: number;
+  changes?: { field: string; label: string; before: string; after: string }[];
+  image_url?: string | null;
   fully_signed?: boolean;
   unread_count?: number;
   delivery_details?: { route_id?: number; delivery_address?: string };
@@ -14,7 +25,7 @@ export type Contract = {
   buyer_accepted: boolean; artist_accepted: boolean; my_accepted: boolean;
 };
 export type ContractResponse = {
-  artwork: { id: number; title: string; price: string; artist: string; artist_uid: string; buyer_uid: string; buyer_name: string; image_url: string; art_type: 'digital' | 'physical'; can_propose: boolean; is_auction?: boolean } | null;
+  artwork: { id: number; title: string; price: string; artist: string; artist_uid: string; buyer_uid: string; buyer_name: string; image_url: string; art_type: 'digital' | 'physical'; royalty_enabled: boolean; can_propose: boolean; is_auction?: boolean } | null;
   contracts: Contract[];
 };
 export const isAgreed = (contract: Contract) => contract.status === 'accepted' && contract.buyer_accepted && contract.artist_accepted;
