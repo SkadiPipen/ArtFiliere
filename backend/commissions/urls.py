@@ -1,4 +1,8 @@
 from django.urls import path
+from .availability import ArtistAvailabilityView
+from .lifecycle import CommissionFlowView, SubmissionFileView, PayoutProfileView, CommissionPaymentWebhook
+from .reviews import CommissionReviewsView
+from .resale import CommissionResaleView
 from .workspace import CommissionWorkspaceView, CommissionAccessReviewView
 from .views import (
     CommissionRequestView,
@@ -11,6 +15,14 @@ from .views import (
 )
 
 urlpatterns = [
+    path('assets/<int:asset_id>/resale/', CommissionResaleView.as_view()),
+    path('reviews/', CommissionReviewsView.as_view()),
+    path('reviews/<int:pk>/', CommissionReviewsView.as_view()),
+    path('flow/<int:pk>/', CommissionFlowView.as_view()),
+    path('flow/<int:pk>/files/<int:submission_id>/', SubmissionFileView.as_view()),
+    path('payout-profile/', PayoutProfileView.as_view()),
+    path('payments/webhook/', CommissionPaymentWebhook.as_view()),
+    path('artists/<int:artist_id>/availability/', ArtistAvailabilityView.as_view()),
     path('workspace/', CommissionWorkspaceView.as_view()),
     path('workspace/<int:pk>/', CommissionWorkspaceView.as_view()),
     path('access-reviews/', CommissionAccessReviewView.as_view()),

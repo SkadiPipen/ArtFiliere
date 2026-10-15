@@ -15,6 +15,7 @@ from .models import Agreement, AgreementTemplate, Conversation, ConversationPart
 
 
 def contract_data(item, user):
+    commission = getattr(item, 'commission_contract', None)
     proposal_message = item.messages.filter(message_type=Message.Type.AGREEMENT).first()
     proposer_id = proposal_message.sender_id if proposal_message else item.buyer_id
     participant = item.conversation.participants.filter(user=user).first()
@@ -28,7 +29,7 @@ def contract_data(item, user):
         "verification_code": item.verification_code,
         "buyer_uid": item.buyer.firebase_uid, "artist_uid": item.artist.firebase_uid,
         "created_at": item.created_at.isoformat(),
-        "title": item.artwork.title if item.artwork else "Unavailable artwork",
+        "title": item.artwork.title if item.artwork else commission.title if commission else "Unavailable artwork",
         "buyer": item.buyer.username, "artist": item.artist.username,
         "delivery_details": item.delivery_details, "delivery_fee": str(item.delivery_fee),
         "price": str(item.price), "terms": item.terms_snapshot,
@@ -111,6 +112,13 @@ class ContractsView(AuthenticatedAPIView):
             "compensation_type": ("one_time", "royalty"),
         }
         selected = {key: request.data.get(key, values[0]) for key, values in choices.items()}
+        resale = getattr(artwork, 'commission_resale', None)
+        if resale:
+            from commissions.resale import license_active
+            if not license_active(resale.asset):
+                return Response({'error': 'The original commission license expired.'}, status=409)
+            if selected['license_type'] != resale.asset.license_terms['license_type'] or selected['exclusivity'] != resale.asset.license_terms['exclusivity']:
+                return Response({'error': 'Resale must preserve the original commission license and exclusivity.'}, status=409)
         if any(selected[key] not in values for key, values in choices.items()):
             return Response({"error": "Invalid contract option."}, status=400)
         selected["delivery_type"] = "physical" if physical(artwork) else "digital"

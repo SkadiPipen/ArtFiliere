@@ -1,6 +1,6 @@
 import { auth } from "@/firebase/config";
-import API_URL from "@/services/api";
 import AgreementDocument from "@/module/messages/components/AgreementDocument";
+import API_URL from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -47,6 +47,8 @@ export default function AuctionPostView() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [imageUnavailable, setImageUnavailable] = useState(false);
+
+  const [isTermsExpanded, setIsTermsExpanded] = useState(false);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -482,10 +484,15 @@ export default function AuctionPostView() {
                 View Terms & Agreements →
               </Text>
             </TouchableOpacity>
-            <Text style={styles.auctionTermsText}>
-              {auction.auction_terms ||
-                "The winning bid is the final core price. License and delivery terms are fixed before bidding."}
-            </Text>
+            <View style={styles.agreementPreviewContainer}>
+              <Text style={styles.auctionTermsText} numberOfLines={isTermsExpanded ? undefined : 3}>
+                {auction.auction_terms ||
+                  "The winning bid is the final core price. License and delivery terms are fixed before bidding."}
+              </Text>
+              <TouchableOpacity onPress={() => setIsTermsExpanded(!isTermsExpanded)} style={styles.seeMoreBtn} activeOpacity={0.7}>
+                <Text style={styles.seeMoreBtn}>{isTermsExpanded ? "See Less" : "See More"}</Text>
+              </TouchableOpacity>
+            </View>
             {!isArtist && !isExpired && (
               <TouchableOpacity
                 style={styles.termsAcceptance}
@@ -1085,5 +1092,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
+  },
+  agreementPreviewContainer: {
+    backgroundColor: "#F9F4EB",
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#EADCCB",
+    marginBottom: 8,
+  },
+  seeMoreBtn: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingVertical: 2,
+    color: "#C05C5C",
+    fontWeight: "500",
+  },
+  seeMoreText: {
+    color: "#844038",
+    fontSize: 11,
+    fontWeight: "800",
   },
 });

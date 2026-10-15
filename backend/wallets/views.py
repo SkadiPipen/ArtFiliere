@@ -316,12 +316,16 @@ class PlatformAdminWalletView(AuthenticatedAPIView):
                 WalletLedgerEntry.objects.create(wallet=wallet, payment_session=payment, entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE, amount=payment.artist_amount)
                 wallet.pending_balance -= payment.artist_amount
                 wallet.available_balance += payment.artist_amount
+                from commissions.resale import settle_royalty
+                settle_royalty(payment)
             else:
                 if WalletLedgerEntry.objects.filter(payment_session=payment, entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE).exists():
                     return Response({"error": "Available funds need a payout/refund workflow; do not reverse them here."}, status=status.HTTP_409_CONFLICT)
                 WalletLedgerEntry.objects.create(wallet=wallet, payment_session=payment, entry_type=WalletLedgerEntry.EntryType.REFUND_REVERSAL, amount=-payment.artist_amount)
                 wallet.pending_balance -= payment.artist_amount
                 payment.status = PaymentSession.Status.REFUNDED
+                from commissions.resale import settle_royalty
+                settle_royalty(payment, refund=True)
                 payment.save(update_fields=["status"])
             wallet.save(update_fields=["pending_balance", "available_balance", "updated_at"])
         return Response({"message": f"Funds {action}d successfully."})
@@ -395,6 +399,8 @@ def apply_xendit_status(payment_id, data):
             payment.status = PaymentSession.Status.EXPIRED
             payment.save(update_fields=['status'])
         elif provider_status == 'COMPLETED':
+            from commissions.resale import allocate_royalty
+            allocate_royalty(payment)
             wallet, _ = WalletAccount.objects.get_or_create(user=payment.artist)
             wallet = WalletAccount.objects.select_for_update().get(pk=wallet.pk)
             WalletLedgerEntry.objects.create(wallet=wallet, payment_session=payment, entry_type=WalletLedgerEntry.EntryType.SALE_HELD, amount=payment.artist_amount)

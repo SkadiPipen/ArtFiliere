@@ -190,6 +190,8 @@ class AgreementSigningView(AuthenticatedAPIView):
         setattr(item, role + '_signature', name.strip())
         setattr(item, role + '_signed_at', timezone.now())
         item.save()
+        from commissions.lifecycle import signatures_completed
+        signatures_completed(item)
         # Only the final document, after both signatures, is eligible for a proof.
         if item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image:
             record_agreement_proof(item)

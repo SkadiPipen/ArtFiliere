@@ -76,6 +76,10 @@ BLOCKCHAIN_CONTRACT_ADDRESS = os.getenv("BLOCKCHAIN_CONTRACT_ADDRESS", "")
 # secret key or webhook verification token to the Expo application.
 XENDIT_SECRET_KEY = os.getenv("XENDIT_SECRET_KEY", "")
 XENDIT_WEBHOOK_TOKEN = os.getenv("XENDIT_WEBHOOK_TOKEN", "")
+COMMISSION_HOLDING_ENABLED = os.getenv('COMMISSION_HOLDING_ENABLED', '').lower() == 'true'
+COMMISSION_PAYOUTS_ENABLED = os.getenv('COMMISSION_PAYOUTS_ENABLED', '').lower() == 'true'
+COMMISSION_IPFS_API_URL = os.getenv('COMMISSION_IPFS_API_URL', '')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:8081')
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",

@@ -39,7 +39,7 @@ def serialize(commission, user):
     decision = commission.access_decisions.order_by('-pk').first()
     user_access = account_access(user)
     writable = can_work(commission) and (user.pk == commission.artist_id or not (user_access['banned'] or user_access['suspended']))
-    return {'id': commission.pk, 'title': commission.title, 'status': commission.status,
+    return {'id': commission.pk, 'flow_version': commission.flow_version, 'title': commission.title, 'status': commission.status,
             'artist': commission.artist.username, 'buyer': commission.buyer.username,
             'artist_id': commission.artist_id, 'can_work': can_work(commission) if user.role in ('customer_support', 'platform_admin') else writable,
             'is_artist': commission.artist_id == user.pk, 'banned': artist_access['banned'],
@@ -78,6 +78,8 @@ class CommissionWorkspaceView(RestrictedAccessView):
             recipient = commission.buyer if user.pk == commission.artist_id else commission.artist
             UserNotification.objects.create(user=recipient, commission=commission, title='Commission message', message=f'New message for {commission.title}. Open the commission workspace.')
         elif action == 'progress' and user.pk == commission.artist_id:
+            if commission.flow_version == 2:
+                return Response({'error': 'Submit the current milestone in the commission workflow.'}, status=409)
             url = str(request.data.get('image_url') or '')
             try:
                 pct = int(request.data.get('progress_percentage', 0))

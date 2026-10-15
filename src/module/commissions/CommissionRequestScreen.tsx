@@ -1,10 +1,10 @@
 import { auth } from "@/firebase/config";
+import NegotiationForm from '@/module/chat-negotiations/negotiationForm';
 import API_URL from "@/services/api";
-import { parseProposedBudget } from './budget';
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Plus, X } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { parseProposedBudget } from './budget';
+
+import AvailabilityCalendar, { manilaDate } from './AvailabilityCalendar';
 
 const MAX_IMAGES = 4;
 const STYLE_OPTIONS = [
@@ -41,6 +44,11 @@ export default function CommissionRequestScreen() {
   }>();
 
   const rawArtistId = params.artistId || params.id || params.artist_id;
+  const [bookedDates, setBookedDates] = useState<string[]>([]);
+  const [availabilityReady, setAvailabilityReady] = useState(false);
+  const handleAvailability = useCallback((dates: string[], ready: boolean) => {
+    setBookedDates(dates); setAvailabilityReady(ready);
+  }, []);
 
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width,
@@ -92,12 +100,14 @@ export default function CommissionRequestScreen() {
   };
 
   const formattedDate = targetDate.toLocaleDateString("en-US", {
+    timeZone: 'Asia/Manila',
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 
   const formattedTime = targetDate.toLocaleTimeString("en-US", {
+    timeZone: 'Asia/Manila',
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
@@ -165,6 +175,31 @@ export default function CommissionRequestScreen() {
     }
   };
 
+  const [draft, setDraft] = useState<any>(null);
+  const [milestonePercentages, setMilestonePercentages] = useState(['30', '30', '40']);
+  const [allowResale, setAllowResale] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState('0');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [pickupAddress, setPickupAddress] = useState('');
+  
+  const sendProposal = async (proposal: any) => {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error('Sign in to submit your commission proposal.');
+    const response = await fetch(`${API_URL}/api/commissions/requests/`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...draft, flow_version: 2, proposal: {
+        price: (Number(proposal.finalPrice) + Number(deliveryFee || 0)).toFixed(2),
+        license_type: proposal.licenseType, exclusivity: proposal.exclusivity,
+        duration_months: proposal.durationMonths || 0, royalty_percentage: proposal.royaltyPercentage || 0,
+        allow_resale: allowResale, delivery_fee: deliveryFee || '0', note: proposal.note || '',
+        delivery_address: deliveryAddress, pickup_address: pickupAddress,
+        milestones: milestonePercentages.map(Number), deadline: draft.deadline,
+      } }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || data.detail || JSON.stringify(data));
+    router.replace({ pathname: '/commission-detail' as any, params: { id: String(data.commission_req_id) } });
+  };
   const handleNext = async () => {
     if (subject.trim().length < 3) {
       showAlert(
@@ -186,6 +221,9 @@ export default function CommissionRequestScreen() {
       return;
     }
 
+    if (!availabilityReady || bookedDates.includes(manilaDate(targetDate)) || targetDate <= new Date()) {
+      showAlert('Completion date', 'Choose an available future completion date from the calendar.'); return;
+    }
     const resolvedArtistId = Number(rawArtistId);
     if (!resolvedArtistId || isNaN(resolvedArtistId)) {
       showAlert(
@@ -225,29 +263,7 @@ export default function CommissionRequestScreen() {
         reference_images: refImages,
       };
 
-      console.log("[CommissionRequest] Sending payload:", payload);
-
-      const res = await fetch(`${API_URL}/api/commissions/requests/`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        showAlert(
-          "Commission Request Sent",
-          "Your commission request has been submitted to the artist. You can chat and negotiate terms once accepted.",
-          () => {
-            router.push("/commissions" as any);
-          },
-        );
-      } else {
-        showAlert(
-          "Submission Failed",
-          data.error || "Server rejected the request.",
-        );
-      }
+      setDraft(payload);
     } catch (e: any) {
       showAlert(
         "Network Error",
@@ -265,6 +281,21 @@ export default function CommissionRequestScreen() {
       router.replace("/(home)" as any);
     }
   };
+
+  if (draft) return <SafeAreaView style={s.page}>
+    <ScrollView contentContainerStyle={{ padding: 20, maxWidth: 1000, width: '100%', alignSelf: 'center', gap: 12 }}>
+      <Text style={s.headingRedSmall}>COMMISSION PROPOSAL</Text>
+      <Text>One consolidated revision request/comment per stage. Full upfront funding after both signatures.</Text>
+      <Text>Stage percentages (must total 100)</Text>
+      <View style={{ flexDirection: 'row', gap: 12 }}>{milestonePercentages.map((value, index) => <TextInput key={index} value={value} keyboardType="number-pad" accessibilityLabel={`Stage ${index + 1} percentage`} style={s.budgetInput}
+        onChangeText={next => setMilestonePercentages(values => values.map((v, i) => i === index ? next : v))} />)}</View>
+      <TouchableOpacity onPress={() => setAllowResale(!allowResale)}><Text>{allowResale ? '☑' : '☐'} Allow resale of the deliverable under this license</Text></TouchableOpacity>
+      {String(draft.art_type).toLowerCase() === 'physical' && <View style={{ gap: 8 }}><Text>Proposed shipping fee (PHP, included in total). Artist confirms these details before accepting.</Text><TextInput value={deliveryFee} onChangeText={setDeliveryFee} keyboardType="decimal-pad" style={s.budgetInput} /><TextInput value={deliveryAddress} onChangeText={setDeliveryAddress} placeholder="Delivery destination (full address and recipient)" style={s.budgetInput} /><TextInput value={pickupAddress} onChangeText={setPickupAddress} placeholder="Proposed pickup address (confirm with artist)" style={s.budgetInput} /></View>}
+      <NegotiationForm commissionMode artwork={{ id: 'commission', title: draft.title, art_type: draft.art_type.toLowerCase(), base_price: Number(draft.proposed_budget) }}
+        buyerId={auth.currentUser?.uid || ''} buyerName={auth.currentUser?.displayName || ''} artistId={String(rawArtistId)} artistName={params.artistName || 'Artist'} chatId="commission"
+        onSend={sendProposal} onCancel={() => setDraft(null)} />
+    </ScrollView>
+  </SafeAreaView>;
 
   return (
     <SafeAreaView style={s.page}>
@@ -435,34 +466,14 @@ export default function CommissionRequestScreen() {
             <View style={s.redDivider} />
 
             <Text style={s.headingRedSmall}>PREFERRED COMPLETION DATE</Text>
+            {!!rawArtistId && <AvailabilityCalendar artistId={String(rawArtistId)} selectedDate={manilaDate(targetDate)}
+              onAvailability={handleAvailability} onSelect={date => {
+                setTargetDate(new Date(`${date}T17:00:00+08:00`));
+              }} />}
             <View style={s.dateRow}>
               <Text style={s.labelRedInline}>When do you need it?</Text>
 
               <View style={s.dateBadgeWrapper}>
-                {Platform.OS === "web" && (
-                  <input
-                    type="date"
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      opacity: 0,
-                      width: "100%",
-                      height: "100%",
-                      cursor: "pointer",
-                      zIndex: 2,
-                    }}
-                    value={targetDate.toISOString().split("T")[0]}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const [y, m, d] = e.target.value.split("-").map(Number);
-                        const next = new Date(targetDate);
-                        next.setFullYear(y, m - 1, d);
-                        setTargetDate(next);
-                      }
-                    }}
-                  />
-                )}
                 <View style={s.dateBadge}>
                   <Text style={s.dateText}>{formattedDate}</Text>
                 </View>
@@ -482,15 +493,10 @@ export default function CommissionRequestScreen() {
                       cursor: "pointer",
                       zIndex: 2,
                     }}
-                    value={`${String(targetDate.getHours()).padStart(2, "0")}:${String(
-                      targetDate.getMinutes(),
-                    ).padStart(2, "0")}`}
+                    value={targetDate.toLocaleTimeString('en-GB', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: false })}
                     onChange={(e) => {
                       if (e.target.value) {
-                        const [hh, mm] = e.target.value.split(":").map(Number);
-                        const next = new Date(targetDate);
-                        next.setHours(hh, mm);
-                        setTargetDate(next);
+                        setTargetDate(new Date(`${manilaDate(targetDate)}T${e.target.value}:00+08:00`));
                       }
                     }}
                   />

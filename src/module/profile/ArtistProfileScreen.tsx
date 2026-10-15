@@ -16,8 +16,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import AvailabilityCalendar from '@/module/commissions/AvailabilityCalendar';
 
 const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 768;
@@ -25,6 +28,8 @@ const isWeb = Platform.OS === "web" || width > 768;
 export default function ArtistProfileScreen() {
   const { artistId } = useLocalSearchParams<{ artistId: string }>();
   const router = useRouter();
+  const { width: pageWidth } = useWindowDimensions();
+  const [showFullPortfolio, setShowFullPortfolio] = useState(false);
 
   const [artist, setArtist] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +47,15 @@ export default function ArtistProfileScreen() {
   useEffect(() => {
     (async () => {
       try {
+        if (auth.currentUser) {
+          const me = await fetch(`${API_URL}/auth/me/`, { headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` } });
+          if (me.ok) {
+            const ownProfile = await me.json();
+            if (ownProfile.role === 'artist' && String(ownProfile.id) === String(artistId)) {
+              router.replace('/(home)/profile'); return;
+            }
+          }
+        }
         const r = await fetch(`${API_URL}/api/users/artists/${artistId}/`);
         const d = await r.json();
         if (!r.ok) throw new Error(d.error);
@@ -226,61 +240,91 @@ export default function ArtistProfileScreen() {
         </View>
 
         {/* 3. Artwork Showcase Section */}
-        <View style={s.worksContainer}>
-          <Text style={s.sectionHeading}>Artwork for sale</Text>
+        <View
+          style={{
+            flexDirection: pageWidth >= 1000 ? 'row' : 'column',
+            gap: 28,
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            maxWidth: 1200,
+            width: '100%',
+            alignSelf: 'center',
+            justifyContent: 'center',
+            alignItems: pageWidth >= 1000 ? 'flex-start' : 'center',
+          }}
+        >
+          {/* Portfolio Column */}
+          <View style={[s.worksContainer, { flex: pageWidth >= 1000 ? 1 : undefined }]}>
+            <Text style={s.sectionHeading}>
+              {showFullPortfolio ? 'Complete portfolio' : 'Latest Portfolio Works'}
+            </Text>
+            <TouchableOpacity onPress={() => setShowFullPortfolio(!showFullPortfolio)}>
+              <Text style={{ color: '#C15656', fontWeight: '700', marginBottom: 16 }}>
+                {showFullPortfolio ? 'Show latest 4 works' : 'View complete portfolio'}
+              </Text>
+            </TouchableOpacity>
 
-          {!artist.artworks || artist.artworks.length === 0 ? (
-            <Text style={s.noArtText}>No artworks published yet.</Text>
-          ) : (
-            <View style={s.grid}>
-              {artist.artworks.map((item: any) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={s.card}
-                  activeOpacity={0.85}
-                  onPress={() =>
-                    router.push({
-                      // Reuse the marketplace detail screen; the previous
-                      // route did not exist in this Expo router project.
-                      pathname: "/(home)/view-post" as any,
-                      params: {
-                        artworkId: String(item.id),
-                        title: item.title || "",
-                        price: String(item.price || ""),
-                        image:
-                          item.image_data || item.image || item.image_url || "",
-                        artist: artist.name || artist.username || "",
-                        artistId: String(item.artist_id || artist.id),
-                        medium: item.category || "",
-                        sale_type: item.sale_type || "Direct Sell",
-                        type:
-                          item.sale_type === "auction"
-                            ? "Auction"
-                            : "Direct Sell",
-                        bidIncrement: String(item.bid_increment || ""),
-                        startingTime: item.starting_time || "",
-                        endTime: item.end_time || "",
-                      },
-                    })
-                  }
-                >
-                  <Image
-                    source={{ uri: getImageUri(item) }}
-                    style={s.image}
-                    resizeMode="cover"
-                  />
-                  <View style={s.cardMeta}>
-                    <Text style={s.title} numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    <Text style={s.price}>
-                      ₱ {Number(item.price || 0).toLocaleString()}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+            {!artist.artworks || artist.artworks.length === 0 ? (
+              <Text style={s.noArtText}>No artworks published yet.</Text>
+            ) : (
+              <View style={s.grid}>
+                {[...artist.artworks]
+                  .sort((a: any, b: any) => Number(b.id) - Number(a.id))
+                  .slice(0, showFullPortfolio ? artist.artworks.length : 4)
+                  .map((item: any) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={s.card}
+                      activeOpacity={0.85}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/(home)/view-post' as any,
+                          params: {
+                            artworkId: String(item.id),
+                            title: item.title || '',
+                            price: String(item.price || ''),
+                            image: item.image_data || item.image || item.image_url || '',
+                            artist: artist.name || artist.username || '',
+                            artistId: String(item.artist_id || artist.id),
+                            medium: item.category || '',
+                            sale_type: item.sale_type || 'Direct Sell',
+                            type: item.sale_type === 'auction' ? 'Auction' : 'Direct Sell',
+                            bidIncrement: String(item.bid_increment || ''),
+                            startingTime: item.starting_time || '',
+                            endTime: item.end_time || '',
+                          },
+                        })
+                      }
+                    >
+                      <Image
+                        source={{ uri: getImageUri(item) }}
+                        style={s.image}
+                        resizeMode="cover"
+                      />
+                      <View style={s.cardMeta}>
+                        <Text style={s.title} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        <Text style={s.price}>
+                          ₱ {Number(item.price || 0).toLocaleString()}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            )}
+          </View>
+
+          {/* Calendar Column */}
+          <View
+            style={{
+              width: pageWidth >= 1000 ? 320 : '100%',
+              maxWidth: 360,
+              alignSelf: pageWidth >= 1000 ? 'flex-start' : 'center',
+            }}
+          >
+            <AvailabilityCalendar artistId={artistId} />
+          </View>
         </View>
       </ScrollView>
 
@@ -469,17 +513,15 @@ const s = StyleSheet.create({
 
   // Gallery Showcase
   worksContainer: {
-    paddingHorizontal: 18,
-    paddingTop: 20,
-    maxWidth: 960,
+    paddingHorizontal: 0,
     width: "100%",
-    alignSelf: "center",
   },
   sectionHeading: {
     color: "#2B2320",
     fontWeight: "800",
     fontSize: 18,
-    marginBottom: 14,
+    marginBottom: 8,
+    marginTop: 0,
   },
   noArtText: { color: "#888", fontStyle: "italic", marginTop: 10 },
   grid: {

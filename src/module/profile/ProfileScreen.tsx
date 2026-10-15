@@ -1,4 +1,9 @@
 import { auth } from "@/firebase/config";
+import PortfolioAvailability from '@/module/profile/components/PortfolioAvailability';
+import ProfileHeader from "@/module/profile/components/ProfileHeader";
+import PurchaseGallery from "@/module/profile/components/PurchaseGallery";
+import TransactionGrid from "@/module/profile/components/TransactionGrid";
+import WalletCard from "@/module/profile/components/WalletCard";
 import API_URL from "@/services/api";
 import { useRouter } from "expo-router";
 import { signOut, User } from "firebase/auth";
@@ -7,18 +12,13 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Switch,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-
-import ProfileHeader from "@/module/profile/components/ProfileHeader";
-import PurchaseGallery from "@/module/profile/components/PurchaseGallery";
-import TransactionGrid from "@/module/profile/components/TransactionGrid";
-import WalletCard from "@/module/profile/components/WalletCard";
 
 export default function UserProfile() {
   const router = useRouter();
@@ -186,6 +186,11 @@ export default function UserProfile() {
 
         <View style={styles.contentBody}>
           <WalletCard />
+            <TouchableOpacity onPress={() => router.push('/report-management')} style={{ padding: 16, marginVertical: 12, backgroundColor: '#F6E8E1', borderRadius: 12 }}>
+              <Text style={{ color: '#A74646', fontWeight: '700' }}>Reports, disputes & transaction requests</Text>
+            </TouchableOpacity>
+            <TransactionGrid role={profileData?.role} />
+          <PurchaseGallery />
           {profileData?.role === "artist" && (
             <>
               <View style={styles.availabilityCard}>
@@ -222,21 +227,9 @@ export default function UserProfile() {
                   style={styles.defaultRateInput}
                 />
               </View>
-              <TouchableOpacity
-                style={styles.portfolioButton}
-                onPress={() => router.push("/my-portfolio")}
-              >
-                <Text style={styles.portfolioButtonText}>
-                  View my portfolio
-                </Text>
-              </TouchableOpacity>
+              <PortfolioAvailability artistId={profileData.id} />
             </>
           )}
-            <TouchableOpacity onPress={() => router.push('/report-management')} style={{ padding: 16, marginVertical: 12, backgroundColor: '#F6E8E1', borderRadius: 12 }}>
-              <Text style={{ color: '#A74646', fontWeight: '700' }}>Reports, disputes & transaction requests</Text>
-            </TouchableOpacity>
-            <TransactionGrid role={profileData?.role} />
-          <PurchaseGallery />
         </View>
       </ScrollView>
     </View>

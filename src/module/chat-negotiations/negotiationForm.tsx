@@ -39,6 +39,7 @@ interface NegotiationFormProps {
   onCancel: () => void;
   revisionId?: number;
   initialDelivery?: { route_id?: number; delivery_address?: string };
+  commissionMode?: boolean;
 }
 
 export default function NegotiationForm({
@@ -52,9 +53,11 @@ export default function NegotiationForm({
   onCancel,
   initialDelivery,
   revisionId,
+  commissionMode = false,
 }: NegotiationFormProps) {
   const [offer, setOffer] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   // ========================================
   // GET AVAILABLE OPTIONS FROM ARTWORK
@@ -73,7 +76,7 @@ export default function NegotiationForm({
     availableExclusivity.includes('non-exclusive') ? 'non-exclusive' : availableExclusivity[0] || 'non-exclusive'
   );
   const [durationMonths, setDurationMonths] = useState('12');
-  const requiresDelivery = !isDigital;
+  const requiresDelivery = !isDigital && !commissionMode;
   const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
   const [royaltyPercentage, setRoyaltyPercentage] = useState('');
   const [isRoyalty, setIsRoyalty] = useState(false);
@@ -232,11 +235,13 @@ export default function NegotiationForm({
     console.log('📤 Calling onSend...');
     
     setSending(true);
+    setSendError('');
     try {
       await onSend(proposal);
     } catch (error) {
       console.error('❌ Error in handleSend:', error);
-      Alert.alert('Error', 'Failed to send proposal');
+      const message = error instanceof Error ? error.message : 'Failed to send proposal';
+      setSendError(message);
     } finally {
       setSending(false);
     }
@@ -435,13 +440,13 @@ export default function NegotiationForm({
         </View>
       )}
 
-      {!isDigital && <DeliveryAddressPicker artworkId={artwork.id} revisionId={revisionId} onQuote={setDeliveryQuote} />}
+      {requiresDelivery && <DeliveryAddressPicker artworkId={artwork.id} revisionId={revisionId} onQuote={setDeliveryQuote} />}
 
       {/* Royalty (Commercial only) */}
-      {licenseType === 'commercial' && (
+      {(commissionMode || licenseType === 'commercial') && (
         <View style={styles.section}>
           <View style={styles.switchRow}>
-            <Text style={styles.sectionTitle}>Royalty Option</Text>
+            <Text style={styles.sectionTitle}>{commissionMode ? 'Resale royalty percentage' : 'Royalty Option'}</Text>
             <Switch
               value={isRoyalty}
               onValueChange={setIsRoyalty}
@@ -544,6 +549,7 @@ export default function NegotiationForm({
             )}`}
       </Text>
       {/* Actions */}
+      {!!sendError && <Text accessibilityRole="alert" style={{ color: '#A13030', marginVertical: 10 }}>{sendError}</Text>}
       <View style={styles.actionContainer}>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
           <Text style={styles.cancelButtonText}>Cancel</Text>

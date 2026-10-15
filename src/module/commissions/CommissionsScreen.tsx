@@ -2,6 +2,7 @@ import { auth } from "@/firebase/config";
 import { ChatModal } from "@/module/chat-negotiations/chat-index";
 import API_URL from "@/services/api";
 import * as ImagePicker from "expo-image-picker";
+import { onAuthStateChanged } from 'firebase/auth';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -87,6 +88,7 @@ export default function CommissionsScreen() {
   const [userRole, setUserRole] = useState<string>("buyer");
   const [commissions, setCommissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [commissionError, setCommissionError] = useState('');
   const [showChatModal, setShowChatModal] = useState(false);
   const [chatTargetUser, setChatTargetUser] = useState<{
     id: string;
@@ -250,7 +252,7 @@ export default function CommissionsScreen() {
         console.warn("Failed to fetch user role:", err);
       }
     };
-    fetchUserRole();
+    return onAuthStateChanged(auth, () => { void fetchUserRole(); });
   }, []);
 
   const isArtist = userRole === "artist";
@@ -275,14 +277,17 @@ export default function CommissionsScreen() {
   const fetchCommissions = async () => {
     try {
       setLoading(true);
-      const email = auth.currentUser?.email || "";
-      const username =
-        auth.currentUser?.displayName || email.split("@")[0] || "";
+      setCommissionError('');
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('Please sign in to view your commissions.');
       const res = await fetch(
-        `${API_URL}/api/commissions/requests/?role=${role}&user_email=${encodeURIComponent(
-          email,
-        )}&buyer_username=${encodeURIComponent(username)}`,
+        `${API_URL}/api/commissions/requests/?role=${role}`,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || error.detail || `Unable to load commissions (HTTP ${res.status}).`);
+      }
       if (res.ok) {
         const data = await res.json();
         // Keep a cancelled/declined request out of the active work dashboard
@@ -291,19 +296,24 @@ export default function CommissionsScreen() {
           (commission: any) => commission.status !== "CANCELLED",
         );
         setCommissions(activeCommissions);
-        if (activeCommissions.length > 0 && isDesktop && !selectedCommission) {
+        if (activeCommissions.length > 0 && activeCommissions[0].flow_version !== 2 && isDesktop && !selectedCommission) {
           handleSelectForTrack(activeCommissions[0]);
         }
       }
-    } catch (e) {
-      console.warn("Error fetching commissions:", e);
+    } catch (e: any) {
+      setCommissions([]);
+      setCommissionError(e.message || 'Unable to load commissions. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCommissions();
+    return onAuthStateChanged(auth, () => {
+      setSelectedCommission(null);
+      setRightPanelMode('empty');
+      void fetchCommissions();
+    });
   }, [role]);
 
   const loadTrackData = async (commId: number) => {
@@ -591,6 +601,10 @@ export default function CommissionsScreen() {
   };
 
   const renderCard = ({ item }: { item: any }) => {
+    if (item.flow_version === 2) return <TouchableOpacity style={s.card} onPress={() => router.push({ pathname: '/commission-detail' as any, params: { id: String(item.commission_req_id) } })}>
+      <Text style={s.cardTitle}>{item.title}</Text><Text style={s.cardSub}>{item.status} - {role === 'artist' ? item.buyer_name : item.artist_name}</Text>
+      <Text style={s.desc}>{item.description}</Text><Text style={s.chatBtnText}>Review proposal, agreement and milestones</Text>
+    </TouchableOpacity>;
     const isStage3Done =
       item.status === "COMPLETE" || item.status === "STAGE_3";
     const canCancel =
@@ -930,6 +944,10 @@ export default function CommissionsScreen() {
             </View>
           )}
 
+          {!!commissionError && <View style={{ padding: 16, gap: 8 }}>
+            <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{commissionError}</Text>
+            <TouchableOpacity onPress={() => void fetchCommissions()}><Text style={{ color: '#C15656', fontWeight: '700' }}>Retry loading commissions</Text></TouchableOpacity>
+          </View>}
           {loading ? (
             <ActivityIndicator
               color="#E67E22"
@@ -943,7 +961,7 @@ export default function CommissionsScreen() {
               renderItem={renderCard}
               contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
               ListEmptyComponent={
-                <Text style={s.empty}>No commissions found in this view.</Text>
+                <Text style={s.empty}>{commissionError ? '' : 'No commissions found in this view.'}</Text>
               }
             />
           )}
