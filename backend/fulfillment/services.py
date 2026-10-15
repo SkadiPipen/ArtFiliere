@@ -45,6 +45,13 @@ def shipping_details(artwork, data, buyer, actor=None, original=None):
 
 
 def png_bytes(artwork):
+    resale = getattr(artwork, 'commission_resale', None)
+    if resale:
+        source = bytes(resale.asset.submission.content)
+        with Image.open(BytesIO(source)) as image:
+            output = BytesIO()
+            ImageOps.exif_transpose(image).convert('RGBA').save(output, format='PNG')
+            return output.getvalue()
     raw = artwork.image_data
     if not raw or not raw.startswith('data:image/') or ';base64,' not in raw:
         raise ValueError('The artwork image is unavailable. Contact the artist before paying.')

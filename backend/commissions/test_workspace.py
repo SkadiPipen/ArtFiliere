@@ -70,3 +70,30 @@ class WorkspaceTests(TestCase):
         response = self.call(self.other, f'/api/commissions/workspace/{self.commission.pk}/', method='get')
         self.assertEqual(response.data, [])
         self.assertEqual(self.workspace(self.artist, {'action':'ACCEPT'}).status_code, 400)
+
+    def test_chat_summary_keeps_latest_message_and_participant_identity(self):
+        CommissionMessage.objects.create(commission=self.commission, sender=self.buyer, body='First message')
+        last = CommissionMessage.objects.create(commission=self.commission, sender=self.artist, body='Latest update')
+        response = self.call(self.buyer, '/api/commissions/workspace/?summary=1', method='get')
+        self.assertEqual(response.status_code, 200)
+        row = response.data[0]
+        self.assertEqual(row['id'], self.commission.pk)
+        self.assertEqual(row['buyer_id'], self.buyer.pk)
+        self.assertEqual(row['artist_id'], self.artist.pk)
+        self.assertEqual([message['id'] for message in row['messages']], [last.pk])
+        self.assertEqual(row['messages'][0]['sender_id'], self.artist.pk)
+        self.assertTrue(row['messages'][0]['created_at'])
+        self.assertEqual(row['photos'], [])
+        full = self.call(self.buyer, f'/api/commissions/workspace/{self.commission.pk}/', method='get')
+        self.assertEqual(len(full.data[0]['messages']), 2)
+        unrelated = self.call(self.other, '/api/commissions/workspace/?summary=1', method='get')
+        self.assertEqual(unrelated.data, [])
+
+    def test_artist_chat_list_includes_commissions_the_artist_bought(self):
+        partner = User.objects.create(username='partner-artist', email='partner@example.com', firebase_uid='partner-artist', role='artist')
+        purchased = CommissionRequest.objects.create(artist=partner, buyer=self.artist, title='Bought by artist', deadline=timezone.now() + timezone.timedelta(days=7), status='STAGE_1', accepted_at=timezone.now())
+        response = self.call(self.artist, '/api/commissions/workspace/?summary=1', method='get')
+        self.assertEqual({row['id'] for row in response.data}, {self.commission.pk, purchased.pk})
+        row = next(row for row in response.data if row['id'] == purchased.pk)
+        self.assertFalse(row['is_artist'])
+        self.assertFalse(row['can_work'])  # Suspended buyers remain read-only.

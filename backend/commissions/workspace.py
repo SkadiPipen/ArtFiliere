@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
 from authentication.services import account_access
@@ -34,31 +35,32 @@ def can_work(commission):
     return True
 
 
-def serialize(commission, user):
+def serialize(commission, user, summary=False):
     artist_access = account_access(commission.artist)
     decision = commission.access_decisions.order_by('-pk').first()
     user_access = account_access(user)
     writable = can_work(commission) and (user.pk == commission.artist_id or not (user_access['banned'] or user_access['suspended']))
-    return {'id': commission.pk, 'title': commission.title, 'status': commission.status,
+    return {'id': commission.pk, 'flow_version': commission.flow_version, 'title': commission.title, 'status': commission.status,
             'artist': commission.artist.username, 'buyer': commission.buyer.username,
+            'buyer_id': commission.buyer_id, 'created_at': commission.created_at.isoformat(),
             'artist_id': commission.artist_id, 'can_work': can_work(commission) if user.role in ('customer_support', 'platform_admin') else writable,
             'is_artist': commission.artist_id == user.pk, 'banned': artist_access['banned'],
             'eligible': eligible(commission),
             'restriction_reasons': [row.reason for _, row in restriction_rows(commission.artist)],
             'decision_note': decision.note if decision else '',
-            'messages': [{'id': m.pk, 'sender': m.sender.username, 'body': m.body} for m in commission.workspace_messages.select_related('sender').order_by('pk')],
-            'photos': [{'id': p.pk, 'url': p.image_url, 'caption': p.caption, 'progress': p.progress_percentage} for p in commission.photos.filter(photo_type='PROGRESS').order_by('pk')]}
+            'messages': [{'id': m.pk, 'sender': m.sender.username, 'sender_id': m.sender_id, 'body': m.body, 'created_at': m.created_at.isoformat()} for m in (commission.workspace_messages.select_related('sender').order_by('-pk')[:1] if summary else commission.workspace_messages.select_related('sender').order_by('pk'))],
+            'photos': [] if summary else [{'id': p.pk, 'url': p.image_url, 'caption': p.caption, 'progress': p.progress_percentage} for p in commission.photos.filter(photo_type='PROGRESS').order_by('pk')]}
 
 
 class CommissionWorkspaceView(RestrictedAccessView):
     def get(self, request, pk=None):
         user = self.account(request)
-        commissions = CommissionRequest.objects.filter(artist=user) if user.role == 'artist' else CommissionRequest.objects.filter(buyer=user)
+        commissions = CommissionRequest.objects.filter(Q(artist=user) | Q(buyer=user))
         if account_access(user)['banned']:
             commissions = commissions.filter(status__in=ACTIVE)
         if pk is not None:
             commissions = commissions.filter(pk=pk)
-        return Response([serialize(c, user) for c in commissions.select_related('artist', 'buyer').order_by('-pk')])
+        return Response([serialize(c, user, summary=request.query_params.get('summary') == '1') for c in commissions.select_related('artist', 'buyer').order_by('-pk')])
 
     @transaction.atomic
     def post(self, request, pk):
@@ -78,6 +80,8 @@ class CommissionWorkspaceView(RestrictedAccessView):
             recipient = commission.buyer if user.pk == commission.artist_id else commission.artist
             UserNotification.objects.create(user=recipient, commission=commission, title='Commission message', message=f'New message for {commission.title}. Open the commission workspace.')
         elif action == 'progress' and user.pk == commission.artist_id:
+            if commission.flow_version == 2:
+                return Response({'error': 'Submit the current milestone in the commission workflow.'}, status=409)
             url = str(request.data.get('image_url') or '')
             try:
                 pct = int(request.data.get('progress_percentage', 0))

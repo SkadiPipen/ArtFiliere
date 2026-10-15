@@ -1,6 +1,7 @@
+import { getDriverPosition } from '@/services/driverLocation';
 import DeliveryMap from '@/module/delivery/components/DeliveryMap';
 import { ActiveDelivery } from '@/module/delivery/types/delivery';
-import { fetchActiveDeliveryApi, updateRiderLocationApi } from '@/services/deliveryApi';
+import { fetchActiveDeliveryApi, updateRiderLocationApi, fetchRiderProfile, setRiderClockApi } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
@@ -66,6 +67,10 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadActiveDelivery();
+      void fetchRiderProfile().then(profile => {
+        setIsClockedIn(!!profile?.is_clocked_in);
+        setStartTime(profile?.clock_in_time ? new Date(profile.clock_in_time).toLocaleTimeString() : null);
+      });
     }, [])
   );
 
@@ -81,7 +86,9 @@ export default function HomeScreen() {
     return `${hrs}:${mins}:${secs}`;
   };
 
-  const handleClockIn = () => {
+  const handleClockIn = async () => {
+    try { await setRiderClockApi(true); }
+    catch (e: any) { Alert.alert('Unable to clock in', e.message); return; }
     // Logic for clocking in
     const now = new Date();
     const formattedTime = now.toLocaleTimeString('en-US', {
@@ -94,7 +101,9 @@ export default function HomeScreen() {
   };
 
   const handleClockOut = () => {
-    const doClockOut = () => {
+    const doClockOut = async () => {
+      try { await setRiderClockApi(false); }
+      catch (e: any) { Alert.alert('Unable to clock out', e.message); return; }
       const now = new Date();
       const formattedTime = now.toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -156,26 +165,7 @@ export default function HomeScreen() {
     setAddressName('Acquiring rider location...');
 
     try {
-      let lat = 10.3157;
-      let lng = 123.8854;
-
-      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 });
-        }).catch(() => null);
-
-        if (pos) {
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        }
-      } else {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const currentLoc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          lat = currentLoc.coords.latitude;
-          lng = currentLoc.coords.longitude;
-        }
-      }
+      const { latitude: lat, longitude: lng } = await getDriverPosition();
 
       setDriverLocation({ latitude: lat, longitude: lng });
 
@@ -184,9 +174,9 @@ export default function HomeScreen() {
         if (reverse.length > 0) {
           const place = reverse[0];
           const formatted = [place.street, place.district, place.city].filter(Boolean).join(', ');
-          setAddressName(formatted || 'Cebu City, Philippines');
+          setAddressName(formatted || 'Current GPS location');
         } else {
-          setAddressName('Current GPS Location (Cebu)');
+          setAddressName('Current GPS location');
         }
       } catch {
         setAddressName('Current Rider Location');
@@ -195,7 +185,8 @@ export default function HomeScreen() {
       updateRiderLocationApi(1, lat, lng).catch(() => {});
     } catch (error) {
       console.warn('GPS error:', error);
-      setAddressName('Cebu City, Philippines');
+      setDriverLocation(null); setRouteStats(null);
+      setAddressName(error instanceof Error ? error.message : 'Precise GPS is unavailable.');
     }
   };
 

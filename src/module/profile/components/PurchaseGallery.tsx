@@ -5,7 +5,7 @@ import { purchaseRequest } from '@/services/purchases';
 import MyPurchases from '../MyPurchases';
 
 export default function PurchaseGallery() {
-  const [items, setItems] = useState<{ id: number; image: string; title: string }[]>([]);
+  const [items, setItems] = useState<{ id: number | string; image: string; title: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   useFocusEffect(useCallback(() => {

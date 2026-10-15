@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import DeliveryLeafletMap from './DeliveryLeafletMap';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 // import MapViewDirections from  'react-native-maps-directions';
 
@@ -45,18 +46,10 @@ export default function DeliveryMap({
     const mapRef = useRef<any>(null);
     const [routeCoordinates, setRouteCoordinates] = useState<Coordinates[]>([]);
     
-    // Web fallback
-    if (Platform.OS === 'web') {
-        return (
-            <View style={[styles.fallbackContainer, style]}>
-                <Text style={styles.fallbackText}>Maps are supported on mobile devices.</Text>
-            </View>
-        );
-    }
-
     // Road route from OpenRouteServcie
     useEffect(() => {
-        if (!driverLocation || !destinationLocation) return;
+        setRouteCoordinates([]);
+        if (Platform.OS === 'web' || !driverLocation || !destinationLocation) return;
 
         const fetchRoute = async () => {
             if (ORS_API_KEY) {
@@ -117,7 +110,7 @@ export default function DeliveryMap({
             try {
                 const start = `${driverLocation.longitude},${driverLocation.latitude}`;
                 const end = `${destinationLocation.longitude},${destinationLocation.latitude}`;
-                const osrmUrl = `https://router.project-osrm/route/v1/driving/${start};${end}?overview=full&geometries=geojson`;
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson`;
 
                 const res = await fetch(osrmUrl);
                 const data = await res.json();
@@ -132,7 +125,7 @@ export default function DeliveryMap({
                     );
                     setRouteCoordinates(coords);
 
-                    const distanceKm = (route.distance / 1000).toString(1);
+                    const distanceKm = (route.distance / 1000).toFixed(1);
                     const durationMins = Math.round(route.duration / 60).toString();
 
                     if (onRouteCalculated) {
@@ -157,6 +150,7 @@ export default function DeliveryMap({
         }
     }, [driverLocation, destinationLocation]);
 
+    if (Platform.OS === 'web') return <View style={style}><DeliveryLeafletMap driverLat={driverLocation?.latitude} driverLng={driverLocation?.longitude} targetLat={destinationLocation?.latitude ?? null} targetLng={destinationLocation?.longitude ?? null} targetLabel={destinationTitle} isPickupStep onRouteCalculated={onRouteCalculated} /></View>;
     if (!driverLocation) {
         return (
             <View style={[styles.fallbackContainer, style]}>
@@ -208,7 +202,7 @@ export default function DeliveryMap({
             {destinationLocation && (
                 <Marker coordinate={{
                     latitude: toNum(destinationLocation.latitude),
-                    longitude: toNum(driverLocation.longitude),
+                    longitude: toNum(destinationLocation.longitude),
                 }}
                 title={destinationTitle} 
                 pinColor="#E74C3C"/>

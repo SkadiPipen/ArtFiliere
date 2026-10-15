@@ -30,6 +30,11 @@ def ensure_periods(agreement, today=None):
         return
     today = today or timezone.localdate()
     anchor = max(agreement.artist_signed_at, agreement.buyer_signed_at).date()
+    if terms.get('reporting_policy') == 'commission_delivery_plus_7_days_artist_approval':
+        commission = getattr(agreement, 'commission_contract', None)
+        if not commission or commission.status != 'COMPLETE' or commission.disputed or not hasattr(commission, 'asset'):
+            return
+        anchor = timezone.localdate(commission.asset.created_at)
     interval = MONTHS[terms['reporting_frequency']]
     duration = terms['reporting_duration_months']
     for offset in range(0, duration, interval):
@@ -74,8 +79,13 @@ def evidence_files(raw):
     return result
 
 
+def royalty_title(agreement):
+    commission = getattr(agreement, 'commission_contract', None)
+    return agreement.artwork.title if agreement.artwork else commission.title if commission else 'Artwork'
+
+
 def period_data(period, user):
-    return {'id': period.pk, 'agreement_id': period.agreement_id, 'title': period.agreement.artwork.title if period.agreement.artwork else 'Artwork',
+    return {'id': period.pk, 'agreement_id': period.agreement_id, 'title': royalty_title(period.agreement),
             'is_buyer': period.agreement.buyer_id == user.pk, 'starts_on': str(period.starts_on), 'ends_on': str(period.ends_on),
             'due_on': str(period.due_on), 'status': period.status,
             'overdue': timezone.localdate() > period.due_on and period.status not in ('paid', 'zero_due'),
@@ -104,7 +114,7 @@ class RoyaltyReportsView(AuthenticatedAPIView):
         for agreement in agreements:
             ensure_periods(agreement)
             mandate = RoyaltyMandate.objects.filter(agreement=agreement).first()
-            licenses.append({'id': agreement.pk, 'title': agreement.artwork.title if agreement.artwork else 'Artwork',
+            licenses.append({'id': agreement.pk, 'title': royalty_title(agreement),
                              'is_buyer': agreement.buyer_id == user.pk, 'configured': bool(agreement.compensation_terms.get('reporting_policy')),
                              'mandate_status': mandate.status if mandate else 'not_linked'})
         periods = RoyaltyPeriod.objects.filter(Q(agreement__buyer=user) | Q(agreement__artist=user)).select_related('agreement__artwork').order_by('-starts_on', '-pk')
@@ -117,7 +127,7 @@ class RoyaltyReportsView(AuthenticatedAPIView):
     @transaction.atomic
     def post(self, request, period_id):
         user = self.get_request_user(request)
-        period = RoyaltyPeriod.objects.select_for_update().select_related('agreement__artwork').filter(pk=period_id, agreement__buyer=user).first()
+        period = RoyaltyPeriod.objects.select_for_update(of=('self',)).select_related('agreement__artwork').filter(pk=period_id, agreement__buyer=user).first()
         if not period:
             return Response({'error': 'Report not found.'}, status=404)
         if period.status not in ('awaiting_report', 'rejected') or timezone.localdate() < period.ends_on:
@@ -136,7 +146,7 @@ class RoyaltyReportsView(AuthenticatedAPIView):
     @transaction.atomic
     def patch(self, request, period_id):
         user = self.get_request_user(request)
-        period = RoyaltyPeriod.objects.select_for_update().select_related('agreement__artwork').filter(pk=period_id, agreement__artist=user).first()
+        period = RoyaltyPeriod.objects.select_for_update(of=('self',)).select_related('agreement__artwork').filter(pk=period_id, agreement__artist=user).first()
         if not period:
             return Response({'error': 'Report not found.'}, status=404)
         action, note = request.data.get('action'), request.data.get('note', '')

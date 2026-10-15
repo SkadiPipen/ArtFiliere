@@ -120,6 +120,9 @@ def collect(period_id):
         period = RoyaltyPeriod.objects.select_for_update().select_related('agreement').get(pk=period_id)
         if period.status != 'approved' or period.due_on > timezone.localdate() or not period.amount or not period.approved_at:
             return
+        if period.agreement.compensation_terms.get('reporting_policy') == 'commission_delivery_plus_7_days_artist_approval':
+            commission = getattr(period.agreement, 'commission_contract', None)
+            if not commission or commission.status != 'COMPLETE' or commission.disputed: return
         # Same lock as mandate revocation. A previously initiated charge can still settle after revocation.
         mandate = RoyaltyMandate.objects.select_for_update().filter(agreement=period.agreement, status='active').first()
         if not mandate or not mandate.token_id or mandate.revoked_at:

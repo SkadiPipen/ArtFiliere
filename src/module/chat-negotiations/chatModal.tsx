@@ -5,6 +5,7 @@
 // ========================================
 
 import ContractPanel from './ContractPanel';
+import CommissionChat from '@/module/commissions/CommissionChat';
 import { X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
@@ -26,6 +27,7 @@ interface ChatModalProps {
   currentUser: any;
   initialArtist?: any;
   initialNegotiationArtwork?: Artwork | null;
+  initialCommissionId?: number;
 }
 
 //II. Main Component
@@ -35,15 +37,27 @@ export function ChatModal({
   currentUser, 
   initialArtist,
   initialNegotiationArtwork,
+  initialCommissionId,
 }: ChatModalProps) {
   const [showContracts, setShowContracts] = useState(false);
   //II.1. State: show chat list if null, chat box if there's a selected chat
   const [selectedChat, setSelectedChat] = useState<{ id: string; user: any } | null>(null);
+  const [selectedCommission, setSelectedCommission] = useState<number | null>(null);
+  const [commissionFilter, setCommissionFilter] = useState(false);
+  useEffect(() => {
+    setSelectedChat(null); setSelectedCommission(null); setShowContracts(false);
+  }, [currentUser?.uid]);
+  useEffect(() => {
+    if (visible && initialCommissionId) {
+      setSelectedChat(null); setShowContracts(false);
+      setSelectedCommission(initialCommissionId); setCommissionFilter(true);
+    }
+  }, [visible, initialCommissionId]);
 
   //II.2. Effect: Open chatbox if artist is clicked or negotiation is started
   useEffect(() => {
     //II.2.A. Handle artist click (message button)
-    if (initialArtist && visible && currentUser) {
+    if (initialArtist && !initialCommissionId && visible && currentUser) {
       // Use firebase_uid or id (both should be Firebase UID now)
       const artistUid = initialArtist.firebase_uid || initialArtist.id;
       if (!artistUid) {
@@ -76,10 +90,11 @@ export function ChatModal({
         user: chatUser,
       });
     }
-  }, [initialArtist, visible, currentUser]);
+  }, [initialArtist, initialCommissionId, visible, currentUser]);
 
   //II.3. Handle chat selection from ChatList
   const handleChatSelect = (chatId: string, otherUser: any) => {
+    setSelectedCommission(null);
     setSelectedChat({ id: chatId, user: otherUser });
   };
 
@@ -91,6 +106,8 @@ export function ChatModal({
   //II.5. Close the entire modal
   const handleCloseModal = () => {
     setSelectedChat(null);
+    setSelectedCommission(null);
+    setCommissionFilter(false);
     onClose();
   };
 
@@ -106,7 +123,7 @@ export function ChatModal({
       <SafeAreaView style={styles.modalContainer}>
         <TouchableOpacity onPress={() => setShowContracts(true)} style={{ padding: 14 }}><Text style={{ color: "#C15656", fontWeight: "700" }}>Contracts ? review and accept proposals</Text></TouchableOpacity>
         {showContracts && <ContractPanel onClose={() => setShowContracts(false)} />}
-        {selectedChat ? (
+        {selectedCommission !== null ? <CommissionChat key={selectedCommission} id={selectedCommission} onBack={() => { setSelectedCommission(null); setCommissionFilter(true); }} /> : selectedChat ? (
           <ChatWindow
             user={selectedChat.user}
             currentUser={currentUser}
@@ -125,6 +142,8 @@ export function ChatModal({
             <ChatList
               currentUser={currentUser}
               onChatSelect={handleChatSelect}
+              onCommissionSelect={id => { setSelectedChat(null); setSelectedCommission(id); setCommissionFilter(true); }}
+              initialArtworkFilter={commissionFilter ? 'commission' : 'all'}
             />
           </>
         )}

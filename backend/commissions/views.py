@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
 from django.conf import settings
 from decimal import Decimal
 import base64
@@ -13,6 +14,7 @@ from users.models import User
 from messaging.models import Agreement
 from .models import CommissionRequest, CommissionMilestone, CommissionPhoto
 from notifications.models import UserNotification
+from .availability import conflicts
 
 
 def resolve_buyer_or_user(view_instance, request):
@@ -88,15 +90,15 @@ class CommissionRequestView(AuthenticatedAPIView):
 
     def get(self, request):
         """Fetch commission history for either buyer or artist"""
-        user = resolve_buyer_or_user(self, request)
+        user = self.get_request_user(request)
         role = request.query_params.get('role', 'buyer')
 
         if not user:
-            commissions = CommissionRequest.objects.exclude(status='CANCELLED').order_by('-commission_req_id')
+            return Response({'error': 'Sign in to view your commissions.'}, status=401)
         elif role == 'artist':
-            commissions = CommissionRequest.objects.filter(artist=user).exclude(status='CANCELLED').order_by('-commission_req_id')
+            commissions = CommissionRequest.objects.filter(Q(flow_version=2) | ~Q(status='CANCELLED'), artist=user).order_by('-commission_req_id')
         else:
-            commissions = CommissionRequest.objects.filter(buyer=user).exclude(status='CANCELLED').order_by('-commission_req_id')
+            commissions = CommissionRequest.objects.filter(Q(flow_version=2) | ~Q(status='CANCELLED'), buyer=user).order_by('-commission_req_id')
 
         data = []
         for c in commissions:
@@ -109,11 +111,15 @@ class CommissionRequestView(AuthenticatedAPIView):
                     "percentage": m.percentage,
                     "amount": float(m.amount),
                     "paid_at": m.paid_at.isoformat() if m.paid_at else None,
+                    'approved_at': m.approved_at.isoformat() if m.approved_at else None,
+                    'revision_used': bool(m.revision_requested_at), 'revision_comment': m.revision_comment,
+                    'payout_status': m.payout_status,
                 }
                 for m in c.milestones.all().order_by('milestone_number')
             ]
             data.append({
                 "commission_req_id": c.commission_req_id,
+                "flow_version": c.flow_version,
                 "buyer_id": c.buyer.id,
                 "buyer_name": getattr(c.buyer, 'username', 'Buyer'),
                 "buyer_username": getattr(c.buyer, 'username', 'Buyer'),
@@ -131,6 +137,8 @@ class CommissionRequestView(AuthenticatedAPIView):
                 "created_at": c.created_at.isoformat() if c.created_at else None,
                 "deadline": c.deadline.isoformat() if c.deadline else None,
                 "milestones": milestones,
+                'funded_at': c.funded_at.isoformat() if c.funded_at else None,
+                'proposal_total': str(c.proposals.order_by('-version').first().terms.get('price', c.time_duration)) if c.flow_version == 2 and c.proposals.exists() else str(c.time_duration),
             })
 
         return Response(data, status=status.HTTP_200_OK)
@@ -175,6 +183,8 @@ class CommissionRequestView(AuthenticatedAPIView):
                 return Response({"error": "Enter a valid preferred completion date."}, status=status.HTTP_400_BAD_REQUEST)
         if deadline <= timezone.now():
             return Response({"error": "Your preferred completion date must be in the future."}, status=status.HTTP_400_BAD_REQUEST)
+        if conflicts(artist.pk, deadline):
+            return Response({'error': 'This completion date is already booked. Choose another date.'}, status=409)
 
         try:
             total_price = Decimal(str(data.get('proposed_budget') or data.get('time_duration') or '0'))
@@ -183,100 +193,15 @@ class CommissionRequestView(AuthenticatedAPIView):
         except Exception:
             return Response({"error": "Enter a valid proposed budget."}, status=status.HTTP_400_BAD_REQUEST)
 
-        buyer_pk = getattr(buyer, 'pk', None) or getattr(buyer, 'id', None)
-        artist_pk = getattr(artist, 'pk', None) or getattr(artist, 'id', None) or int(artist_id)
-
-        commission = CommissionRequest.objects.create(
-            buyer_id=buyer_pk,
-            artist_id=artist_pk,
-            title=data.get('title') or f"{style} commission: {subject[:55]}",
-            subject=subject,
-            style=style,
-            description=data.get('description', ''),
-            art_type=data.get('art_type', 'Physical'),
-            tags=data.get('tags', ''),
-            time_duration=total_price,
-            deadline=deadline,
-            is_rush_job=bool(data.get('is_rush_job', False)),
-            status='PENDING',
-        )
-
-        try:
-            Agreement.objects.create(
-                buyer_id=buyer_pk,
-                artist_id=artist_pk,
-                title=commission.title,
-                price=total_price,
-                terms=f"Commission Contract:\nSubject: {commission.subject}\nStyle: {commission.style}\nType: {commission.art_type}\nInstructions: {commission.description}\nRequested deadline: {deadline.strftime('%Y-%m-%d')}",
-                status='accepted',
-                buyer_accepted=True,
-                artist_accepted=False,
-                delivery_type='digital' if commission.art_type.lower() == 'digital' else 'physical',
-            )
-        except Exception as e:
-            print("[Commissions] Skipped creating agreement:", e)
-
-        ref_images = data.get('reference_images', [])
-        if isinstance(ref_images, list):
-            for img in ref_images:
-                if img:
-                    CommissionPhoto.objects.create(
-                        commission_req=commission,
-                        image_url=str(img),
-                        photo_type='REFERENCE',
-                        caption="Buyer reference",
-                    )
-
-        p1 = round(total_price * Decimal('0.33'), 2)
-        p2 = round(total_price * Decimal('0.33'), 2)
-        p3 = total_price - (p1 + p2)
-
-        CommissionMilestone.objects.create(
-            commission_req=commission,
-            milestone_number=1,
-            stage_label="Stage 1 Downpayment (Sketch)",
-            percentage=33,
-            amount=p1,
-            status='READY_TO_PAY',
-        )
-        CommissionMilestone.objects.create(
-            commission_req=commission,
-            milestone_number=2,
-            stage_label="Stage 2 Downpayment (Rendering)",
-            percentage=33,
-            amount=p2,
-            status='PENDING',
-        )
-
-        UserNotification.objects.create(
-            user=artist,
-            commission=commission,
-            title="New commission request",
-            message=(
-                f"{buyer.username} requested a {commission.style or commission.art_type} commission: "
-                f"{commission.subject or commission.title}. Preferred completion: {deadline.strftime('%b %d, %Y')}."
-            ),
-        )
-        CommissionMilestone.objects.create(
-            commission_req=commission,
-            milestone_number=3,
-            stage_label="Stage 3 Final Balance",
-            percentage=34,
-            amount=p3,
-            status='PENDING',
-        )
-
-        return Response({
-            "message": "Commission request created",
-            "commission_req_id": commission.commission_req_id,
-            "buyer_username": buyer.username,
-        }, status=status.HTTP_201_CREATED)
+        from .lifecycle import create_request
+        return create_request(buyer, artist, data, deadline, total_price)
 
 
 class ManageCommissionStatusView(AuthenticatedAPIView):
     """Artist: Accept or Decline a Commission"""
     permission_classes = [permissions.AllowAny]
 
+    @transaction.atomic
     def post(self, request, pk):
         action = request.data.get('action')
         commission = CommissionRequest.objects.filter(pk=pk).first()
@@ -285,10 +210,19 @@ class ManageCommissionStatusView(AuthenticatedAPIView):
         artist = self.get_request_user(request)
         if not artist or artist.id != commission.artist_id:
             return Response({"error": "Only the assigned artist can update this commission."}, status=status.HTTP_403_FORBIDDEN)
+        if commission.flow_version == 2:
+            return Response({'error': 'Review the current proposal in the commission workspace.'}, status=409)
+        # All acceptance operations for this artist share the same row lock.
+        User.objects.select_for_update().get(pk=artist.pk)
+        commission.refresh_from_db()
 
         if action == 'ACCEPT':
             if commission.status != 'PENDING':
                 return Response({'error': 'Only pending commissions can be accepted.'}, status=409)
+            if commission.deadline <= timezone.now():
+                return Response({'error': 'The requested completion date has passed. Ask the buyer for a new request.'}, status=409)
+            if conflicts(artist.pk, commission.deadline, exclude=commission.pk):
+                return Response({'error': 'This completion date is already booked. Agree on another date before accepting.'}, status=409)
             commission.accepted_at = timezone.now()
             commission.status = 'IN_PROGRESS'
             commission.save()
@@ -319,6 +253,8 @@ class CancelCommissionView(AuthenticatedAPIView):
 
     @transaction.atomic
     def post(self, request, pk):
+        if CommissionRequest.objects.filter(pk=pk, flow_version=2).exists():
+            return Response({'error': 'Use the commission workflow for this commission.'}, status=409)
         commission = CommissionRequest.objects.filter(pk=pk).first()
         if not commission:
             return Response({"error": "Commission not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -362,6 +298,8 @@ class PayMilestoneView(AuthenticatedAPIView):
 
     @transaction.atomic
     def post(self, request, milestone_id):
+        if CommissionMilestone.objects.filter(pk=milestone_id, commission_req__flow_version=2).exists():
+            return Response({'error': 'This commission uses upfront funding and stage approval.'}, status=409)
         milestone = CommissionMilestone.objects.select_related('commission_req', 'commission_req__buyer').filter(pk=milestone_id).first()
         if not milestone:
             return Response({"error": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -446,6 +384,10 @@ class XenditMilestoneWebhookView(APIView):
 
     @transaction.atomic
     def post(self, request):
+        import hmac
+        expected = getattr(settings, 'XENDIT_WEBHOOK_TOKEN', '')
+        if not expected or not hmac.compare_digest(str(request.headers.get('x-callback-token', '')), expected):
+            return Response({'error': 'Invalid webhook authentication.'}, status=403)
         data = request.data
         status_val = data.get('status')
         external_id = data.get('external_id', '')
@@ -456,7 +398,7 @@ class XenditMilestoneWebhookView(APIView):
                 milestone_id = int(parts[2])
 
                 milestone = CommissionMilestone.objects.select_related('commission_req').filter(pk=milestone_id).first()
-                if milestone and milestone.status != 'PAID':
+                if milestone and milestone.commission_req.flow_version == 1 and milestone.status != 'PAID':
                     milestone.status = 'PAID'
                     milestone.paid_at = timezone.now()
                     milestone.save()
@@ -491,6 +433,8 @@ class VerifyMilestonePaymentView(AuthenticatedAPIView):
 
     @transaction.atomic
     def post(self, request, milestone_id):
+        if CommissionMilestone.objects.filter(pk=milestone_id, commission_req__flow_version=2).exists():
+            return Response({'error': 'This commission uses upfront funding and stage approval.'}, status=409)
         milestone = CommissionMilestone.objects.select_related('commission_req').filter(pk=milestone_id).first()
         if not milestone:
             return Response({"error": "Milestone not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -560,6 +504,8 @@ class ProcessTrackView(AuthenticatedAPIView):
         }, status=status.HTTP_200_OK)
 
     def post(self, request, pk):
+        if CommissionRequest.objects.filter(pk=pk, flow_version=2).exists():
+            return Response({'error': 'Use the commission workflow for this commission.'}, status=409)
         commission = CommissionRequest.objects.filter(pk=pk).first()
         if not commission:
             return Response({"error": "Commission not found"}, status=status.HTTP_404_NOT_FOUND)

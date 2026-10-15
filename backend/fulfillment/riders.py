@@ -3,6 +3,7 @@ import math
 from io import BytesIO
 from PIL import Image, ImageOps
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
 from authentication.permissions import IsAuthenticatedUser
@@ -15,24 +16,38 @@ NEXT = {'pending': 'accepted', 'accepted': 'arrived_at_artist', 'arrived_at_arti
 
 
 def orders():
-    return DeliveryOrder.objects.filter(payment__status='paid').select_related('payment__artwork', 'payment__agreement', 'payment__buyer', 'payment__artist', 'driver')
+    return DeliveryOrder.objects.filter(Q(payment__status='paid') | Q(commission__flow_version=2, commission__funded_at__isnull=False)).select_related('payment__artwork', 'payment__agreement', 'payment__buyer', 'payment__artist', 'driver', 'commission__buyer', 'commission__artist')
 
 
 def serialize(order, detail=False):
-    p = order.payment
-    quote = p.agreement.delivery_details if p.agreement else {}
-    result = {'id': order.id, 'buyerId': p.buyer.username, 'customer_name': p.buyer.username,
-              'address': order.delivery_address, 'pickupAddress': order.pickup_address,
+    p, c = order.payment, order.commission
+    quote = order.route_details or (c.locked_terms.get('delivery_details', {}) if c else p.agreement.delivery_details if p.agreement else {})
+    if c:
+        from commissions.shipping import verified_locations
+        quote = verified_locations(order)
+    buyer, artist = (c.buyer, c.artist) if c else (p.buyer, p.artist)
+    title = c.title if c else p.artwork.title
+    instructions = ' - '.join(filter(None, [quote.get('delivery_floor_unit'), quote.get('delivery_instruction')]))
+    pickup_point = quote.get('pickup_coordinates') or []
+    delivery_point = quote.get('delivery_coordinates') or []
+    result = {'id': order.id, 'buyerId': buyer.username, 'customer_name': buyer.username,
+              'address': order.delivery_address, 'formatted_address': order.delivery_address, 'pickupAddress': order.pickup_address,
               'itemsCount': 1, 'items_count': 1, 'paymentMethod': 'Paid online',
-              'distance': f"{quote['distance_km']} km" if quote.get('distance_km') else 'Not recorded',
+              'distance': f"{quote['distance_km']} km" if quote.get('distance_km') is not None else 'Not recorded',
               'estimatedTime': 'Not available', 'status': order.status.upper(), 'step': order.status.upper(),
-              'fee': str(order.fee), 'artwork_title': p.artwork.title,
+              'fee': str(order.fee), 'delivery_fee': str(order.fee), 'artwork_title': title,
               'created_at': order.created_at.isoformat(), 'delivered_at': order.delivered_at,
-              'timeline': order.timeline,
-              'artist': {'name': p.artist.username, 'phone': p.artist.contact_number, 'address': order.pickup_address},
-              'buyer': {'name': p.buyer.username, 'phone': p.buyer.contact_number, 'address': order.delivery_address, 'instructions': ''},
-              'items': [{'name': p.artwork.title, 'quantity': 1}],
+              'location_errors': quote.get('location_errors', {}),
+              'timeline': order.timeline, 'commission_id': c.pk if c else None,
+              'artist': {'name': artist.username, 'phone': artist.contact_number, 'address': order.pickup_address,
+                         'latitude': pickup_point[1] if len(pickup_point) == 2 else None, 'longitude': pickup_point[0] if len(pickup_point) == 2 else None},
+              'buyer': {'name': buyer.username, 'phone': buyer.contact_number, 'address': order.delivery_address, 'instructions': instructions,
+                        'latitude': delivery_point[1] if len(delivery_point) == 2 else None, 'longitude': delivery_point[0] if len(delivery_point) == 2 else None},
+              'items': [{'name': title, 'quantity': 1}],
               'has_pickup_proof': bool(order.pickup_proof), 'has_delivery_proof': bool(order.delivery_proof)}
+    if c:
+        from commissions.shipping import tracking_reference
+        result['tracking_reference'] = tracking_reference(order)
     if detail:
         result.update(artistPhotoUri=order.pickup_proof or None, buyerPhotoUri=order.delivery_proof or None)
     return result
@@ -42,9 +57,15 @@ class RiderView(AuthenticatedAPIView):
     permission_classes = [IsAuthenticatedUser]
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        if self.get_request_user(request).role != 'driver':
+        if self.get_request_user(request).role not in ('driver', 'rider'):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Driver access required.')
+        if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            from authentication.services import account_access
+            access = account_access(self.get_request_user(request))
+            if access['banned'] or access['suspended']:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('Restricted driver accounts cannot accept or update deliveries.')
 
 
 class RiderOrdersView(RiderView):
@@ -55,7 +76,7 @@ class RiderOrdersView(RiderView):
             return Response(serialize(order, True)) if order else Response({'error': 'Delivery not found.'}, status=404)
         rows = orders()
         if scope == 'pending':
-            rows = rows.filter(driver=None, status='pending')
+            rows = rows.filter(driver=None, status='pending').exclude(commission__disputed=True)
         elif scope == 'history':
             rows = rows.filter(driver=user, status='delivered')
         else:
@@ -71,6 +92,8 @@ class RiderOrdersView(RiderView):
         order = orders().select_for_update(of=('self',)).filter(pk=order_id).first()
         if not order or (order.driver_id and order.driver_id != user.id):
             return Response({'error': 'Delivery not found.'}, status=404)
+        if order.commission_id and (order.commission.disputed or order.commission.status not in ('STAGE_3', 'COMPLETE')):
+            return Response({'error': 'This commission delivery is on hold. Contact Customer Service.'}, status=409)
         target = 'accepted' if action == 'accept' else str(request.data.get('status', '')).lower()
         if NEXT.get(order.status) != target:
             return Response({'error': 'Invalid delivery transition. Refresh the order.'}, status=409)
@@ -90,6 +113,9 @@ class RiderOrdersView(RiderView):
         if target == 'delivered':
             order.delivered_at = timezone.now()
         order.save()
+        if order.commission_id:
+            from commissions.shipping import notify_delivery_update
+            notify_delivery_update(order)
         return Response(serialize(order, True))
 
 
@@ -99,6 +125,8 @@ class RiderProofView(RiderView):
         order = orders().select_for_update(of=('self',)).filter(pk=order_id, driver=self.get_request_user(request)).first()
         if not order:
             return Response({'error': 'Delivery not found.'}, status=404)
+        if order.commission_id and order.commission.disputed:
+            return Response({'error': 'This delivery is on hold for Customer Service review.'}, status=409)
         kind = request.data.get('proof_type')
         if (kind, order.status) not in [('PICKUP', 'arrived_at_artist'), ('DELIVERY', 'arrived_at_buyer')]:
             return Response({'error': 'Proof cannot be changed at this delivery step.'}, status=409)

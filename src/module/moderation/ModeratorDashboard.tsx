@@ -1,3 +1,4 @@
+import CommissionReviews from '@/module/commissions/CommissionReviews';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -47,6 +48,7 @@ export default function ModeratorDashboard() {
         {role === 'customer_support' && tab === 'returns' && <ReturnRequests />}
         {role === 'customer_support' && <AppealReviews />}
         {role === 'customer_support' && <CommissionWorkspace review />}
+        {role === 'customer_support' && <CommissionReviews />}
       </>}
     </ScrollView>
   </SafeAreaView>;

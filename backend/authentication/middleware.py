@@ -22,7 +22,7 @@ class ReadOnlyAccountMiddleware:
                     login = request.path == '/auth/login/'
                     # Dedicated handlers authenticate again and enforce commission,
                     # participant, action and per-ban approval checks.
-                    workspace = request.path.startswith('/api/commissions/workspace/')
+                    workspace = request.path.startswith(('/api/commissions/workspace/', '/api/commissions/flow/'))
                     if access['banned'] and not (appeal or workspace):
                         return JsonResponse({'error': 'Your account is banned. View your decision or submit an appeal.', 'code': 'account_restricted'}, status=403)
                     if access['suspended'] and not (appeal or support or login or workspace):

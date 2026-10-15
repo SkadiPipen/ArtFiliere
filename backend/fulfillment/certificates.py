@@ -65,10 +65,20 @@ def render_certificate(snapshot):
     return output.getvalue()
 
 
+def commission_completed(source):
+    if source.status != 'COMPLETE': return False
+    if source.flow_version == 2:
+        return bool(source.funded_at and not source.disputed and source.milestones.count() == 3
+                    and not source.milestones.exclude(status='APPROVED').exists()
+                    and (source.art_type.lower() != 'physical' or source.delivered_at))
+    return source.milestones.exists() and not source.milestones.exclude(status='PAID').exists()
+
+
 def build_snapshot(source, commission=False):
-    agreement = None if commission else source.agreement
+    agreement = source.agreement if not commission or source.flow_version == 2 else None
     document = (agreement.document_snapshot or agreement.terms_snapshot) if agreement else 'No licensing agreement is recorded for this purchase. This certificate grants no additional usage rights.'
     purchased_at = max((m.paid_at for m in source.milestones.all() if m.paid_at), default=None) if commission else source.paid_at
+    if commission and source.flow_version == 2: purchased_at = source.funded_at
     snapshot = {
         'pdf_style': 2,
         'code': 'AF-COA-' + uuid.uuid4().hex[:16].upper(),
@@ -97,7 +107,7 @@ def build_snapshot(source, commission=False):
 def issue_certificate(source, commission=False):
     source = type(source).objects.select_for_update().get(pk=source.pk)
     if commission:
-        if source.status != 'COMPLETE' or not source.milestones.exists() or source.milestones.exclude(status='PAID').exists():
+        if not commission_completed(source):
             return None
     elif source.status != 'paid':
         return None

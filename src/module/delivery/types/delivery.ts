@@ -10,6 +10,7 @@ export type DeliveryStep =
 export interface ActiveDelivery {
     id: string | number;
     paymentMethod: string;
+    location_errors?: Record<string, string>;
     step: DeliveryStep;
     artist: {
         name: string;

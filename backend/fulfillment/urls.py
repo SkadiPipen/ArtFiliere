@@ -23,6 +23,7 @@ urlpatterns = [
     path('purchases/<int:payment_id>/coa/', PurchaseCertificateView.as_view()),
     path('commissions/<int:commission_id>/coa/', PurchaseCertificateView.as_view()),
     path('purchases/<int:payment_id>/png/', PurchaseDownloadView.as_view()),
+    path('commissions/<int:commission_id>/review/', PurchaseReviewView.as_view()),
     path('purchases/<int:payment_id>/review/', PurchaseReviewView.as_view()),
     path('delivery/driver/orders/', DriverOrdersView.as_view()),
     path('delivery/driver/orders/<int:order_id>/', DriverOrdersView.as_view()),

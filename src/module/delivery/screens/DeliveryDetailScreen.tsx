@@ -1,9 +1,10 @@
+import { checkedDriverPosition, getDriverPosition } from '@/services/driverLocation';
 import { ArtistPickupCard } from '@/module/delivery/components/ArtistPickupCard';
 import { BuyerDeliveryCard } from '@/module/delivery/components/BuyerDeliveryCard';
 import DeliveryLeafletMap from '@/module/delivery/components/DeliveryLeafletMap';
 import { DeliveryProgressBar } from '@/module/delivery/components/DeliveryProgressBar';
 import { ActiveDelivery, DeliveryStep } from '@/module/delivery/types/delivery';
-import { fetchActiveDeliveryApi, updateOrderStatusApi, updateRiderLocationApi, uploadDeliveryProofApi } from '@/services/deliveryApi';
+import { fetchActiveDeliveryApi, fetchDeliveryDetailsApi, updateOrderStatusApi, updateRiderLocationApi, uploadDeliveryProofApi } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -25,6 +26,7 @@ export default function DeliveryDetailScreen() {
     // Live Location and Map Routing
     const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const [routeETA, setRouteETA] = useState<string | null>(null);
+    const [gpsError, setGpsError] = useState('');
     const locationSubRef = useRef<Location.LocationSubscription | null>(null);
 
     // Photo proofs
@@ -43,53 +45,41 @@ export default function DeliveryDetailScreen() {
 
     const loadDeliveryDetails = useCallback(async () => {
         try {
-            const data = await fetchActiveDeliveryApi();
+            const data = routeOrderId ? await fetchDeliveryDetailsApi(String(routeOrderId)) : await fetchActiveDeliveryApi();
             setDelivery(data);
+            setArtistPhotoUri(data?.artistPhotoUri || null);
+            setBuyerPhotoUri(data?.buyerPhotoUri || null);
         } catch (error) {
             console.error('Failed to load delivery details:', error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [routeOrderId]);
 
     useEffect(() => {
         loadDeliveryDetails();
+        const timer = setInterval(loadDeliveryDetails, 15000);
+        return () => clearInterval(timer);
     }, [loadDeliveryDetails]);
 
     // Track Driver GPS
     useEffect(() => {
+        let webWatch: number | undefined;
+        let active = true;
         (async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return;
-
-            const initial = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            setDriverLocation({
-                latitude: initial.coords.latitude,
-                longitude: initial.coords.longitude,
-            });
-
-            locationSubRef.current = await Location.watchPositionAsync(
-                {
-                    accuracy: Location.Accuracy.BestForNavigation,
-                    timeInterval: 4000,
-                    distanceInterval: 10,
-                },
-                async (loc) => {
-                    setDriverLocation({
-                        latitude: loc.coords.latitude,
-                        longitude: loc.coords.longitude,
-                    });
-
-                    try {
-                        await updateRiderLocationApi(1, loc.coords.latitude, loc.coords.longitude);
-                    } catch (err) {
-                        console.log('Django location update error:', err);
-                    }
-                }
-            );
+            try {
+                const point = await getDriverPosition(); if (!active) return; setDriverLocation(point); setGpsError('');
+                if (Platform.OS === 'web' && navigator.geolocation) webWatch = navigator.geolocation.watchPosition(position => { try { const point = checkedDriverPosition(position.coords); setDriverLocation(point); setGpsError(''); void updateRiderLocationApi(1, point.latitude, point.longitude); } catch (e: any) { setDriverLocation(null); setGpsError(e.message); } }, error => { setDriverLocation(null); setGpsError(error.message); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+                if (Platform.OS !== 'web') locationSubRef.current = await Location.watchPositionAsync(
+                    { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 5000, distanceInterval: 10 },
+                    loc => { try { const point = checkedDriverPosition(loc.coords); setDriverLocation(point); setGpsError(''); void updateRiderLocationApi(1, point.latitude, point.longitude); } catch (e: any) { setDriverLocation(null); setGpsError(e.message); } }
+                );
+            } catch (e: any) { setDriverLocation(null); setGpsError(e.message || 'Enable precise GPS location.'); }
         })();
 
         return () => {
+            active = false;
+            if (webWatch !== undefined) navigator.geolocation.clearWatch(webWatch);
             if (locationSubRef.current) {
                 locationSubRef.current.remove();
             }
@@ -102,59 +92,12 @@ export default function DeliveryDetailScreen() {
         setIsLocating(true);
 
         try {
-            let lat: number | null = null;
-            let lng: number | null = null;
+            const point = await getDriverPosition();
+            setDriverLocation(point); setGpsError('');
+            await updateRiderLocationApi(1, point.latitude, point.longitude);
 
-            if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
-                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0,
-                    });
-                }).catch((geoErr) => {
-                    console.warn('Web navigator.geolocation prompt declined or timed out:', geoErr);
-                    return null;
-                });
-
-                if (position) {
-                    lat = position.coords.latitude;
-                    lng = position.coords.longitude;
-                }
-            }
-
-            if (lat === null || lng === null) {
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status === 'granted') {
-                    const current = await Location.getCurrentPositionAsync({
-                        accuracy: Location.Accuracy.Balanced,
-                    });
-                    lat = current.coords.latitude;
-                    lng = current.coords.longitude;
-                }
-            }
-
-            const finalLat = lat ?? 10.3157;
-            const finalLng = lng ?? 123.8854;
-
-            const newCoords = { latitude: finalLat, longitude: finalLng };
-            setDriverLocation(newCoords);
-
-            try {
-                await updateRiderLocationApi(1, finalLat, finalLng);
-            } catch (backendErr) {
-                console.warn('Failed to sync location with backend:', backendErr);
-            }
-
-            if (Platform.OS === 'web') {
-                window.alert(`GPS Refreshed!\nLat: ${finalLat.toFixed(4)}, Lng: ${finalLng.toFixed(4)}`);
-            } else {
-                Alert.alert(
-                    'GPS Refreshed',
-                    `Current Location Detected!\nLat: ${finalLat.toFixed(4)}, Lng: ${finalLng.toFixed(4)}`
-                );
-            }
         } catch (error) {
+            setDriverLocation(null); setGpsError(error instanceof Error ? error.message : 'Could not access precise GPS.');
             console.error('Error in handleLocationPress:', error);
             Alert.alert('Location Notice', 'Could not access device GPS. Check browser site permissions.');
         } finally {
@@ -178,6 +121,7 @@ export default function DeliveryDetailScreen() {
                 mediaTypes: ['images'],
                 allowsEditing: false,
                 quality: 0.7,
+                base64: true,
             });
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -192,12 +136,13 @@ export default function DeliveryDetailScreen() {
                 }
 
                 if (effectiveOrderId) {
-                    await uploadDeliveryProofApi(Number(effectiveOrderId), role, capturedUri, timestamp, proofType);
+                    await uploadDeliveryProofApi(String(effectiveOrderId), role, result.assets[0].base64 ? `data:image/jpeg;base64,${result.assets[0].base64}` : capturedUri, timestamp, proofType);
                 }
 
                 Alert.alert('Proof Saved', 'Photo captured successfully.');
             }
         } catch (error) {
+            if (role === 'artist') setArtistPhotoUri(null); else setBuyerPhotoUri(null);
             console.error('Camera Launch Error:', error);
             Alert.alert('Camera Notice', 'Failed to open device camera.');
         }
@@ -229,25 +174,29 @@ export default function DeliveryDetailScreen() {
         else if (delivery.step === 'ARRIVED_AT_BUYER') nextStep = 'DELIVERED';
 
         setUpdatingStatus(true);
-        const result = await updateOrderStatusApi(effectiveOrderId, nextStep as any);
-        setUpdatingStatus(false);
+        try {
+            const result = await updateOrderStatusApi(effectiveOrderId, nextStep as any);
 
-        if (result) {
-            if (nextStep === 'DELIVERED') {
-                if (Platform.OS === 'web') {
-                    window.alert('Delivery Completed! Order has been delivered and recorded in History.');
-                    safeGoBack();
+            if (result) {
+                if (nextStep === 'DELIVERED') {
+                    if (Platform.OS === 'web') {
+                        window.alert('Delivery Completed! Order has been delivered and recorded in History.');
+                        safeGoBack();
+                    } else {
+                        Alert.alert('Delivery Completed!', 'Order has been delivered and recorded in History.', [
+                            { text: 'OK', onPress: safeGoBack }
+                        ]);
+                    }
                 } else {
-                    Alert.alert('Delivery Completed!', 'Order has been delivered and recorded in History.', [
-                        { text: 'OK', onPress: safeGoBack }
-                    ]);
+                    setDelivery(result);
                 }
             } else {
-                setDelivery({ ...delivery, step: nextStep });
+                Alert.alert('Update failed', 'Could not update delivery status.');
             }
-        } else {
-            Alert.alert('Update failed', 'Could not update delivery status.');
-        }
+        } catch (error: any) {
+            const message = error.message || 'Please refresh and retry.';
+            if (Platform.OS === 'web') window.alert(message); else Alert.alert('Delivery update failed', message);
+        } finally { setUpdatingStatus(false); }
     };
 
     const openNavigation = (lat?: number, lng?: number) => {
@@ -338,6 +287,8 @@ export default function DeliveryDetailScreen() {
                     </View>
                 </TouchableOpacity>
 
+                {!!gpsError && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 12 }}>{gpsError}</Text>}
+                {!!delivery.location_errors?.[isPickup ? 'pickup' : 'delivery'] && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 12 }}>{delivery.location_errors[isPickup ? 'pickup' : 'delivery']}</Text>}
                 {/* Live OpenStreetMap Leaflet Route Card */}
                 <View style={styles.mapCard}>
                     {routeETA && (
@@ -350,14 +301,15 @@ export default function DeliveryDetailScreen() {
                     <DeliveryLeafletMap
                         driverLat={driverLocation?.latitude ?? null}
                         driverLng={driverLocation?.longitude ?? null}
-                        targetLat={Number(destinationCoords?.latitude ?? (isPickup ? 10.3157 : 10.3333))}
-                        targetLng={Number(destinationCoords?.longitude ?? (isPickup ? 123.8854 : 123.9333))}
+                        targetLat={destinationCoords?.latitude ?? null}
+                        targetLng={destinationCoords?.longitude ?? null}
                         targetLabel={
                             isPickup
                                 ? (delivery.artist?.name || 'Artist Pickup Location')
                                 : (delivery.buyer?.name || 'Buyer Delivery Destination')
                         }
                         isPickupStep={isPickup}
+                        onRouteUnavailable={() => setRouteETA(null)}
                         onRouteCalculated={(dist, duration) => {
                             setRouteETA(`${duration} mins (${dist} km)`);
                         }}

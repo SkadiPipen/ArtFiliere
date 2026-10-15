@@ -15,7 +15,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Artwork = {
-  id: number;
+  id: number | string;
+  source?: string;
+  commission_id?: number;
   title: string;
   price: string;
   image_data: string;
@@ -44,7 +46,7 @@ export default function MyPortfolioScreen() {
     const load = async () => {
       try {
         if (!auth.currentUser) return;
-        const response = await fetch(`${API_URL}/api/users/artworks/?mine=1`, {
+        const response = await fetch(`${API_URL}/api/users/portfolio/`, {
           headers: {
             Authorization: `Bearer ${await auth.currentUser.getIdToken()}`,
           },
@@ -73,7 +75,7 @@ export default function MyPortfolioScreen() {
         </TouchableOpacity>
         <View style={s.headerText}>
           <Text style={s.title}>My portfolio</Text>
-          <Text style={s.subtitle}>Manage and review your posted artwork</Text>
+          <Text style={s.subtitle}>Your artwork posts and completed commissions</Text>
         </View>
         <TouchableOpacity
           style={s.post}
@@ -89,7 +91,7 @@ export default function MyPortfolioScreen() {
       >
         <View style={s.summary}>
           <Text style={s.summaryCount}>{artworks.length}</Text>
-          <Text style={s.summaryText}>artwork posts</Text>
+          <Text style={s.summaryText}>portfolio works</Text>
           <Text style={s.summaryDetail}>
             {artworks.filter((item) => item.status === "approved").length}{" "}
             approved ·{" "}
@@ -129,7 +131,7 @@ export default function MyPortfolioScreen() {
               <TouchableOpacity
                 accessibilityRole="button"
                 onPress={() =>
-                  router.push({
+                  artwork.source === "commission" ? router.push({ pathname: "/commission-detail", params: { id: String(artwork.commission_id) } }) : router.push({
                     pathname: "/(home)/view-post",
                     params: {
                       artworkId: String(artwork.id),
@@ -142,18 +144,18 @@ export default function MyPortfolioScreen() {
                   })
                 }
               >
-                <Image source={{ uri: artwork.image_data }} style={s.image} />
+                {artwork.image_data ? <Image source={{ uri: artwork.image_data }} style={s.image} /> : <View style={[s.image, { justifyContent: "center", alignItems: "center" }]}><Text>Completed commission</Text></View>}
                 <View style={s.cardBody}>
                   <View style={s.cardTop}>
                     <Text style={s.artTitle} numberOfLines={1}>
                       {artwork.title}
                     </Text>
                     <Text style={[s.status, s[`status_${artwork.status}`]]}>
-                      {artwork.status}
+                      {artwork.source === "commission" ? "Completed" : artwork.status}
                     </Text>
                   </View>
                   <Text style={s.price}>
-                    ₱ {Number(artwork.price).toLocaleString()}
+                    {artwork.source === "commission" ? "Completed commission" : `₱ ${Number(artwork.price).toLocaleString()}`}
                   </Text>
                   {artwork.status === "declined" && artwork.decline_reason ? (
                     <Text style={s.reason} numberOfLines={2}>

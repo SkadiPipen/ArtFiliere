@@ -111,7 +111,7 @@ export default function AccountRestrictionNotice({ standalone = false }: { stand
     <Text style={{ color: '#735012' }}>{status.restrictions.map(r => r.reason).join(' · ')}</Text>
     <View style={s.row}><Action label="Details / appeal" onPress={() => router.push('/account-appeal' as any)} /><Action label="Existing commissions" onPress={() => router.push('/commission-workspace' as any)} /><Action label="Customer Service" onPress={() => router.push('/support')} /></View>
   </View>;
-  return <Modal visible={!!user && (banned || restored) && !['/account-appeal', '/commission-workspace'].includes(pathname)} transparent animationType="fade" onRequestClose={() => {}}>
+  return <Modal visible={!!user && (banned || restored) && !['/account-appeal', '/commission-workspace', '/commission-detail'].includes(pathname)} transparent animationType="fade" onRequestClose={() => {}}>
     <View style={{ flex: 1, backgroundColor: 'rgba(35,25,20,.55)', justifyContent: 'center', padding: 18 }}><View style={{ width: '100%', maxWidth: 680, maxHeight: '90%', alignSelf: 'center', backgroundColor: '#FFFDF8', borderRadius: 16 }}>{content}</View></View>
   </Modal>;
 }

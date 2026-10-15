@@ -1,8 +1,10 @@
+import { AuthContext } from '@/context/AuthContext';
 import { auth } from "@/firebase/config";
 import { ChatModal } from "@/module/chat-negotiations/chat-index";
 import API_URL from "@/services/api";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { onAuthStateChanged } from 'firebase/auth';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -16,8 +18,7 @@ import {
   UploadCloud,
   XCircle,
 } from "lucide-react-native";
-import { useContext, useEffect, useState } from "react";
-import { AuthContext } from '@/context/AuthContext';
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,6 +36,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CommissionProgressPanel from './CommissionProgressPanel';
 
 export default function CommissionsScreen() {
   const router = useRouter();
@@ -87,7 +89,14 @@ export default function CommissionsScreen() {
   const [userRole, setUserRole] = useState<string>("buyer");
   const [commissions, setCommissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const progressScroll = useRef<ScrollView>(null);
+  const [focusRevision, setFocusRevision] = useState(false);
+  const scrollToRevision = (y: number) => {
+    if (focusRevision) { progressScroll.current?.scrollTo({ y, animated: true }); setFocusRevision(false); }
+  };
+  const [commissionError, setCommissionError] = useState('');
   const [showChatModal, setShowChatModal] = useState(false);
+  const [chatCommissionId, setChatCommissionId] = useState<number | undefined>();
   const [chatTargetUser, setChatTargetUser] = useState<{
     id: string;
     name: string;
@@ -250,7 +259,7 @@ export default function CommissionsScreen() {
         console.warn("Failed to fetch user role:", err);
       }
     };
-    fetchUserRole();
+    return onAuthStateChanged(auth, () => { void fetchUserRole(); });
   }, []);
 
   const isArtist = userRole === "artist";
@@ -275,14 +284,17 @@ export default function CommissionsScreen() {
   const fetchCommissions = async () => {
     try {
       setLoading(true);
-      const email = auth.currentUser?.email || "";
-      const username =
-        auth.currentUser?.displayName || email.split("@")[0] || "";
+      setCommissionError('');
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('Please sign in to view your commissions.');
       const res = await fetch(
-        `${API_URL}/api/commissions/requests/?role=${role}&user_email=${encodeURIComponent(
-          email,
-        )}&buyer_username=${encodeURIComponent(username)}`,
+        `${API_URL}/api/commissions/requests/?role=${role}`,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || error.detail || `Unable to load commissions (HTTP ${res.status}).`);
+      }
       if (res.ok) {
         const data = await res.json();
         // Keep a cancelled/declined request out of the active work dashboard
@@ -291,19 +303,24 @@ export default function CommissionsScreen() {
           (commission: any) => commission.status !== "CANCELLED",
         );
         setCommissions(activeCommissions);
-        if (activeCommissions.length > 0 && isDesktop && !selectedCommission) {
+        if (activeCommissions.length > 0 && activeCommissions[0].flow_version !== 2 && isDesktop && !selectedCommission) {
           handleSelectForTrack(activeCommissions[0]);
         }
       }
-    } catch (e) {
-      console.warn("Error fetching commissions:", e);
+    } catch (e: any) {
+      setCommissions([]);
+      setCommissionError(e.message || 'Unable to load commissions. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCommissions();
+    return onAuthStateChanged(auth, () => {
+      setSelectedCommission(null);
+      setRightPanelMode('empty');
+      void fetchCommissions();
+    });
   }, [role]);
 
   const loadTrackData = async (commId: number) => {
@@ -328,10 +345,11 @@ export default function CommissionsScreen() {
     }
   };
 
-  const handleSelectForTrack = (item: any) => {
+  const handleSelectForTrack = (item: any, revision = false) => {
+    setFocusRevision(revision);
     setSelectedCommission(item);
     setRightPanelMode("track");
-    loadTrackData(item.commission_req_id);
+    if (item.flow_version !== 2) loadTrackData(item.commission_req_id);
   };
 
   const handleSelectForUpload = (item: any) => {
@@ -591,6 +609,33 @@ export default function CommissionsScreen() {
   };
 
   const renderCard = ({ item }: { item: any }) => {
+    if (item.flow_version === 2) {
+      const openHistory = () => router.push({ pathname: '/commission-detail' as any, params: { id: String(item.commission_req_id) } });
+      const active = ['STAGE_1', 'STAGE_2', 'STAGE_3'].includes(item.status);
+      return <View style={[s.card, selectedCommission?.commission_req_id === item.commission_req_id && isDesktop && s.cardSelected]}>
+        <View style={s.cardHeader}><View style={{ flex: 1 }}><Text style={s.cardTitle}>{item.title}</Text><Text style={s.cardSub}>{role === 'buyer' ? `Artist: @${item.artist_name}` : `Client: @${item.buyer_name}`}</Text></View>
+          <View style={[s.badge, active ? s.badgeProgress : item.status === 'COMPLETE' ? s.badgeDone : s.badgePending]}><Text style={s.badgeText}>{item.status.replace(/_/g, ' ')}</Text></View></View>
+        <Text style={s.desc}>{item.description || 'No instructions provided.'}</Text>
+        <Text style={s.price}>{item.status === 'NEGOTIATING' ? 'Proposed total' : 'Total'}: ₱{Number(item.proposal_total || item.time_duration).toLocaleString()} • {item.art_type}{item.is_rush_job ? ' • Rush Job' : ''}</Text>
+        {item.deadline && <Text style={s.cardSub}>Preferred completion: {new Date(item.deadline).toLocaleDateString()}</Text>}
+        {role === 'artist' && active && <TouchableOpacity style={s.updateProgressBtn} onPress={() => handleSelectForTrack(item)}><Paintbrush color="#FFF" size={14} /><Text style={s.updateProgressText}>Post 3-Stage Progress Update</Text></TouchableOpacity>}
+        <View style={[s.utilityRow, { flexWrap: 'wrap' }]}>
+          <TouchableOpacity style={s.chatBtn} onPress={() => { setChatTargetUser(null); setChatCommissionId(item.commission_req_id); setShowChatModal(true); }}><MessageCircle color="#E67E22" size={15} /><Text style={s.chatBtnText}>Commission Chat</Text></TouchableOpacity>
+          <TouchableOpacity style={s.trackBtn} onPress={() => handleSelectForTrack(item)}><Eye color="#C15656" size={15} /><Text style={s.trackBtnText}>Track 3-Stage Progress</Text></TouchableOpacity>
+        </View>
+        <View style={s.milestoneBox}><Text style={s.milestoneHeading}>3-Stage Milestones</Text>
+          <Text style={[s.cardSub, { marginBottom: 10 }]}>{item.funded_at ? 'Full upfront payment confirmed. Artist payouts follow stage approval.' : 'Full upfront funding is required after both signatures.'}</Text>
+          {!item.milestones?.length && <Text style={s.milestoneText}>The agreed milestone schedule will appear after proposal acceptance.</Text>}
+          {item.milestones?.map((m: any) => <View key={m.milestone_id} style={[s.milestoneRow, { flexWrap: 'wrap', gap: 6 }]}><Text style={[s.milestoneText, { flex: 1, minWidth: 160 }]}>{m.stage_label} ({m.percentage}%): ₱{Number(m.amount).toLocaleString()}</Text><Text style={{ fontSize: 11, color: m.status === 'APPROVED' ? '#34854C' : '#75655F' }}>{m.status.replace(/_/g, ' ')}{m.revision_used ? ' · Revision 1/1' : ''}</Text></View>)}
+        </View>
+        <TouchableOpacity style={[s.chatBtn, { flex: 0, height: 'auto', marginVertical: 10, paddingVertical: 10, paddingHorizontal: 16, borderColor: '#498e00c8', backgroundColor: '#498e0015' }]} onPress={openHistory}><Text style={[s.chatBtnText, { textAlign: 'center', color: '#498e00' }]}>Review Agreement, Milestone, and Revision History</Text></TouchableOpacity>
+        {role === 'buyer' && !['COMPLETE', 'CANCELLED'].includes(item.status) && <TouchableOpacity style={s.cancelLink}             
+            onPress={() => {
+              setCancellingId(item.commission_req_id);
+              setCancelModalVisible(true);
+            }}><Text style={s.cancelLinkText}>Cancel Commission & Request Refund</Text></TouchableOpacity>}
+      </View>;
+    }
     const isStage3Done =
       item.status === "COMPLETE" || item.status === "STAGE_3";
     const canCancel =
@@ -930,6 +975,10 @@ export default function CommissionsScreen() {
             </View>
           )}
 
+          {!!commissionError && <View style={{ padding: 16, gap: 8 }}>
+            <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{commissionError}</Text>
+            <TouchableOpacity onPress={() => void fetchCommissions()}><Text style={{ color: '#C15656', fontWeight: '700' }}>Retry loading commissions</Text></TouchableOpacity>
+          </View>}
           {loading ? (
             <ActivityIndicator
               color="#E67E22"
@@ -943,7 +992,7 @@ export default function CommissionsScreen() {
               renderItem={renderCard}
               contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
               ListEmptyComponent={
-                <Text style={s.empty}>No commissions found in this view.</Text>
+                <Text style={s.empty}>{commissionError ? '' : 'No commissions found in this view.'}</Text>
               }
             />
           )}
@@ -965,6 +1014,8 @@ export default function CommissionsScreen() {
                   3-stage progress or submit updates.
                 </Text>
               </View>
+            ) : selectedCommission.flow_version === 2 ? (
+              <ScrollView ref={progressScroll}><CommissionProgressPanel key={selectedCommission.commission_req_id} id={selectedCommission.commission_req_id} onUpdated={() => void fetchCommissions()} onRevisionLayout={scrollToRevision} focusRevision={focusRevision} /></ScrollView>
             ) : rightPanelMode === "upload" && role === "artist" ? (
               <ScrollView contentContainerStyle={s.rightContentInner}>
                 <View style={s.rightHeaderRow}>
@@ -1312,8 +1363,8 @@ export default function CommissionsScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={s.rightContentInner}>
-              {rightPanelMode === "upload" && role === "artist" ? (
+            <ScrollView ref={progressScroll} contentContainerStyle={s.rightContentInner}>
+              {selectedCommission?.flow_version === 2 ? <CommissionProgressPanel key={selectedCommission.commission_req_id} id={selectedCommission.commission_req_id} onUpdated={() => void fetchCommissions()} onRevisionLayout={scrollToRevision} focusRevision={focusRevision} /> : rightPanelMode === "upload" && role === "artist" ? (
                 <>
                   <Text style={s.rightPanelSub}>
                     Client: @{selectedBuyerHandle}
@@ -1682,8 +1733,10 @@ export default function CommissionsScreen() {
       {showChatModal && currentChatUser && (
         <ChatModal
           visible={showChatModal}
+          initialCommissionId={chatCommissionId}
           onClose={() => {
             setShowChatModal(false);
+            setChatCommissionId(undefined);
             setChatTargetUser(null);
           }}
           currentUser={currentChatUser as any}

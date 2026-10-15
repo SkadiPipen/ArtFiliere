@@ -42,25 +42,39 @@ def provider_json(response):
 
 
 def geocode_address(address):
-    payload = provider_json(requests.get('https://api.openrouteservice.org/geocode/search',
-        headers={'Authorization': settings.ORS_API_KEY},
-        params={'text': address, 'boundary.country': 'PHL', 'size': 1}, timeout=15))
+    # A high provider confidence does not prove that the result is in the requested city.
+    parts = [part.strip() for part in address.split(',')]
+    expected_city = parts[-4] if len(parts) >= 6 else ''
+    expected_province = parts[-3] if len(parts) >= 6 else ''
+    def normalized(value):
+        import re
+        return ' '.join(word for word in re.sub(r'[^a-z0-9 ]', ' ', str(value).casefold()).split() if word not in ('city', 'municipality', 'of'))
+    try:
+        payload = provider_json(requests.get('https://api.openrouteservice.org/geocode/search',
+            headers={'Authorization': settings.ORS_API_KEY},
+            params={'text': address, 'boundary.country': 'PHL', 'size': 5 if expected_city else 1}, timeout=15))
+    except requests.RequestException:
+        raise ValueError('Address lookup is unavailable. Retry or save an exact address pin.') from None
     features = payload.get('features') or []
-    if not features:
-        raise ValueError('An address could not be found. Check the street, barangay and city.')
-    feature = features[0]
-    properties = feature.get('properties', {})
-    confidence = properties.get('confidence', 0)
-    # Reject city/province centres and weak matches rather than pricing a guessed route.
-    if (properties.get('country_a') != 'PHL' or properties.get('layer') not in ('address', 'street', 'venue')
-            or not isinstance(confidence, (int, float)) or not math.isfinite(confidence) or confidence < 0.8):
-        raise ValueError('The map could not match an address precisely. Please enter a more specific street or building address.')
-    coordinates = feature.get('geometry', {}).get('coordinates')
-    if (not isinstance(coordinates, list) or len(coordinates) != 2
-            or any(isinstance(n, bool) or not isinstance(n, (int, float)) or not math.isfinite(n) for n in coordinates)
-            or not -180 <= coordinates[0] <= 180 or not -90 <= coordinates[1] <= 90):
-        raise ValueError('The map returned invalid address coordinates. Please try again.')
-    return coordinates
+    if not features: raise ValueError('An address could not be found. Check the street, barangay and city, or save an exact location pin.')
+    for feature in features:
+        properties = feature.get('properties', {})
+        confidence = properties.get('confidence', 0)
+        if (properties.get('country_a') != 'PHL' or properties.get('layer') not in ('address', 'street', 'venue')
+                or not isinstance(confidence, (int, float)) or not math.isfinite(confidence) or confidence < 0.8): continue
+        if expected_city:
+            city_names = [normalized(properties.get(key, '')) for key in ('locality', 'localadmin', 'county', 'region')]
+            if normalized(expected_city) not in city_names: continue
+            administrative = ' '.join(normalized(properties.get(key, '')) for key in ('county', 'macrocounty', 'region', 'macroregion', 'label'))
+            if expected_province and f' {normalized(expected_province)} ' not in f' {administrative} ': continue
+        coordinates = feature.get('geometry', {}).get('coordinates')
+        if (not isinstance(coordinates, list) or len(coordinates) != 2
+                or any(isinstance(n, bool) or not isinstance(n, (int, float)) or not math.isfinite(n) for n in coordinates)
+                or not -180 <= coordinates[0] <= 180 or not -90 <= coordinates[1] <= 90): continue
+        return coordinates
+    if expected_city:
+        raise ValueError(f'The map could not verify a precise address in {expected_city}. Save a complete street/building address or an exact location pin in Saved addresses.')
+    raise ValueError('The map could not match an address precisely. Please enter a more specific street or building address.')
 
 
 def road_distance(pickup, destination, pickup_coordinates=None, destination_coordinates=None):
@@ -76,8 +90,14 @@ def road_distance(pickup, destination, pickup_coordinates=None, destination_coor
         if not routes:
             raise ValueError('No driving route was found between these addresses.')
         meters = routes[0].get('summary', {}).get('distance')
-        if isinstance(meters, bool) or not isinstance(meters, (int, float)) or not math.isfinite(meters) or meters <= 0:
+        if isinstance(meters, bool) or not isinstance(meters, (int, float)) or not math.isfinite(meters) or meters < 0:
             raise ValueError('The map returned no usable road distance. Check both addresses.')
+        if meters == 0:
+            same_address = ' '.join(pickup.split()).casefold() == ' '.join(destination.split()).casefold()
+            same_point = coordinates[0] == coordinates[1]
+            both_pinned = pickup_coordinates is not None and destination_coordinates is not None
+            if not same_point or not (same_address or both_pinned):
+                raise ValueError('The map returned a zero-distance route for different addresses. Check both saved addresses or set precise location pins.')
         return meters
     except (requests.RequestException, TypeError, KeyError, AttributeError, IndexError) as error:
         raise ValueError('The map service is unavailable. Please try calculating delivery again.') from error

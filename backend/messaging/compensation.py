@@ -125,7 +125,8 @@ def compensation_summary(category, values):
         lines.append(f'Royalty Reporting & Payment: {FREQUENCIES[values["reporting_frequency"]]}')
     if values.get('reporting_policy'):
         import json
-        lines += [f"Reporting lasts {values['reporting_duration_months']} months from the later signing date. Periods are anchored to that date, with reports and payment due seven days after each period ends.",
+        anchor = 'final commission delivery approval' if values['reporting_policy'] == 'commission_delivery_plus_7_days_artist_approval' else 'the later signing date'
+        lines += [f"Reporting lasts {values['reporting_duration_months']} months from {anchor}. Periods are anchored to that date, with reports and payment due seven days after each period ends.",
                   'The buyer must submit sales or profit information and supporting evidence, including zero-sales periods. The artist must approve the report before collection. Late or missing reports are overdue and are never treated as zero.',
                   'Automatic collection requires a separately authorized, supported payment method. Approved royalties are collected on or after the due date. Authorization can be revoked; revocation does not cancel contractual payment obligations.',
                   'Calculation rules: ' + json.dumps(values.get('calculation', {}), sort_keys=True)]

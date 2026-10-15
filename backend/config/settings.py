@@ -76,6 +76,10 @@ BLOCKCHAIN_CONTRACT_ADDRESS = os.getenv("BLOCKCHAIN_CONTRACT_ADDRESS", "")
 # secret key or webhook verification token to the Expo application.
 XENDIT_SECRET_KEY = os.getenv("XENDIT_SECRET_KEY", "")
 XENDIT_WEBHOOK_TOKEN = os.getenv("XENDIT_WEBHOOK_TOKEN", "")
+COMMISSION_HOLDING_ENABLED = os.getenv('COMMISSION_HOLDING_ENABLED', '').lower() == 'true'
+COMMISSION_PAYOUTS_ENABLED = os.getenv('COMMISSION_PAYOUTS_ENABLED', '').lower() == 'true'
+COMMISSION_IPFS_API_URL = os.getenv('COMMISSION_IPFS_API_URL', '')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:8081')
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -169,7 +173,8 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
 ENABLE_SIMULATED_CHECKOUT = os.getenv("ENABLE_SIMULATED_CHECKOUT", "false").lower() == "true"
 
 # Server-only OpenRouteService key; never expose this through Expo.
-ORS_API_KEY = os.getenv('ORS_API_KEY', '')
+# Accept the existing backend environment name as well as the shorter alias.
+ORS_API_KEY = (os.getenv('ORS_API_KEY', '').strip() or os.getenv('OPENROUTESERVICE_API_KEY', '').strip())
 DELIVERY_BASE_FARE = '50.00'
 DELIVERY_PER_KM = '15.00'
 
@@ -192,3 +197,7 @@ ROYALTY_COLLECTION_ENABLED = os.getenv('ROYALTY_COLLECTION_ENABLED', 'false').lo
 ROYALTY_PAYMENT_CHANNELS = [v.strip() for v in os.getenv('ROYALTY_PAYMENT_CHANNELS', '').split(',') if v.strip()]
 ROYALTY_RETURN_URL = os.getenv('ROYALTY_RETURN_URL', '')
 ROYALTY_CHANNEL_PROPERTIES = json.loads(os.getenv('ROYALTY_CHANNEL_PROPERTIES', '{}'))
+
+# Starting rate of the versioned IPOPHL graduated resale schedule (not a flat rate).
+COMMISSION_RESALE_ROYALTY_PERCENTAGE = '5.00'
+DELIVERY_INCLUDED_KM = os.getenv('DELIVERY_INCLUDED_KM', '2')

@@ -2,6 +2,8 @@ import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import SupportScreen from '@/module/support/SupportScreen';
 import { Contract, contractRequest } from './contracts';
+import { purchaseRequest } from '@/services/purchases';
+import type { CommissionConversation } from '@/module/commissions/CommissionChat';
 // ========================================
 // FILE: chatList.tsx
 // PURPOSE: Displays all conversations for the logged-in user.
@@ -42,6 +44,8 @@ export interface ChatListItem {
   proposalUnread?: number;
   buying?: boolean;
   selling?: boolean;
+  commission?: boolean;
+  commissionId?: number;
   lastMessage: string;
   lastMessageTime: string;
   participantData: {
@@ -66,18 +70,45 @@ export interface ChatListItem {
 interface ChatListProps {
   currentUser: any;
   onChatSelect: (chatId: string, otherUser: any) => void;
+  onCommissionSelect?: (commissionId: number) => void;
+  initialArtworkFilter?: 'all' | 'commission';
 }
 
 // II. Main Component
-export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
+export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initialArtworkFilter = 'all' }: ChatListProps) {
   // II.1. State: List of chats to display
   const [proposalError, setProposalError] = useState('');
   const [chatError, setChatError] = useState('');
-  const [artworkFilter, setArtworkFilter] = useState<'all' | 'buying' | 'selling'>('all');
+  const [artworkFilter, setArtworkFilter] = useState<'all' | 'buying' | 'selling' | 'commission'>(initialArtworkFilter);
+  const [commissionChats, setCommissionChats] = useState<ChatListItem[]>([]);
+  const [commissionError, setCommissionError] = useState('');
+  const [commissionLoading, setCommissionLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    setCommissionChats([]); setCommissionLoading(true); setCommissionError('');
+    const load = async () => {
+      try {
+        const rows: CommissionConversation[] = await purchaseRequest('commissions/workspace/?summary=1');
+        if (!active) return;
+        setCommissionChats(rows.map(row => {
+          const last = row.messages[row.messages.length - 1];
+          const name = row.is_artist ? row.buyer : row.artist;
+          return { id: `commission-${row.id}`, commission: true, commissionId: row.id, participants: [], participantData: {},
+            lastMessage: `${row.title}: ${last?.body || row.status.replace(/_/g, ' ')}`, lastMessageTime: last?.created_at || row.created_at,
+            otherUser: { id: String(row.is_artist ? row.buyer_id : row.artist_id), displayName: name, fullName: name, photoURL: '', role: row.is_artist ? 'buyer' : 'artist', user_type: row.is_artist ? 'buyer' : 'artist' } };
+        }));
+        setCommissionError('');
+      } catch (e: any) { if (active) setCommissionError(e.message || 'Commission chats could not load.'); }
+      finally { if (active) setCommissionLoading(false); }
+    };
+    if (currentUser?.uid) void load(); else setCommissionLoading(false);
+    const timer = setInterval(() => { if (currentUser?.uid) void load(); }, 5000);
+    return () => { active = false; clearInterval(timer); };
+  }, [currentUser?.uid]);
   const [accountRole, setAccountRole] = useState('');
   useEffect(() => {
     let active = true;
-    setAccountRole(''); setArtworkFilter('all');
+    setAccountRole(''); setArtworkFilter(initialArtworkFilter);
     const loadProfile = async () => {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
@@ -86,7 +117,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
     };
     loadProfile().catch((() => {}));
     return () => { active = false; };
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, initialArtworkFilter]);
   const [activeTab, setActiveTab] = useState<'artists' | 'drivers' | 'support'>('artists');
   const [supportOpen, setSupportOpen] = useState(false);
   const [contractChats, setContractChats] = useState<ChatListItem[]>([]);
@@ -97,6 +128,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
         const result = await contractRequest();
         const rows = new Map<string, ChatListItem>();
         result.contracts.forEach((c: Contract) => {
+          if (c.commission_id) return;
           const buying = c.buyer_uid === currentUser?.uid;
           const otherId = buying ? c.artist_uid : c.buyer_uid;
           const id = [c.buyer_uid, c.artist_uid].sort().join('_');
@@ -246,7 +278,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
     return (
       <TouchableOpacity
         style={styles.chatItem}
-        onPress={() => onChatSelect(item.id, item.otherUser)}
+        onPress={() => item.commissionId ? onCommissionSelect?.(item.commissionId) : onChatSelect(item.id, item.otherUser)}
       >
         {/* II.6.1. Avatar Container with unread badge */}
         <View style={styles.avatarContainer}>
@@ -275,6 +307,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
             )}
           </View>
           {(item.buying || item.selling) && <Text style={{ fontSize: 11, color: '#A75A2C', marginTop: 3 }}>{item.buying && item.selling ? 'Buying & Selling' : item.buying ? "You're buying" : "You're selling"}</Text>}
+          {item.commission && <Text style={{ fontSize: 11, color: '#A75A2C', marginTop: 3 }}>Commission</Text>}
           <Text style={styles.lastMessage} numberOfLines={1}>
             {item.lastMessage || 'No messages yet'}
           </Text>
@@ -283,9 +316,10 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
     );
   };
 
-  const merged = [...chats.map(chat => ({ ...chat, buying: contractChats.find(c => c.id === chat.id)?.buying, selling: contractChats.find(c => c.id === chat.id)?.selling, proposalUnread: contractChats.find(c => c.id === chat.id)?.proposalUnread || 0 })), ...contractChats.filter(c => !chats.some(chat => chat.id === c.id))]
+  const merged = [...chats.map(chat => ({ ...chat, buying: contractChats.find(c => c.id === chat.id)?.buying, selling: contractChats.find(c => c.id === chat.id)?.selling, proposalUnread: contractChats.find(c => c.id === chat.id)?.proposalUnread || 0 })), ...contractChats.filter(c => !chats.some(chat => chat.id === c.id)), ...commissionChats]
     .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
   const category = (chat: ChatListItem) => {
+    if (chat.commission) return 'artists';
     const role = (userMap[chat.otherUser?.id || '']?.role || chat.otherUser?.role || '').toLowerCase();
     if (role === 'driver') return 'drivers';
     if (role === 'customer_support') return 'support';
@@ -296,12 +330,13 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
     { key: 'drivers', label: 'Drivers' },
     { key: 'support', label: 'Customer Support' },
   ] as const;
-  const filters = accountRole === 'artist' ? ['all', 'buying', 'selling'] as const : ['all', 'buying'] as const;
+  const filters = accountRole === 'artist' ? ['all', 'buying', 'commission', 'selling'] as const : ['all', 'buying', 'commission'] as const;
   const visible = merged.filter(chat => category(chat) === activeTab && (activeTab !== 'artists' || artworkFilter === 'all' || !!chat[artworkFilter]));
   if (supportOpen) return <SupportScreen key={currentUser?.uid} embedded onClose={() => setSupportOpen(false)} />;
   return <View style={{ flex: 1 }}>
     {!!proposalError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{proposalError}</Text>}
     {!!chatError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{chatError}</Text>}
+    {!!commissionError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{commissionError}</Text>}
     <View style={styles.tabs}>
       {tabs.map(tab => <TouchableOpacity key={tab.key} accessibilityRole="tab" accessibilityState={{ selected: activeTab === tab.key }} onPress={() => setActiveTab(tab.key)} style={[styles.tab, activeTab === tab.key && styles.activeTab, activeTab === tab.key && (tab.key === 'drivers' ? styles.driverTab : tab.key === 'support' ? styles.supportTab : null)]}>
         <Text style={[styles.tabLabel, activeTab === tab.key && styles.activeTabLabel]}>{tab.label}</Text>
@@ -309,12 +344,12 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
       </TouchableOpacity>)}
     </View>
     {activeTab === 'artists' && <View style={{ padding: 10, gap: 8 }}>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {filters.map(filter => <TouchableOpacity key={filter} accessibilityRole="button" accessibilityState={{ selected: artworkFilter === filter }} onPress={() => setArtworkFilter(filter)} style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: artworkFilter === filter ? '#D48C62' : '#F4EEE8' }}>
-          <Text style={{ color: artworkFilter === filter ? '#fff' : '#75655F', fontWeight: '600' }}>{filter === 'all' ? 'All' : filter === 'buying' ? 'Buying' : 'Selling'}</Text>
+          <Text style={{ color: artworkFilter === filter ? '#fff' : '#75655F', fontWeight: '600' }}>{filter === 'all' ? 'All' : filter === 'buying' ? 'Buying' : filter === 'commission' ? 'Commission' : 'Selling'}</Text>
         </TouchableOpacity>)}
       </View>
-      <Text style={{ fontSize: 11, color: '#75655F' }}>Buying and Selling follow your role in each proposal. Chats without a proposal appear in All.</Text>
+      <Text style={{ fontSize: 11, color: '#75655F' }}>Buying and Selling follow your role in each proposal. Commission shows your commission conversations. Chats without a proposal appear in All.</Text>
     </View>}
     {activeTab === 'support' && <View style={styles.supportIntro}>
       <Text style={styles.chatName}>How can we help?</Text>
@@ -324,9 +359,9 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
         <Text style={styles.supportButtonText}>Contact customer support / My reports</Text>
       </TouchableOpacity>
     </View>}
-    {loading ? <View style={styles.centered}><ActivityIndicator size="large" color="#C15656" /></View> :
+    {(activeTab === 'artists' && artworkFilter === 'commission' ? commissionLoading : loading && !commissionChats.length) ? <View style={styles.centered}><ActivityIndicator size="large" color="#C15656" /></View> :
       <FlatList data={visible} keyExtractor={item => item.id} renderItem={renderChatItem} contentContainerStyle={visible.length ? styles.listContent : { flexGrow: 1 }}
-        ListEmptyComponent={<View style={styles.centered}><Ionicons name="chatbubble-outline" size={48} color="#C7C7CC" /><Text style={styles.emptyText}>No {activeTab === 'artists' ? 'artwork' : activeTab === 'drivers' ? 'driver' : 'customer support'} conversations yet</Text></View>} />}
+        ListEmptyComponent={<View style={styles.centered}><Ionicons name="chatbubble-outline" size={48} color="#C7C7CC" /><Text style={styles.emptyText}>No {activeTab === 'artists' ? artworkFilter === 'commission' ? 'commission' : 'artwork' : activeTab === 'drivers' ? 'driver' : 'customer support'} conversations yet</Text></View>} />}
   </View>;
 }
 

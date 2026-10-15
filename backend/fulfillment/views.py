@@ -12,7 +12,7 @@ from .models import DeliveryOrder, PurchaseReview
 from .services import delivery_context, png_bytes
 from messaging.models import Agreement
 from commissions.models import CommissionRequest, CommissionPhoto
-from .certificates import issue_certificate
+from .certificates import issue_certificate, commission_completed
 
 
 class DeliveryRoutesView(AuthenticatedAPIView):
@@ -61,7 +61,10 @@ class PurchasesView(AuthenticatedAPIView):
             paid = p.status == 'paid'
             certificate = issue_certificate(p) if paid else None
             digital = p.agreement.delivery_type == 'digital' if p.agreement else p.artwork.art_type == 'digital'
-            rows.append({'id': p.id, 'title': p.artwork.title, 'artist': p.artist.username,
+            from wallets.auction_delivery import auction_agreement
+            is_auction = bool(p.agreement and auction_agreement(p.agreement)) or str(p.artwork.sale_type).upper() == 'AUCTION'
+            rows.append({'art_type': 'digital' if digital else 'physical', 'purchase_type': 'auction' if is_auction else 'direct', 'is_auction': is_auction,
+                         'purchase_date': p.paid_at or p.created_at, 'created_at': p.created_at, 'id': p.id, 'title': p.artwork.title, 'artist': p.artist.username,
                          'image': ('data:image/png;base64,' + base64.b64encode(bytes(p.artwork_png)).decode() if digital and p.artwork_png else p.artwork.image_data) if paid else None,
                          'is_simulated': p.is_simulated, 'status': p.status, 'amount': str(p.gross_amount), 'agreement_id': p.agreement_id, 'verification_code': p.verification_code,
                          'checkout_url': p.checkout_url if p.status == 'pending' else None,
@@ -71,44 +74,55 @@ class PurchasesView(AuthenticatedAPIView):
                          'delivery': delivery_data(delivery) if delivery else None,
                          'review': {'artist_rating': review.artist_rating, 'artwork_rating': review.artwork_rating, 'comment': review.comment, 'artist_comment': review.artist_comment, 'artwork_comment': review.artwork_comment} if review else None})
 
-        commissions = CommissionRequest.objects.filter(buyer=user).prefetch_related('milestones', 'photos').order_by('-commission_req_id')
+        commissions = CommissionRequest.objects.filter(buyer=user).select_related('artist', 'agreement', 'purchase_review').prefetch_related('milestones', 'photos').order_by('-commission_req_id')
         for c in commissions:
-            has_paid_any = c.milestones.filter(status='PAID').exists()
-            is_complete = c.status in ['COMPLETE', 'STAGE_3']
-            is_digital = c.art_type.lower() == 'digital'
-
-            latest_photo = c.photos.filter(photo_type='PROGRESS').order_by('-progress_percentage').first()
-            img_url = latest_photo.image_url if latest_photo else None
-
-            comm_status = 'paid' if is_complete else ('in_progress' if has_paid_any else 'pending')
-            certificate = issue_certificate(c, commission=True)
-
-            rows.append({
-                'id': 100000 + c.commission_req_id,
-                'commission_id': c.commission_req_id,
-                'is_commission': True,
-                'title': c.title,
-                'artist': c.artist.username,
-                'image': img_url,
-                'is_simulated': False,
-                'status': comm_status,
-                'amount': str(c.time_duration),
-                'agreement_id': None,
-                'checkout_url': None,
-                'can_download': is_complete and is_digital and bool(img_url),
-                'can_rate': is_complete,
+            if c.flow_version == 2 and not c.funded_at and c.status != 'COMPLETE': continue
+            complete = commission_completed(c)
+            digital = c.art_type.lower() == 'digital'
+            review = getattr(c, 'purchase_review', None)
+            image = None; submission = None
+            if c.flow_version == 2:
+                from commissions.models import CommissionSubmission
+                submission = CommissionSubmission.objects.filter(milestone__commission_req=c, milestone__milestone_number=3).order_by('-pk').first()
+                if submission and submission.content_type.startswith('image/'):
+                    from PIL import Image, ImageDraw
+                    from io import BytesIO
+                    with Image.open(BytesIO(bytes(submission.content))) as original:
+                        preview = original.convert('RGB'); preview.thumbnail((900, 900))
+                        ImageDraw.Draw(preview).text((10, 10), 'ArtFiliere preview', fill=(190, 70, 70))
+                        output = BytesIO(); preview.save(output, 'JPEG', quality=80)
+                        image = 'data:image/jpeg;base64,' + base64.b64encode(output.getvalue()).decode()
+            else:
+                photo = c.photos.filter(photo_type='PROGRESS').order_by('-progress_percentage').first()
+                image = photo.image_url if photo else None
+            certificate = issue_certificate(c, commission=True) if complete else None
+            from commissions.shipping import delivery_status
+            delivery = delivery_status(c) if not digital else None
+            if delivery:
+                delivery['driver'] = delivery['driver']['name'] if delivery['driver'] else None
+            elif not digital:
+                delivery = {'status': 'delivered' if c.delivered_at else 'in_production',
+                    'status_label': 'Received by buyer' if c.delivered_at else 'In production / awaiting dispatch',
+                    'driver': None, 'delivery_address': c.locked_terms.get('delivery_address', ''), 'fee': str(c.locked_terms.get('delivery_fee', '0'))}
+            completion_dates = [m.approved_at or m.paid_at for m in c.milestones.all() if m.milestone_number == 3 and (m.approved_at or m.paid_at)]
+            purchase_date = max(completion_dates) if complete and completion_dates else c.funded_at or c.created_at
+            rows.append({'art_type': c.art_type.lower(), 'purchase_type': 'commission', 'is_auction': False,
+                'purchase_date': purchase_date, 'created_at': c.created_at, 'id': f'commission-{c.pk}', 'commission_id': c.pk, 'is_commission': True,
+                'title': c.title, 'artist': c.artist.username, 'image': image, 'is_simulated': False,
+                'status': 'paid' if complete else 'cancelled' if c.status == 'CANCELLED' else 'in_progress',
+                'commission_status': c.status, 'amount': str(c.time_duration), 'agreement_id': c.agreement_id,
+                'checkout_url': None, 'can_download': bool(complete and digital and (submission or image)),
+                'download_path': f'commissions/flow/{c.pk}/files/{submission.pk}/' if complete and digital and submission else None,
+                'download_filename': submission.filename if submission else None,
+                'download_mime': submission.content_type if submission else None,
+                'can_rate': bool(complete and not review),
                 'certificate_code': certificate.code if certificate else None,
                 'certificate_path': f'commissions/{c.pk}/coa/' if certificate else None,
-                'delivery': {
-                    'status': 'in_transit' if not is_complete else 'delivered',
-                    'status_label': 'In Progress / Production' if not is_complete else 'Completed & Dispatched',
-                    'driver': 'Artisan Logistics',
-                    'delivery_address': getattr(c, 'delivery_address', 'Physical Commission Address'),
-                    'fee': '0.00'
-                } if not is_digital else None,
-                'review': None
-            })
-            
+                'delivery': delivery,
+                'review': {'artist_rating': review.artist_rating, 'artwork_rating': review.artwork_rating,
+                           'comment': review.comment, 'artist_comment': review.artist_comment, 'artwork_comment': review.artwork_comment} if review else None})
+
+        rows.sort(key=lambda row: (row['purchase_date'], str(row['id'])), reverse=True)
         return Response(rows)
 
 
@@ -151,11 +165,20 @@ class PurchaseDownloadView(AuthenticatedAPIView):
 class PurchaseReviewView(AuthenticatedAPIView):
     permission_classes = [IsAuthenticatedUser]
     @transaction.atomic
-    def post(self, request, payment_id):
-        payment = PaymentSession.objects.select_for_update().filter(pk=payment_id, buyer=self.get_request_user(request), status='paid').first()
-        if not payment:
-            return Response({'error': 'Paid purchase not found.'}, status=404)
-        if PurchaseReview.objects.filter(payment=payment).exists():
+    def post(self, request, payment_id=None, commission_id=None):
+        if commission_id is not None:
+            source = CommissionRequest.objects.select_for_update().filter(pk=commission_id, buyer=self.get_request_user(request)).first()
+            if not source: return Response({'error': 'Commission purchase not found.'}, status=404)
+            if not commission_completed(source): return Response({'error': 'Complete the commission, including physical receipt and final approval, before rating.'}, status=409)
+            lookup = {'commission': source}
+        else:
+            source = PaymentSession.objects.select_for_update().filter(pk=payment_id, buyer=self.get_request_user(request), status='paid').first()
+            if not source: return Response({'error': 'Paid purchase not found.'}, status=404)
+            lookup = {'payment': source}
+        return self.save_review(request, lookup)
+
+    def save_review(self, request, lookup):
+        if PurchaseReview.objects.filter(**lookup).exists():
             return Response({'error': 'You have already rated this purchase.'}, status=409)
         ratings = {key: request.data.get(key) for key in ('artist_rating', 'artwork_rating')}
         if any(type(v) is not int or not 1 <= v <= 5 for v in ratings.values()):
@@ -166,7 +189,7 @@ class PurchaseReviewView(AuthenticatedAPIView):
         comments = {key: request.data.get(key, '') for key in ('artist_comment', 'artwork_comment')}
         if any(not isinstance(value, str) or len(value) > 2000 for value in comments.values()):
             return Response({'error': 'Each review must be at most 2,000 characters.'}, status=400)
-        PurchaseReview.objects.create(payment=payment, comment=comment.strip(), **{key: value.strip() for key, value in comments.items()}, **ratings)
+        PurchaseReview.objects.create(**lookup, comment=comment.strip(), **{key: value.strip() for key, value in comments.items()}, **ratings)
         return Response({'saved': True}, status=201)
 
 

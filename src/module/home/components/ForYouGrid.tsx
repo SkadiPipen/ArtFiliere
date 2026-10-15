@@ -1,14 +1,117 @@
 
 import { Watermark } from '@/module/artwork/components/Watermark';
 import { ArtItem, FOR_YOU_DATA } from '@/module/home/types';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Star } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 interface ForYouGridProps {
   activeCategory: string;
   onSelect: (item: ArtItem, type: string) => void;
   items?: ArtItem[];
   webFiltered?: boolean;
+}
+
+function ArtCardItem({
+  item,
+  widthPercent,
+  onSelect,
+}: {
+  item: any;
+  widthPercent: string;
+  onSelect: (item: ArtItem, type: string) => void;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const isSold = Boolean(item.is_sold);
+
+  // Type: Physical, Digital, or Auction
+  const isAuction = String(item.sale_type || '').toUpperCase() === 'AUCTION';
+  const typeLabel = isAuction
+    ? 'Auction'
+    : item.artType
+    ? item.artType.charAt(0).toUpperCase() + item.artType.slice(1).toLowerCase()
+    : 'Physical';
+
+  const titleText = item.title || item.artist || 'Untitled';
+  const artistLabel = item.artistName || item.artist_name || 'ArtFiliere Artist';
+  const ratingVal = item.rating || item.artistRating || '5.0';
+  const tagsList = Array.isArray(item.tags) && item.tags.length > 0 ? item.tags.slice(0, 3) : [item.category || item.type || 'Artwork'];
+
+  return (
+    <Pressable
+      style={[
+        styles.gridCard,
+        { width: widthPercent as any },
+        isHovered && styles.gridCardHovered,
+      ]}
+      onPress={() => onSelect(item, item.type)}
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+    >
+      {/* Image with Watermark and Hover Description Overlay */}
+      <View style={styles.imageWrapper}>
+        <Watermark uri={item.image} height={280} />
+
+        {isSold && (
+          <View style={styles.soldOverlay}>
+            <View style={styles.soldBadge}>
+              <Text style={styles.soldText}>SOLD</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Description when hovered */}
+        {isHovered && (
+          <LinearGradient
+            colors={['transparent', 'rgba(20, 16, 16, 0.6)', 'rgba(20, 16, 16, 0.78)']}
+            locations={[0, 0.4, 1]}
+            style={styles.hoverCaptionContainer}
+          >
+            <Text style={styles.hoverCaptionText} numberOfLines={2}>
+              {item.description || 'Authentic Philippine visual artwork piece.'}
+            </Text>
+          </LinearGradient>
+        )}
+      </View>
+
+      <View style={styles.gridContent}>
+        <Text style={styles.titleRow}>
+          <View style={styles.typeBadge}>
+            <Text style={styles.typeBadgeText}>{typeLabel}</Text>
+          </View>
+          <Text style={styles.titleBold} numberOfLines={1}>
+            {titleText}
+          </Text>
+        </Text>
+
+        {/* Price */}
+        <Text style={styles.gridPrice}>
+          ₱ {Number(item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </Text>
+
+        {/* Tags */}
+        <View style={styles.tagRow}>
+          {tagsList.map((tag: string, index: number) => (
+            <View key={index} style={styles.tagBadge}>
+              <Text style={styles.tagText}>{String(tag).replace(/_/g, ' ')}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Artist Name & Rating */}
+        <View style={styles.artistRow}>
+          <Text style={styles.artistName} numberOfLines={1}>
+            {artistLabel}
+          </Text>
+          <View style={styles.ratingBox}>
+            <Star size={13} color="#E67E22" fill="#E67E22" />
+            <Text style={styles.ratingText}>{ratingVal}</Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
 }
 
 export default function ForYouGrid({
@@ -20,7 +123,6 @@ export default function ForYouGrid({
   const { width } = useWindowDimensions();
   const [gridPage, setGridPage] = useState(1);
 
-  // Responsive column count for web/desktop vs mobile
   const numColumns = width > 768 ? 2 : 2;
   const itemsPerPage = numColumns * 2;
 
@@ -32,6 +134,7 @@ export default function ForYouGrid({
 
   const pageCount = webFiltered ? Math.max(1, Math.ceil(filteredForYou.length / itemsPerPage)) : 5;
   useEffect(() => { if (webFiltered) setGridPage(1); }, [items, activeCategory, webFiltered]);
+  
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>For You</Text>
@@ -39,34 +142,9 @@ export default function ForYouGrid({
       <View style={styles.grid}>
         {filteredForYou
           .slice((gridPage - 1) * itemsPerPage, gridPage * itemsPerPage)
-          .map((item) => {
-            const isSold = Boolean(item.is_sold);
-
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.gridCard, { width: `${100 / numColumns - 2}%` }]}
-                onPress={() => onSelect(item, item.type)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.imageWrapper}>
-                  <Watermark uri={item.image} height={350}/>
-                  {isSold && (
-                    <View style={styles.soldOverlay}>
-                      <View style={styles.soldBadge}>
-                        <Text style={styles.soldText}>SOLD</Text>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              
-                <View style={styles.gridContent}>
-                  <Text style={styles.gridName} numberOfLines={1}>{item.artist}</Text>
-                  <Text style={styles.gridPrice}>₱ {item.price}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+          .map((item) => (
+            <ArtCardItem key={item.id} item={item} widthPercent={`${100 / numColumns - 2}%`} onSelect={onSelect} />
+          ))}
       </View>
 
       {/* PAGINATION */}
@@ -101,49 +179,69 @@ const styles = StyleSheet.create({
   container: { marginTop: 20, flex: 1 },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#C15656",
+    fontWeight: 'bold',
+    color: '#C15656',
     marginHorizontal: 15,
     marginBottom: 12,
-    textAlign: "center",
+    textAlign: 'center',
   },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     paddingHorizontal: 15,
   },
   gridCard: {
-    marginBottom: 15,
-    backgroundColor: "#fff",
+    marginBottom: 18,
+    backgroundColor: '#fff',
     borderRadius: 12,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#eee",
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#eee',
     elevation: 2,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
-    shadowRadius: 2,
-  },
-  gridImg: { width: "100%", aspectRatio: 1 },
-  gridContent: { padding: 10 },
-  gridName: { fontSize: 13, fontWeight: '500', color: '#333' },
-  gridPrice: { fontWeight: 'bold', color: '#C15656', marginTop: 2 },
-  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 20 },
-  pageArrow: { color: '#C15656', marginHorizontal: 12, fontWeight: 'bold', fontSize: 13 },
-  pageDot: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginHorizontal: 4 },
-  activePageDot: { backgroundColor: '#C15656' },
-  pageNum: { fontSize: 13, fontWeight: 'bold', color: '#555' },
+    shadowRadius: 3,
+    cursor: Platform.OS === 'web' ? 'pointer' : undefined,
+    transition: Platform.OS === 'web' ? 'all 0.2s ease-in-out' : undefined,
+  } as any,
+  gridCardHovered: {
+    borderColor: '#F1948A',
+    shadowColor: '#E74C3C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    transform: Platform.OS === 'web' ? [{ translateY: -3 }] : undefined,
+  } as any,
   imageWrapper: {
     position: 'relative',
     overflow: 'hidden',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
     width: '100%',
+    backgroundColor: '#F8F9FA',
+  },
+  hoverCaptionContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    paddingTop: 18,
+    paddingBottom: 8,
+  },
+  hoverCaptionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
   },
   soldOverlay: {
-    backgroundColor: '#c1565665',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(193, 86, 86, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -153,7 +251,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#ffffff52',
+    borderColor: 'rgba(255, 255, 255, 0.32)',
   },
   soldText: {
     color: '#FFFFFF',
@@ -161,4 +259,107 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1,
   },
+  gridContent: {
+    padding: 12,
+    gap: 3,
+  },
+  titleRow: {
+    fontSize: 14,
+    color: '#2C3E50',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 4,
+  },
+  typeBadge: {
+    borderRadius: 4,
+    backgroundColor: '#C15656',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    justifyContent: 'center',
+  },
+  typeBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.3,
+  },
+  titleBold: {
+    left: 5,
+    flex: 1,
+    fontWeight: '700',
+    fontSize: 18,
+    color: '#2C3E50',
+  },
+  gridPrice: {
+    fontWeight: '700',
+    color: '#C15656',
+    fontSize: 18,
+    marginTop: 2,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginVertical: 4,
+  },
+  tagBadge: {
+    backgroundColor: '#FDF2E9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  tagText: {
+    fontSize: 11,
+    color: '#D35400',
+    fontWeight: '600',
+  },
+  artistRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F4F6F6',
+  },
+  artistName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#7F8C8D',
+    flex: 1,
+    marginRight: 8,
+  },
+  ratingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5D6D7E',
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  pageArrow: {
+    color: '#C15656',
+    marginHorizontal: 12,
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  pageDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  activePageDot: { backgroundColor: '#C15656' },
+  pageNum: { fontSize: 13, fontWeight: 'bold', color: '#555' },
 });

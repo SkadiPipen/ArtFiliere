@@ -1,11 +1,13 @@
+import { filterPurchases, PurchaseKind } from './purchaseFilters';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
-import { downloadPurchase, downloadCertificate, purchaseRequest } from '@/services/purchases';
+import { downloadPurchase, downloadProtectedFile, downloadCertificate, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 type Purchase = {
-  id: number; title: string; artist: string; status: string; amount: string; agreement_id: number;
+  id: number | string; is_commission?: boolean; commission_id?: number; download_path?: string; download_filename?: string; download_mime?: string; title: string; artist: string; status: string; amount: string; agreement_id: number;
+  art_type?: string; purchase_type?: string; is_auction?: boolean; purchase_date?: string; created_at?: string;
   verification_code?: string;
   certificate_code?: string; certificate_path?: string;
   is_simulated?: boolean; image?: string; can_download: boolean; can_rate: boolean; checkout_url?: string;
@@ -15,11 +17,12 @@ type Purchase = {
 
 export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () => void; filter?: 'all' | 'receive' | 'rate' | 'pay' }) {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [kind, setKind] = useState<PurchaseKind>('all');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [deliveryCheckout, setDeliveryCheckout] = useState<{ agreementId: number; context: AuctionCheckoutContext } | null>(null);
-  const [reviewing, setReviewing] = useState<number | null>(null);
+  const [reviewing, setReviewing] = useState<number | string | null>(null);
   const [artistRating, setArtistRating] = useState(0);
   const [artworkRating, setArtworkRating] = useState(0);
   const [artistComment, setArtistComment] = useState('');
@@ -64,15 +67,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
     finally { setBusy(false); }
   };
 
-  const rows = purchases.filter(p => 
-    filter === 'receive' 
-      ? p.status === 'paid' && p.delivery && p.delivery.status !== 'delivered' 
-      : filter === 'rate' 
-        ? p.can_rate 
-        : filter === 'pay' 
-          ? p.status === 'pending' 
-          : true
-  );
+  const rows = filterPurchases(purchases, filter, kind);
 
   const stars = (label: string, rating: number, change: (n: number) => void) => (
     <View style={s.gap}>
@@ -122,6 +117,13 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             : 'Once payment is confirmed, your purchase appears here. Digital artworks are available as PNG downloads.'}
         </Text>
 
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
+          {(['all', 'physical', 'digital', 'auction', 'commission'] as PurchaseKind[]).map(value => <TouchableOpacity key={value} accessibilityRole="button" accessibilityLabel={`Filter ${value} purchases`} accessibilityState={{ selected: kind === value }} onPress={() => { setKind(value); setReviewing(null); }} style={[s.filterChip, kind === value && s.filterChipActive]}>
+            <Text style={[s.filterText, kind === value && s.filterTextActive]}>{value.charAt(0).toUpperCase() + value.slice(1)}</Text>
+          </TouchableOpacity>)}
+        </ScrollView>
+        <Text style={{ color: '#75655F' }}>Newest first · Physical/Digital filter by artwork format; Auction/Commission filter by purchase source.</Text>
+
         <TouchableOpacity onPress={() => load(true)}>
           <Text style={s.link}>Refresh payment status</Text>
         </TouchableOpacity>
@@ -142,7 +144,9 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
 
             <Text style={s.title}>{p.title}</Text>
             <Text>by {p.artist}</Text>
+            {p.is_commission && <Text>Commission purchase</Text>}
             <Text>PHP {p.amount} · {p.status}</Text>
+            {!!p.purchase_date && <Text>Date: {new Date(p.purchase_date).toLocaleString()}</Text>}
             {p.status === 'paid' && p.verification_code ? <Text selectable style={{ color: '#5D8A63', fontWeight: '800' }}>Transaction verification code: {p.verification_code}</Text> : null}
 
             {Boolean(p.agreement_id) ? (
@@ -178,7 +182,9 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
                 style={s.button} 
                 onPress={() => 
                   run(async () => {
-                    if ((p as any).is_commission && p.image) {
+                    if (p.download_path) {
+                      await downloadProtectedFile(p.download_path, p.download_filename || 'commission-artwork', p.download_mime);
+                    } else if (p.is_commission && p.image) {
                       if (typeof window !== 'undefined' && window.document) {
                         const link = document.createElement('a');
                         link.href = p.image;
@@ -190,11 +196,11 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
                         await Linking.openURL(p.image);
                       }
                     } else {
-                      await downloadPurchase(p.id);
+                      await downloadPurchase(Number(p.id));
                     }
                   })
                 }>
-                <Text style={s.white}>Download artwork PNG</Text>
+                <Text style={s.white}>{p.download_path ? 'Download final artwork' : 'Download artwork PNG'}</Text>
               </TouchableOpacity>
             ) : null}
 
@@ -259,7 +265,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
                   disabled={busy || !artistRating || !artworkRating} 
                   style={[s.button, (!artistRating || !artworkRating || busy) && { opacity: 0.4 }]} 
                   onPress={() => run(async () => { 
-                    await purchaseRequest(`purchases/${p.id}/review/`, 'POST', { 
+                    await purchaseRequest(p.is_commission ? `commissions/${p.commission_id}/review/` : `purchases/${p.id}/review/`, 'POST', {
                       artist_rating: artistRating, 
                       artwork_rating: artworkRating, 
                       artist_comment: artistComment, 
@@ -286,6 +292,10 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
 
 const s = StyleSheet.create({
   page: { padding: 24, paddingTop: 50, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, backgroundColor: '#F5EAE5', borderWidth: 1, borderColor: '#E3D7D0' },
+  filterChipActive: { backgroundColor: '#C15656', borderColor: '#C15656' },
+  filterText: { color: '#845951', fontWeight: '600' },
+  filterTextActive: { color: '#FFF' },
   title: { fontSize: 20, fontWeight: '700', color: '#603c36' },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center', justifyContent: 'space-between' },
   card: { padding: 18, borderWidth: 1, borderColor: '#e3d7d0', borderRadius: 12, gap: 10 },

@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -33,6 +34,7 @@ interface OrderRequest {
 export default function RiderOrdersScreen() {
   const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
   const [selectedOrder, setSelectedOrder] = useState<OrderRequest | null>(null);
@@ -42,10 +44,12 @@ export default function RiderOrdersScreen() {
   const loadOrders = useCallback(async () => {
     try {
       const data = await fetchPendingOrders();
+      setLoadError('');
       if (Array.isArray(data)) {
         setOrderRequests(data);
       }
     } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Unable to load delivery requests. Please retry.');
       console.warn('Failed to fetch pending orders:', err);
     } finally {
       setLoading(false);
@@ -55,6 +59,8 @@ export default function RiderOrdersScreen() {
 
   useEffect(() => {
     loadOrders();
+    const timer = setInterval(loadOrders, 15000);
+    return () => clearInterval(timer);
   }, [loadOrders]);
 
   const onRefresh = () => {
@@ -91,7 +97,8 @@ export default function RiderOrdersScreen() {
       }
     } catch (error) {
       console.error('Error accepting order:', error);
-      Alert.alert('Action Failed', 'Unable to accept this order. Please try again.');
+      const message = error instanceof Error ? error.message : 'Unable to accept this order. Please try again.';
+      if (Platform.OS === 'web') window.alert(message); else Alert.alert('Action Failed', message);
     } finally {
       setIsAccepting(false);
     }
@@ -159,6 +166,12 @@ export default function RiderOrdersScreen() {
             <ActivityIndicator size="large" color="#BC5454" />
             <Text style={styles.loadingText}>Fetching order requests...</Text>
           </View>
+        ) : loadError ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>Unable to load orders</Text>
+            <Text accessibilityRole="alert" style={styles.emptySubtitle}>{loadError}</Text>
+            <TouchableOpacity accessibilityRole="button" onPress={onRefresh} style={styles.acceptButton}><Text style={styles.acceptButtonText}>Retry</Text></TouchableOpacity>
+          </View>
         ) : orderRequests.length > 0 ? (
           orderRequests.map((order) => {
             const items = order.items_count || order.itemsCount || 1;
@@ -225,7 +238,7 @@ export default function RiderOrdersScreen() {
           <View style={styles.emptyContainer}>
             <Ionicons name="checkmark-circle-outline" size={60} color="#2ECC71" />
             <Text style={styles.emptyTitle}>All Caught Up!</Text>
-            <Text style={styles.emptySubtitle}>No pending order requests available right now.</Text>
+            <Text style={styles.emptySubtitle}>No pending order requests available right now. For a commission, the buyer must approve the artwork as ready for delivery, then the artist requests platform driver pickup.</Text>
           </View>
         )}
       </ScrollView>
