@@ -3,6 +3,7 @@ from .addresses import AddressesView
 from .routing import DeliveryQuoteView
 from django.urls import path
 from .views import DeliveryRoutesView, PurchasesView, PurchaseDownloadView, PurchaseReviewView, DriverOrdersView
+from .views import PurchaseCertificateView
 
 urlpatterns = [
     path('addresses/', AddressesView.as_view()),
@@ -19,6 +20,8 @@ urlpatterns = [
     path('delivery/rider/location/', RiderLocationView.as_view()),
     path('delivery/routes/<int:artwork_id>/', DeliveryRoutesView.as_view()),
     path('purchases/', PurchasesView.as_view()),
+    path('purchases/<int:payment_id>/coa/', PurchaseCertificateView.as_view()),
+    path('commissions/<int:commission_id>/coa/', PurchaseCertificateView.as_view()),
     path('purchases/<int:payment_id>/png/', PurchaseDownloadView.as_view()),
     path('purchases/<int:payment_id>/review/', PurchaseReviewView.as_view()),
     path('delivery/driver/orders/', DriverOrdersView.as_view()),

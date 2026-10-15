@@ -22,7 +22,7 @@ const STEP_META: Record<number, { subtitle: string; heading: string }> = {
   1: { subtitle: "Sign up to get more access", heading: "Create Your Account" },
   2: { subtitle: "Tell us about yourself", heading: "Profile Information" },
   3: { subtitle: "Enter your default address", heading: "Address" },
-  4: { subtitle: "And set default royalty (this is optional)", heading: "" },
+  4: { subtitle: "Apply for royalty access (optional)", heading: "" },
 };
 
 function validateStep(step: number, formData: SignUpFormData): string | null {
@@ -64,6 +64,12 @@ function validateStep(step: number, formData: SignUpFormData): string | null {
     }
   }
 
+  if (step === 4 && formData.wantsRoyalty === 'yes') {
+    if (!formData.businessPermitImage) return 'Please upload an image of your business permit.';
+    const date = new Date(`${formData.permitExpiresOn}T00:00:00`);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.permitExpiresOn) || !Number.isFinite(date.getTime()) || date < today || `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` !== formData.permitExpiresOn) return 'Enter an unexpired permit date in YYYY-MM-DD format.';
+  }
   return null;
 }
 
@@ -91,6 +97,8 @@ export default function SignUp() {
   }
 
   async function handleCreateAccount() {
+    const validationError = validateStep(4, formData);
+    if (validationError) { alert(validationError); return; }
     try {
       // If Firebase completed a prior attempt but the app profile did not save,
       // sign in and retry the profile registration instead of leaving the user stuck.

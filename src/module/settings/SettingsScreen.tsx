@@ -1,3 +1,4 @@
+import AccountSettingsPanel from './AccountSettingsPanel';
 import { auth } from "@/firebase/config";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
@@ -5,6 +6,9 @@ import {
   ArrowLeft,
   ChevronRight,
   CreditCard,
+  BadgePercent,
+  Headphones,
+  FileCheck2,
   Lock,
   LogOut,
   User,
@@ -21,12 +25,13 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-type TabType = "account" | "privacy" | "billing";
+type TabType = "account" | "privacy" | "billing" | "royalties";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
 
@@ -69,7 +74,7 @@ export default function SettingsScreen() {
         <View style={styles.headerInner}>
           <TouchableOpacity
             style={styles.headerBtn}
-            onPress={() => router.back()}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}
           >
             <ArrowLeft color="#fff" size={22} />
           </TouchableOpacity>
@@ -79,10 +84,12 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        style={{ flex: 1, minHeight: 0 }}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === 'web' && isDesktop ? 32 : 120 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity onPress={() => router.push('/support' as any)} style={{ padding: 18 }}><Text style={{ color: '#C15656', fontWeight: '700' }}>Customer Support / Report an issue</Text></TouchableOpacity>
         <View
           style={[styles.discorContainer, isDesktop && styles.desktopContainer]}
         >
@@ -165,6 +172,21 @@ export default function SettingsScreen() {
               {!isDesktop && <ChevronRight color="#CBD5E0" size={18} />}
             </TouchableOpacity>
 
+            <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: activeTab === 'royalties' }} style={[styles.navItem, activeTab === 'royalties' && styles.activeNavItem]} onPress={() => setActiveTab('royalties')}>
+              <View style={styles.navItemLeft}>
+                <BadgePercent color={activeTab === 'royalties' ? '#C15656' : '#718096'} size={18} />
+                <Text style={[styles.navText, activeTab === 'royalties' && styles.activeNavText]}>Royalties Access</Text>
+              </View>
+              {!isDesktop && <ChevronRight color="#CBD5E0" size={18} />}
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={styles.navItem} onPress={() => router.push('/support')}>
+              <View style={styles.navItemLeft}>
+                <Headphones color="#718096" size={18} />
+                <Text style={[styles.navText, { flexShrink: 1 }]}>Customer Support</Text>
+              </View>
+              <ChevronRight color="#CBD5E0" size={18} />
+            </TouchableOpacity>
+
             <View style={styles.sidebarDivider} />
 
             {/* Logout button */}
@@ -190,32 +212,7 @@ export default function SettingsScreen() {
               isDesktop && styles.desktopContentPanel,
             ]}
           >
-            {activeTab === "account" && (
-              <View style={styles.panelInner}>
-                <Text style={styles.panelTitle}>Account Settings</Text>
-
-                <View style={styles.placeholderBox}>
-                  <Text style={styles.placeholderText}>
-                    Email: {auth.currentUser?.email || "N/A"}
-                  </Text>
-                  <Text style={[styles.placeholderText, { marginTop: 8 }]}>
-                    Account ID: {auth.currentUser?.uid || "N/A"}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {activeTab === "privacy" && (
-              <View style={styles.panelInner}>
-                <Text style={styles.panelTitle}>Data & Privacy</Text>
-
-                <View style={styles.placeholderBox}>
-                  <Text style={styles.placeholderText}>
-                    Privacy settings and activity log details will appear here.
-                  </Text>
-                </View>
-              </View>
-            )}
+            {(activeTab === 'account' || activeTab === 'privacy') && <AccountSettingsPanel key={activeTab} section={activeTab} />}
 
             {activeTab === "billing" && (
               <View style={styles.panelInner}>
@@ -228,6 +225,20 @@ export default function SettingsScreen() {
                 </View>
               </View>
             )}
+            {activeTab === 'royalties' && <View style={styles.panelInner}>
+              <Text style={styles.panelTitle}>Royalties Access</Text>
+              <Text style={styles.panelDescription}>Manage your business permit, royalty reports, and payments.</Text>
+              <TouchableOpacity accessibilityRole="button" style={styles.royaltyRow} onPress={() => router.push('/royalty-access')}>
+                <View style={styles.royaltyIcon}><FileCheck2 size={21} color="#C15656" /></View>
+                <View style={{ flex: 1 }}><Text style={styles.royaltyTitle}>Application &amp; Business Permit</Text><Text style={styles.royaltyDescription}>Submit a permit or check your application status.</Text></View>
+                <ChevronRight size={18} color="#CBD5E0" />
+              </TouchableOpacity>
+              <TouchableOpacity accessibilityRole="button" style={styles.royaltyRow} onPress={() => router.push('/royalty-reports')}>
+                <View style={styles.royaltyIcon}><BadgePercent size={21} color="#C15656" /></View>
+                <View style={{ flex: 1 }}><Text style={styles.royaltyTitle}>Royalty Reports &amp; Payments</Text><Text style={styles.royaltyDescription}>Review reports, evidence, and payment authorizations.</Text></View>
+                <ChevronRight size={18} color="#CBD5E0" />
+              </TouchableOpacity>
+            </View>}
           </View>
         </View>
       </ScrollView>
@@ -334,7 +345,8 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   contentPanel: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 0,
     width: "100%",
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -348,10 +360,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   desktopContentPanel: {
+    flex: 1,
+    minWidth: 0,
     minHeight: 350,
     padding: 32,
   },
   panelInner: {},
+  panelDescription: { fontSize: 13, lineHeight: 20, color: '#718096', marginBottom: 18 },
+  royaltyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, minHeight: 76, borderWidth: 1, borderColor: '#EDF2F7', borderRadius: 12, marginBottom: 12, backgroundColor: '#FFF' },
+  royaltyIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#FFF5F5', justifyContent: 'center', alignItems: 'center' },
+  royaltyTitle: { fontSize: 14, fontWeight: '600', color: '#4A5568' },
+  royaltyDescription: { fontSize: 12, lineHeight: 18, color: '#718096', marginTop: 4 },
   panelTitle: {
     fontSize: 20,
     fontWeight: "bold",

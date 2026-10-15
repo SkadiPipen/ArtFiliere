@@ -33,6 +33,7 @@ export default function Success() {
         Congratulations! You've done sign up.
       </Text>
 
+      <Text style={{ color: COLORS.textMuted, textAlign: 'center', marginBottom: 16 }}>Your account is ready to use. If you applied for royalty access, it will become available after admin approval.</Text>
       <Pressable onPress={() => router.replace("/login")}>
         <Text style={{ color: COLORS.red, fontWeight: "700", fontSize: 14 }}>
           Proceed to Log In

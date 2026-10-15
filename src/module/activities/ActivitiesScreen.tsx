@@ -67,7 +67,7 @@ export default function ActivitiesScreen() {
 
   return <SafeAreaView style={styles.page} edges={['top', 'left', 'right']}>
     <View style={styles.header}>
-      <TouchableOpacity onPress={() => router.back()}>
+      <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}>
         <ArrowLeft color="#C15656" size={24} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Activities</Text>

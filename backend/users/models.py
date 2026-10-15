@@ -34,6 +34,7 @@ class User(models.Model):
     contact_number = models.CharField(
         max_length=20
     )
+    profile_image = models.TextField(blank=True, default='')
     is_banned = models.BooleanField(default=False)
     suspended_until = models.DateTimeField(null=True, blank=True)
 
@@ -51,6 +52,11 @@ class User(models.Model):
         choices=RoyaltyStatus.choices,
         default=RoyaltyStatus.NO,
     )
+
+    @property
+    def royalty_enabled(self):
+        from django.utils import timezone
+        return RoyaltyApplication.objects.filter(user=self, status='approved', permit_expires_on__gte=timezone.localdate()).exists()
 
     royalty_proof = models.FileField(
         upload_to="royalty_proofs/",
@@ -89,6 +95,22 @@ class User(models.Model):
 
     def __str__(self):
         return self.email
+
+
+class RoyaltyApplication(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        APPROVED = 'approved', 'Approved'
+        REJECTED = 'rejected', 'Rejected'
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='royalty_application')
+    business_permit_image = models.TextField()
+    permit_expires_on = models.DateField()
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='royalty_reviews')
+    review_note = models.CharField(max_length=1000, blank=True, default='')
 
 
 class Address(models.Model):

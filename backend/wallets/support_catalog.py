@@ -31,6 +31,7 @@ CONCERNS = [
     concern('account', 'Account or login issue', 'Account & Safety', 'none'),
     concern('artist_registration', 'Follow up artist registration', 'Registration', 'none'),
     concern('driver_registration', 'Follow up driver application', 'Registration', 'none'),
+    concern('royalty_application', 'Follow up royalty application', 'Registration', 'none'),
     concern('harassment', 'Harassment or inappropriate messages', 'Account & Safety', 'none'),
     concern('suspicious', 'Suspicious activity or scam', 'Account & Safety', 'none'),
     concern('other', 'Something else', 'Account & Safety', 'none'),

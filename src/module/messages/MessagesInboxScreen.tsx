@@ -52,7 +52,7 @@ export default function MessagesInboxScreen() {
   return (
     <SafeAreaView style={s.page}>
       <View style={s.head}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}>
           <ArrowLeft color="#C15656" size={24} />
         </TouchableOpacity>
         <Text style={s.title}>Messages</Text>

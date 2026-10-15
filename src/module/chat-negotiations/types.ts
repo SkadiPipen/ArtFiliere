@@ -2,6 +2,7 @@ export type LicenseType = 'personal' | 'commercial';
 export type ExclusivityType = 'non-exclusive' | 'exclusive' | 'sole';
 
 export interface Artwork {
+  royalty_enabled?: boolean;
   id: string | number;
   title: string;
   artist_name?: string;

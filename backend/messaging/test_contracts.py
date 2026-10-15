@@ -32,7 +32,8 @@ class ContractFlowTests(TestCase):
             return view.as_view()(request, **kwargs)
 
     def propose(self):
-        response = self.call(ContractsView, self.buyer, "post", {"price": "75.50", "terms": "Personal use. Digital delivery. No revisions."}, artwork_id=self.artwork.id)
+        latest = Agreement.objects.filter(artwork=self.artwork, buyer=self.buyer, status="proposed").order_by("-id").first()
+        response = self.call(ContractsView, self.buyer, "post", {"price": "75.50", "terms": "Personal use. Digital delivery. No revisions.", **({"revision_of": latest.pk} if latest else {})}, artwork_id=self.artwork.id)
         self.assertEqual(response.status_code, 201)
         return response.data["id"]
 
@@ -76,6 +77,80 @@ class ContractFlowTests(TestCase):
         self.assertEqual(Agreement.objects.get(id=old).status, "cancelled")
         self.assertIsNone(Agreement.objects.get(id=new).artist_accepted_at)
         self.assertEqual(self.call(ContractDecisionView, self.buyer, "patch", {"action": "accept"}, agreement_id=old).status_code, 409)
+
+    def test_edit_counteroffer_cancel_and_restart_preserve_attempts(self):
+        first = self.propose()
+        def post(user, **data):
+            return self.call(ContractsView, user, 'post', {'price': '100', 'terms': 'Updated terms', **data}, artwork_id=self.artwork.pk)
+        counter = post(self.artist, revision_of=first)
+        self.assertEqual(counter.status_code, 201)
+        self.assertEqual(counter.data['attempt_action'], 'renegotiated')
+        self.assertEqual(counter.data['proposed_by']['uid'], self.artist.firebase_uid)
+        edited = post(self.artist, revision_of=counter.data['id'], price='110')
+        self.assertEqual(edited.status_code, 201)
+        self.assertEqual(edited.data['attempt_action'], 'edited')
+        self.assertEqual(edited.data['negotiation_key'], counter.data['negotiation_key'])
+        self.assertFalse(edited.data['buyer_accepted'])
+        self.assertEqual(post(self.buyer, revision_of=first).status_code, 409)
+        self.assertEqual(post(self.buyer).status_code, 409)
+        cancelled = self.call(ContractDecisionView, self.buyer, 'patch', {'action': 'cancel'}, agreement_id=edited.data['id'])
+        self.assertEqual(cancelled.status_code, 200)
+        self.assertEqual(cancelled.data['cancelled_by']['uid'], self.buyer.firebase_uid)
+        self.assertTrue(cancelled.data['cancelled_at'])
+        self.assertEqual(post(self.buyer, revision_of=edited.data['id']).status_code, 409)
+        self.assertEqual(post(self.stranger, restart_of=edited.data['id']).status_code, 409)
+        restarted = post(self.artist, restart_of=edited.data['id'])
+        self.assertEqual(restarted.status_code, 201)
+        self.assertNotEqual(restarted.data['negotiation_key'], edited.data['negotiation_key'])
+        self.assertIsNone(restarted.data['revision_of'])
+        self.assertEqual(Agreement.objects.count(), 4)
+        self.assertEqual(Agreement.objects.get(pk=edited.data['id']).closure_reason, 'cancelled')
+        self.assertEqual(Agreement.objects.get(pk=first).closure_reason, 'superseded')
+
+    def test_notifications_follow_negotiation_events_and_target_only_other_participant(self):
+        from notifications.models import UserNotification
+        first = self.propose()
+        notification = UserNotification.objects.get(agreement_id=first)
+        self.assertEqual(notification.user, self.artist)
+        self.assertEqual(notification.title, 'New negotiation')
+        self.assertFalse(notification.is_read)
+        edited = self.call(ContractsView, self.buyer, 'post', {'revision_of': first, 'price': '90', 'terms': 'Edited terms'}, artwork_id=self.artwork.pk)
+        self.assertEqual(edited.status_code, 201)
+        self.assertEqual(UserNotification.objects.get(agreement_id=edited.data['id']).title, 'Negotiation edited')
+        counter = self.call(ContractsView, self.artist, 'post', {'revision_of': edited.data['id'], 'price': '100', 'terms': 'Counteroffer'}, artwork_id=self.artwork.pk)
+        self.assertEqual(counter.status_code, 201)
+        notification = UserNotification.objects.get(agreement_id=counter.data['id'])
+        self.assertEqual(notification.user, self.buyer)
+        self.assertEqual(notification.title, 'New counteroffer')
+        self.call(ContractDecisionView, self.buyer, 'patch', {'action': 'cancel'}, agreement_id=counter.data['id'])
+        notification = UserNotification.objects.get(agreement_id=counter.data['id'], title='Negotiation cancelled')
+        self.assertEqual(notification.user, self.artist)
+        count = UserNotification.objects.count()
+        self.assertEqual(self.call(ContractDecisionView, self.buyer, 'patch', {'action': 'cancel'}, agreement_id=counter.data['id']).status_code, 409)
+        self.assertEqual(UserNotification.objects.count(), count)
+        self.assertFalse(UserNotification.objects.filter(user=self.stranger).exists())
+
+    def test_notification_links_and_read_status_are_private(self):
+        from notifications.models import UserNotification
+        from notifications.views import UserNotificationView
+        from messaging.notifications import notify_negotiation
+        first = self.propose()
+        result = self.call(UserNotificationView, self.artist)
+        self.assertEqual(result.data['unread_count'], 1)
+        item = result.data['notifications'][0]
+        self.assertEqual(item['agreement_id'], first)
+        self.assertEqual(item['negotiation_partner']['id'], self.buyer.firebase_uid)
+        self.assertEqual(self.call(UserNotificationView, self.stranger).data['notifications'], [])
+        self.call(UserNotificationView, self.stranger, 'patch', {'notification_id': item['id']})
+        self.assertFalse(UserNotification.objects.get(pk=item['id']).is_read)
+        self.call(UserNotificationView, self.artist, 'patch', {'notification_id': item['id']})
+        self.assertTrue(UserNotification.objects.get(pk=item['id']).is_read)
+        self.call(ContractDecisionView, self.artist, 'patch', {'action': 'accept'}, agreement_id=first)
+        self.assertEqual(UserNotification.objects.get(user=self.buyer, title='Negotiation accepted').agreement_id, first)
+        agreement = Agreement.objects.get(pk=first)
+        notify_negotiation(agreement, self.artist, 'signed')
+        notify_negotiation(agreement, self.artist, 'signed')
+        self.assertEqual(UserNotification.objects.filter(user=self.buyer, title='Agreement signed').count(), 1)
 
     def test_permissions_rejection_and_invalid_price(self):
         pk = self.propose()

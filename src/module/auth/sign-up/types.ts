@@ -16,6 +16,8 @@ export type SignUpFormData = {
   street: string;
   wantsRoyalty: "yes" | "no" | null;
   royaltyFileName: string | null;
+  businessPermitImage: string | null;
+  permitExpiresOn: string;
 };
 
 export const INITIAL_SIGN_UP_FORM_DATA: SignUpFormData = {
@@ -36,6 +38,8 @@ export const INITIAL_SIGN_UP_FORM_DATA: SignUpFormData = {
   street: "",
   wantsRoyalty: null,
   royaltyFileName: null,
+  businessPermitImage: null,
+  permitExpiresOn: '',
 };
 
 export type UpdateSignUpField = <K extends keyof SignUpFormData>(
@@ -57,6 +61,7 @@ export function toDjangoPayload(formData: SignUpFormData) {
     date_of_birth: formData.dateOfBirth,
     contact_number: formData.contactNumber,
     wants_royalty: formData.wantsRoyalty ?? "no",
+    ...(formData.wantsRoyalty === 'yes' ? { business_permit_image: formData.businessPermitImage, permit_expires_on: formData.permitExpiresOn } : {}),
     address: {
       region: formData.region,
       province: formData.province,

@@ -6,7 +6,15 @@ from .contracts import ContractsView, ContractDecisionView, ContractReadView
 
 from .signing import AgreementSigningView
 
+from .royalties import RoyaltyReportsView, RoyaltyEvidenceView
+from .royalty_payments import RoyaltyMandateView, royalty_payment_webhook
+
 urlpatterns = [
+    path('royalties/', RoyaltyReportsView.as_view()),
+    path('royalties/periods/<int:period_id>/', RoyaltyReportsView.as_view()),
+    path('royalties/periods/<int:period_id>/evidence/<int:index>/', RoyaltyEvidenceView.as_view()),
+    path('royalties/agreements/<int:agreement_id>/mandate/', RoyaltyMandateView.as_view()),
+    path('royalties/webhook/', royalty_payment_webhook),
     path('contracts/read/', ContractReadView.as_view()),
     path("contracts/<int:agreement_id>/sign/", AgreementSigningView.as_view()),
     path("contracts/<int:agreement_id>/pdf/", AgreementSigningView.as_view(), {"pdf": True}),

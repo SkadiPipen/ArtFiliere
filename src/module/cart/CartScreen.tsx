@@ -368,7 +368,7 @@ export default function CartScreen() {
       )}
       <View style={styles.topAppBar}>
         <View style={styles.headerInner}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}>
             <ArrowLeft color="#C15656" size={24} />
           </TouchableOpacity>
           <Text style={styles.appBarTitle}>Cart</Text>

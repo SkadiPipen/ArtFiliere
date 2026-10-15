@@ -71,6 +71,8 @@ interface ChatListProps {
 // II. Main Component
 export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
   // II.1. State: List of chats to display
+  const [proposalError, setProposalError] = useState('');
+  const [chatError, setChatError] = useState('');
   const [artworkFilter, setArtworkFilter] = useState<'all' | 'buying' | 'selling'>('all');
   const [accountRole, setAccountRole] = useState('');
   useEffect(() => {
@@ -82,7 +84,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
       const response = await fetch(`${API_URL}/auth/me/`, { headers: { Authorization: `Bearer ${token}` } });
       if (response.ok) { const profile = await response.json(); if (active) setAccountRole(profile.role || ''); }
     };
-    loadProfile().catch(console.error);
+    loadProfile().catch((() => {}));
     return () => { active = false; };
   }, [currentUser?.uid]);
   const [activeTab, setActiveTab] = useState<'artists' | 'drivers' | 'support'>('artists');
@@ -106,10 +108,10 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
           }
           if (!rows.has(id)) rows.set(id, { id, buying, selling: !buying, proposalUnread: c.unread_count || 0, participants: [c.buyer_uid, c.artist_uid], lastMessage: `Contract proposal: ${c.title}`, lastMessageTime: c.created_at, participantData: {}, otherUser: { id: otherId, displayName: buying ? c.artist : c.buyer, fullName: buying ? c.artist : c.buyer, photoURL: '', role: buying ? 'artist' : 'buyer', user_type: buying ? 'artist' : 'buyer' } });
         });
-        if (active) setContractChats([...rows.values()]);
-      } catch (error) { console.error('Unable to load proposal conversations:', error); }
+        if (active) { setContractChats([...rows.values()]); setProposalError(''); }
+      } catch { if (active) setProposalError('Negotiation history and buying/selling labels could not load. Retrying automatically.'); }
     };
-    setContractChats([]);
+    setContractChats([]); setProposalError('');
     if (currentUser) load();
     const timer = setInterval(() => { if (currentUser) load(); }, 5000);
     return () => { active = false; clearInterval(timer); };
@@ -126,12 +128,12 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
   useEffect(() => {
     // II.4.1. Guard: Exit if no user is logged in
     if (!currentUser) {
-      console.log('⚠️ No current user');
+
       setLoading(false);
       return;
     }
 
-    console.log('👤 Current user:', currentUser.uid);
+
 
     // II.4.2. (Nested Func) Fetch ALL users from Django for chat
     //           Purpose: Build a map of UID -> user data (username, photo, role)
@@ -147,7 +149,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
         setUserMap(map);
         return map;
       } catch (error) {
-        console.error('Unable to load chat usernames:', error);
+
         return {};
       }
     };
@@ -159,8 +161,8 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
     let unsubscribe: (() => void) | undefined;
     fetchChatUsers().then((map) => {
       if (cancelled) return;
-      console.log('📦 User map ready, listening to chats...');
-      
+
+
       // II.4.3.1. Firestore query: Find all chats where current user is a participant
       //            Collection: 'chats' in Firestore
       //            Condition: 'participants' array contains currentUser.uid
@@ -170,8 +172,8 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
       // II.4.3.2. Real-time listener: Updates whenever chats change
       //            Called when: New chat created, message sent, unread count updated
       unsubscribe = onSnapshot(q, (snapshot) => {
-        console.log(`📄 Found ${snapshot.docs.length} chats`);
-        
+
+
         const chatList: ChatListItem[] = [];
 
         // II.4.3.2.A. Loop through each chat document
@@ -179,7 +181,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
           const data = doc.data();
           // II.4.3.2.A.1. Find the other participant (not the current user)
           const otherUserId = data.participants?.find((id: string) => id !== currentUser.uid);
-          
+
           if (otherUserId) {
             // II.4.3.2.A.2. Look up the other user's data from the map
             //              If not found, use a saved username or a neutral label
@@ -191,7 +193,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
               role: 'user',
               user_type: 'B',
             };
-            
+
             // II.4.3.2.A.3. Build the chat item with all required fields
             const chatItem: ChatListItem = {
               id: doc.id,
@@ -201,7 +203,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
               participantData: data.participantData || {},
               otherUser: otherUser,
             };
-            
+
             chatList.push(chatItem);
           }
         });
@@ -212,9 +214,10 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
         );
 
         setChats(chatList);
+        setChatError('');
         setLoading(false);
-      }, (error) => {
-        console.error('❌ Chat listener error:', error);
+      }, () => {
+        setChatError('Chat history could not load. Check your connection and reopen chat.');
         setLoading(false);
       });
 
@@ -239,7 +242,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
     const displayName = item.otherUser?.displayName || 'Unknown';
     const userType = item.otherUser?.user_type || '';
     const isArtist = userType === 'A';
-    
+
     return (
       <TouchableOpacity
         style={styles.chatItem}
@@ -259,7 +262,7 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
             </View>
           )}
         </View>
-        
+
         {/* II.6.2. Chat info: name, artist tag, last message */}
         <View style={styles.chatInfo}>
           <View style={styles.chatHeader}>
@@ -297,6 +300,8 @@ export function ChatList({ currentUser, onChatSelect }: ChatListProps) {
   const visible = merged.filter(chat => category(chat) === activeTab && (activeTab !== 'artists' || artworkFilter === 'all' || !!chat[artworkFilter]));
   if (supportOpen) return <SupportScreen key={currentUser?.uid} embedded onClose={() => setSupportOpen(false)} />;
   return <View style={{ flex: 1 }}>
+    {!!proposalError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{proposalError}</Text>}
+    {!!chatError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{chatError}</Text>}
     <View style={styles.tabs}>
       {tabs.map(tab => <TouchableOpacity key={tab.key} accessibilityRole="tab" accessibilityState={{ selected: activeTab === tab.key }} onPress={() => setActiveTab(tab.key)} style={[styles.tab, activeTab === tab.key && styles.activeTab, activeTab === tab.key && (tab.key === 'drivers' ? styles.driverTab : tab.key === 'support' ? styles.supportTab : null)]}>
         <Text style={[styles.tabLabel, activeTab === tab.key && styles.activeTabLabel]}>{tab.label}</Text>

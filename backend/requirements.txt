@@ -85,3 +85,8 @@ reportlab==5.0.1
 
 truststore==0.10.4
 web3>=7.0,<8.0
+
+# Django configuration and PostgreSQL connection
+django-cors-headers
+python-dotenv
+psycopg[binary]

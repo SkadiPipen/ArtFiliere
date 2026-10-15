@@ -1,3 +1,6 @@
+import { buildChatTimeline } from './negotiationThreads';
+import { LegacyNegotiationCard } from './NegotiationHistory';
+import { proposalPayload } from './proposalPayload';
 import ContractPanel from './ContractPanel';
 import ProposalCard from './ProposalCard';
 import { Contract, contractRequest } from './contracts';
@@ -42,6 +45,8 @@ export interface ChatUser {
 
 export interface ChatMessage {
   contract?: Contract;
+  contractHistory?: Contract[];
+  legacyHistory?: ChatMessage[];
   id: string;
   text: string;
   senderId: string;
@@ -83,13 +88,13 @@ export const chatService = {
       const sortedParticipants = [participant1, participant2].sort();
       const correctChatId = sortedParticipants.join('_');
       const finalChatId = chatId.includes('_') ? chatId : correctChatId;
-      
-      console.log('🔍 Creating chat with ID:', finalChatId);
-      console.log('🔍 Participants:', sortedParticipants);
-      
+
+
+
+
       const chatDocRef = doc(db, 'chats', finalChatId);
       const chatDoc = await getDoc(chatDocRef);
-      
+
       if (!chatDoc.exists()) {
         const chatData = {
           participants: sortedParticipants,
@@ -108,14 +113,14 @@ export const chatService = {
           }
         };
         await setDoc(chatDocRef, chatData);
-        console.log('✅ Chat created successfully!');
+
         return true;
       } else {
-        console.log('📝 Chat already exists');
+
         return false;
       }
     } catch (error) {
-      console.error('❌ Error creating chat:', error);
+
       throw error;
     }
   },
@@ -127,8 +132,8 @@ export const chatService = {
   ) {
     try {
       const finalChatId = chatId.includes('_') ? chatId : chatId;
-      console.log('📡 Listening to messages for chat:', finalChatId);
-      
+
+
       const chatRef = collection(db, 'chats', finalChatId, 'messages');
       const q = query(chatRef, orderBy('timestamp', 'asc'));
 
@@ -152,17 +157,17 @@ export const chatService = {
               negotiationData: data.negotiationData,
             } as ChatMessage);
           });
-          console.log('📥 Messages loaded:', msgs.length);
+
           setMessages(msgs);
           setLoading(false);
         },
         (error) => {
           if (error.code === 'permission-denied') {
-            console.log('📭 Chat does not exist yet');
+
             setMessages([]);
             setLoading(false);
           } else {
-            console.error('Error listening to messages:', error);
+
             setLoading(false);
           }
         }
@@ -170,7 +175,7 @@ export const chatService = {
 
       return unsubscribe;
     } catch (error) {
-      console.error('Error setting up message listener:', error);
+
       setLoading(false);
       return () => {};
     }
@@ -190,9 +195,9 @@ export const chatService = {
           [`participantData.${userId}.lastRead`]: observedTime,
         });
       });
-      console.log('✅ Messages marked as read');
+
     } catch (error: any) {
-      console.log('Could not mark messages as read:', error.message);
+
     }
   },
 
@@ -211,9 +216,9 @@ export const chatService = {
     const sortedParticipants = [senderId, recipientId].sort();
     const correctChatId = sortedParticipants.join('_');
     const finalChatId = chatId.includes('_') ? chatId : correctChatId;
-    
-    console.log('📤 Sending to chat:', finalChatId);
-    
+
+
+
     const chatRef = collection(db, 'chats', finalChatId, 'messages');
     const chatDocRef = doc(db, 'chats', finalChatId);
 
@@ -261,7 +266,7 @@ export const chatService = {
 
       return true;
     } catch (error) {
-      console.error('Error sending message:', error);
+
       throw error;
     }
   }
@@ -288,13 +293,15 @@ export function ChatWindow({
 }: ChatWindowProps) {
   const [revision, setRevision] = useState<Contract | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [contractError, setContractError] = useState('');
   const refreshContracts = async () => {
     try {
       const data = await contractRequest();
+      setContractError('');
       setContracts(data.contracts.filter((c: Contract) =>
         (c.buyer_uid === currentUser?.uid && c.artist_uid === user?.id) ||
         (c.artist_uid === currentUser?.uid && c.buyer_uid === user?.id)));
-    } catch (error) { console.error('Unable to load chat proposals:', error); }
+    } catch { setContractError('Negotiation history could not load. Retrying automatically.'); }
   };
   useEffect(() => {
     setContracts([]);
@@ -311,9 +318,14 @@ export function ChatWindow({
   // Check for negotiation artwork
   useEffect(() => {
     if (initialNegotiationArtwork && !isArtist) {
-      console.log('✅ Setting negotiation artwork:', initialNegotiationArtwork.title);
+
       setNegotiationArtwork(initialNegotiationArtwork);
       setShowNewNegotiationForm(true);
+      let active = true;
+      contractRequest(`artworks/${initialNegotiationArtwork.id}/`).then(data => {
+        if (active) setNegotiationArtwork({ ...initialNegotiationArtwork, royalty_enabled: data.artwork?.royalty_enabled === true });
+      }).catch((() => {}));
+      return () => { active = false; };
     }
   }, [initialNegotiationArtwork, isArtist]);
 
@@ -326,10 +338,10 @@ export function ChatWindow({
 
     const sortedParticipants = [currentUser.uid, user.id].sort();
     const chatId = sortedParticipants.join('_');
-    
-    console.log('📱 Opening chat:', chatId);
-    console.log('📱 With user:', user.displayName);
-    
+
+
+
+
     const unsubscribe = chatService.getChatMessages(chatId, setMessages, setLoading);
 
 
@@ -345,7 +357,7 @@ export function ChatWindow({
   useEffect(() => {
     if (showNewNegotiationForm || revision) return;
     const ids = contracts.filter(c => c.unread_count).map(c => c.id);
-    if (ids.length) contractRequest('read/', 'POST', { ids }).catch(console.error);
+    if (ids.length) contractRequest('read/', 'POST', { ids }).catch((() => {}));
   }, [contracts, showNewNegotiationForm, revision]);
 
   // Send regular message
@@ -354,9 +366,9 @@ export function ChatWindow({
 
     const sortedParticipants = [currentUser.uid, user.id].sort();
     const chatId = sortedParticipants.join('_');
-    
-    console.log('📤 Sending message to:', chatId);
-    
+
+
+
     try {
       await chatService.sendMessage(
         chatId,
@@ -369,7 +381,7 @@ export function ChatWindow({
       );
       setMessageText('');
     } catch (error) {
-      console.error('Error sending message:', error);
+
       Alert.alert('Error', 'Failed to send message. Please try again.');
     }
   };
@@ -382,38 +394,20 @@ export function ChatWindow({
     }
 
     const chatId = [currentUser.uid, user.id].sort().join('_');
-    
-    console.log('📤 Sending negotiation proposal:', proposal);
-    console.log('📤 Chat ID:', chatId);
-    
+
+
+
+
     try {
-      // First, ensure the chat exists
-      await chatService.createChatIfNotExists(chatId, currentUser.uid, user.id);
-      
-      // Send the negotiation message
-      await chatService.sendMessage(
-        chatId,
-        currentUser.uid,
-        currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
-        '',
-        user.id,
-        messages,
-        'negotiation',
-        {
-          negotiationId: proposal.id,
-          artworkId: proposal.artworkId,
-          artworkTitle: proposal.artworkTitle,
-          artworkImageUri: proposal.artworkImageUri,
-          proposal: proposal,
-        }
-      );
-      
+      await contractRequest(`artworks/${proposal.artworkId}/`, 'POST', proposalPayload(proposal, negotiationArtwork?.art_type || 'digital'));
+      await refreshContracts();
+
       setShowNewNegotiationForm(false);
       setNegotiationArtwork(null);
       Alert.alert('Success', `Negotiation proposal sent successfully!\nFinal Price: ₱${proposal.finalPrice.toFixed(2)}`);
     } catch (error) {
-      console.error('Error sending negotiation:', error);
-      Alert.alert('Error', 'Failed to send negotiation proposal: ' + (error as any).message);
+
+      throw error;
     }
   };
 
@@ -425,9 +419,10 @@ export function ChatWindow({
   // RENDER MESSAGE - WITH RICH NEGOTIATION CARDS
   // ========================================
   const renderMessage = ({ item }: { item: ChatMessage }) => {
-    if (item.contract) return <ProposalCard contract={item.contract} onChange={refreshContracts} onRevise={setRevision} />;
+    if (item.contract) return <ProposalCard contract={item.contract} history={item.contractHistory} legacyHistory={item.legacyHistory} onChange={refreshContracts} onRevise={setRevision} />;
+    if (item.legacyHistory?.length) return <LegacyNegotiationCard messages={item.legacyHistory} />;
     const isSent = item.senderId === currentUser?.uid;
-    
+
     // Check if it's a negotiation message
     if (item.type === 'negotiation') {
       const negotiationData = item.negotiationData?.proposal || item.negotiationData || {};
@@ -435,7 +430,7 @@ export function ChatWindow({
       const artworkTitle = item.artworkTitle || negotiationData.artworkTitle || 'Artwork';
       const status = negotiationData.status || 'pending';
       const note = negotiationData.note || '';
-      
+
       // Determine status color and icon
       const getStatusInfo = () => {
         switch(status) {
@@ -472,9 +467,9 @@ export function ChatWindow({
             };
         }
       };
-      
+
       const statusInfo = getStatusInfo();
-      
+
       return (
         <View style={[
           styles.messageBubble, 
@@ -487,28 +482,28 @@ export function ChatWindow({
               <Text style={styles.negotiationIcon}>📝</Text>
               <Text style={styles.negotiationTitle}>Negotiation Proposal</Text>
             </View>
-            
+
             {/* Artwork Info */}
             <Text style={styles.negotiationArtworkTitle}>{artworkTitle}</Text>
-            
+
             {/* Price */}
             <View style={styles.negotiationPriceContainer}>
               <Text style={styles.negotiationPriceLabel}>Final Price</Text>
               <Text style={styles.negotiationPrice}>₱{finalPrice.toFixed(2)}</Text>
             </View>
-            
+
             {/* Status Badge */}
             <View style={[styles.negotiationStatusBadge, { backgroundColor: statusInfo.bgColor }]}>
               <Text style={[styles.negotiationStatusText, { color: statusInfo.color }]}>
                 {statusInfo.icon} {statusInfo.label}
               </Text>
             </View>
-            
+
             {/* Note if exists */}
             {note && (
               <Text style={styles.negotiationNote}>"{note}"</Text>
             )}
-            
+
             {/* Timestamp */}
             <Text style={styles.negotiationTime}>
               {item.timestamp
@@ -565,10 +560,11 @@ export function ChatWindow({
 
     return (
       <FlatList
-        data={[...messages, ...contracts.map(c => ({ id: `contract-${c.id}`, text: '', senderId: c.buyer_uid, senderName: c.buyer, timestamp: c.created_at, read: true, contract: c }))].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())}
+        data={buildChatTimeline(messages, contracts)}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.messagesList}
+        ListHeaderComponent={contractError ? <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{contractError}</Text> : null}
         inverted={false}
         ListEmptyComponent={
           <View style={{ padding: 20, alignItems: 'center' }}>
@@ -633,7 +629,7 @@ export function ChatWindow({
                 }}
               />
             </View>
-            
+
             <View style={styles.messagesContainer}>
               {renderMessagesList()}
             </View>

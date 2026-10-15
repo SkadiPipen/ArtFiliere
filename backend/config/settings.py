@@ -185,3 +185,10 @@ if sys.platform == 'win32':
         truststore.inject_into_ssl()
     except ImportError:
         pass
+
+# Variable royalty collection is opt-in after Xendit channel approval and sandbox validation.
+import json
+ROYALTY_COLLECTION_ENABLED = os.getenv('ROYALTY_COLLECTION_ENABLED', 'false').lower() == 'true'
+ROYALTY_PAYMENT_CHANNELS = [v.strip() for v in os.getenv('ROYALTY_PAYMENT_CHANNELS', '').split(',') if v.strip()]
+ROYALTY_RETURN_URL = os.getenv('ROYALTY_RETURN_URL', '')
+ROYALTY_CHANNEL_PROPERTIES = json.loads(os.getenv('ROYALTY_CHANNEL_PROPERTIES', '{}'))

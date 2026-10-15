@@ -137,7 +137,7 @@ export default function DeliveryAddressPicker({
             );
           }
         } catch (err) {
-          console.warn('Could not auto-fetch user profile address:', err);
+
         }
       }
 

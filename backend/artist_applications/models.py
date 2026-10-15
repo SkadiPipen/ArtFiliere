@@ -23,6 +23,7 @@ class ArtistApplication(models.Model):
     # private object storage and save only protected file references here.
     bir_certificate = models.TextField()
     bir_certificate_name = models.CharField(max_length=255, blank=True, default="")
+    bir_expires_on = models.DateField(null=True, blank=True)
     sworn_declaration = models.TextField()
     sworn_declaration_name = models.CharField(max_length=255, blank=True, default="")
     portfolio = models.JSONField(default=list)
@@ -43,6 +44,22 @@ class ArtistApplication(models.Model):
 
     def __str__(self):
         return f"Artist Application for {self.user.email} Status: ({self.status})"
+
+
+class ArtistRegistrationUpdate(models.Model):
+    application = models.ForeignKey(ArtistApplication, on_delete=models.PROTECT, related_name='record_updates')
+    tin_number = models.CharField(max_length=20)
+    evidence_image = models.TextField()
+    expires_on = models.DateField(null=True, blank=True)
+    previous_record = models.JSONField(default=dict)
+    status = models.CharField(max_length=12, default='pending', choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')])
+    review_note = models.CharField(max_length=1000, blank=True)
+    reviewed_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='registration_record_reviews')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['application'], condition=models.Q(status='pending'), name='one_pending_artist_record_update')]
 
 
 class ArtistApplicationLog(models.Model):

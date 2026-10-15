@@ -121,7 +121,7 @@ export default function ReportManagementScreen() {
   if (loading) return <SafeAreaView style={s.page}><ActivityIndicator style={{ marginTop: 80 }} color="#B65B50" /></SafeAreaView>;
   return <SafeAreaView style={s.page}>
     <View style={s.header}>
-      <TouchableOpacity accessibilityLabel="Back" onPress={() => router.back()}><ArrowLeft size={22} color="#62493E" /></TouchableOpacity>
+      <TouchableOpacity accessibilityLabel="Back" onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}><ArrowLeft size={22} color="#62493E" /></TouchableOpacity>
       <View style={{ flex: 1 }}><Text style={s.brand}>ArtFiliere</Text><Text style={s.subhead}>{data?.role === 'customer_support' ? 'Customer service moderator' : 'Support & account safety'}</Text></View>
       <TouchableOpacity accessibilityLabel="Refresh reports" onPress={load}><RefreshCw size={20} color="#8C4C43" /></TouchableOpacity>
       {data?.role === 'customer_support' && <TouchableOpacity onPress={() => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }}><Text style={{ color: '#8C4C43', fontWeight: '700' }}>Log out</Text></TouchableOpacity>}

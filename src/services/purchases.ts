@@ -41,3 +41,28 @@ export async function downloadProtectedFile(path: string, name: string, mimeType
     finally { await FileSystem.deleteAsync(file, { idempotent: true }); }
   }
 }
+
+
+export async function downloadCertificate(path: string, code: string) {
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) throw new Error('Please log in again.');
+  const url = `${API_URL}/api/${path}`;
+  const headers = { Authorization: `Bearer ${token}` };
+  if (Platform.OS === 'web') {
+    const response = await fetch(url, { headers });
+    if (!response.ok) { await readApiResponse(response); return; }
+    const blob = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a'); link.href = blob; link.download = `${code}.pdf`; link.click();
+    setTimeout(() => URL.revokeObjectURL(blob), 60000);
+  } else {
+    const FileSystem = await import('expo-file-system/legacy');
+    const Sharing = await import('expo-sharing');
+    const file = `${FileSystem.cacheDirectory}${code}.pdf`;
+    const result = await FileSystem.downloadAsync(url, file, { headers });
+    try {
+      if (result.status !== 200) throw new Error('Unable to download this certificate.');
+      if (!await Sharing.isAvailableAsync()) throw new Error('File sharing is unavailable on this device.');
+      await Sharing.shareAsync(file, { mimeType: 'application/pdf' });
+    } finally { await FileSystem.deleteAsync(file, { idempotent: true }); }
+  }
+}

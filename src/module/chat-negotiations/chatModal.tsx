@@ -47,19 +47,19 @@ export function ChatModal({
       // Use firebase_uid or id (both should be Firebase UID now)
       const artistUid = initialArtist.firebase_uid || initialArtist.id;
       if (!artistUid) {
-        console.warn('⚠️ No Firebase UID found for artist:', initialArtist);
+
         return;
       }
-      
+
       const sortedParticipants = [currentUser.uid, artistUid].sort();
       const chatId = sortedParticipants.join('_');
-      
+
       // Use displayName or username for the chat name
       const displayName = initialArtist.username || 
                          initialArtist.displayName || 
                          `${initialArtist.first_name} ${initialArtist.last_name}` || 
                          'Artist';
-      
+
       const chatUser = {
         id: artistUid,
         displayName: displayName, // This is what shows in the chat header
@@ -67,10 +67,10 @@ export function ChatModal({
         email: initialArtist.email || '',
         role: 'artist',
       };
-      
-      console.log('📱 Opening chat with artist:', chatUser.displayName);
-      console.log('📱 Chat ID:', chatId);
-      
+
+
+
+
       setSelectedChat({
         id: chatId,
         user: chatUser,

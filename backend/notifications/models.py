@@ -8,6 +8,7 @@ from commissions.models import CommissionRequest
 
 class UserNotification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    agreement = models.ForeignKey('messaging.Agreement', on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications')
     application = models.ForeignKey(
         ArtistApplication,
         on_delete=models.CASCADE,

@@ -2,6 +2,7 @@ import { useCart } from '@/context/CartContext';
 import { auth } from '@/firebase/config';
 import { Contract, contractRequest } from '@/module/chat-negotiations/contracts';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
+import { ChatWindow, ChatUser } from '@/module/chat-negotiations/chats';
 import { CATEGORIES } from '@/module/home/types';
 import API_URL from '@/services/api';
 import { useRouter } from 'expo-router';
@@ -16,7 +17,7 @@ interface HeaderProps {
   onSelectCategory: (category: string) => void;
 }
 
-type Notification = { id: number; title: string; message: string; is_read: boolean; created_at: string };
+type Notification = { id: number; title: string; message: string; is_read: boolean; created_at: string; agreement_id?: number | null; negotiation_partner?: ChatUser | null };
 
 export default function Header({ activeCategory, onSelectCategory, searchQuery, onSearchChange }: HeaderProps) {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationChat, setNotificationChat] = useState<ChatUser | null>(null);
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all');
   const [notificationsLoading, setNotificationsLoading] = useState(false);
 
@@ -64,7 +66,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
 
   useEffect(() => {
     loadNotifications().catch(() => undefined);
-    const refreshId = setInterval(() => loadNotifications().catch(() => undefined), 30000);
+    const refreshId = setInterval(() => loadNotifications().catch(() => undefined), 10000);
     return () => clearInterval(refreshId);
   }, []);
 
@@ -236,13 +238,14 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
               <ActivityIndicator color="#C15656" />
               </View> : <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.notificationList}>
               {visibleNotifications.length ? visibleNotifications.map((item) => 
-              <TouchableOpacity key={item.id} onPress={() => markRead(item)} style={[styles.notificationItem, !item.is_read && styles.notificationItemUnread]}>
+              <TouchableOpacity key={item.id} onPress={() => { markRead(item); if (item.negotiation_partner) { setNotificationOpen(false); setNotificationChat(item.negotiation_partner); } }} style={[styles.notificationItem, !item.is_read && styles.notificationItemUnread]}>
                 <View style={[styles.notificationIcon, item.title.toLowerCase().includes('approved') ? styles.notificationIconApproved : styles.notificationIconRejected]}>
                   <Bell size={18} color="#FFFFFF" />
                 </View>
                 <View style={styles.notificationCopy}>
                   <Text style={styles.notificationItemTitle}>{item.title}</Text>
                   <Text style={styles.notificationItemMessage}>{item.message}</Text>
+                  {item.negotiation_partner && <Text style={{ color: '#A34A40', fontSize: 11, fontWeight: '700', marginTop: 5 }}>Open negotiation chat</Text>}
                 </View>
                 {!item.is_read && 
                 <View style={styles.notificationUnreadDot} />}
@@ -253,6 +256,9 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
             </ScrollView>}
           </Pressable>
         </Pressable>
+      </Modal>
+      <Modal visible={!!notificationChat} animationType="slide" onRequestClose={() => setNotificationChat(null)}>
+        {notificationChat && <ChatWindow user={notificationChat} currentUser={auth.currentUser} onClose={() => setNotificationChat(null)} />}
       </Modal>
     </View>
   );
