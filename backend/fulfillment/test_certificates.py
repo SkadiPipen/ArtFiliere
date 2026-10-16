@@ -44,6 +44,27 @@ class CertificateTests(TestCase):
         self.assertEqual(same.snapshot['title'], 'Stardust')
         self.assertEqual(CertificateOfAuthenticity.objects.count(), 1)
 
+    def test_certificate_is_one_page_without_contract_appendix(self):
+        import re
+        cert = issue_certificate(self.payment)
+        self.assertEqual(cert.snapshot['pdf_style'], 3)
+        self.assertEqual(len(re.findall(rb'/Type\s*/Page\b', bytes(cert.pdf))), 1)
+        # The full agreement remains stored even though it is not appended to the PDF.
+        self.assertEqual(cert.snapshot['document'], self.agreement.document_snapshot)
+
+    def test_restyle_preserves_original_certificate_details(self):
+        cert = issue_certificate(self.payment)
+        original_code = cert.code
+        old_snapshot = {**cert.snapshot, 'pdf_style': 2}
+        CertificateOfAuthenticity.objects.filter(pk=cert.pk).update(snapshot=old_snapshot)
+        self.art.title = 'Changed after purchase'
+        self.art.save()
+        updated = issue_certificate(self.payment)
+        self.assertEqual(updated.code, original_code)
+        self.assertEqual(updated.snapshot['title'], 'Stardust')
+        self.assertEqual(updated.snapshot['document'], old_snapshot['document'])
+        self.assertEqual(updated.snapshot['pdf_style'], 3)
+
     def test_private_paid_download_only(self):
         self.assertEqual(self.request(self.artist, self.payment.pk).status_code, 404)
         response = self.request(self.buyer, self.payment.pk)

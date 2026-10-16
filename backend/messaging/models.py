@@ -71,6 +71,8 @@ class Agreement(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2)
     terms_snapshot = models.TextField()
     document_snapshot = models.TextField(blank=True, default="")
+    license_scope = models.JSONField(default=dict, blank=True)
+    pricing_terms = models.JSONField(default=dict, blank=True)
     artist_presigned_document = models.TextField(blank=True, default='')
     artist_signature_image = models.TextField(blank=True, default="")
     buyer_signature_image = models.TextField(blank=True, default="")

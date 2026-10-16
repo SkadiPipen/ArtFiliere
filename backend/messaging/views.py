@@ -1,3 +1,4 @@
+from .license_scope import validate_scope
 from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework import status
@@ -146,6 +147,7 @@ class AgreementView(AuthenticatedAPIView):
         if artwork_id and Artwork.objects.filter(id=artwork_id, sale_type='Auction').exists():
             return Response({'error': 'Auction license terms are fixed. Use the winning auction agreement.'}, status=409)
         try:
+            license_scope = validate_scope(request.data.get('license_scope'), request.data.get('license_type', 'personal'))
             compensation_terms = validate_compensation(request.data, user, request.data.get('license_type', 'personal'))
             validate_schedule_total(compensation_terms, price)
         except PermissionError as error:
@@ -154,7 +156,7 @@ class AgreementView(AuthenticatedAPIView):
             return Response({'error': str(error)}, status=400)
         if compensation_terms:
             terms += '\n\n' + compensation_summary(request.data.get('compensation_type', 'one_time'), compensation_terms)
-        agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, compensation_terms=compensation_terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=request.data.get("exclusivity", "non_exclusive"), delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
+        agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, license_scope=license_scope, compensation_terms=compensation_terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=request.data.get("exclusivity", "non_exclusive"), delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
         Message.objects.create(conversation_id=conversation_id, sender=user, message_type=Message.Type.AGREEMENT, agreement=agreement, body="Agreement proposed")
         notify_negotiation(agreement, user, 'proposed')
         return Response(serialize_agreement(agreement), status=201)

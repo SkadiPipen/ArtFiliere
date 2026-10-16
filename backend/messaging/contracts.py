@@ -15,6 +15,10 @@ from users.models import User
 from .compensation import validate_compensation, compensation_summary, validate_schedule_total
 from .models import Agreement, AgreementTemplate, Conversation, ConversationParticipant, Message
 from .notifications import notify_negotiation
+from .license_scope import validate_scope, scope_text
+from .pricing import validate_pricing, pricing_summary
+from .copyright_transfer import transfer_text
+from .checkout_status import checkout_status
 
 
 def artwork_thumbnail(artwork):
@@ -44,10 +48,12 @@ def proposal_changes(item):
         return []
     fields = {'price': 'Checkout total', 'license_type': 'License', 'exclusivity': 'Exclusivity',
               'delivery_type': 'Delivery type', 'delivery_fee': 'Delivery fee',
-              'compensation_type': 'Compensation', 'compensation_terms': 'Compensation details',
+              'pricing_terms': 'Agreed pricing', 'license_scope': 'License permissions', 'compensation_type': 'Compensation', 'compensation_terms': 'Compensation details',
               'delivery_details': 'Delivery details', 'terms_snapshot': 'Terms'}
     def display(source, key):
         value = getattr(source, key)
+        if key == 'license_scope':
+            return scope_text(value) + ('\n' + transfer_text(value['copyright_transfer']) if value.get('copyright_transfer') else '') if value else 'No structured license permissions'
         if key == 'compensation_terms':
             return compensation_summary(source.compensation_type, value) if value else 'No additional compensation settings'
         if isinstance(value, dict):
@@ -77,6 +83,7 @@ def contract_data(item, user):
         "changes": proposal_changes(item),
         "unread_count": int(unread),
         "fully_signed": bool(item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image),
+        "checkout_status": checkout_status(item),
         "is_proposer": user.id == proposer_id,
         "id": item.id, "artwork_id": item.artwork_id,
         "verification_code": item.verification_code,
@@ -88,7 +95,7 @@ def contract_data(item, user):
         "delivery_details": item.delivery_details, "delivery_fee": str(item.delivery_fee),
         "price": str(item.price), "terms": item.terms_snapshot,
         'license_type': item.license_type, 'exclusivity': item.exclusivity, 'delivery_type': item.delivery_type,
-        'compensation_type': item.compensation_type, 'compensation_terms': item.compensation_terms,
+        'pricing_terms': item.pricing_terms, 'license_scope': item.license_scope, 'compensation_type': item.compensation_type, 'compensation_terms': item.compensation_terms,
         "status": item.status,
         "buyer_accepted": bool(item.buyer_accepted_at),
         "artist_accepted": bool(item.artist_accepted_at),
@@ -190,18 +197,22 @@ class ContractsView(AuthenticatedAPIView):
             return Response({"error": "Invalid contract option."}, status=400)
         selected["delivery_type"] = "physical" if physical(artwork) else "digital"
         try:
+            license_scope = validate_scope(request.data.get('license_scope'), selected['license_type'])
             compensation_terms = validate_compensation(request.data, user, selected['license_type'])
+            if license_scope and compensation_terms.get('reporting_duration_months') and license_scope['duration_months'] != compensation_terms['reporting_duration_months']:
+                raise ValueError('Royalty reporting duration must match the license duration.')
         except PermissionError as error:
             return Response({'error': str(error)}, status=403)
         except ValueError as error:
             return Response({'error': str(error)}, status=400)
         try:
             delivery_details, delivery_fee = shipping_details(artwork, request.data, buyer, user, original)
+            pricing_terms = validate_pricing(request.data.get('pricing_terms'), artwork, price - delivery_fee)
             validate_schedule_total(compensation_terms, price - delivery_fee)
         except ValueError as error:
             return Response({"error": str(error)}, status=400)
         minimum = minimum_price(artwork, selected["license_type"], selected["exclusivity"])
-        if price - delivery_fee < minimum:
+        if not pricing_terms and price - delivery_fee < minimum:
             return Response({"error": f"The proposed price cannot be below PHP {minimum} for these terms, plus PHP {delivery_fee} delivery."}, status=400)
         template = AgreementTemplate.objects.filter(is_active=True).first()
         if not template:
@@ -224,9 +235,13 @@ class ContractsView(AuthenticatedAPIView):
         snapshot = f"Artwork: {artwork.title}\nBuyer: {buyer.username}\nArtist: {artwork.artist.username}\nAgreed total: PHP {price}\n\n{terms.strip()}"
         if delivery_details:
             snapshot += f"\nDelivery to: {delivery_details['delivery_address']}\nDelivery fee: PHP {delivery_fee}\nPickup: {delivery_details['pickup_address']}"
+        if pricing_terms:
+            snapshot += '\n\n' + pricing_summary(pricing_terms)
+        if license_scope:
+            snapshot += '\n\n' + scope_text(license_scope)
         if compensation_terms:
             snapshot += '\n\n' + compensation_summary(selected['compensation_type'], compensation_terms)
-        item = Agreement.objects.create(conversation=conversation, template=template, artwork=artwork, buyer=buyer, artist=artwork.artist, price=price, terms_snapshot=snapshot, delivery_fee=delivery_fee, delivery_details=delivery_details, compensation_terms=compensation_terms, revision_of=original, negotiation_key=negotiation_key, **selected)
+        item = Agreement.objects.create(conversation=conversation, template=template, artwork=artwork, buyer=buyer, artist=artwork.artist, price=price, terms_snapshot=snapshot, delivery_fee=delivery_fee, delivery_details=delivery_details, compensation_terms=compensation_terms, license_scope=license_scope, pricing_terms=pricing_terms, revision_of=original, negotiation_key=negotiation_key, **selected)
         if user.id == buyer.id:
             item.buyer_accepted_at = timezone.now()
         else:

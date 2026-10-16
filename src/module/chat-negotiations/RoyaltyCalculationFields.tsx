@@ -1,3 +1,4 @@
+import InfoAccordion from './InfoAccordion';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { CompensationTerms } from './compensation';
 
@@ -12,7 +13,7 @@ export default function RoyaltyCalculationFields({ terms, onChange }: { terms: C
     <TextInput accessibilityLabel="Royalty reporting duration" keyboardType="number-pad" value={String(terms.reporting_duration_months ?? 12)} onChangeText={value => onChange({ reporting_duration_months: Number(value) })} style={input} />
     {(tiered || guarantee) && <>
       <Text style={{ fontWeight: '700' }}>Calculation basis</Text>
-      {Object.entries({ units: 'Items sold', gross_sales: 'Gross sales', net_sales: 'Net sales after permitted deductions', profit: 'Profit after deductions and costs' }).map(([value, label]) => <Pressable key={value} accessibilityRole="radio" accessibilityState={{ checked: rules.basis === value }} onPress={() => update({ basis: value })} style={input}><Text>{rules.basis === value ? '● ' : '○ '}{label}</Text></Pressable>)}
+      {Object.entries({ units: 'Items sold', gross_sales: 'Gross sales', net_sales: 'Net sales after permitted deductions', profit: 'Profit after deductions and costs' }).map(([value, label]) => <InfoAccordion key={value} title={label} description={value === 'units' ? 'Whole items sold multiplied by the agreed PHP rate per item.' : value === 'gross_sales' ? 'The percentage applies to gross sales before deductions.' : value === 'net_sales' ? 'The percentage applies after only deductions expressly permitted by the agreement.' : 'The percentage applies after permitted deductions and costs. Losses yield a zero calculation base.'} selected={rules.basis === value} onSelect={() => update({ basis: value })} />)}
     </>}
     {tiered && <>
       <Text>Graduated tiers apply separately to each reporting period. Each rate applies only to the portion in that tier. Start at zero.</Text>

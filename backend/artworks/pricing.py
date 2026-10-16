@@ -1,7 +1,7 @@
 from decimal import Decimal, ROUND_HALF_UP
 
 LICENSE = {"personal": Decimal("1"), "commercial": Decimal("1.5")}
-EXCLUSIVITY = {"non_exclusive": Decimal("1"), "exclusive": Decimal("1.3"), "sole": Decimal("1.5")}
+EXCLUSIVITY = {"non_exclusive": Decimal("1"), "exclusive": Decimal("1.5"), "sole": Decimal("1.3")}
 def base_cost(artwork):
     if artwork.hours is None or artwork.hourly_rate is None:
         return artwork.price

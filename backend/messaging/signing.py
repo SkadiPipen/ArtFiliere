@@ -10,7 +10,8 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.response import Response
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, KeepTogether
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.colors import HexColor
@@ -20,6 +21,9 @@ from authentication.permissions import IsAuthenticatedUser
 from .models import Agreement
 from blockchain.proofs import record_agreement_proof
 from .compensation import compensation_summary
+from .license_scope import scope_text
+from .copyright_transfer import transfer_text
+from .checkout_status import checkout_status
 
 
 def party_name(user):
@@ -37,19 +41,27 @@ def document_text(item):
         if item.license_type == "commercial" else
         f"The Artist grants the Client an {item.exclusivity.replace('_', '-')}, worldwide license to reproduce, publicly display, and distribute the Images solely for personal, non-commercial purposes."
     )
+    if item.license_scope:
+        rights = 'The Artist grants the Client a license to reproduce, display and distribute the work solely within the permissions below.\n' + scope_text(item.license_scope)
     exclusivity = {
         "exclusive": "Within the licensed scope and term, only the Client may exercise the licensed rights. The Artist shall not exercise those rights or grant them to any other party, except for the portfolio and promotional display expressly reserved below.",
         "sole": "Within the licensed scope and term, the Client is the only licensee. The Artist may continue to exercise the licensed rights themselves, but shall not grant those rights to any other party.",
     }.get(item.exclusivity, "The Artist retains the right to license the same Images to other parties.")
+    transfer = item.license_scope.get('copyright_transfer') if item.license_scope else None
     sections = [
-        "ART LICENSING AGREEMENT",
+        "ART LICENSING AND COPYRIGHT ASSIGNMENT AGREEMENT" if transfer else "ART LICENSING AGREEMENT",
         f'between: {party_name(item.artist)} ("Artist"), and {party_name(item.buyer)} ("Client").',
         'The Artist and Client are each referred to herein as a "Party" and collectively as the "Parties."',
         '1. Scope of this Agreement',
         f'This Agreement applies to the artwork titled "{title}" (the "IMAGES"). This Agreement governs the relationship between the parties and no communication or other exchange shall modify the terms of this Agreement unless agreed to in writing.',
         '2. Rights', rights, exclusivity,
-        'Copyright ownership remains with the Artist. This Agreement grants a license and does not assign copyright ownership to the Client.',
-        'The Artist retains the right to display the Images in their portfolio, website, and for self-promotional purposes. Public viewing of this display does not grant any viewer a license.',
+        transfer_text(transfer) if transfer else 'Copyright ownership remains with the Artist. This Agreement grants a license and does not assign copyright ownership to the Client.',
+        'Artist use after assignment is governed by the express reservations in the assignment section.' if transfer else 'The Artist retains the right to display the Images in their portfolio, website, and for self-promotional purposes. Public viewing of this display does not grant any viewer a license.',
+        'Moral rights and authority',
+        'The Artist retains moral rights, including attribution and protection against distortions or modifications prejudicial to honor or reputation. No moral-rights waiver is implied. Nothing here removes statutory exceptions or limitations, including fair use.',
+        'The Artist confirms that they own or control the licensed rights and have obtained prior written consent from all copyright co-owners and any required employer, commissioner, or other right holder. The Client may request supporting documentation.',
+        'Negotiated license royalties do not replace or waive any applicable statutory resale right in qualifying original works. Statutory resale obligations must be assessed separately; this agreement does not automatically calculate or settle them.',
+        'Platform certificates and blockchain records record transactions and document integrity; they do not establish authorship, create copyright, or constitute IPOPHL registration.',
         '3. Term and agreed details', item.terms_snapshot,
         '4. Fees', f'The Client shall pay a total license fee of PHP {item.price}.',
         "The total fee is due and payable through the Platform's payment system no later than ten (10) business days from the delivery of the Images.",
@@ -67,6 +79,8 @@ def document_text(item):
     if item.delivery_type == "digital":
         sections += ['5. Digital Delivery', "The Artist shall deliver the Images to the Client in digital format via the Platform's delivery system or such other electronic means as the parties may agree. It is the Client's responsibility to verify that the Images are suitable for reproduction and to notify the Artist within five (5) business days if the Images are not deemed suitable."]
     sections += ['6. Termination for Breach', 'If either party materially breaches this Agreement and fails to cure within fifteen (15) days after written notice, the non-breaching party may terminate this Agreement immediately. Upon termination for breach by Client, all rights granted shall immediately cease, and Client shall destroy all copies of the Images and certify such destruction in writing.']
+    if transfer:
+        sections[-1] = 'For a material breach, the non-breaching party may seek remedies available under the agreement and applicable law after written notice and a fifteen-day opportunity to cure. Termination of a license does not automatically reverse a completed copyright assignment; any reassignment or other relief requires an express written agreement or applicable legal process.'
     return "\n\n".join(sections)
 
 
@@ -86,6 +100,9 @@ def signing_data(item, user):
             "artist_signature_image": item.artist_signature_image, "buyer_signature_image": item.buyer_signature_image,
             "artist_signature": item.artist_signature, "buyer_signature": item.buyer_signature,
             "artist_signed_at": item.artist_signed_at, "buyer_signed_at": item.buyer_signed_at,
+            "authority_required": bool(item.license_scope),
+            "checkout_status": checkout_status(item),
+            "checkout_available": bool(item.artwork_id and not getattr(item, 'commission_contract', None)),
             "my_role": "artist" if user.id == item.artist_id else "buyer",
             "fully_signed": bool(item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image)}
 
@@ -132,15 +149,23 @@ def render_pdf(item):
     for name in ('BodyText', 'Heading2'):
         styles[name].fontName = 'Times-Roman' if name == 'BodyText' else 'Times-Bold'
     styles['BodyText'].fontSize = 11
-    styles['BodyText'].leading = 13
-    styles['BodyText'].spaceAfter = 7
+    styles['BodyText'].leading = 16
+    styles['BodyText'].spaceAfter = 9
+    styles['BodyText'].alignment = TA_JUSTIFY
+    styles['Heading2'].spaceBefore = 12
+    styles['Heading2'].spaceAfter = 9
+    signature_style = ParagraphStyle('SignatureDetails', parent=styles['BodyText'], alignment=TA_LEFT)
     flow = []
-    for block in (item.document_snapshot or document_text(item)).split('\n\n'):
-        heading = block == 'ART LICENSING AGREEMENT' or (len(block) < 80 and block[:1].isdigit() and '. ' in block)
-        if block.strip().upper() == 'ART LICENSING AGREEMENT':
-            block = 'Art Licensing Agreement'
-            heading = True
-        flow.append(Paragraph(escape(block).replace('\n', '<br/>'), styles['Heading2'] if heading else styles['BodyText']))
+    # Render each explicit line as its own paragraph, including older snapshots
+    # whose scope and assignment clauses were stored in a single block.
+    for block in (item.document_snapshot or document_text(item)).splitlines():
+        block = block.strip()
+        if not block:
+            continue
+        heading = (block.startswith('ART LICENSING') or block.startswith('COPYRIGHT ASSIGNMENT -')
+                   or block == 'Moral rights and authority'
+                   or (len(block) < 100 and block[:1].isdigit() and '. ' in block))
+        flow.append(Paragraph(escape(block), styles['Heading2'] if heading else styles['BodyText']))
     signatures = [Paragraph('SIGNATURES', styles['Heading2'])]
     for role, label in [('artist', 'ARTIST'), ('buyer', 'BUYER / CLIENT')]:
         name = getattr(item, role + '_signature')
@@ -152,9 +177,9 @@ def render_pdf(item):
             image._restrictSize(200, 55)
             image.hAlign = 'LEFT'
             signatures.append(image)
-        signatures.append(Paragraph(escape(f"Name: {name or 'Pending signature'}"), styles['BodyText']))
-        signatures.append(Paragraph(escape(f"Date (UTC): {date.strftime('%Y-%m-%d %H:%M') if date else 'Pending'}"), styles['BodyText']))
-    signatures.append(Paragraph(f'Document ID: {item.id}', styles['BodyText']))
+        signatures.append(Paragraph(escape(f"Name: {name or 'Pending signature'}"), signature_style))
+        signatures.append(Paragraph(escape(f"Date (UTC): {date.strftime('%Y-%m-%d %H:%M') if date else 'Pending'}"), signature_style))
+    signatures.append(Paragraph(f'Document ID: {item.id}', signature_style))
     flow.append(KeepTogether(signatures))
     doc = SimpleDocTemplate(output, pagesize=A4, title='Art License Agreement', author='ArtFilier', leftMargin=36, rightMargin=36, topMargin=160, bottomMargin=35)
     def canvas_factory(*args, **kwargs):
@@ -193,6 +218,8 @@ class AgreementSigningView(AuthenticatedAPIView):
         if not isinstance(name, str) or not 2 <= len(name.strip()) <= 200 or request.data.get('consent') is not True:
             return Response({"error": "Enter your full name and confirm your consent to sign."}, status=400)
         data = signing_data(item, user)
+        if item.license_scope and user.id == item.artist_id and request.data.get('authority_confirmed') is not True:
+            return Response({'error': 'Confirm your authority to license and any required written co-owner permissions.'}, status=400)
         if request.data.get('document_hash') != data['document_hash']:
             return Response({"error": "The document changed. Reload and review it before signing."}, status=409)
         role = data['my_role']
@@ -209,6 +236,9 @@ class AgreementSigningView(AuthenticatedAPIView):
         item.save()
         from commissions.lifecycle import signatures_completed
         signatures_completed(item)
+        if not getattr(item, 'commission_contract', None):
+            from .notifications import notify_negotiation
+            notify_negotiation(item, user, 'signed')
         # Only the final document, after both signatures, is eligible for a proof.
         if item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image:
             record_agreement_proof(item)

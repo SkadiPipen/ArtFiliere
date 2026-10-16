@@ -58,7 +58,7 @@ export default function NegotiationHistory({ contracts = [], legacy = [] }: { co
     ...contracts.map(contract => ({ key: `contract-${contract.id}`, at: contract.created_at,
       title: `${contract.proposed_by ? `${contract.proposed_by.name} (${contract.proposed_by.role})` : contract.is_proposer ? 'You' : contract.buyer_uid === auth.currentUser?.uid ? contract.artist : contract.buyer} ${contract.attempt_action === 'edited' ? 'edited the offer to' : contract.attempt_action === 'renegotiated' ? 'sent back to renegotiate at' : 'proposed'} PHP ${contract.price}`,
       status: contract.closure_reason === 'cancelled' ? `Cancelled${contract.cancelled_by ? ` by ${contract.cancelled_by.name}` : ''}` : contract.status === 'cancelled' ? 'Replaced by a newer attempt' : contract.status === 'accepted' ? 'Accepted' : 'Awaiting acceptance',
-      terms: contract.terms })),
+      terms: `${contract.terms}\n\n${copyrightProposalText(contract.license_scope?.copyright_transfer)}` })),
     ...contracts.filter(contract => contract.cancelled_at).map(contract => ({ key: `cancellation-${contract.id}`, at: contract.cancelled_at!,
       title: `Negotiation cancelled by ${contract.cancelled_by?.name || 'a participant'}`,
       status: 'Cancelled', terms: 'This negotiation is closed. Starting again creates a separate negotiation card.' })),
@@ -86,3 +86,4 @@ export function LegacyNegotiationCard({ messages }: { messages: ChatMessage[] })
     <NegotiationHistory legacy={messages} />
   </View>;
 }
+import { copyrightProposalText } from './CopyrightProposalSummary';

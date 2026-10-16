@@ -6,17 +6,19 @@ export function proposalPayload(proposal: any, artType: string, revisionId?: num
     `Product: ${artType}`,
     proposal.durationMonths ? `License duration: ${proposal.durationMonths} months` : 'License duration: no fixed duration specified',
     `Base price: PHP ${Number(proposal.basePrice).toFixed(2)}`,
-    `License multiplier: ${proposal.licenseMultiplier}; exclusivity multiplier: ${proposal.exclusivityMultiplier}`,
+    proposal.pricingTerms?.mode === 'fixed' ? 'Pricing: agreed fixed fee' : `Pricing: negotiated multipliers; license ${proposal.licenseMultiplier}; exclusivity ${proposal.exclusivityMultiplier}`,
     `Platform fee included: PHP ${Number(proposal.platformFee).toFixed(2)}`,
     proposal.requiresDelivery ? `Delivery: ${proposal.deliveryAddress}; PHP ${Number(proposal.deliveryFee).toFixed(2)}` : 'No shipping included',
     `Artwork checkout total: PHP ${total.toFixed(2)}`,
     proposal.note ? `Additional terms: ${proposal.note}` : '',
   ].filter(Boolean).join('\n');
   return {
+    pricing_terms: proposal.pricingTerms,
     price: total.toFixed(2), terms, revision_of: revisionId,
     delivery_quote: proposal.deliveryQuote,
     license_type: proposal.licenseType, exclusivity: proposal.exclusivity.replace('-', '_'),
     delivery_type: artType, compensation_type: proposal.compensationCategory || 'one_time',
+    license_scope: proposal.licenseScope,
     compensation_terms: proposal.compensationTerms,
   };
 }
