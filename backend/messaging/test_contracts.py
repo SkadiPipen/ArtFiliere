@@ -205,6 +205,91 @@ class ContractFlowTests(TestCase):
         pdf = self.call(AgreementSigningView, self.buyer, agreement_id=pk, pdf=True)
         self.assertTrue(pdf.content.startswith(b"%PDF"))
 
+    def test_license_permissions_survive_counteroffer_and_require_artist_authority(self):
+        from messaging.signing import AgreementSigningView
+        scope = {'territory': 'philippines', 'territory_details': '', 'uses': ['personal_display'],
+                 'products': '', 'modifications': 'none', 'sublicensing': 'none',
+                 'credit': 'required', 'credit_name': 'Painter', 'duration_months': 12}
+        response = self.call(ContractsView, self.buyer, 'post',
+            {'price': '75.50', 'terms': 'Personal display', 'license_scope': scope}, artwork_id=self.artwork.pk)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['license_scope'], scope)
+        pk = response.data['id']
+        scope['duration_months'] = 6
+        revised = self.call(ContractsView, self.artist, 'post',
+            {'price': '75.50', 'terms': 'Six months', 'license_scope': scope, 'revision_of': pk}, artwork_id=self.artwork.pk)
+        self.assertEqual(revised.status_code, 201)
+        self.assertTrue(any(change['field'] == 'license_scope' for change in revised.data['changes']))
+        pk = revised.data['id']
+        self.call(ContractDecisionView, self.buyer, 'patch', {'action': 'accept'}, agreement_id=pk)
+        document = self.call(AgreementSigningView, self.artist, agreement_id=pk).data
+        self.assertIn('License term: 6 months', document['document'])
+        payload = {'signature': 'Artist', 'consent': True, 'document_hash': document['document_hash'],
+                   'signature_strokes': [[[0.1, 0.2], [0.3, 0.7], [0.6, 0.3]]]}
+        self.assertEqual(self.call(AgreementSigningView, self.artist, 'post', payload, agreement_id=pk).status_code, 400)
+        payload['authority_confirmed'] = True
+        self.assertEqual(self.call(AgreementSigningView, self.artist, 'post', payload, agreement_id=pk).status_code, 200)
+
+    def test_negotiated_pricing_roundtrips_and_counteroffer_can_change_mode(self):
+        response = self.call(ContractsView, self.buyer, 'post', {
+            'price': '11.00', 'terms': 'Negotiated license',
+            'pricing_terms': {'mode': 'fixed', 'fixed_fee': '10'}}, artwork_id=self.artwork.pk)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['pricing_terms']['license_fee'], '10.00')
+        self.assertIn('Platform fee (10%, not negotiable): PHP 1.00', response.data['terms'])
+        pk = response.data['id']
+        changed = self.call(ContractsView, self.artist, 'post', {
+            'price': '82.50', 'terms': 'Counteroffer', 'revision_of': pk,
+            'pricing_terms': {'mode': 'multipliers', 'license_multiplier': '1', 'exclusivity_multiplier': '1.5'}}, artwork_id=self.artwork.pk)
+        self.assertEqual(changed.status_code, 201)
+        self.assertEqual(changed.data['pricing_terms']['mode'], 'multipliers')
+        self.assertTrue(any(change['field'] == 'pricing_terms' for change in changed.data['changes']))
+        self.assertEqual(Agreement.objects.get(pk=pk).status, 'cancelled')
+
+    def test_copyright_assignment_roundtrips_and_is_in_signing_document(self):
+        from messaging.signing import AgreementSigningView
+        scope = {'territory': 'philippines', 'territory_details': '', 'uses': ['personal_display'],
+                 'products': '', 'modifications': 'none', 'sublicensing': 'none', 'credit': 'required',
+                 'credit_name': '', 'duration_months': 12, 'copyright_transfer': {
+                     'kind': 'partial', 'rights': ['reproduction'], 'effective': 'signed_and_paid',
+                     'existing_commitments': 'None', 'artist_reserved_uses': 'Portfolio only',
+                     'additional_terms': 'None', 'acknowledged': True}}
+        response = self.call(ContractsView, self.buyer, 'post', {'price': '75.50', 'terms': 'Transfer reproduction',
+            'license_scope': scope}, artwork_id=self.artwork.pk)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['license_scope']['copyright_transfer']['rights'], ['reproduction'])
+        pk = response.data['id']
+        self.call(ContractDecisionView, self.artist, 'patch', {'action': 'accept'}, agreement_id=pk)
+        document = self.call(AgreementSigningView, self.buyer, agreement_id=pk).data['document']
+        self.assertIn('COPYRIGHT ASSIGNMENT', document)
+        self.assertIn('Portfolio only', document)
+        self.assertNotIn('does not assign copyright ownership', document)
+
+    def test_tampered_pricing_does_not_create_proposal(self):
+        response = self.call(ContractsView, self.buyer, 'post', {
+            'price': '10.00', 'terms': 'Wrong total',
+            'pricing_terms': {'mode': 'fixed', 'fixed_fee': '10'}}, artwork_id=self.artwork.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Agreement.objects.filter(artwork=self.artwork).exists())
+
+    def test_checkout_status_tracks_pending_and_paid_without_creating_payment(self):
+        from messaging.checkout_status import checkout_status
+        from messaging.signing import AgreementSigningView
+        pk = self.propose()
+        agreement = Agreement.objects.get(pk=pk)
+        self.assertEqual(checkout_status(agreement), 'not_started')
+        self.assertFalse(PaymentSession.objects.filter(agreement=agreement).exists())
+        payment = PaymentSession.objects.create(agreement=agreement, buyer=self.buyer, artist=self.artist,
+            artwork=self.artwork, reference_id='checkout-status-test', gross_amount='75.50',
+            platform_fee='6.86', artist_amount='68.64', status='pending')
+        self.assertEqual(checkout_status(agreement), 'pending')
+        payment.status = 'paid'
+        payment.save(update_fields=['status'])
+        self.call(ContractDecisionView, self.artist, 'patch', {'action': 'accept'}, agreement_id=pk)
+        response = self.call(AgreementSigningView, self.buyer, agreement_id=pk)
+        self.assertEqual(response.data['checkout_status'], 'paid')
+        self.assertEqual(PaymentSession.objects.filter(agreement=agreement).count(), 1)
+
     def test_cost_floor_with_contract_multipliers(self):
         from artworks.pricing import minimum_price
         from decimal import Decimal
@@ -213,7 +298,7 @@ class ContractFlowTests(TestCase):
         self.artwork.material_cost = Decimal("50")
         self.artwork.art_type = "physical"
         self.artwork.save()
-        self.assertEqual(minimum_price(self.artwork, "commercial", "exclusive"), Decimal("536.25"))
+        self.assertEqual(minimum_price(self.artwork, "commercial", "exclusive"), Decimal("618.75"))
         response = self.call(ContractsView, self.buyer, "post", {"price": "536.24", "terms": "Commercial", "license_type": "commercial", "exclusivity": "exclusive"}, artwork_id=self.artwork.id)
         self.assertEqual(response.status_code, 400)
         self.artwork.art_type = "digital"

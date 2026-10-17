@@ -355,7 +355,7 @@ export default function CartScreen() {
           onSigned={async () => { 
             await refreshContracts(); 
             const result = await contractRequest(`${signingId}/sign/`); 
-            if (result.fully_signed) setSigningId(null); 
+            if (result.checkout_status === 'paid') { setSigningId(null); setShowPurchases(true); }
           }} 
         />
       )}

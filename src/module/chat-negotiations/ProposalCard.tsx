@@ -1,4 +1,6 @@
 import NegotiationHistory, { ChangeHighlights } from './NegotiationHistory';
+import CopyrightProposalSummary from './CopyrightProposalSummary';
+import AutomaticCheckout from './AutomaticCheckout';
 import { contractChanges } from './negotiationThreads';
 import type { ChatMessage } from './chats';
 import { router } from 'expo-router';
@@ -47,6 +49,8 @@ export default function ProposalCard({ contract, history = [contract], legacyHis
       <View style={{ alignItems: 'flex-end', flexShrink: 1 }}><Text style={s.currency}>PHP</Text><Text style={s.price}>{Number.isFinite(Number(contract.price)) ? Number(contract.price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : contract.price}</Text></View>
     </View>
     {!!priceChange && <View style={s.changePill}><Text style={s.changeText}>Price changed: <Text style={{ textDecorationLine: 'line-through', color: '#9A8B82', fontWeight: '400' }}>{priceChange.before}</Text>{'  '}<Text style={{ color: '#BC3535', fontWeight: '800' }}>{priceChange.after}</Text></Text></View>}
+    <CopyrightProposalSummary transfer={contract.license_scope?.copyright_transfer} />
+    {!contract.commission_id && !signing && agreed && contract.fully_signed && contract.buyer_uid === auth.currentUser?.uid && contract.checkout_status !== 'paid' && <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}><AutomaticCheckout id={contract.id} onChange={onChange} /></View>}
     {agreed && <View style={s.agreedActions}>
       <TouchableOpacity accessibilityRole="button" onPress={() => setSigning(true)} style={s.secondaryButton}><FileText size={16} color="#A24F41" /><Text style={s.secondaryText}>Sign / preview agreement PDF</Text></TouchableOpacity>
       {['royalty', 'hybrid'].includes(contract.compensation_type || '') && <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/royalty-reports' as any)} style={s.secondaryButton}><Text style={s.secondaryText}>Royalty reports / Payments</Text></TouchableOpacity>}

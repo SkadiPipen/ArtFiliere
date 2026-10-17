@@ -51,7 +51,7 @@ export function contractChanges(current: Contract, previous?: Contract): Attempt
   if (!previous) return [];
   const fields = { price: 'Checkout total (PHP)', license_type: 'License', exclusivity: 'Exclusivity',
     delivery_fee: 'Delivery fee (PHP)', delivery_details: 'Delivery details', compensation_type: 'Compensation',
-    compensation_terms: 'Compensation details', terms: 'Terms' } as const;
+    compensation_terms: 'Compensation details', license_scope: 'License permissions and copyright assignment', pricing_terms: 'Agreed pricing', terms: 'Terms' } as const;
   return Object.entries(fields).flatMap(([key, label]) => {
     const field = key as keyof typeof fields;
     const before = readable(previous[field]), after = readable(current[field]);

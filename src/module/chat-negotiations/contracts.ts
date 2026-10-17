@@ -11,10 +11,13 @@ export type Contract = {
   cancelled_by?: { uid: string; name: string } | null;
   cancelled_at?: string | null;
   license_type?: 'personal' | 'commercial'; exclusivity?: string; compensation_type?: 'one_time' | 'royalty' | 'hybrid'; compensation_terms?: import('./compensation').CompensationTerms;
+  pricing_terms?: { mode: 'multipliers' | 'fixed'; base_price?: string; license_multiplier?: string; exclusivity_multiplier?: string; license_fee: string; platform_fee: string; checkout_excluding_delivery: string };
+  license_scope?: import('./LicenseScopeFields').LicenseScope;
   revision_of?: number;
   changes?: { field: string; label: string; before: string; after: string }[];
   image_url?: string | null;
   fully_signed?: boolean;
+  checkout_status?: 'not_started' | 'pending' | 'paid';
   unread_count?: number;
   delivery_details?: { route_id?: number; delivery_address?: string };
   delivery_fee?: string;
