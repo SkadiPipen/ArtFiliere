@@ -1,7 +1,7 @@
 import UnreadMessageBadge from "@/module/chat-negotiations/UnreadMessageBadge";
 import { useRouter } from "expo-router";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { MessageSquare, SlidersHorizontal } from "lucide-react-native";
+import { MessageSquare } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -92,7 +92,7 @@ export default function Dashboard() {
 
   const handleViewPost = (item: any, type: string) => {
     const saleTypeStr = String(item.sale_type || "").toUpperCase();
-    const isAuctionItem = saleTypeStr === "auction";
+    const isAuctionItem = saleTypeStr === "AUCTION";
     router.push({
       pathname: "/(home)/view-post",
       params: {
@@ -193,40 +193,16 @@ export default function Dashboard() {
               </View>
             </View>
 
+            <AuctionSection onSelect={handleViewPost} items={approvedArtworks} />
             <View style={styles.catalogueLayout}>
-              <View style={styles.filterPanel}>
-                <View style={styles.filterHeading}>
-                  <SlidersHorizontal size={16} color="#C15656" />
-                  <Text style={styles.filterTitle}>Browse art</Text>
-                </View>
-                <Text style={styles.filterLabel}>Categories</Text>
-                {[
-                  "Visual Arts",
-                  "Digital and Graphics",
-                  "Photography",
-                  "Traditional Art",
-                  "Contemporary / Modern",
-                ].map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    onPress={() =>
-                      setActiveCategory(
-                        category === "Visual Arts" ? "All" : category,
-                      )
-                    }
-                  >
-                    <Text style={styles.filterOption}>{category}</Text>
-                  </TouchableOpacity>
-                ))}
-                <Text style={[styles.filterLabel, styles.filterLabelSpaced]}>
-                  Filter
-                </Text>
-                <Text style={styles.filterOption}>Artwork Type</Text>
-                <Text style={styles.filterOption}>Price</Text>
-                <Text style={styles.filterOption}>Artist Style</Text>
-              </View>
               <View style={styles.catalogueContent}>
-                <Text style={styles.catalogueTitle}>{searchQuery.trim() ? `Search results for ${searchQuery.trim()}` : activeCategory === "All" ? "Artwork for you" : activeCategory}</Text>
+                <Text style={styles.catalogueTitle}>
+                  {searchQuery.trim()
+                    ? `Search results for ${searchQuery.trim()}`
+                    : activeCategory === "All"
+                    ? "Artwork for you"
+                    : activeCategory}
+                </Text>
                 {activeCategory === "Trending" && <Text>Newest artwork</Text>}
                 <ForYouGrid
                   activeCategory={hasSidebar ? "All" : activeCategory}
@@ -253,7 +229,7 @@ export default function Dashboard() {
               onSelect={handleViewPost}
             />
             <ArtistCommission />
-            <AuctionSection onSelect={handleViewPost} />
+            <AuctionSection onSelect={handleViewPost} items={approvedArtworks} />
             <ForYouGrid
               activeCategory={activeCategory}
               onSelect={handleViewPost}

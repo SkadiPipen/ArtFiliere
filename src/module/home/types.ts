@@ -9,6 +9,10 @@ export interface ArtItem {
   artistId?: string;
   artistName?: string;
   is_sold?: boolean;
+  description?: string;
+  sale_type?: string;
+  end_time?: string | null;
+  starting_time?: string | null;
 }
 
 export interface ArtistItem {

@@ -1,14 +1,13 @@
-import AccountSettingsPanel from './AccountSettingsPanel';
 import { auth } from "@/firebase/config";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import {
   ArrowLeft,
+  BadgePercent,
   ChevronRight,
   CreditCard,
-  BadgePercent,
-  Headphones,
   FileCheck2,
+  Headphones,
   Lock,
   LogOut,
   User,
@@ -26,6 +25,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import AccountSettingsPanel from './AccountSettingsPanel';
 
 type TabType = "account" | "privacy" | "billing" | "royalties";
 
@@ -345,8 +345,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   contentPanel: {
-    flexGrow: 0,
-    flexShrink: 0,
     width: "100%",
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -360,6 +358,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   desktopContentPanel: {
+    width: 'auto',
     flex: 1,
     minWidth: 0,
     minHeight: 350,

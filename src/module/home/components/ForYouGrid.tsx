@@ -126,14 +126,18 @@ export default function ForYouGrid({
   const numColumns = width > 768 ? 2 : 2;
   const itemsPerPage = numColumns * 2;
 
-  const sourceItems = webFiltered ? (items || []) : items?.length ? items : FOR_YOU_DATA;
+  const sourceItems = items ?? (webFiltered ? [] : FOR_YOU_DATA);
+  const availableItems = sourceItems.filter(item =>
+    String(item.sale_type || '').toUpperCase() !== 'AUCTION'
+  );
   const filteredForYou =
     activeCategory === "All"
-      ? sourceItems
-      : sourceItems.filter((item) => item.type === activeCategory);
+      ? availableItems
+      : availableItems.filter((item) => item.type === activeCategory);
 
   const pageCount = webFiltered ? Math.max(1, Math.ceil(filteredForYou.length / itemsPerPage)) : 5;
   useEffect(() => { if (webFiltered) setGridPage(1); }, [items, activeCategory, webFiltered]);
+  useEffect(() => { setGridPage(page => Math.min(page, pageCount)); }, [pageCount]);
   
   return (
     <View style={styles.container}>

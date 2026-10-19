@@ -1,14 +1,14 @@
 import { useCart } from '@/context/CartContext';
 import { auth } from '@/firebase/config';
+import { ChatUser, ChatWindow } from '@/module/chat-negotiations/chats';
 import { Contract, contractRequest } from '@/module/chat-negotiations/contracts';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
-import { ChatWindow, ChatUser } from '@/module/chat-negotiations/chats';
 import { CATEGORIES } from '@/module/home/types';
 import API_URL from '@/services/api';
 import { useRouter } from 'expo-router';
-import { Bell, Folder, Menu, Search, Settings, ShoppingCart } from 'lucide-react-native';
+import { Bell, ChevronDown, Folder, Menu, Search, Settings, ShoppingCart, SlidersHorizontal } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 interface HeaderProps {
   searchQuery?: string;
@@ -31,6 +31,30 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
   const [filesError, setFilesError] = useState('');
   const [selectedContract, setSelectedContract] = useState<number | null>(null);
 
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const animValue = useState(() => new Animated.Value(0))[0];
+
+  const handlePointerEnter = () => {
+    setBrowseOpen(true);
+    Animated.timing(animValue, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  };
+
+  const handlePointerLeave = () => {
+    Animated.timing(animValue, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start(({ finished }) => {
+      if (finished) {
+        setBrowseOpen(false);
+      }
+    });
+  };
+  
   const openFiles = async () => {
     setFilesOpen(true); setFilesLoading(true); setFilesError('');
     try { setContracts((await contractRequest()).contracts); }
@@ -115,23 +139,115 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
   const visibleNotifications = useMemo(() => notificationFilter === 'all' ? notifications : notifications.filter((item) => !item.is_read), [notificationFilter, notifications]);
 
   return (
-    <View style={[styles.header, isDesktop && styles.desktopHeader]}>
-      <View style={[styles.innerContainer, isDesktop && styles.desktopInnerContainer]}>
-        <View style={styles.topRow}>
-          <View style={styles.searchBox}>
-            <TextInput
-              style={styles.input}
-              placeholder="Search Artwork..."
-              placeholderTextColor="#888"
-              underlineColorAndroid="transparent"
-              value={webDesktop && onSearchChange ? (searchQuery ?? '') : localSearchQuery}
-              onChangeText={query => {
-                setLocalSearchQuery(query);
-                if (webDesktop) onSearchChange?.(query);
-              }}
-              {...(webDesktop ? { accessibilityLabel: 'Search artwork by title, artist or tag' } : {})}
-            />
-            <Search size={18} color="#555" />
+    <View style={[styles.header, isDesktop && styles.desktopHeader, webDesktop && styles.fullWidthHeader]}>
+      <View style={[styles.innerContainer, isDesktop && styles.desktopInnerContainer, webDesktop && styles.fullWidthInnerContainer]}>
+        <View style={[styles.topRow, webDesktop && styles.desktopRowSpacing]}>
+          <View style={styles.searchSectionWrapper}>
+          {webDesktop && (
+            <View
+              style={styles.browseDropdownContainer}
+              onPointerEnter={handlePointerEnter}
+              onPointerLeave={handlePointerLeave}
+            >
+              <TouchableOpacity
+                style={[styles.browseButton, browseOpen && styles.browseButtonActive]}
+                activeOpacity={0.85}
+              >
+                <SlidersHorizontal size={15} color="#FFFFFF" />
+                <Text style={styles.browseButtonText}>Browse art</Text>
+                <ChevronDown
+                  size={14}
+                  color="#FFFFFF"
+                  style={{
+                    transform: [
+                      {
+                        rotate: animValue.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '180deg'],
+                        }) as any,
+                      },
+                    ],
+                  }}
+                />
+              </TouchableOpacity>
+
+              {browseOpen && (
+                <Animated.View
+                  style={[
+                    styles.browsePopover,
+                    {
+                      opacity: animValue,
+                      transform: [
+                        {
+                          translateY: animValue.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [-8, 0],
+                          }),
+                        },
+                      ],
+                      pointerEvents: browseOpen ? 'auto' : 'none',
+                    } as any,
+                  ]}
+                >
+                  <Text style={styles.popoverSectionLabel}>CATEGORIES</Text>
+                  {[
+                    "Visual Arts",
+                    "Digital and Graphics",
+                    "Photography",
+                    "Traditional Art",
+                    "Contemporary / Modern",
+                  ].map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={styles.popoverItem}
+                      onPress={() => {
+                        onSelectCategory(cat === "Visual Arts" ? "All" : cat);
+                        handlePointerLeave();
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.popoverItemText,
+                          activeCategory === (cat === "Visual Arts" ? "All" : cat) && styles.popoverItemTextActive,
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+
+                  <View style={styles.popoverDivider} />
+
+                  <Text style={styles.popoverSectionLabel}>FILTERS</Text>
+                  {["Artwork Type", "Price", "Artist Style"].map((filterName) => (
+                    <TouchableOpacity
+                      key={filterName}
+                      style={styles.popoverItem}
+                      onPress={handlePointerLeave}
+                    >
+                      <Text style={styles.popoverItemText}>{filterName}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </Animated.View>
+              )}
+            </View>
+          )}
+
+            <View style={[styles.searchBox, webDesktop && styles.desktopSearchBox]}>
+              <TextInput
+                style={styles.input}
+                placeholder="Search Artwork..."
+                placeholderTextColor="#888"
+                underlineColorAndroid="transparent"
+                value={webDesktop && onSearchChange ? (searchQuery ?? '') : localSearchQuery}
+                onChangeText={(query) => {
+                  setLocalSearchQuery(query);
+                  if (webDesktop) onSearchChange?.(query);
+                }}
+                {...(webDesktop ? { accessibilityLabel: 'Search artwork by title, artist or tag' } : {})}
+              />
+              <Search size={18} color="#555" />
+            </View>
           </View>
 
           <View style={styles.headerIcons}>
@@ -157,7 +273,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
           </View>
         </View>
 
-        <View style={[styles.categoryRow, isDesktop && styles.desktopCategoryRow]}>
+        <View style={[styles.categoryRow, isDesktop && styles.desktopCategoryRow, webDesktop && styles.desktopRowSpacing]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 10 }}>
             {CATEGORIES.map((cat, i) => (
               <TouchableOpacity key={i} onPress={() => onSelectCategory(cat)}>
@@ -266,10 +382,12 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
 
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: '#C15656', width: '100%', alignItems: 'center', paddingVertical: 12 },
-  desktopHeader: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E9DDD6', paddingTop: 0 },
-  innerContainer: { width: '100%', maxWidth: 1200, paddingHorizontal: 15 },
-  desktopInnerContainer: { maxWidth: '100%' },
+  header: { backgroundColor: '#C15656', width: '100%', alignItems: 'center', paddingVertical: 12, zIndex: 1000 },
+  desktopHeader: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E9DDD6', paddingTop: 0, zIndex: 1000 },
+  innerContainer: { width: '100%', maxWidth: 1200, paddingHorizontal: 15, zIndex: 1000 },
+  desktopInnerContainer: { maxWidth: 1160, paddingHorizontal: 24, alignSelf: 'center' },
+  fullWidthHeader: { paddingVertical: 0 },
+  fullWidthInnerContainer: { maxWidth: '100%', paddingHorizontal: 0 },
   desktopNav: { height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { color: '#C15656', fontSize: 18, fontWeight: '800' },
   desktopLinks: { flexDirection: 'row', alignItems: 'center', gap: 24 },
@@ -277,7 +395,16 @@ const styles = StyleSheet.create({
   activeLink: { color: '#C15656', fontSize: 13, fontWeight: '800' },
   avatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#463532', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#C15656', marginHorizontal: -15, paddingHorizontal: 15, paddingVertical: 8 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#C15656',
+    marginHorizontal: -15,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    zIndex: 1001,
+  },
   searchBox: { flex: 1, backgroundColor: '#fff', borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: 38, borderWidth: 0 },
   input: {
     flex: 1,
@@ -291,7 +418,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  headerIcons: { flexDirection: 'row', marginLeft: 15, alignItems: 'center' },
   notificationButton: { position: 'relative' },
   notificationBadge: { position: 'absolute', top: -5, right: 5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1, borderColor: '#FFFFFF' },
   notificationBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
@@ -299,10 +425,117 @@ const styles = StyleSheet.create({
   notificationPanel: { position: 'absolute', maxHeight: '78%', backgroundColor: '#FFFDF5', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#E4D6CD', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 10 },
   mobileNotificationPanel: { top: 68, right: 12, left: 12 }, desktopNotificationPanel: { top: 108, width: 390 }, notificationPanelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, notificationTitle: { color: '#2B2320', fontSize: 21, fontWeight: '800' }, markReadText: { color: '#C15656', fontSize: 12, fontWeight: '800' }, markReadTextDisabled: { color: '#CBBAB3' }, notificationTabs: { flexDirection: 'row', gap: 8, marginTop: 14, marginBottom: 14 }, notificationTab: { backgroundColor: '#F0E4DB', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 7 }, notificationTabActive: { backgroundColor: '#C15656' }, notificationTabText: { color: '#8A6258', fontSize: 12, fontWeight: '800' }, notificationTabTextActive: { color: '#FFFFFF' }, notificationSectionLabel: { color: '#6E5650', fontWeight: '800', fontSize: 13, marginBottom: 8 }, notificationLoading: { height: 180, justifyContent: 'center', alignItems: 'center' }, notificationList: { paddingBottom: 2 }, notificationItem: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 10, marginBottom: 5 }, notificationItemUnread: { backgroundColor: '#FFF3ED' }, notificationIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 10 }, notificationIconApproved: { backgroundColor: '#5D8A63' }, notificationIconRejected: { backgroundColor: '#C15656' }, notificationCopy: { flex: 1 }, notificationItemTitle: { color: '#3A2D2A', fontSize: 12, fontWeight: '800' }, notificationItemMessage: { color: '#6F625D', fontSize: 11, lineHeight: 15, marginTop: 2 }, notificationUnreadDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#C15656', marginLeft: 7 }, notificationEmpty: { minHeight: 160, justifyContent: 'center', alignItems: 'center' }, notificationEmptyText: { color: '#7C6A64', fontSize: 12, marginTop: 9 },
   categoryRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
-  desktopCategoryRow: { marginTop: 0, paddingVertical: 8, backgroundColor: '#F8EEE9', marginHorizontal: -15, paddingHorizontal: 15 },
+  desktopCategoryRow: {
+    marginTop: 0,
+    paddingVertical: 8,
+    backgroundColor: '#F8EEE9',
+    marginHorizontal: -15,
+    paddingHorizontal: 15,
+  },
+  desktopRowSpacing: { marginHorizontal: 0, paddingHorizontal: 16 },
   catText: { color: 'rgba(255,255,255,0.85)', fontSize: 14, marginRight: 20, fontWeight: '500', paddingBottom: 4 },
   desktopCatText: { color: '#A45B52', backgroundColor: '#EADBD4', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 4, marginRight: 8, fontSize: 12 },
   activeCatText: { color: '#fff', fontWeight: 'bold', borderBottomWidth: 2, borderBottomColor: '#fff' },
   verticalDivider: { width: 1, height: 18, backgroundColor: 'rgba(255,255,255,0.4)', marginRight: 12 },
+  searchSectionWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 2000,
+  },
+  browseDropdownContainer: {
+    position: 'relative',
+    marginLeft: 0,
+    zIndex: 3000,
+    paddingBottom: 8,
+    marginBottom: -8,
+  },
+  browseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'transparent',
+    paddingLeft: 0, // Keeps icon and text flush to the container start
+    paddingRight: 10,
+    height: 44,
+    borderWidth: 0,
+    cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    marginLeft: 16,
+    marginRight: 0, // Sits flush with the carousel's right edge
+    alignItems: 'center',
+  },
+  browseButtonActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  browseButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14.5,
+    fontWeight: '800',
+  },
+  browsePopover: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    width: 250,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#EFE3DC',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 9999,
+    zIndex: 9999,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 10px 30px rgba(0, 0, 0, 0.18)',
+      },
+    }),
+  },
+  popoverSectionLabel: {
+    color: '#A08E88',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 6,
+    paddingHorizontal: 8,
+  },
+  popoverItem: {
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    cursor: Platform.OS === 'web' ? ('pointer' as any) : undefined,
+  },
+  popoverItemText: {
+    color: '#3A2E2B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  popoverItemTextActive: {
+    color: '#C15656',
+    fontWeight: '700',
+  },
+  popoverDivider: {
+    height: 1,
+    backgroundColor: '#F3EAE4',
+    marginVertical: 8,
+    marginHorizontal: 4,
+  },
+  desktopSearchBox: {
+    flexGrow: 0,
+    flexShrink: 0,
+    width: 320,
+    minWidth: 400,
+    height: 42,
+    borderRadius: 21,
+    marginRight: 16,
+  },
 });
 
