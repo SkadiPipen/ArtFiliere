@@ -29,6 +29,7 @@ export default function AgreementTemplateManager() {
     [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const h = async () => {
+    await auth.authStateReady();
     if (!auth.currentUser) throw Error("Please log in again.");
     return {
       Authorization: `Bearer ${await auth.currentUser.getIdToken()}`,

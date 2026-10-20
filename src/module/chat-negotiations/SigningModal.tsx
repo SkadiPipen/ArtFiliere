@@ -1,5 +1,4 @@
 import SignaturePad, { Strokes } from './SignaturePad';
-import AutomaticCheckout from './AutomaticCheckout';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import { Modal, ScrollView, View, Text, TextInput, TouchableOpacity, Platform, Image, StyleSheet } from 'react-native';
@@ -33,13 +32,13 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
   }, [id]);
   const signed = data && data[`${data.my_role}_signed_at`] && data[`${data.my_role}_signature_image`];
   useEffect(() => {
-    if (!signed || data?.fully_signed) return;
+    if (!data || data.fully_signed || (!signed && data.can_sign !== false)) return;
     let active = true;
     const timer = setInterval(() => {
       contractRequest(`${id}/sign/`).then(result => { if (active) setData(result); }).catch(() => {});
     }, 5000);
     return () => { active = false; clearInterval(timer); };
-  }, [id, !!signed, !!data?.fully_signed]);
+  }, [id, !!signed, !!data?.fully_signed, data?.can_sign]);
   const preview = async () => {
     try {
       const response = await fetch(`${API_URL}/api/users/contracts/${id}/pdf/`, { headers: { Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` } });
@@ -78,7 +77,6 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
     <ScrollView style={s.screen} keyboardShouldPersistTaps="handled" scrollEnabled={Platform.OS === 'web' || !drawing} contentContainerStyle={s.content}>
       <View style={s.pageHeader}><View style={{ flex: 1, gap: 5 }}><Text style={s.eyebrow}>ARTFILIER AGREEMENT</Text><Text accessibilityRole="header" style={s.pageTitle}>Review & sign</Text><Text style={s.description}>Review the terms, add your signature, then confirm your agreement.</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Close agreement" onPress={onClose} style={s.close}><X size={22} color="#775D53" /></TouchableOpacity></View>
       {!!error && <Text style={{ color: '#b00020' }}>{error}</Text>}
-      {data?.checkout_available !== false && data?.fully_signed && data?.my_role === 'buyer' && data?.checkout_status !== 'paid' && <AutomaticCheckout id={id} onChange={async () => { const result = await contractRequest(`${id}/sign/`); setData(result); await onSigned(); }} />}
       {!data ? <Text>Loading agreement...</Text> : <>
         <View style={s.section}><View style={s.sectionHeading}><FileText size={21} color="#B55D4C" /><View style={s.headingText}><Text style={s.eyebrow}>01 / REVIEW</Text><Text accessibilityRole="header" style={s.sectionTitle}>Agreement details</Text></View></View><AgreementPaper document={data.document} /><TouchableOpacity accessibilityRole="button" onPress={preview} style={s.outlineButton}><FileText size={17} color="#A24F41" /><Text style={s.buttonText}>Preview / download PDF</Text></TouchableOpacity></View>
         <View style={s.section}><View style={s.sectionHeading}><ShieldCheck size={21} color="#B55D4C" /><Text accessibilityRole="header" style={s.sectionTitle}>Signing status</Text></View>
@@ -89,7 +87,7 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
         {['artist', 'buyer'].map(role => data[`${role}_signature_image`] ? <View key={role}><Text>{role} signature</Text><Image source={{ uri: data[`${role}_signature_image`] }} style={{ width: 240, height: 80 }} resizeMode="contain" /></View> : null)}
 
         </View>
-        {signed ? <View style={[s.section, s.success]}><Text accessibilityRole="header" style={s.sectionTitle}>Signature saved</Text><Text style={s.description}>{data.fully_signed ? data.checkout_status === 'paid' ? 'Both parties have signed and payment is recorded.' : data.checkout_available === false ? 'Both parties have signed. Continue funding in the commission workspace.' : data.my_role === 'buyer' ? 'Both parties have signed. Checkout opens automatically; payment still requires your confirmation.' : 'Both parties have signed. The buyer can now complete payment.' : 'Your signature is saved. Waiting for the other party to sign.'}</Text></View> : <>
+        {signed ? <View style={[s.section, s.success]}><Text accessibilityRole="header" style={s.sectionTitle}>Signature saved</Text><Text style={s.description}>{data.fully_signed ? data.checkout_status === 'paid' ? 'Both parties have signed and payment is recorded.' : data.checkout_available === false ? 'Both parties have signed. Continue funding in the commission workspace.' : data.my_role === 'buyer' ? 'Both parties have signed. Close this agreement, then choose Checkout in your cart or negotiation chat when ready. Signing does not open Xendit or take payment.' : 'Both parties have signed. The buyer can now choose checkout and pay.' : 'Your signature is saved. Waiting for the other party to sign.'}</Text><TouchableOpacity style={s.outlineButton} onPress={onClose}><Text style={s.buttonText}>Done — return to negotiation</Text></TouchableOpacity></View> : data.can_sign === false ? <View style={s.section}><Text style={s.sectionTitle}>Waiting for the artist’s signature</Text><Text style={s.description}>The artist signs first. Your signature form will become available after their signature is saved.</Text></View> : <>
           <View style={s.section}><View style={s.sectionHeading}><PenLine size={21} color="#B55D4C" /><View style={s.headingText}><Text style={s.eyebrow}>02 / SIGNATURE</Text><Text accessibilityRole="header" style={s.sectionTitle}>Your signature</Text></View></View>
           <Text style={s.description}>Signing as {data.my_role}. Enter your full name and draw or upload your signature.</Text>
           <Text style={s.label}>Full name</Text>

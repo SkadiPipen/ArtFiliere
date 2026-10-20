@@ -10,7 +10,7 @@ from .models import Artwork, ArtworkReviewLog, ArtworkSimilarityMatch
 from .serializers import ArtworkSerializer
 from .tagging import generate_tags, validate_final_tags
 from django.db import IntegrityError, transaction
-from django.db.models import Avg, Q
+from django.db.models import Avg, Q, F
 from rest_framework.views import APIView
 from fulfillment.models import PurchaseReview
 from .hashing import (
@@ -67,6 +67,7 @@ class ArtworkView(AuthenticatedAPIView):
                 Q(art_type="physical", payment_sessions__status="paid")
                 | Q(payment_sessions__status="paid", payment_sessions__agreement__exclusivity__in=["exclusive", "sole"])
                 | Q(auction_listings__status="SETTLED")
+                | (Q(provenance_listing__record__registered_at__isnull=False) & ~Q(provenance_listing__record__current_owner_id=F('artist_id')))
             )
             artworks = artworks.filter(status=Artwork.Status.APPROVED).exclude(sold_one_of_one).distinct()
 
@@ -454,6 +455,8 @@ class ArtworkReviewView(AuthenticatedAPIView):
         # never undo a valid moderation decision; it is recorded for retry.
         blockchain_result = None
         if review_status == Artwork.Status.APPROVED and artwork.sha256_hash:
+            from blockchain.provenance import ensure_artwork
+            ensure_artwork(artwork)
             from django.conf import settings
             from django.utils import timezone
             from blockchain.models import BlockchainTransaction

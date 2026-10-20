@@ -1,5 +1,5 @@
 import UnreadMessageBadge from "@/module/chat-negotiations/UnreadMessageBadge";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { MessageSquare } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -38,6 +38,8 @@ export default function Dashboard() {
   const [approvedArtworks, setApprovedArtworks] = useState<ArtItem[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
   const [chatVisible, setChatVisible] = useState(false);
+  const { paymentReturn } = useLocalSearchParams<{ paymentReturn?: string }>();
+  useEffect(() => { if (paymentReturn) setChatVisible(false); }, [paymentReturn]);
   const isDesktop = width >= 768;
   const hasSidebar = Platform.OS === 'web' && isDesktop;
 

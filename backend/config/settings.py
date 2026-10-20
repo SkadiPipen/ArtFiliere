@@ -71,6 +71,8 @@ BLOCKCHAIN_RPC_URL = os.getenv("BLOCKCHAIN_RPC_URL", "http://127.0.0.1:8545")
 BLOCKCHAIN_CHAIN_ID = int(os.getenv("BLOCKCHAIN_CHAIN_ID", "31337"))
 BLOCKCHAIN_PRIVATE_KEY = os.getenv("BLOCKCHAIN_PRIVATE_KEY", "")
 BLOCKCHAIN_CONTRACT_ADDRESS = os.getenv("BLOCKCHAIN_CONTRACT_ADDRESS", "")
+BLOCKCHAIN_PROVENANCE_ADDRESS = os.getenv("BLOCKCHAIN_PROVENANCE_ADDRESS", "")
+BLOCKCHAIN_PROVENANCE_CONFIRMATIONS = int(os.getenv("BLOCKCHAIN_PROVENANCE_CONFIRMATIONS", "1" if BLOCKCHAIN_NETWORK == "local" else "3"))
 
 # Test and live credentials are loaded from backend/.env. Never expose the
 # secret key or webhook verification token to the Expo application.
@@ -178,8 +180,8 @@ ORS_API_KEY = (os.getenv('ORS_API_KEY', '').strip() or os.getenv('OPENROUTESERVI
 DELIVERY_BASE_FARE = '50.00'
 DELIVERY_PER_KM = '15.00'
 
-# Optional HTTPS frontend purchases URL for hosted checkout redirects.
-XENDIT_RETURN_URL = os.getenv("XENDIT_RETURN_URL", "")
+# Hosted HTTPS homepage redirect. Local HTTP checkout uses the verified return monitor.
+XENDIT_RETURN_URL = os.getenv("XENDIT_RETURN_URL", "").strip() or (FRONTEND_URL.rstrip('/') + '/' if FRONTEND_URL.startswith('https://') else '')
 
 
 # Use Windows' trusted certificate store while retaining HTTPS verification.

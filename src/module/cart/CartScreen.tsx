@@ -5,10 +5,12 @@ import SigningModal from '@/module/chat-negotiations/SigningModal';
 import MyPurchases from '@/module/profile/MyPurchases';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from './components/AuctionDeliveryCheckout';
 import API_URL from '@/services/api';
+import { purchaseRequest } from '@/services/purchases';
+import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentReturn';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, MoreHorizontal } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useCart } from '@/context/CartContext';
@@ -37,30 +39,6 @@ export default function CartScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ directCheckout?: string; artworkId?: string }>();
   const [artworkImages, setArtworkImages] = useState<Record<string, string>>({});
-  const [dismissedContractIds, setDismissedContractIds] = useState<string[]>(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      try {
-        const saved = window.localStorage.getItem('artfiliere_dismissed_contracts');
-        return saved ? JSON.parse(saved) : [];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
-
-  const dismissContract = (id: string, compositeKey?: string) => {
-    setDismissedContractIds((prev) => {
-      const updated = Array.from(new Set([...prev, id, compositeKey || `contract-art-${id}`]));
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        try {
-          window.localStorage.setItem('artfiliere_dismissed_contracts', JSON.stringify(updated));
-        } catch {}
-      }
-      return updated;
-    });
-  };
-
   const [checkoutError, setCheckoutError] = useState('');
   const [deliveryCheckout, setDeliveryCheckout] = useState<{ agreementId: number; context: AuctionCheckoutContext } | null>(null);
   const [showPurchases, setShowPurchases] = useState(false);
@@ -132,7 +110,8 @@ export default function CartScreen() {
 
   // Combination of regular cart items with unpaid won/agreed contracts
   const allDisplayItems = useMemo(() => {
-    const list: CartItem[] = cartItems.map(item => ({
+    const paidArtworkIds = new Set(contracts.filter(c => c.buyer_uid === auth.currentUser?.uid && c.checkout_status === 'paid').map(c => String(c.artwork_id)));
+    const list: CartItem[] = cartItems.filter(item => !paidArtworkIds.has(String(item.artworkId))).map(item => ({
       ...item,
       image: resolveCartImage(item.image),
     }));
@@ -143,13 +122,14 @@ export default function CartScreen() {
       const artIdStr = String(c.artwork_id);
       const contractKey = `contract-art-${c.id}`;
 
-      // Check if paid, settled, completed, or locally dismissed
-      const isPaid = Boolean(c.is_paid || c.status === 'paid' || c.status === 'completed' || c.payment_status === 'PAID');
-      const isDismissed = dismissedContractIds.includes(contractKey) || dismissedContractIds.includes(String(c.id));
+      // Only the backend's verified payment state removes an accepted agreement.
+      const isPaid = c.checkout_status === 'paid';
 
       if (
         !isPaid &&
-        !isDismissed &&
+        !paidArtworkIds.has(artIdStr) &&
+        c.buyer_uid === auth.currentUser?.uid &&
+        !!c.artwork_id && !c.commission_id &&
         !existingArtworkIds.has(artIdStr) &&
         (isAgreed(c) || c.status === 'agreed' || c.status === 'accepted')
       ) {
@@ -167,7 +147,7 @@ export default function CartScreen() {
           artistName: c.artist || 'Artist',
           title: c.title || 'Auction Artwork',
           price: c.price || '0',
-          type: 'Auction',
+          type: c.is_auction ? 'Auction' : 'Direct Sell',
           image: resolveCartImage(rawImg),
           quantity: 1,
         });
@@ -176,7 +156,7 @@ export default function CartScreen() {
     });
 
     return list;
-  }, [cartItems, contracts, artworkImages, dismissedContractIds]);
+  }, [cartItems, contracts, artworkImages]);
 
   const filteredItems = allDisplayItems.filter((item) => {
     if (activeFilter === 'All') return true;
@@ -235,15 +215,7 @@ export default function CartScreen() {
         if (itemId.startsWith('contract-art-')) {
           const contractId = itemId.replace('contract-art-', '');
           
-          dismissContract(contractId, itemId);
-          
-          try {
-            await contractRequest(`contracts/${contractId}/`, 'DELETE');
-          } catch {
-            try {
-              await contractRequest(`contracts/${contractId}/cancel/`, 'POST');
-            } catch (_) {}
-          }
+          await purchaseRequest(`cart/contracts/${contractId}/`, 'DELETE');
         } else {
           await removeFromCart(itemId); 
         }
@@ -281,6 +253,8 @@ export default function CartScreen() {
       setCheckoutError('Both you and the artist must accept the contract before checkout.'); 
       return; 
     }
+    const paymentTab = preparePaymentWindow();
+    let opened = false;
     try {
       setCheckingOut(true);
       const signing = await contractRequest(`${agreement.id}/sign/`);
@@ -314,21 +288,19 @@ export default function CartScreen() {
       if (!response.ok || (!data.simulated && !data.checkout_url)) throw new Error(data.error || 'Unable to create checkout.');
       setDeliveryCheckout(null);
       
-      // Mark as paid/dismissed so it immediately disappears from cart
-      dismissContract(String(agreement.id), `contract-art-${agreement.id}`);
-      setSelectedItems(prev => prev.filter(id => id !== selected[0].id));
-
       setShowPurchases(true);
       if (data.simulated) { 
         await refreshCart(); 
         await refreshContracts(); 
       } else {
-        await Linking.openURL(data.checkout_url);
+        await openPaymentCheckout(data.checkout_url, 'shop', data.payment_id, paymentTab);
+        opened = true;
       }
     } catch (error: any) {
       setCheckoutError(error.message || 'Unable to open checkout.');
       if (deliveryQuote) throw error;
     } finally {
+      if (!opened) paymentTab?.close();
       setCheckingOut(false);
     }
   };

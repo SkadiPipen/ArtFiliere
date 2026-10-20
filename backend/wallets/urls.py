@@ -18,7 +18,7 @@ from .auction_delivery import AuctionDeliveryQuoteView
 from .support import SupportView
 from .moderation import AccountModerationView, ModeratorUsersView, TicketReturnReviewView
 
-from .views import PaymentStatusView, AgreementCheckoutView, ActivityHistoryView, ArtworkCheckoutView, CancellationReturnRequestView, CustomerSupportRequestView, PlatformAdminRequestView, PlatformAdminUserView, WalletView, PlatformAdminWalletView, xendit_payment_session_webhook
+from .views import PlatformAdminPaymentsView, PaymentStatusView, AgreementCheckoutView, ActivityHistoryView, ArtworkCheckoutView, CancellationReturnRequestView, CustomerSupportRequestView, PlatformAdminRequestView, PlatformAdminUserView, WalletView, PlatformAdminWalletView, xendit_payment_session_webhook
 
 urlpatterns = [
     path('account/restrictions/', RestrictionStatusView.as_view()),
@@ -57,6 +57,7 @@ urlpatterns = [
     path("activity/", ActivityHistoryView.as_view(), name="activity_history"),
     path("transactions/requests/", TransactionRequestsView.as_view(), name="cancellation_return_requests"),
     path("transactions/<int:payment_id>/requests/", TransactionRequestsView.as_view(), name="cancellation_return_request"),
+    path("admin/wallet/payments/", PlatformAdminPaymentsView.as_view(), name="platform_admin_payments"),
     path("admin/wallet/", PlatformAdminWalletView.as_view(), name="platform_admin_wallet"),
     path("admin/wallet/payments/<int:payment_id>/", PlatformAdminWalletView.as_view(), name="platform_admin_wallet_payment"),
     path("moderation/returns/", CustomerSupportRequestView.as_view(), name="moderator_return_requests"),

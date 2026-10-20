@@ -40,6 +40,16 @@ class AuctionSigningTests(TestCase):
         self.assertEqual(response.status_code, 201, response.data)
         return AuctionListing.objects.get(), document, payload
 
+    def test_preview_endpoint_returns_full_signable_document_for_each_delivery_type(self):
+        import hashlib
+        for delivery in ('physical', 'digital'):
+            with self.subTest(delivery=delivery):
+                response = self.call(AuctionAgreementPreviewView, self.artist, {**self.payload, 'art_type':delivery, 'auction_delivery_type':delivery})
+                self.assertEqual(response.status_code, 200, response.data)
+                self.assertIn('ART LICENSING AGREEMENT', response.data['document'])
+                self.assertIn('Signed portrait', response.data['document'])
+                self.assertEqual(response.data['document_hash'], hashlib.sha256(response.data['document'].encode()).hexdigest())
+
     def test_artist_must_review_current_document_and_sign_before_request(self):
         self.assertEqual(self.call(ArtworkView, self.artist, self.payload).status_code, 400)
         self.assertFalse(Artwork.objects.exists())

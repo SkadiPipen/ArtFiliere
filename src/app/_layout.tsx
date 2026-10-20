@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import ContentProtection from "@/components/ContentProtection";
 import AccountRestrictionNotice from '@/components/AccountRestrictionNotice';
 import ReadOnlyRequestGuard from '@/components/ReadOnlyRequestGuard';
+import PaymentReturnMonitor from '@/components/PaymentReturnMonitor';
 
 export default function RootLayout() {
   return (
@@ -13,6 +14,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }} />
         <AccountRestrictionNotice />
         <ReadOnlyRequestGuard />
+        <PaymentReturnMonitor />
       </CartProvider>
     </AuthProvider>
   );

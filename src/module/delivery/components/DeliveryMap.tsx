@@ -1,3 +1,4 @@
+import WebDeliveryTiles from './WebDeliveryTiles';
 import { useEffect, useRef, useState } from 'react';
 import DeliveryLeafletMap from './DeliveryLeafletMap';
 import { Platform, StyleSheet, Text, View } from 'react-native';
@@ -25,9 +26,11 @@ export interface Coordinates {
 
 interface DeliveryMapProps {
     driverLocation: Coordinates | null;
+    driverAccuracy?: number;
     destinationLocation: Coordinates | null;
     destinationTitle?: string;
     onRouteCalculated?: (distanceKm: string, durationMins: string) => void;
+    onRouteUnavailable?: () => void;
     style?: object;
     mapType?: 'standard' | 'satellite' | 'hybrid';
 }
@@ -37,9 +40,11 @@ const ORS_API_KEY = process.env.EXPO_PUBLIC_ORS_API_KEY || '';
 
 export default function DeliveryMap({
     driverLocation,
+    driverAccuracy,
     destinationLocation,
     destinationTitle = 'Destination',
     onRouteCalculated,
+    onRouteUnavailable,
     style,
     mapType = 'standard',
 }: DeliveryMapProps) {
@@ -150,7 +155,8 @@ export default function DeliveryMap({
         }
     }, [driverLocation, destinationLocation]);
 
-    if (Platform.OS === 'web') return <View style={style}><DeliveryLeafletMap driverLat={driverLocation?.latitude} driverLng={driverLocation?.longitude} targetLat={destinationLocation?.latitude ?? null} targetLng={destinationLocation?.longitude ?? null} targetLabel={destinationTitle} isPickupStep onRouteCalculated={onRouteCalculated} /></View>;
+    if (Platform.OS === 'web' && driverLocation && !destinationLocation) return <View style={style}><WebDeliveryTiles target={[driverLocation.latitude, driverLocation.longitude]} driver={null} points={[]} label="Your device location" accuracy={driverAccuracy} color="#2980B9" /></View>;
+    if (Platform.OS === 'web') return <View style={style}><DeliveryLeafletMap driverLat={driverLocation?.latitude} driverLng={driverLocation?.longitude} targetLat={destinationLocation?.latitude ?? null} targetLng={destinationLocation?.longitude ?? null} targetLabel={destinationTitle} isPickupStep onRouteCalculated={onRouteCalculated} onRouteUnavailable={onRouteUnavailable} /></View>;
     if (!driverLocation) {
         return (
             <View style={[styles.fallbackContainer, style]}>

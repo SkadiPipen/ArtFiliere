@@ -8,6 +8,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
     similarity_matches = serializers.SerializerMethodField()
     is_sold = serializers.SerializerMethodField()
     auction_request = serializers.SerializerMethodField()
+    provenance = serializers.SerializerMethodField()
 
     class Meta:
         model = Artwork
@@ -38,6 +39,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "hourly_rate",
             "material_cost",
             "auction_request",
+            "provenance",
         ]
         extra_kwargs = {
             'sale_type': {'required': False},
@@ -52,6 +54,17 @@ class ArtworkSerializer(serializers.ModelSerializer):
             f"{artwork.artist.first_name} {artwork.artist.last_name}".strip()
             or artwork.artist.username
         )
+
+    def get_provenance(self, artwork):
+        from blockchain.models import ProvenanceListing
+        link = ProvenanceListing.objects.select_related('record__credited_creator', 'record__current_owner').filter(artwork=artwork).first()
+        if not link:
+            return None
+        record = link.record
+        return {'artwork_id': str(record.pk), 'created_by': record.credited_creator.username,
+                'creator_account_id': record.credited_creator_id,
+                'current_owner': record.current_owner.username if record.registered_at else None,
+                'creator_verified': record.creator_verified, 'disputed': record.disputed}
 
     def get_similarity_matches(self, artwork):
         if not self.context.get("include_similarity"):
@@ -74,6 +87,9 @@ class ArtworkSerializer(serializers.ModelSerializer):
 
     def get_is_sold(self, artwork):
         try:
+            link = getattr(artwork, 'provenance_listing', None)
+            if link and link.record.registered_at and link.record.current_owner_id != artwork.artist_id:
+                return True
             if hasattr(artwork, 'auction_listings') and artwork.auction_listings.filter(status='SETTLED').exists():
                 return True
             paid_sales = artwork.payment_sessions.filter(status='paid')

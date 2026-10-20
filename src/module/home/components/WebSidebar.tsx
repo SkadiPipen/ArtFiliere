@@ -4,15 +4,13 @@ import {
   Compass,
   Flag,
   Home,
-  PanelLeftClose,
-  PanelLeftOpen,
   Plus,
   Settings,
   ShoppingCart,
   User,
   type LucideIcon,
 } from 'lucide-react-native';
-import { createElement, useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -41,11 +39,6 @@ interface NavItemProps {
   active: boolean;
   compact: boolean;
   count?: number;
-}
-
-interface WebSidebarProps {
-  compact: boolean;
-  onToggle: () => void;
 }
 
 // React Native Web supports dataSet; native React Native types omit it.
@@ -113,7 +106,8 @@ function NavItem({
 
 // --- Main Component ---
 
-export default function WebSidebar({ compact: collapsed, onToggle }: WebSidebarProps) {
+export default function WebSidebar() {
+  const collapsed = false;
   // Keep sidebar contents fixed while CSS resizes the space reserved beside the page.
   const compact = false;
   const pathname = usePathname();
@@ -188,44 +182,6 @@ export default function WebSidebar({ compact: collapsed, onToggle }: WebSidebarP
         zIndex: 20,
       }}
     >
-      {createElement(
-        'style',
-        null,
-        `
-        #artfiliere-sidebar-slot-compact {
-          width: 84px !important;
-          transition: width 150ms ease-out;
-        }
-        #artfiliere-sidebar-slot-compact:hover,
-        #artfiliere-sidebar-slot-compact:focus-within {
-          width: 256px !important;
-        }
-        #artfiliere-sidebar-compact {
-          clip-path: inset(0 172px 0 0);
-          transition: clip-path 150ms ease-out;
-          will-change: clip-path;
-        }
-        #artfiliere-sidebar-slot-compact:hover #artfiliere-sidebar-compact,
-        #artfiliere-sidebar-slot-compact:focus-within #artfiliere-sidebar-compact {
-          clip-path: inset(0);
-        }
-        #artfiliere-sidebar-compact [data-sidebar-label] {
-          opacity: 0;
-          transition: opacity 100ms ease-out;
-        }
-        #artfiliere-sidebar-slot-compact:hover [data-sidebar-label],
-        #artfiliere-sidebar-slot-compact:focus-within [data-sidebar-label] {
-          opacity: 1;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          #artfiliere-sidebar-slot-compact,
-          #artfiliere-sidebar-compact,
-          #artfiliere-sidebar-compact [data-sidebar-label] {
-            transition: none;
-          }
-        }
-        `
-      )}
 
       <View
         nativeID={
@@ -351,27 +307,7 @@ export default function WebSidebar({ compact: collapsed, onToggle }: WebSidebarP
             </Pressable>
           </Link>
 
-          <Pressable
-            onPress={onToggle}
-            accessibilityRole="button"
-            accessibilityLabel={
-              collapsed ? 'Keep navigation expanded' : 'Collapse navigation'
-            }
-            style={({ hovered }) => [
-              styles.collapse,
-              { justifyContent: 'flex-start', paddingHorizontal: 14 },
-              hovered && styles.hoverItem,
-            ]}
-          >
-            {collapsed ? (
-              <PanelLeftOpen size={18} color="#766C66" />
-            ) : (
-              <PanelLeftClose size={18} color="#766C66" />
-            )}
-            <Text {...webLabel} style={styles.collapseLabel}>
-              {collapsed ? 'Keep sidebar expanded' : 'Collapse sidebar'}
-            </Text>
-          </Pressable>
+
         </View>
       </View>
     </View>

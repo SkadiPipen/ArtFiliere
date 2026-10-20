@@ -177,3 +177,34 @@ class RoyaltyEvidenceView(AuthenticatedAPIView):
         response['Content-Disposition'] = 'attachment; filename="royalty-evidence.' + {'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp'}[file['mime']] + '"'
         response['Cache-Control'], response['X-Content-Type-Options'] = 'private, no-store', 'nosniff'
         return response
+
+
+def purchase_royalty_reminder(agreement, buyer):
+    """Buyer-owned reporting reminder, independent of the background notification job."""
+    if (not agreement or agreement.buyer_id != buyer.pk or agreement.status != 'accepted'
+            or agreement.compensation_type not in ('royalty', 'hybrid')
+            or not agreement.artist_signed_at or not agreement.buyer_signed_at
+            or not agreement.compensation_terms.get('reporting_policy')):
+        return None
+    terms = agreement.compensation_terms
+    if terms['reporting_policy'] == 'commission_delivery_plus_7_days_artist_approval':
+        commission = getattr(agreement, 'commission_contract', None)
+        if not commission or commission.status != 'COMPLETE' or commission.disputed or not hasattr(commission, 'asset'):
+            return {'status': 'not_started', 'message': 'Royalty reporting starts after final commission delivery approval.'}
+    ensure_periods(agreement)
+    period = agreement.royalty_periods.exclude(status__in=['paid', 'zero_due']).order_by('ends_on', 'pk').first()
+    if not period:
+        return {'status': 'settled', 'message': 'No royalty reports currently outstanding.'}
+    today = timezone.localdate()
+    can_submit = today >= period.ends_on and period.status in ('awaiting_report', 'rejected')
+    overdue = today > period.due_on
+    if period.status == 'submitted': message = 'Report submitted. Awaiting artist review.'
+    elif period.status == 'approved': message = 'Report approved. Royalty payment pending.'
+    elif period.status == 'collecting': message = 'Royalty payment is processing.'
+    elif period.status == 'collection_failed': message = 'Royalty payment needs attention.'
+    elif can_submit: message = 'Royalty report overdue.' if overdue else 'Your royalty report is ready to submit.'
+    else: message = 'Your next royalty reporting period is in progress.'
+    return {'status': period.status, 'period_id': period.pk, 'message': message,
+            'starts_on': str(period.starts_on), 'report_opens_on': str(period.ends_on), 'due_on': str(period.due_on),
+            'days_until_report': max(0, (period.ends_on - today).days),
+            'days_until_due': (period.due_on - today).days, 'can_submit': can_submit, 'overdue': overdue}

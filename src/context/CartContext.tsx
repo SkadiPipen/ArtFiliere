@@ -3,6 +3,7 @@ import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { onAuthStateChanged } from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -41,6 +42,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!auth.currentUser) return;
     try { await request(); } catch (e: any) { setError(e.message); }
   };
+  useEffect(() => {
+    const refresh = () => { void refreshCart(); };
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') refresh(); });
+    if (Platform.OS === 'web') window.addEventListener('focus', refresh);
+    return () => { subscription.remove(); if (Platform.OS === 'web') window.removeEventListener('focus', refresh); };
+  }, []);
   useEffect(() => onAuthStateChanged(auth, async user => {
     const epoch = ++generation.current;
     setCartItems([]); setError(''); setLoading(!!user);

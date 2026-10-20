@@ -147,7 +147,7 @@ marked as simulated and are never charged retroactively.
 For confirmation when the app is closed, configure Payment Session webhooks at
 `https://YOUR_BACKEND/api/webhooks/xendit/payment-session/` and set the separate
 `XENDIT_WEBHOOK_TOKEN`. Local status checks work without a public webhook URL.
-Optionally set `XENDIT_RETURN_URL` to an HTTPS frontend My Purchases URL.
+Optionally set `XENDIT_RETURN_URL` to the HTTPS frontend homepage URL. When `FRONTEND_URL` is HTTPS, checkout defaults to its homepage. Local HTTP web checkout keeps the app open in the original tab and returns it home only after authenticated payment verification.
 Client redirects do not mark purchases paid. Duplicate callbacks/status checks
 cannot credit a wallet or fulfill a purchase twice.
 

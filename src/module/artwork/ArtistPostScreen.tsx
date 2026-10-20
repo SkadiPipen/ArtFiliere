@@ -10,7 +10,7 @@ import AgreementDocument, {
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { ArrowLeft, ImagePlus, Plus, Sparkles } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -112,18 +112,36 @@ export default function ArtistPostScreen() {
   const [auctionDrawing, setAuctionDrawing] = useState(false);
   const [signatureRevision, setSignatureRevision] = useState(0);
   const [preparingDocument, setPreparingDocument] = useState(false);
+  const [auctionAgreementError, setAuctionAgreementError] = useState('');
+  const agreementScrollRef = useRef<ScrollView>(null);
+  const scrollToPreparedDocument = useRef(false);
   useEffect(() => {
+    setAuctionAgreementError('');
     setAuctionDocument(null); setAuctionTermsConfirmed(false); setAuctionStrokes([]); setAuctionSignatureImage(''); setSignatureRevision(value => value + 1);
   }, [title, auctionTerms, auctionTemplateId, auctionLicenseType, auctionExclusivity, auctionDeliveryType]);
   const prepareAuctionDocument = async () => {
+    if (preparingDocument) return;
+    setAuctionAgreementError('');
+    if (!title.trim()) {
+      setAuctionAgreementError('Enter the artwork title on the posting form before reviewing and signing the agreement.');
+      return;
+    }
+    if (loadingAuctionTerms || !auctionTemplateId || !auctionTerms.trim()) {
+      setAuctionAgreementError(loadingAuctionTerms ? 'The platform agreement is still loading. Please try again shortly.' : 'The platform agreement could not be loaded. Reload the posting page and try again.');
+      return;
+    }
     setPreparingDocument(true);
     try {
       const result = await purchaseRequest('users/artworks/auction-agreement-preview/', 'POST', {
         title, art_type: artType.toLowerCase(), auction_agreement_template_id: auctionTemplateId, auction_terms: auctionTerms,
         auction_license_type: auctionLicenseType, auction_exclusivity: auctionExclusivity, auction_delivery_type: auctionDeliveryType,
       });
+      if (!result || typeof result.document !== 'string' || !result.document.trim() || typeof result.document_hash !== 'string' || !result.document_hash) {
+        throw new Error('The server did not return the full agreement. Please try again.');
+      }
+      scrollToPreparedDocument.current = true;
       setAuctionDocument(result); setAuctionTermsConfirmed(false); setAuctionStrokes([]); setAuctionSignatureImage(''); setSignatureRevision(value => value + 1);
-    } catch (e: any) { showToast(e.message || 'Unable to prepare the agreement.', 'error'); }
+    } catch (e: any) { setAuctionAgreementError(e.message || 'Unable to prepare the agreement. Please try again.'); }
     finally { setPreparingDocument(false); }
   };
   const uploadAuctionSignature = async () => {
@@ -141,10 +159,12 @@ export default function ArtistPostScreen() {
   useEffect(() => {
     let active = true;
     const loadAuctionAgreement = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
       try {
         setLoadingAuctionTerms(true);
+        await auth.authStateReady();
+        if (!active) return;
+        const user = auth.currentUser;
+        if (!user) throw new Error('Sign in with your artist account to load the auction agreement.');
         const response = await fetch(
           `${API_URL}/api/users/artworks/auction-agreement-defaults/`,
           { headers: { Authorization: `Bearer ${await user.getIdToken()}` } },
@@ -176,6 +196,7 @@ export default function ArtistPostScreen() {
   };
 
   const updateAuctionAgreement = (next: AgreementTerms) => {
+    setAuctionAgreementError('');
     setAuctionTerms(next.terms);
     setAuctionLicenseType(next.licenseType);
     setAuctionExclusivity(next.exclusivity);
@@ -211,6 +232,7 @@ export default function ArtistPostScreen() {
     message: string,
     type: "success" | "error" = "success",
   ) => {
+    if (auctionTermsOpen && type === 'error') setAuctionAgreementError(message);
     setToast({ visible: true, message, type });
   };
 
@@ -859,7 +881,7 @@ export default function ArtistPostScreen() {
       >
         <Pressable style={styles.agreementOverlay} onPress={() => setAuctionTermsOpen(false)}>
           <Pressable style={styles.agreementModal} onPress={(event) => event.stopPropagation()}>
-            <ScrollView scrollEnabled={!auctionDrawing} contentContainerStyle={styles.agreementScroll}>
+            <ScrollView ref={agreementScrollRef} scrollEnabled={!auctionDrawing} contentContainerStyle={styles.agreementScroll}>
               <Text style={styles.agreementModalHeading}>Auction Terms & Agreements</Text>
               <Text style={styles.agreementModalHint}>
                 Choose the license options, then review and sign the complete document. Approved auction license terms remain fixed; the winner signs after the auction ends.
@@ -870,13 +892,21 @@ export default function ArtistPostScreen() {
                 onChange={updateAuctionAgreement}
               />
               <TouchableOpacity style={styles.confirmAgreement} disabled={preparingDocument} onPress={prepareAuctionDocument}><Text style={styles.confirmAgreementText}>{preparingDocument ? 'Preparing document…' : 'Review full agreement and sign'}</Text></TouchableOpacity>
-              {auctionDocument && <>
+              {!!auctionAgreementError && <Text accessibilityRole="alert" style={{ color: '#B33535', backgroundColor: '#FFF0ED', borderRadius: 8, padding: 14, lineHeight: 21 }}>{auctionAgreementError}</Text>}
+              {auctionDocument && <View key={`auction-document-${signatureRevision}`} onLayout={event => {
+                if (!scrollToPreparedDocument.current) return;
+                scrollToPreparedDocument.current = false;
+                const y = event.nativeEvent.layout.y;
+                requestAnimationFrame(() => agreementScrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true }));
+              }}>
+                <Text style={styles.agreementModalHint}>Full agreement ready. Read the document, then enter your name and add your signature below.</Text>
                 <AgreementPaper document={auctionDocument.document} />
                 <TextInput accessibilityLabel="Artist full name for auction signature" placeholder="Your full name" value={auctionSignatureName} onChangeText={value => { setAuctionSignatureName(value); setAuctionTermsConfirmed(false); }} style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12 }} />
                 <SignaturePad key={signatureRevision} onDrawing={setAuctionDrawing} onChange={strokes => { setAuctionStrokes(strokes); setAuctionSignatureImage(''); setAuctionTermsConfirmed(false); }} />
                 <TouchableOpacity style={styles.confirmAgreement} onPress={uploadAuctionSignature}><Text style={styles.confirmAgreementText}>Or upload a transparent PNG signature</Text></TouchableOpacity>
                 {!!auctionSignatureImage && <Image source={{ uri: auctionSignatureImage }} style={{ width: '100%', height: 90 }} resizeMode="contain" />}
-              </>}
+              </View>}
+              {!!auctionDocument && !!auctionAgreementError && <Text accessibilityRole="alert" style={{ color: '#B33535', padding: 12, lineHeight: 21 }}>{auctionAgreementError}</Text>}
               <TouchableOpacity
                 style={[
                   styles.confirmAgreement,
@@ -887,6 +917,7 @@ export default function ArtistPostScreen() {
                     showToast("Review the full document, enter your name and draw or upload your signature.", "error");
                     return;
                   }
+                  setAuctionAgreementError('');
                   setAuctionTermsConfirmed((current) => !current);
                 }}
               >

@@ -104,6 +104,7 @@ def signing_data(item, user):
             "checkout_status": checkout_status(item),
             "checkout_available": bool(item.artwork_id and not getattr(item, 'commission_contract', None)),
             "my_role": "artist" if user.id == item.artist_id else "buyer",
+            "can_sign": bool(user.id == item.artist_id or (item.artist_signed_at and item.artist_signature_image)),
             "fully_signed": bool(item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image)}
 
 
@@ -225,6 +226,8 @@ class AgreementSigningView(AuthenticatedAPIView):
         role = data['my_role']
         if getattr(item, role + '_signed_at') and getattr(item, role + '_signature_image'):
             return Response(data)
+        if role == 'buyer' and not (item.artist_signed_at and item.artist_signature_image):
+            return Response({'error': 'The artist must sign this agreement before the buyer can sign.'}, status=409)
         try:
             image = signature_image(request.data)
         except ValueError as error:

@@ -4,7 +4,7 @@ import { BuyerDeliveryCard } from '@/module/delivery/components/BuyerDeliveryCar
 import DeliveryLeafletMap from '@/module/delivery/components/DeliveryLeafletMap';
 import { DeliveryProgressBar } from '@/module/delivery/components/DeliveryProgressBar';
 import { ActiveDelivery, DeliveryStep } from '@/module/delivery/types/delivery';
-import { fetchActiveDeliveryApi, fetchDeliveryDetailsApi, updateOrderStatusApi, updateRiderLocationApi, uploadDeliveryProofApi } from '@/services/deliveryApi';
+import { fetchActiveDeliveryApi, fetchDeliveryDetailsApi, resolveDeliveryLocationApi, updateOrderStatusApi, updateRiderLocationApi, uploadDeliveryProofApi } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -27,6 +27,9 @@ export default function DeliveryDetailScreen() {
     const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const [routeETA, setRouteETA] = useState<string | null>(null);
     const [gpsError, setGpsError] = useState('');
+    const [resolvingAddress, setResolvingAddress] = useState(false);
+    const [addressError, setAddressError] = useState('');
+    const locationAttempts = useRef(new Set<string>());
     const locationSubRef = useRef<Location.LocationSubscription | null>(null);
 
     // Photo proofs
@@ -62,17 +65,54 @@ export default function DeliveryDetailScreen() {
         return () => clearInterval(timer);
     }, [loadDeliveryDetails]);
 
+    const resolveCurrentAddress = useCallback(async () => {
+        if (!delivery?.id || resolvingAddress) return;
+        const side = ['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step) ? 'pickup' : 'delivery';
+        setResolvingAddress(true); setAddressError('');
+        try {
+            const updated = await resolveDeliveryLocationApi(delivery.id, side);
+            setDelivery(previous => previous && updated && previous.id === updated.id ? { ...previous, artist: updated.artist, buyer: updated.buyer, location_errors: updated.location_errors } : previous);
+        } catch (error: any) { setAddressError(error.message || 'Address lookup failed. Try again.'); }
+        finally { setResolvingAddress(false); }
+    }, [delivery?.id, delivery?.step, resolvingAddress]);
+
+    useEffect(() => {
+        if (!delivery) return;
+        const pickup = ['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step);
+        const location = pickup ? delivery.artist : delivery.buyer;
+        const key = `${delivery.id}-${pickup ? 'pickup' : 'delivery'}`;
+        if (!resolvingAddress && (location?.latitude == null || location?.longitude == null) && !locationAttempts.current.has(key)) {
+            locationAttempts.current.add(key);
+            void resolveCurrentAddress();
+        }
+    }, [delivery?.id, delivery?.step, resolveCurrentAddress, resolvingAddress]);
+
     // Track Driver GPS
     useEffect(() => {
         let webWatch: number | undefined;
         let active = true;
+        // Keep watching even if the browser's first GPS fix is unavailable.
+        if (Platform.OS === 'web' && navigator.geolocation) {
+            webWatch = navigator.geolocation.watchPosition(position => {
+                if (!active) return;
+                try {
+                    const point = checkedDriverPosition(position.coords);
+                    setDriverLocation(point); setGpsError('');
+                    void updateRiderLocationApi(1, point.latitude, point.longitude).catch(() => undefined);
+                } catch (e: any) { setDriverLocation(null); setGpsError(e.message); }
+            }, error => {
+                if (!active) return;
+                setDriverLocation(null);
+                setGpsError(error.code === 1 ? 'Allow location in browser site settings, then tap Current Location Tracker.' : 'Waiting for accurate GPS. Enable device location or try outdoors.');
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+            return () => { active = false; if (webWatch !== undefined) navigator.geolocation.clearWatch(webWatch); };
+        }
         (async () => {
             try {
                 const point = await getDriverPosition(); if (!active) return; setDriverLocation(point); setGpsError('');
-                if (Platform.OS === 'web' && navigator.geolocation) webWatch = navigator.geolocation.watchPosition(position => { try { const point = checkedDriverPosition(position.coords); setDriverLocation(point); setGpsError(''); void updateRiderLocationApi(1, point.latitude, point.longitude); } catch (e: any) { setDriverLocation(null); setGpsError(e.message); } }, error => { setDriverLocation(null); setGpsError(error.message); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
                 if (Platform.OS !== 'web') locationSubRef.current = await Location.watchPositionAsync(
                     { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 5000, distanceInterval: 10 },
-                    loc => { try { const point = checkedDriverPosition(loc.coords); setDriverLocation(point); setGpsError(''); void updateRiderLocationApi(1, point.latitude, point.longitude); } catch (e: any) { setDriverLocation(null); setGpsError(e.message); } }
+                    loc => { try { const point = checkedDriverPosition(loc.coords); setDriverLocation(point); setGpsError(''); void updateRiderLocationApi(1, point.latitude, point.longitude).catch((error: any) => setGpsError(`Location found, but sharing failed: ${error.message}`)); } catch (e: any) { setDriverLocation(null); setGpsError(e.message); } }
                 );
             } catch (e: any) { setDriverLocation(null); setGpsError(e.message || 'Enable precise GPS location.'); }
         })();
@@ -94,7 +134,11 @@ export default function DeliveryDetailScreen() {
         try {
             const point = await getDriverPosition();
             setDriverLocation(point); setGpsError('');
-            await updateRiderLocationApi(1, point.latitude, point.longitude);
+            try {
+                await updateRiderLocationApi(1, point.latitude, point.longitude);
+            } catch (error: any) {
+                setGpsError(`Location found, but sharing failed: ${error.message}`);
+            }
 
         } catch (error) {
             setDriverLocation(null); setGpsError(error instanceof Error ? error.message : 'Could not access precise GPS.');
@@ -289,6 +333,10 @@ export default function DeliveryDetailScreen() {
 
                 {!!gpsError && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 12 }}>{gpsError}</Text>}
                 {!!delivery.location_errors?.[isPickup ? 'pickup' : 'delivery'] && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 12 }}>{delivery.location_errors[isPickup ? 'pickup' : 'delivery']}</Text>}
+                {!!addressError && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 12 }}>{addressError}</Text>}
+                {!destinationCoords && <TouchableOpacity disabled={resolvingAddress} onPress={resolveCurrentAddress} style={{ padding: 12 }}>
+                    <Text style={{ color: '#BC5454', fontWeight: '700' }}>{resolvingAddress ? 'Finding destination with OpenRouteService...' : 'Retry destination address lookup'}</Text>
+                </TouchableOpacity>}
                 {/* Live OpenStreetMap Leaflet Route Card */}
                 <View style={styles.mapCard}>
                     {routeETA && (

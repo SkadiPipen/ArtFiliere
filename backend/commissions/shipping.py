@@ -41,10 +41,11 @@ def verified_locations(order):
     """Recheck old geocodes once; sync owner-provided pins only for the same agreed address."""
     from fulfillment.routing import geocode_address, pinned_coordinates
     from fulfillment.addresses import FIELDS
-    details = dict(order.route_details or {})
+    details = dict(order.route_details or (order.payment.agreement.delivery_details if order.payment_id and order.payment.agreement_id else {}) or {})
     errors = dict(details.get('location_errors') or {})
     changed = False
-    for party, owner in (('pickup', order.commission.artist), ('delivery', order.commission.buyer)):
+    source = order.commission if order.commission_id else order.payment
+    for party, owner in (('pickup', source.artist), ('delivery', source.buyer)):
         snapshot = details.get(f'{party}_snapshot') or {}
         address = owner.addresses.filter(pk=snapshot.get('id')).first() if snapshot.get('id') else None
         point = None

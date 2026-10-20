@@ -129,20 +129,10 @@ export async function updateRiderLocationApi(
   latitude: number,
   longitude: number
 ): Promise<any> {
-  try {
-    await verifiedRequest('rider/location/', { latitude, longitude }).catch(() => null);
-    const res = await fetch(`${API_URL}/api/delivery/rider/location/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rider_id: riderId, latitude, longitude }),
-    });
-    if (!res.ok) return null;
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
-  } catch (err) {
-    console.warn('updateRiderLocationApi error:', err);
-    return null;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+    throw new Error('Device GPS did not provide valid latitude and longitude. Retry location access.');
   }
+  return verifiedRequest('rider/location/', { latitude, longitude });
 }
 
 // 7. Completed deliveries history
@@ -182,25 +172,34 @@ const verifiedId = (id: string | number) => {
 const tagVerified = (value: any): any => value ? { ...value, id: `verified-${value.id}`, delivery_fee: Number(value.delivery_fee || value.fee || 0) } : null;
 
 async function verifiedRequest(path: string, body?: any) {
+  await auth.authStateReady();
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('Sign in with your driver account.');
   const response = await fetch(`${API_URL}/api/delivery/verified/${path}`, {
     method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || data.detail || `Delivery request failed (${response.status}).`);
+  const raw = await response.text();
+  if (!raw.trim()) {
+    if (response.ok && path === 'orders/active/') return null;
+    throw new Error(`Delivery server returned an empty response (HTTP ${response.status}). Please retry.`);
+  }
+  let data: any;
+  try { data = JSON.parse(raw); }
+  catch { throw new Error(`Delivery server returned an invalid response (HTTP ${response.status}). Please retry.`); }
+  if (!response.ok) throw new Error(data?.error || data?.detail || `Delivery request failed (${response.status}).`);
   return data;
 }
 
 export async function fetchPendingOrders(): Promise<any[]> {
   const [legacy, platform] = await Promise.all([fetchLegacyPendingOrders(), verifiedRequest('orders/pending/')]);
-  return [...(Array.isArray(platform) ? platform.map(tagVerified) : []), ...legacy];
+  const paymentIds = new Set(platform.map((order: any) => order.payment_id).filter(Boolean));
+  return [...platform.map(tagVerified), ...legacy.filter((order: any) => !paymentIds.has(order.payment))];
 }
 
 export async function fetchActiveDeliveryApi(): Promise<ActiveDelivery | null> {
-  const platform = await verifiedRequest('orders/active/').catch(() => null);
-  return platform ? tagVerified(platform) : fetchLegacyActiveDeliveryApi();
+  const platform = await verifiedRequest('orders/active/');
+  return tagVerified(platform);
 }
 
 export async function fetchDeliveryDetailsApi(orderId: string | number): Promise<ActiveDelivery | null> {
@@ -212,14 +211,25 @@ export async function fetchDeliveryDetailsApi(orderId: string | number): Promise
 
 export async function fetchDeliveryHistory(): Promise<any[]> {
   const [legacy, platform] = await Promise.all([fetchLegacyDeliveryHistory(), verifiedRequest('orders/history/').catch(() => [])]);
-  return [...(Array.isArray(platform) ? platform.map(tagVerified) : []), ...legacy];
+  const paymentIds = new Set(platform.map((order: any) => order.payment_id).filter(Boolean));
+  return [...platform.map(tagVerified), ...legacy.filter((order: any) => !paymentIds.has(order.payment))];
 }
 
 export async function fetchRiderProfile(): Promise<any> {
-  const [legacy, profile] = await Promise.all([fetchLegacyRiderProfile(), verifiedRequest('rider/profile/').catch(() => null)]);
-  return profile ? { ...legacy, ...profile } : legacy;
+  return verifiedRequest('rider/profile/');
 }
 
 export async function setRiderClockApi(isClockedIn: boolean) {
   return verifiedRequest('rider/profile/', { is_clocked_in: isClockedIn });
+}
+
+
+export async function fetchAssignedOrders(): Promise<any[]> {
+  return (await verifiedRequest('orders/assigned/')).map(tagVerified);
+}
+
+
+export async function resolveDeliveryLocationApi(orderId: string | number, side: 'pickup' | 'delivery') {
+  if (!isVerified(orderId)) return fetchDeliveryDetailsApi(orderId);
+  return tagVerified(await verifiedRequest(`orders/${verifiedId(orderId)}/resolve-location/`, { side }));
 }

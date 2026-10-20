@@ -1,4 +1,5 @@
 import CommissionNegotiationForm from './CommissionNegotiationForm';
+import API_URL from '@/services/api';
 import NegotiationPresets from './NegotiationPresets';
 import CopyrightTransferFields from './CopyrightTransferFields';
 import PricingFields from './PricingFields';
@@ -97,6 +98,29 @@ function ArtworkNegotiationForm({
   const effectiveCategory = licenseType === 'commercial' ? compensationCategory : 'one_time';
   const effectiveTerms = licenseType === 'commercial' ? compensationTerms : { subtype: 'one_time_payment' };
   const [licenseScope, setLicenseScope] = useState<LicenseScope>(initialProposal?.license_scope?.uses ? initialProposal.license_scope : defaultScope);
+  const [resaleRights, setResaleRights] = useState<any>(null);
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_URL}/api/blockchain/artworks/${artwork.id}/provenance/`).then(async response => {
+      if (!response.ok) return;
+      const record = await response.json();
+      if (!active || !record.rights) return;
+      setResaleRights(record.rights);
+      if (!initialProposal) {
+        setLicenseType(record.rights.license_type);
+        setExclusivity('exclusive');
+        if (record.rights.scope?.uses) {
+          setLicenseScope(record.rights.scope);
+          setDurationMonths(String(record.rights.scope.duration_months));
+        } else {
+          const duration = record.rights.duration_months || 12;
+          setLicenseScope({ ...defaultScope, allow_resale: record.rights.allow_resale === true, duration_months: duration });
+          setDurationMonths(String(duration));
+        }
+      }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [artwork.id]);
   const [note, setNote] = useState('');
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
 
@@ -353,6 +377,7 @@ function ArtworkNegotiationForm({
         setOffer(''); setSubmitError('');
       }} /></View>
       {/* License Type - Only show available from artwork */}
+      {!!resaleRights && <View style={styles.section}><Text style={{ fontWeight: '700' }}>Authorized exclusive resale</Text><Text>The original license scope and expiry must remain unchanged. Creator attribution is preserved. The backend checks these restrictions before payment.</Text></View>}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>License Type *</Text>
         <Text style={styles.sectionDescription}>Choose how you plan to use the artwork. Your license defines the uses allowed under this agreement.</Text>

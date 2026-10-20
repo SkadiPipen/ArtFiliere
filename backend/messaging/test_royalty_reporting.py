@@ -65,6 +65,42 @@ class ReportingTests(TestCase):
         image = BytesIO(); Image.new('RGB', (2, 2)).save(image, 'PNG')
         self.evidence = [{'name': 'sales.png', 'data': 'data:image/png;base64,' + base64.b64encode(image.getvalue()).decode()}]
 
+    def test_purchase_reminder_dates_submission_window_and_privacy(self):
+        from .royalties import purchase_royalty_reminder
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 2, 1)):
+            reminder = purchase_royalty_reminder(self.agreement, self.buyer)
+            self.assertEqual(reminder['report_opens_on'], '2026-02-28')
+            self.assertEqual(reminder['due_on'], '2026-03-07')
+            self.assertEqual(reminder['days_until_report'], 27)
+            self.assertFalse(reminder['can_submit'])
+            self.assertIsNone(purchase_royalty_reminder(self.agreement, self.outsider))
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 2, 28)):
+            reminder = purchase_royalty_reminder(self.agreement, self.buyer)
+            self.assertTrue(reminder['can_submit'])
+            self.assertEqual(reminder['days_until_due'], 7)
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 3, 8)):
+            reminder = purchase_royalty_reminder(self.agreement, self.buyer)
+            self.assertTrue(reminder['overdue'])
+            self.assertEqual(reminder['days_until_due'], -1)
+        self.period.status = 'submitted'; self.period.save()
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 3, 8)):
+            reminder = purchase_royalty_reminder(self.agreement, self.buyer)
+            self.assertFalse(reminder['can_submit'])
+            self.assertIn('Awaiting artist review', reminder['message'])
+        self.agreement.compensation_terms['reporting_policy'] = 'commission_delivery_plus_7_days_artist_approval'
+        self.assertEqual(purchase_royalty_reminder(self.agreement, self.buyer)['status'], 'not_started')
+
+    def test_royalty_reminder_is_in_buyer_purchases(self):
+        from wallets.models import PaymentSession
+        from fulfillment.views import PurchasesView
+        PaymentSession.objects.create(reference_id='royalty-reminder-purchase', buyer=self.buyer, artist=self.artist,
+            artwork=self.agreement.artwork, agreement=self.agreement, gross_amount=100, platform_fee=10, artist_amount=90, status='paid')
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 2, 1)):
+            response = self.call(PurchasesView, self.buyer)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['royalty_reminder']['report_opens_on'], '2026-02-28')
+        self.assertEqual(self.call(PurchasesView, self.outsider).data, [])
+
     def call(self, view, user, method='get', data=None, **kwargs):
         request = getattr(self.factory, method)('/', data or {}, format='json')
         with patch.object(view, 'get_request_user', return_value=user):

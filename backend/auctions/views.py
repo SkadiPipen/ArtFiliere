@@ -123,16 +123,11 @@ class AuctionDashboardView(APIView):
             except Exception as e:
                 print(f"[Auto-Heal AuctionListing Error] {e}")
 
-        active_auctions = AuctionListing.objects.filter(
-            status__in=['ACTIVE', 'SCHEDULED', 'PENDING_APPROVAL']
+        published_auctions = AuctionListing.objects.filter(
+            status__in=['ACTIVE', 'SCHEDULED', 'ENDED', 'SETTLED', 'PAYMENT_PENDING', 'BACKUP_OFFER', 'FORFEITED']
         ).select_related('artwork', 'artist')
 
-        if not active_auctions.exists():
-            active_auctions = AuctionListing.objects.exclude(
-                status='CANCELLED'
-            ).select_related('artwork', 'artist')
-
-        close_to_deadline = active_auctions.order_by('end_time')[:10]
+        close_to_deadline = published_auctions.filter(status='ACTIVE', end_time__gt=now).order_by('end_time')[:10]
 
         def serialize_item(a):
             end_iso = a.end_time.isoformat() if a.end_time else (now + timezone.timedelta(days=2)).isoformat()
@@ -154,10 +149,8 @@ class AuctionDashboardView(APIView):
                 "status": a.status,
             }
 
-        serialized_all = [serialize_item(a) for a in active_auctions.order_by('-id')]
+        serialized_all = [serialize_item(a) for a in published_auctions.order_by('-id')]
         close_list = [serialize_item(a) for a in close_to_deadline]
-        if not close_list:
-            close_list = serialized_all[:5]
 
         return Response({
             "close_to_deadline": close_list,

@@ -52,6 +52,8 @@ def record_agreement_proof(agreement):
 
 def record_artwork_proof(artwork):
     """Re-register an approved file only when the currently configured chain lacks it."""
+    from .provenance import ensure_artwork
+    ensure_artwork(artwork)
     if not artwork.sha256_hash:
         return None
     latest = BlockchainTransaction.objects.filter(

@@ -8,6 +8,9 @@ def validate_scope(raw, license_type):
     if not isinstance(raw, dict):
         raise ValueError('Provide valid license permissions.')
     result = {}
+    if 'allow_resale' in raw and type(raw['allow_resale']) is not bool:
+        raise ValueError('Choose whether resale of the exclusive entitlement is permitted.')
+    result['allow_resale'] = raw.get('allow_resale', False)
     for key, choices in {'territory': ('philippines', 'worldwide', 'custom'),
                          'modifications': ('none', 'technical', 'adaptations'),
                          'sublicensing': ('none', 'production_partners'),
@@ -51,4 +54,5 @@ def scope_text(scope):
         f'Licensed products / media: {scope["products"] or "Personal, non-commercial uses only"}.',
         f'License term: {scope["duration_months"]} months from the later signature date; renewal requires written agreement.',
         modifications, partners, credit + f' Credit name: {scope["credit_name"] or "Artist name stated in this agreement"}.',
+        'Resale of the ownership entitlement is ' + ('permitted, retaining this license scope and creator attribution.' if scope.get('allow_resale') else 'not permitted.'),
         'Rights not expressly granted are reserved. Personal licenses do not authorize commercial exploitation.'])

@@ -2,7 +2,7 @@ import CountrySelector from './CountrySelector';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import InfoAccordion from './InfoAccordion';
 
-export type LicenseScope = { copyright_transfer?: import('./CopyrightTransferFields').CopyrightTransfer; territory: string; territory_details: string; uses: string[]; products: string; modifications: string; sublicensing: string; credit: string; credit_name: string; duration_months: number };
+export type LicenseScope = { allow_resale?: boolean; copyright_transfer?: import('./CopyrightTransferFields').CopyrightTransfer; territory: string; territory_details: string; uses: string[]; products: string; modifications: string; sublicensing: string; credit: string; credit_name: string; duration_months: number };
 export const defaultScope: LicenseScope = { territory: 'philippines', territory_details: 'Philippines', uses: ['personal_display'], products: '', modifications: 'technical', sublicensing: 'none', credit: 'required', credit_name: '', duration_months: 12 };
 const groupInfo: Record<string, [string, string]> = {
   territory: ['Territory', 'Choose where the buyer may use the work.'],
@@ -31,5 +31,6 @@ export default function LicenseScopeFields({ value, commercial, onChange }: { va
     <InfoAccordion title="Moral rights" description="Attribution and protection against prejudicial distortion remain with the author. Selecting adaptations or commercial use does not waive moral rights. Statutory exceptions, including fair use, remain applicable." />
     <InfoAccordion title="License royalties and resale rights" description="The editable license royalty is negotiated compensation for permitted uses. Qualifying later sales or leases of original works may carry separate statutory resale obligations. These are not waived or automatically calculated by the royalty reporting service; obtain advice for a qualifying resale." />
     <InfoAccordion title="Certificates and blockchain records" description="Platform records support evidence of transactions and document integrity. They do not create copyright, independently prove authorship, or constitute IPOPHL registration." />
+    <InfoAccordion title="Permit resale of an exclusive ownership entitlement" description="Applies to exclusive purchases only. A later sale must preserve the original license restrictions and creator attribution. It does not automatically assign copyright. Leave unselected to prohibit resale." multiple selected={value.allow_resale === true} onSelect={() => update({ allow_resale: !value.allow_resale })} />
   </View>;
 }

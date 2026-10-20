@@ -218,6 +218,7 @@ export default function CreativeDashboardScreen() {
       <ScrollView contentContainerStyle={s.content}>
         <ArtistRecordReviews />
         <Text style={s.title}>Artwork moderation</Text>
+        <TouchableOpacity onPress={() => router.push('/attribution-reviews' as any)}><Text style={{ color: '#B74F50', fontWeight: '700', paddingVertical: 12 }}>Attribution & ownership reviews</Text></TouchableOpacity>
         <Text style={s.lead}>
           Review pending work and reconsider declined artwork from artist appeals.
         </Text>

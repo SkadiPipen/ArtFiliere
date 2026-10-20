@@ -1,9 +1,11 @@
 import CommissionDeliveryPanel from './CommissionDeliveryPanel';
+import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import { auth } from '@/firebase/config';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import { CompensationSettings } from '@/module/chat-negotiations/compensation';
 import API_URL from '@/services/api';
+import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentReturn';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -11,7 +13,6 @@ import {
   ActivityIndicator,
   AppState,
   Image,
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -171,19 +172,23 @@ export default function CommissionDetailScreen() {
   };
 
   const action = async (action: string, extra: any = {}) => {
+    const paymentTab = action === 'fund' ? preparePaymentWindow() : null;
+    let opened = false;
     setBusy(true);
     setError('');
     try {
       const result = await commissionApi(`flow/${id}/`, { action, version: data.proposal?.version, ...extra });
       if (action === 'fund') {
         if (!result.checkout_url) throw new Error('Checkout could not be confirmed. Retry to reconcile the same payment reference.');
-        await Linking.openURL(result.checkout_url);
+        await openPaymentCheckout(result.checkout_url, 'commission', Number(id), paymentTab);
+        opened = true;
         void load();
       } else { setData(result); if (action === 'refresh_payment') setPaymentNotice(result.funded_at ? '' : 'Xendit has not confirmed payment yet. Complete checkout; this page checks automatically.'); }
       setCounter(null);
     } catch (e: any) {
       setError(e.message);
     } finally {
+      if (!opened) paymentTab?.close();
       setBusy(false);
     }
   };
@@ -488,6 +493,7 @@ export default function CommissionDetailScreen() {
                   {data.asset && (
                     <View style={styles.card}>
                       <Text style={styles.sectionHeading}>Completed asset · Owner: {data.asset.owner}</Text>
+                      {!!data.asset.provenance_id && <ProvenancePanel recordId={data.asset.provenance_id} />}
                       <Text selectable style={styles.hashText}>Provenance record: {data.asset.record_hash}</Text>
                       <Text selectable style={styles.hashText}>Blockchain: {data.asset.proof_status} {data.asset.transaction_hash}</Text>
                       {!data.is_artist && data.asset.license.allow_resale && (

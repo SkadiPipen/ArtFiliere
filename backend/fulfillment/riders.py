@@ -1,8 +1,11 @@
 import base64
 import math
+from datetime import timedelta
+from zoneinfo import ZoneInfo
 from io import BytesIO
 from PIL import Image, ImageOps
 from django.db import transaction
+from django.http import JsonResponse
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework.response import Response
@@ -15,6 +18,16 @@ NEXT = {'pending': 'accepted', 'accepted': 'arrived_at_artist', 'arrived_at_arti
         'picked_up': 'in_transit', 'in_transit': 'arrived_at_buyer', 'arrived_at_buyer': 'delivered'}
 
 
+def expire_stale_shift(profile):
+    # A forgotten shift must not resume for several days on the next login.
+    now = timezone.now()
+    if profile.is_clocked_in and (not profile.clock_in_time or now - profile.clock_in_time >= timedelta(hours=24)):
+        ended = profile.clock_in_time + timedelta(hours=24) if profile.clock_in_time else now
+        RiderProfile.objects.filter(pk=profile.pk, is_clocked_in=True, clock_in_time=profile.clock_in_time).update(is_clocked_in=False, clock_out_time=ended)
+        profile.refresh_from_db()
+    return profile
+
+
 def orders():
     return DeliveryOrder.objects.filter(Q(payment__status='paid') | Q(commission__flow_version=2, commission__funded_at__isnull=False)).select_related('payment__artwork', 'payment__agreement', 'payment__buyer', 'payment__artist', 'driver', 'commission__buyer', 'commission__artist')
 
@@ -22,9 +35,8 @@ def orders():
 def serialize(order, detail=False):
     p, c = order.payment, order.commission
     quote = order.route_details or (c.locked_terms.get('delivery_details', {}) if c else p.agreement.delivery_details if p.agreement else {})
-    if c:
-        from commissions.shipping import verified_locations
-        quote = verified_locations(order)
+    from commissions.shipping import verified_locations
+    quote = verified_locations(order)
     buyer, artist = (c.buyer, c.artist) if c else (p.buyer, p.artist)
     title = c.title if c else p.artwork.title
     instructions = ' - '.join(filter(None, [quote.get('delivery_floor_unit'), quote.get('delivery_instruction')]))
@@ -38,7 +50,7 @@ def serialize(order, detail=False):
               'fee': str(order.fee), 'delivery_fee': str(order.fee), 'artwork_title': title,
               'created_at': order.created_at.isoformat(), 'delivered_at': order.delivered_at,
               'location_errors': quote.get('location_errors', {}),
-              'timeline': order.timeline, 'commission_id': c.pk if c else None,
+              'timeline': order.timeline, 'commission_id': c.pk if c else None, 'payment_id': order.payment_id,
               'artist': {'name': artist.username, 'phone': artist.contact_number, 'address': order.pickup_address,
                          'latitude': pickup_point[1] if len(pickup_point) == 2 else None, 'longitude': pickup_point[0] if len(pickup_point) == 2 else None},
               'buyer': {'name': buyer.username, 'phone': buyer.contact_number, 'address': order.delivery_address, 'instructions': instructions,
@@ -81,8 +93,9 @@ class RiderOrdersView(RiderView):
             rows = rows.filter(driver=user, status='delivered')
         else:
             rows = rows.filter(driver=user).exclude(status__in=['pending', 'delivered'])
-            order = rows.order_by('id').first()
-            return Response(serialize(order, True) if order else None)
+            if scope == 'active':
+                order = rows.order_by('id').first()
+                return Response(serialize(order, True)) if order else JsonResponse(None, safe=False)
         return Response([serialize(row) for row in rows.order_by('-id')])
 
     @transaction.atomic
@@ -99,6 +112,7 @@ class RiderOrdersView(RiderView):
             return Response({'error': 'Invalid delivery transition. Refresh the order.'}, status=409)
         if target == 'accepted':
             profile, _ = RiderProfile.objects.get_or_create(user=user)
+            expire_stale_shift(profile)
             if not profile.is_clocked_in:
                 return Response({'error': 'Clock in before accepting a delivery.'}, status=409)
             if orders().filter(driver=user).exclude(status__in=['pending', 'delivered']).exists():
@@ -154,17 +168,22 @@ class RiderProfileView(RiderView):
     def get(self, request):
         user = self.get_request_user(request)
         profile, _ = RiderProfile.objects.get_or_create(user=user)
+        expire_stale_shift(profile)
+        day_start = timezone.now().astimezone(ZoneInfo('Asia/Manila')).replace(hour=0, minute=0, second=0, microsecond=0)
         return Response({'fullName': ' '.join(filter(None, [user.first_name, user.middle_name, user.last_name])) or user.username,
                          'username': user.username, 'email': user.email, 'phoneNum': user.contact_number,
                          'is_clocked_in': profile.is_clocked_in, 'clock_in_time': profile.clock_in_time,
                          'clock_out_time': profile.clock_out_time, 'latitude': profile.latitude, 'longitude': profile.longitude,
                          'location_updated_at': profile.location_updated_at,
+                         'today_deliveries': orders().filter(driver=user, status='delivered', delivered_at__gte=day_start, delivered_at__lt=day_start + timedelta(days=1)).count(),
+                         'active_tasks': orders().filter(driver=user).exclude(status__in=['pending', 'delivered']).count(),
                          'total_delivery': orders().filter(driver=user, status='delivered').count()})
 
     @transaction.atomic
     def post(self, request):
         user = User.objects.select_for_update().get(pk=self.get_request_user(request).pk)
         profile, _ = RiderProfile.objects.get_or_create(user=user)
+        expire_stale_shift(profile)
         active = request.data.get('is_clocked_in')
         if type(active) is not bool:
             return Response({'error': 'Specify clock in or clock out.'}, status=400)
@@ -185,6 +204,7 @@ class RiderLocationView(RiderView):
     def post(self, request):
         user = User.objects.select_for_update().get(pk=self.get_request_user(request).pk)
         profile, _ = RiderProfile.objects.get_or_create(user=user)
+        expire_stale_shift(profile)
         if not profile.is_clocked_in:
             return Response({'error': 'Clock in before sharing location.'}, status=409)
         try:
@@ -196,3 +216,28 @@ class RiderLocationView(RiderView):
         profile.latitude, profile.longitude, profile.location_updated_at = lat, lng, timezone.now()
         profile.save(update_fields=['latitude', 'longitude', 'location_updated_at'])
         return Response({'saved': True})
+
+
+class RiderResolveLocationView(RiderView):
+    def post(self, request, order_id):
+        order = orders().filter(pk=order_id, driver=self.get_request_user(request)).first()
+        if not order:
+            return Response({'error': 'Delivery not found.'}, status=404)
+        side = request.data.get('side', 'pickup')
+        if side not in ('pickup', 'delivery'):
+            return Response({'error': 'Choose pickup or delivery.'}, status=400)
+        from commissions.shipping import verified_locations
+        from .routing import geocode_address
+        details = dict(verified_locations(order))
+        errors = dict(details.get('location_errors') or {})
+        if not details.get(f'{side}_coordinates'):
+            try:
+                details[f'{side}_coordinates'] = geocode_address(getattr(order, f'{side}_address'))
+                errors.pop(side, None)
+            except ValueError as error:
+                errors[side] = str(error)
+            details['location_errors'] = errors
+            # Update location metadata only; signed addresses and delivery fees stay locked.
+            order.route_details = details
+            order.save(update_fields=['route_details'])
+        return Response(serialize(order, True))
