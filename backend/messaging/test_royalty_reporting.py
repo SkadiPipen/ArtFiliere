@@ -47,6 +47,31 @@ class CalculationTests(SimpleTestCase):
 
 
 class ReportingTests(TestCase):
+    def test_license_expiry_boundary_and_waiting_signatures(self):
+        from .royalties import royalty_license_data
+        current = royalty_license_data(self.agreement, date(2026, 3, 30))
+        self.assertEqual(current['license_status'], 'active')
+        self.assertEqual(current['ends_on'], '2026-03-31')
+        expired = royalty_license_data(self.agreement, date(2026, 3, 31))
+        self.assertEqual(expired['license_status'], 'expired')
+        self.assertGreater(expired['outstanding_reports'], 0)
+        self.agreement.buyer_signed_at = None
+        waiting = royalty_license_data(self.agreement, date(2026, 4, 1))
+        self.assertEqual(waiting['license_status'], 'active')
+        self.assertEqual(waiting['status_label'], 'Awaiting both signatures')
+        self.assertIsNone(waiting['ends_on'])
+
+    def test_royalty_license_list_is_private_and_includes_expiry(self):
+        response = self.call(RoyaltyReportsView, self.buyer, 'get')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['agreements'][0]['id'], self.agreement.pk)
+        self.assertEqual(response.data['agreements'][0]['ends_on'], '2026-03-31')
+        self.assertTrue(response.data['agreements'][0]['is_buyer'])
+        artist_response = self.call(RoyaltyReportsView, self.artist, 'get')
+        self.assertFalse(artist_response.data['agreements'][0]['is_buyer'])
+        outsider = self.call(RoyaltyReportsView, self.outsider, 'get')
+        self.assertEqual(outsider.data['agreements'], [])
+
     def setUp(self):
         self.factory = APIRequestFactory()
         self.buyer = User.objects.create(username='buyer', firebase_uid='buyer', email='buyer@test.com')

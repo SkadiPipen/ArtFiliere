@@ -118,6 +118,8 @@ def collect(period_id):
         return
     with transaction.atomic():
         period = RoyaltyPeriod.objects.select_for_update().select_related('agreement').get(pk=period_id)
+        if period.terms.get('review_mode') == 'admin_held':
+            return
         if period.status != 'approved' or period.due_on > timezone.localdate() or not period.amount or not period.approved_at:
             return
         if period.agreement.compensation_terms.get('reporting_policy') == 'commission_delivery_plus_7_days_artist_approval':
@@ -154,6 +156,19 @@ def royalty_payment_webhook(request):
     if not isinstance(data, dict):
         return Response(status=400)
     reference = data.get('reference_id', '')
+    if isinstance(reference, str) and reference.startswith('af-royalty-report-'):
+        from .models import RoyaltyFunding
+        from .royalty_funding import apply_session
+        funding = RoyaltyFunding.objects.filter(reference=reference).first()
+        if not funding or not funding.session_id:
+            return Response(status=503)
+        try:
+            apply_session(funding.pk, provider('GET', '/sessions/' + funding.session_id))
+        except ValueError:
+            return Response(status=400)
+        except requests.RequestException:
+            return Response(status=503)
+        return Response({'received': True})
     if not isinstance(reference, str) or not reference.startswith('af-royalty-'):
         return Response({'received': True})
     try:

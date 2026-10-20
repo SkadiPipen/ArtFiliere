@@ -239,11 +239,11 @@ class ContractFlowTests(TestCase):
 
     def test_negotiated_pricing_roundtrips_and_counteroffer_can_change_mode(self):
         response = self.call(ContractsView, self.buyer, 'post', {
-            'price': '11.00', 'terms': 'Negotiated license',
-            'pricing_terms': {'mode': 'fixed', 'fixed_fee': '10'}}, artwork_id=self.artwork.pk)
+            'price': '55.00', 'terms': 'Negotiated license',
+            'pricing_terms': {'mode': 'fixed', 'fixed_fee': '50'}}, artwork_id=self.artwork.pk)
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data['pricing_terms']['license_fee'], '10.00')
-        self.assertIn('Platform fee (10%, not negotiable): PHP 1.00', response.data['terms'])
+        self.assertEqual(response.data['pricing_terms']['license_fee'], '50.00')
+        self.assertIn('Platform fee (10%, not negotiable): PHP 5.00', response.data['terms'])
         pk = response.data['id']
         changed = self.call(ContractsView, self.artist, 'post', {
             'price': '82.50', 'terms': 'Counteroffer', 'revision_of': pk,

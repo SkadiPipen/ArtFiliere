@@ -1,3 +1,4 @@
+import RoyaltyReportReviews from './RoyaltyReportReviews';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { useCallback, useEffect, useState } from 'react';
@@ -44,6 +45,7 @@ export default function AdminPaymentsScreen() {
     else Alert.alert('Confirm payment action', message, [{ text: 'Cancel', style: 'cancel' }, { text: action === 'release' ? 'Release' : 'Refund', onPress: () => void run() }]);
   };
   return <AdminPage activeTab="payments" onRefresh={refresh}><ScrollView contentContainerStyle={s.content}>
+    <RoyaltyReportReviews />
     <Text style={s.title}>Payment Controls</Text><Text style={s.note}>Find transactions and manage eligible releases and refunds.</Text>
     <TextInput accessibilityLabel="Search payments" placeholder="Search artwork, buyer, artist, reference or payment ID" value={search} onChangeText={value => { setSearch(value); setPage(1); }} style={s.search} />
     <View style={s.filters}>{['all', 'pending', 'paid', 'refunded', 'expired'].map(value => <TouchableOpacity key={value} onPress={() => { setStatus(value); setPage(1); }} style={[s.filter, value === status && s.active]}><Text style={{ color: value === status ? '#FFF' : '#746865', textTransform: 'capitalize' }}>{value}</Text></TouchableOpacity>)}</View>

@@ -1,9 +1,11 @@
+import ArtRoyalties from '../ArtRoyalties';
 import OngoingNegotiations from "@/module/chat-negotiations/OngoingNegotiations";
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useRouter } from "expo-router";
 import {
   Handshake,
+  Percent,
   Paintbrush,
   ShieldCheck,
   Star,
@@ -19,6 +21,7 @@ export default function TransactionGrid({ role }: { role?: string }) {
   const [purchaseFilter, setPurchaseFilter] = useState<
     "all" | "receive" | "rate" | "pay" | null
   >(null);
+  const [showRoyalties, setShowRoyalties] = useState(false);
   const [showNegotiations, setShowNegotiations] = useState(false);
   const [unreadCommissionCount, setUnreadCommissionCount] = useState(0);
   const [activeCommissionCount, setActiveCommissionCount] = useState(0);
@@ -131,7 +134,9 @@ export default function TransactionGrid({ role }: { role?: string }) {
         </View>
       </View>
 
+      {showRoyalties && <ArtRoyalties onClose={() => setShowRoyalties(false)} />}
       <View style={styles.iconGrid}>
+        <TouchableOpacity accessibilityRole="button" style={styles.iconItem} onPress={() => setShowRoyalties(true)}><Percent color="#C15656" size={28} /><Text style={styles.iconLabel}>Art Royalties</Text></TouchableOpacity>
         <TouchableOpacity
           style={styles.iconItem}
           onPress={() => setShowNegotiations(true)}
@@ -205,7 +210,9 @@ const styles = StyleSheet.create({
   viewMore: { fontSize: 12, color: "#C15656", opacity: 0.75 },
   iconGrid: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "flex-start",
+    flexWrap: "wrap",
+    rowGap: 20,
     backgroundColor: "#fff",
     paddingVertical: 18,
     borderRadius: 16,
@@ -217,7 +224,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  iconItem: { alignItems: "center", flex: 1 },
+  iconItem: { alignItems: "center", width: "25%", paddingHorizontal: 4 },
   commissionIconWrap: { position: "relative" },
   badge: {
     position: "absolute",

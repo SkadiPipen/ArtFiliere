@@ -167,3 +167,18 @@ class RoyaltyReceipt(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     provider_payment_id = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class RoyaltyFunding(models.Model):
+    """Buyer payment held until an administrator verifies and releases it."""
+    period = models.OneToOneField(RoyaltyPeriod, on_delete=models.PROTECT, related_name='funding')
+    reference = models.CharField(max_length=80, unique=True)
+    session_id = models.CharField(max_length=100, blank=True)
+    checkout_url = models.URLField(max_length=1000, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=20, default='creating')
+    paid_at = models.DateTimeField(null=True)
+    released_at = models.DateTimeField(null=True)
+    reviewed_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name='royalty_fund_reviews')
+    review_note = models.CharField(max_length=1000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

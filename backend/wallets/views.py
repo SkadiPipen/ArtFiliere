@@ -418,6 +418,21 @@ def xendit_payment_session_webhook(request):
         return Response({'error': 'Invalid payload.'}, status=400)
     if data.get('session_type') == 'SAVE':
         return Response({'received': True, 'ignored': 'Payment-method saving session.'})
+    reference = data.get('reference_id', '')
+    if isinstance(reference, str) and reference.startswith('af-royalty-report-'):
+        from messaging.models import RoyaltyFunding
+        from messaging.royalty_funding import apply_session
+        from messaging.royalty_payments import provider
+        funding = RoyaltyFunding.objects.filter(reference=reference).first()
+        if not funding or not funding.session_id:
+            return Response({'error': 'Royalty session is awaiting reconciliation.'}, status=503)
+        try:
+            apply_session(funding.pk, provider('GET', '/sessions/' + funding.session_id))
+        except ValueError as error:
+            return Response({'error': str(error)}, status=400)
+        except requests.RequestException:
+            return Response({'error': 'Provider verification unavailable.'}, status=503)
+        return Response({'received': True})
     payment = PaymentSession.objects.filter(reference_id=data.get('reference_id', ''), is_simulated=False).first()
     if not payment:
         return Response({'error': 'Unknown payment reference.'}, status=404)

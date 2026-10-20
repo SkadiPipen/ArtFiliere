@@ -31,6 +31,9 @@ def validate_pricing(raw, artwork, checkout_amount):
         raise ValueError('The calculated license fee must be positive.')
     # Match checkout's split of the fee-inclusive total.
     total = (amount * Decimal('1.10')).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+    minimum = base_cost(artwork).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+    if total < minimum:
+        raise ValueError(f'The proposed artwork price must be at least PHP {minimum} (artwork base price), excluding delivery.')
     if total > Decimal('9999999999.99') or total != checkout_amount:
         raise ValueError('Checkout amount does not match the agreed pricing plus the platform fee. Reload and review the proposal.')
     platform_fee = (total - total / Decimal('1.10')).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
