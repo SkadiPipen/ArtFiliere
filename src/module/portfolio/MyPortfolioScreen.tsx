@@ -1,3 +1,4 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import CategoryPicker from '@/module/artwork/components/CategoryPicker';
 import { artworkCategoryIds } from '@/services/artworkCategories';
@@ -7,7 +8,7 @@ import API_URL from "@/services/api";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, Plus } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Artwork = {
@@ -169,7 +170,7 @@ export default function MyPortfolioScreen() {
                   })
                 }
               >
-                {artwork.image_data ? <Image source={{ uri: artwork.image_data }} style={s.image} /> : <View style={[s.image, { justifyContent: "center", alignItems: "center" }]}><Text>Completed commission</Text></View>}
+                {artwork.image_data ? <ProductImage source={{ uri: artwork.image_data }} style={s.image} /> : <View style={[s.image, { justifyContent: "center", alignItems: "center" }]}><Text>Completed commission</Text></View>}
                 <View style={s.cardBody}>
                   <View style={s.cardTop}>
                     <Text style={s.artTitle} numberOfLines={1}>

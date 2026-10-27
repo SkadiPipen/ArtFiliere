@@ -1,9 +1,10 @@
+import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest } from '@/services/purchases';
 import * as ImagePicker from 'expo-image-picker';
 import { X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Purchase = { id: number | string; title: string; artist: string; image?: string; is_commission?: boolean; commission_id?: number };
 export default function PurchaseRatingCard({ purchase, onSaved }: { purchase: Purchase; onSaved: () => Promise<void> }) {
@@ -42,7 +43,7 @@ export default function PurchaseRatingCard({ purchase, onSaved }: { purchase: Pu
   </View>;
   return <View style={s.card}>
     <View style={s.summary}>
-      {purchase.image ? <Image accessibilityLabel={purchase.title} source={{ uri: purchase.image }} style={s.thumbnail} resizeMode="contain" /> : <View style={[s.thumbnail, s.placeholder]}><Text>No image</Text></View>}
+      {purchase.image ? <ProductImage accessibilityLabel={purchase.title} source={{ uri: purchase.image }} style={s.thumbnail} resizeMode="contain" /> : <View style={[s.thumbnail, s.placeholder]}><Text>No image</Text></View>}
       <View style={s.details}><Text style={s.title}>{purchase.title}</Text><Text style={s.artist}>by {purchase.artist}</Text></View>
     </View>
     {stars('Rate artist', artist, setArtist)}
@@ -52,7 +53,7 @@ export default function PurchaseRatingCard({ purchase, onSaved }: { purchase: Pu
       <Text style={s.label}>Write a review (optional)</Text>
       <TextInput accessibilityLabel={`Review for ${purchase.title}`} editable={!busy} multiline maxLength={2000} placeholder="Share your experience with the artist and artwork…" value={comment} onChangeText={setComment} style={s.input} />
       <Text style={s.artist}>Add up to 3 photos, 1 MB each (optional).</Text>
-      <View style={s.photos}>{images.map((uri, index) => <View key={index} style={s.photo}><Image source={{ uri }} style={s.preview} /><TouchableOpacity accessibilityRole="button" disabled={busy || picking} accessibilityLabel={`Remove photo ${index + 1}`} hitSlop={8} style={s.removePhoto} onPress={() => setImages(current => current.filter((_, i) => i !== index))}><X size={14} color="#FFFFFF" /></TouchableOpacity></View>)}</View>
+      <View style={s.photos}>{images.map((uri, index) => <View key={index} style={s.photo}><ProductImage source={{ uri }} style={s.preview} /><TouchableOpacity accessibilityRole="button" disabled={busy || picking} accessibilityLabel={`Remove photo ${index + 1}`} hitSlop={8} style={s.removePhoto} onPress={() => setImages(current => current.filter((_, i) => i !== index))}><X size={14} color="#FFFFFF" /></TouchableOpacity></View>)}</View>
       <TouchableOpacity accessibilityRole="button" disabled={busy || picking || images.length >= 3} onPress={pick} style={[s.reviewButton, (picking || images.length >= 3) && s.disabled]}><Text style={s.accent}>{picking ? 'Adding photos…' : 'Add photos'}</Text></TouchableOpacity>
       {images.length > 0 && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Remove all review photos" disabled={busy || picking} onPress={() => setImages([])} style={s.removeAll}><Text style={s.accent}>Remove all</Text></TouchableOpacity>}
     </View>}

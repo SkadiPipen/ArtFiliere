@@ -1,6 +1,7 @@
+import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { purchaseRequest } from '@/services/purchases';
@@ -39,10 +40,10 @@ export default function CommissionWorkspace({ review = false }: { review?: boole
         : <Action label={selected === c.id ? 'Close workspace' : 'Open workspace'} onPress={() => { setSelected(selected === c.id ? null : c.id); setMessage(''); setImage(''); setPercent(''); setCaption(''); }} />}
       {!review && selected === c.id && <><Text style={s.heading}>Commission messages</Text>{c.messages.map(m => <View key={m.id}><Text style={{ fontWeight: '700' }}>{m.sender}</Text><Text style={s.text}>{m.body}</Text></View>)}
         {c.can_work && <><TextInput accessibilityLabel="Commission message" style={s.input} multiline maxLength={4000} value={message} onChangeText={setMessage} placeholder="Message about this commission" /><Action label="Send message" disabled={busy || !message.trim()} onPress={() => run(() => send('message'))} /></>}
-        <Text style={s.heading}>Progress & deliverables</Text>{c.photos.map(p => <View key={p.id}><Image source={{ uri: p.url }} style={s.photo} resizeMode="contain" /><Text>{p.progress}% · {p.caption}</Text></View>)}
+        <Text style={s.heading}>Progress & deliverables</Text>{c.photos.map(p => <View key={p.id}><ProductImage source={{ uri: p.url }} style={s.photo} resizeMode="contain" /><Text>{p.progress}% · {p.caption}</Text></View>)}
         {c.can_work && c.flow_version === 2 && <Action label="Open milestone submissions" onPress={() => router.push({ pathname: "/commission-detail" as any, params: { id: String(c.id) } })} />}
         {c.can_work && c.is_artist && c.flow_version !== 2 && <><Action label="Attach progress / final artwork" disabled={busy} onPress={() => run(async () => { const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.85 }); if (!result.canceled && result.assets[0].base64) setImage(`data:${result.assets[0].mimeType || 'image/jpeg'};base64,${result.assets[0].base64}`); })} />
-          {!!image && <Image source={{ uri: image }} style={s.photo} resizeMode="contain" />}
+          {!!image && <ProductImage source={{ uri: image }} style={s.photo} resizeMode="contain" />}
           <TextInput accessibilityLabel="Progress percentage" style={s.input} placeholder="Progress 1–100 (100 for final artwork)" keyboardType="numeric" value={percent} onChangeText={setPercent} />
           <TextInput accessibilityLabel="Progress caption" style={s.input} placeholder="Describe this update or delivery" maxLength={255} value={caption} onChangeText={setCaption} />
           <Action label="Submit artwork update" disabled={busy || !image || !percent} onPress={() => run(() => send('progress'))} /></>}

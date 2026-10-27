@@ -1,3 +1,4 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { useCart } from "@/context/CartContext";
 import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
@@ -19,7 +20,7 @@ import {
   X,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ViewPostPage() {
@@ -329,7 +330,7 @@ export default function ViewPostPage() {
                         styles.galleryThumbnailActive,
                     ]}
                   >
-                    <Image
+                    <ProductImage
                       source={{ uri: galleryImage }}
                       style={styles.galleryThumbnailImage}
                     />
@@ -549,7 +550,7 @@ export default function ViewPostPage() {
                 )}
                 {!!review.artist_rating && <Text style={styles.reviewComment}>Artist rating: {review.artist_rating}/5</Text>}
                 {!!review.artist_comment && <Text style={styles.reviewComment}>{review.artist_comment}</Text>}
-                {!!review.images?.length && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{review.images.map((uri, photoIndex) => <Image key={photoIndex} accessibilityLabel={`Review photo ${photoIndex + 1}`} source={{ uri }} style={{ width: 96, height: 96, borderRadius: 8 }} resizeMode="contain" />)}</View>}
+                {!!review.images?.length && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{review.images.map((uri, photoIndex) => <ProductImage key={photoIndex} accessibilityLabel={`Review photo ${photoIndex + 1}`} source={{ uri }} style={{ width: 96, height: 96, borderRadius: 8 }} resizeMode="contain" />)}</View>}
                 <Text style={styles.reviewDate}>
                   {new Date(review.created_at).toLocaleDateString()}
                 </Text>
@@ -622,7 +623,7 @@ export default function ViewPostPage() {
                     activeImageIndex === index && styles.galleryThumbnailActive,
                   ]}
                 >
-                  <Image
+                  <ProductImage
                     source={{ uri: galleryImage }}
                     style={styles.galleryThumbnailImage}
                   />

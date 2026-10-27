@@ -1,10 +1,11 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import AvailabilityCalendar from '@/module/commissions/AvailabilityCalendar';
 import API_URL from '@/services/api';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Image, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 export default function PortfolioAvailability({ artistId }: { artistId: number }) {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function PortfolioAvailability({ artistId }: { artistId: number }
       {!error && !works.length && <Text>No works yet.</Text>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         {works.map(work => <TouchableOpacity key={work.id} onPress={() => router.push('/my-portfolio')} style={{ flex: 1, minWidth: 110 }}>
-          {!!work.image_data && <Image source={{ uri: work.image_data }} style={{ width: '100%', aspectRatio: 1, borderRadius: 12 }} />}
+          {!!work.image_data && <ProductImage source={{ uri: work.image_data }} style={{ width: '100%', aspectRatio: 1, borderRadius: 12 }} />}
           <Text numberOfLines={1}>{work.title}</Text>
         </TouchableOpacity>)}
       </View>

@@ -1,40 +1,6 @@
-import { Text } from '@/components/Typography';
-import { Image, StyleSheet, View } from "react-native";
+import ProductImage from '@/components/ProductImage';
 
-interface WatermarkProps {
-  uri: string;
-  height?: number;
-  onImageError?: () => void;
-}
-
+interface WatermarkProps { uri: string; height?: number; onImageError?: () => void }
 export function Watermark({ uri, height = 400, onImageError }: WatermarkProps) {
-  return (
-    <View style={[styles.container, { height }]}>
-      <Image source={{ uri }} style={styles.image} resizeMode="cover" onError={onImageError} />
-      {/* Overlayed watermark */}
-      <View style={styles.watermarkOverlay} pointerEvents="none">
-        <Text style={styles.watermarkText}>ARTFILIER</Text>
-        <Text style={styles.watermarkText}>ARTFILIER</Text>
-        <Text style={styles.watermarkText}>ARTFILIER</Text>
-      </View>
-    </View>
-  );
+  return <ProductImage source={{ uri }} style={{ width: '100%', height }} resizeMode="cover" onError={onImageError} />;
 }
-
-const styles = StyleSheet.create({
-  container: { width: "100%", position: "relative", overflow: "hidden" },
-  image: { width: "100%", height: "100%" },
-  watermarkOverlay: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: "space-around",
-    alignItems: "center",
-    opacity: 0.15,
-  },
-  watermarkText: {
-    color: "#fff",
-    fontSize: 32,
-    fontWeight: "900",
-    letterSpacing: 8,
-    transform: [{ rotate: "-25deg" }],
-  },
-});

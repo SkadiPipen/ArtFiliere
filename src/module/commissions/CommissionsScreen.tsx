@@ -1,3 +1,4 @@
+import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import { AuthContext } from '@/context/AuthContext';
 import { auth } from "@/firebase/config";
@@ -615,7 +616,7 @@ export default function CommissionsScreen() {
           {item.milestones?.map((m: any) => <View key={m.milestone_id} style={[s.milestoneRow, { flexWrap: 'wrap', gap: 6 }]}><Text style={[s.milestoneText, { flex: 1, minWidth: 160 }]}>{m.stage_label} ({m.percentage}%): ₱{Number(m.amount).toLocaleString()}</Text><Text style={{ fontSize: 11, color: m.status === 'APPROVED' ? '#34854C' : '#75655F' }}>{m.status.replace(/_/g, ' ')}{m.revision_used ? ' · Revision 1/1' : ''}</Text></View>)}
         </View>
         <TouchableOpacity style={[s.chatBtn, { flex: 0, height: 'auto', marginVertical: 10, paddingVertical: 10, paddingHorizontal: 16, borderColor: '#498e00c8', backgroundColor: '#498e0015' }]} onPress={openHistory}><Text style={[s.chatBtnText, { textAlign: 'center', color: '#498e00' }]}>Review Agreement, Milestone, and Revision History</Text></TouchableOpacity>
-        {role === 'buyer' && !['COMPLETE', 'CANCELLED'].includes(item.status) && <TouchableOpacity style={s.cancelLink}             
+        {role === 'buyer' && !['COMPLETE', 'CANCELLED'].includes(item.status) && <TouchableOpacity style={s.cancelLink}
             onPress={() => {
               setCancellingId(item.commission_req_id);
               setCancelModalVisible(true);
@@ -1280,7 +1281,7 @@ export default function CommissionsScreen() {
 
                     <View style={s.previewCardWrapper}>
                       <View style={s.previewCard}>
-                        <Image
+                        <ProductImage
                           source={{ uri: activeImage }}
                           style={s.previewImg}
                           resizeMode="contain"
@@ -1594,7 +1595,7 @@ export default function CommissionsScreen() {
 
                       <View style={s.previewCardWrapper}>
                         <View style={s.previewCard}>
-                          <Image
+                          <ProductImage
                             source={{ uri: activeImage }}
                             style={s.previewImg}
                             resizeMode="contain"

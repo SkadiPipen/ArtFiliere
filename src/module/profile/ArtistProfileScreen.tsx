@@ -1,3 +1,4 @@
+import ProductImage from '@/components/ProductImage';
 import ArtistShareCard from './components/ArtistShareCard';
 import ProfileCover from '@/components/ProfileCover';
 import { ChatModal } from '@/module/chat-negotiations/chatModal';
@@ -270,7 +271,7 @@ export default function ArtistProfileScreen() {
             ) : (
               <View style={s.grid}>
                 {[...(artist.portfolio || artist.artworks)]
-                  
+
                   .slice(0, showFullPortfolio ? (artist.portfolio || artist.artworks).length : 4)
                   .map((item: any) => (
                     <TouchableOpacity
@@ -297,7 +298,7 @@ export default function ArtistProfileScreen() {
                         })
                       }
                     >
-                      {!!getImageUri(item) && <Image
+                      {!!getImageUri(item) && <ProductImage
                         source={{ uri: getImageUri(item) }}
                         style={s.image}
                         resizeMode="cover"
@@ -333,7 +334,7 @@ export default function ArtistProfileScreen() {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 24 }}>
           <TouchableOpacity accessibilityRole="button" onPress={() => setPortfolioPreview(null)}><Text style={{ color: 'white', textAlign: 'right', padding: 16 }}>Close</Text></TouchableOpacity>
           <Text style={{ color: 'white', fontSize: 20 }}>{portfolioPreview?.title}</Text>
-          {!!portfolioPreview?.image_data && <Image source={{ uri: portfolioPreview.image_data }} resizeMode="contain" style={{ width: '100%', height: '70%' }} />}
+          {!!portfolioPreview?.image_data && <ProductImage source={{ uri: portfolioPreview.image_data }} resizeMode="contain" style={{ width: '100%', height: '70%' }} />}
           <Text style={{ color: 'white' }}>Completed commission · Portfolio preview</Text>
         </View>
       </Modal>

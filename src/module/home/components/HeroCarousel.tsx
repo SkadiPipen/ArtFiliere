@@ -1,3 +1,4 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
@@ -98,7 +99,7 @@ export default function HeroCarousel({ onSelect }: { onSelect: (item: any, type:
       getItemLayout={(_, index) => ({ length: containerWidth, offset: containerWidth * index, index })}
       renderItem={({ item }) => <Pressable disabled={item.kind === 'welcome'} accessibilityRole={item.kind === 'welcome' ? undefined : 'button'} accessibilityLabel={`${item.badge}: ${item.title}. ${item.kind === 'artist' ? 'View artist' : item.kind === 'welcome' ? 'A space for art' : 'View artwork'}`}
         style={{ width: containerWidth, height: heroHeight, backgroundColor: '#F1E4DE', borderRadius: 12, overflow: 'hidden' }} onPress={() => openSlide(item)}>
-        {item.artwork?.image_data ? <Image source={{ uri: item.artwork.image_data }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        {item.artwork?.image_data ? <ProductImage source={{ uri: item.artwork.image_data }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           : <><LinearGradient colors={['#E7C6BD', '#F9F1EB', '#F8F9FA']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Image source={require('../../../../assets/images/logo.png')} resizeMode="contain" style={{ position: 'absolute', right: '5%', top: '8%', height: '76%', width: '30%', opacity: 0.7 }} /></>}
         <LinearGradient pointerEvents="none" colors={['rgba(248,249,250,0)', 'rgba(248,249,250,0.4)', '#F8F9FA']} locations={[0, 0.5, 1]} style={s.bottomFade} />

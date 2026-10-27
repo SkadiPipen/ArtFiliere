@@ -1,10 +1,11 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Clock3, Store, Truck } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Artwork = {
@@ -47,7 +48,7 @@ export default function ActivitiesScreen() {
       const user = auth.currentUser;
       if (!user) return;
       const token = await user.getIdToken();
-      
+
       // Fetched artists posts
       const artRes = await fetch(`${API_URL}/api/users/artworks/?mine=1`, { headers: { Authorization: `Bearer ${token}` } });
       if (artRes.ok) setArtworks(await artRes.json());
@@ -92,7 +93,7 @@ export default function ActivitiesScreen() {
     {loading ? (
       <View style={styles.center}>
         <ActivityIndicator color="#C15656" size="large" />
-      </View> 
+      </View>
     ) : (
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor="#C15656" />}>
         {tab === 'purchases' ? (
@@ -136,11 +137,11 @@ export default function ActivitiesScreen() {
               </View>
             </View>
             {artworks.length ? (
-              artworks.map((artwork) => { 
-                const copy = STATUS_COPY[artwork.status]; 
+              artworks.map((artwork) => {
+                const copy = STATUS_COPY[artwork.status];
                 return (
                   <View key={artwork.id} style={styles.card}>
-                    <Image source={{ uri: artwork.image_data }} style={styles.image} />
+                    <ProductImage source={{ uri: artwork.image_data }} style={styles.image} />
                     <View style={styles.copy}>
                       <View style={styles.cardTop}>
                         <Text style={styles.artTitle}>{artwork.title}</Text>
@@ -178,21 +179,21 @@ export default function ActivitiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FFFDF7' }, 
-  header: { 
-    height: 58, 
-    backgroundColor: '#FFFFFF', 
-    paddingHorizontal: 18, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    borderBottomWidth: 1, 
-    borderColor: '#E8DDD6' 
-  }, 
-  headerTitle: { 
-    color: '#382D29', 
-    fontSize: 18, 
-    fontWeight: '800' 
+  page: { flex: 1, backgroundColor: '#FFFDF7' },
+  header: {
+    height: 58,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderColor: '#E8DDD6'
+  },
+  headerTitle: {
+    color: '#382D29',
+    fontSize: 18,
+    fontWeight: '800'
   },
 tabBar: {
     flexDirection: 'row',
@@ -218,42 +219,42 @@ tabBar: {
   tabTextActive: {
     color: '#C15656',
   },
-  center: { 
+  center: {
     flex: 1,
-    alignItems: 'center', 
-    justifyContent: 'center' 
-  }, 
-  content: { 
-    width: '100%', 
-    maxWidth: 760, 
-    alignSelf: 'center', 
-    padding: 20, 
-    paddingBottom: 110 
-  }, 
-  intro: { 
-    flexDirection: 'row', 
-    gap: 12, 
-    alignItems: 'center', 
-    marginBottom: 20 
-  }, 
-  title: { 
-    color: '#3A2D2A', 
-    fontSize: 21, 
-    fontWeight: '800' 
-  }, 
-  lead: { 
-    color: '#7C6A64', 
-    fontSize: 12, 
-    marginTop: 3 
-  }, 
-  card: { 
-    backgroundColor: '#FFFFFF', 
-    borderColor: '#E7DDD5', 
-    borderWidth: 1, 
-    borderRadius: 12, 
-    padding: 12, 
-    flexDirection: 'row', 
-    gap: 13, 
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  content: {
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    padding: 20,
+    paddingBottom: 110
+  },
+  intro: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  title: {
+    color: '#3A2D2A',
+    fontSize: 21,
+    fontWeight: '800'
+  },
+  lead: {
+    color: '#7C6A64',
+    fontSize: 12,
+    marginTop: 3
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E7DDD5',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    gap: 13,
     marginBottom: 11,
     alignItems: 'flex-start',
   },
@@ -265,73 +266,73 @@ tabBar: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: { 
-    width: 82, 
-    height: 82, 
-    borderRadius: 8, 
-    backgroundColor: '#F1E8E1' 
-  }, 
-  copy: { flex: 1 }, 
-  cardTop: { 
-    flexDirection: 'row', 
-    alignItems: 'flex-start', 
-    justifyContent: 'space-between', 
-    gap: 8 
-  }, 
-  artTitle: { 
-    color: '#3A2D2A', 
-    fontWeight: '800', 
-    fontSize: 15, 
-    flex: 1 
-  }, 
-  status: { 
-    borderRadius: 14, 
-    paddingVertical: 4, 
-    paddingHorizontal: 8 
-  }, 
-  status_pending: { backgroundColor: '#FFF0CD' }, 
-  status_approved: { backgroundColor: '#DCEBDD' }, 
-  status_declined: { backgroundColor: '#F8DEDE' }, 
-  statusText: { 
-    color: '#624B43', 
-    fontSize: 10, 
-    fontWeight: '800' 
-  }, 
-  meta: { 
-    color: '#9B6A5C', 
-    fontSize: 11, 
-    marginTop: 5 
-  }, 
-  detail: { 
-    color: '#6E625C', 
-    fontSize: 11, 
-    lineHeight: 15, 
-    marginTop: 7 
-  }, 
-  reason: { 
-    color: '#B54F4F', 
-    fontSize: 11, 
-    lineHeight: 15, 
-    marginTop: 5, 
-    fontWeight: '700' 
-  }, 
-  empty: { 
-    alignItems: 'center', 
-    paddingTop: 95, 
-    paddingHorizontal: 35 
-  }, 
-  emptyTitle: { 
-    color: '#5D4B46', 
-    fontSize: 16, 
-    fontWeight: '800', 
-    marginTop: 11 
-  }, 
-  emptyText: { 
-    color: '#8A7B74', 
-    fontSize: 12, 
-    textAlign: 'center', 
-    lineHeight: 18, 
-    marginTop: 5 
+  image: {
+    width: 82,
+    height: 82,
+    borderRadius: 8,
+    backgroundColor: '#F1E8E1'
+  },
+  copy: { flex: 1 },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8
+  },
+  artTitle: {
+    color: '#3A2D2A',
+    fontWeight: '800',
+    fontSize: 15,
+    flex: 1
+  },
+  status: {
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 8
+  },
+  status_pending: { backgroundColor: '#FFF0CD' },
+  status_approved: { backgroundColor: '#DCEBDD' },
+  status_declined: { backgroundColor: '#F8DEDE' },
+  statusText: {
+    color: '#624B43',
+    fontSize: 10,
+    fontWeight: '800'
+  },
+  meta: {
+    color: '#9B6A5C',
+    fontSize: 11,
+    marginTop: 5
+  },
+  detail: {
+    color: '#6E625C',
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 7
+  },
+  reason: {
+    color: '#B54F4F',
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 5,
+    fontWeight: '700'
+  },
+  empty: {
+    alignItems: 'center',
+    paddingTop: 95,
+    paddingHorizontal: 35
+  },
+  emptyTitle: {
+    color: '#5D4B46',
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 11
+  },
+  emptyText: {
+    color: '#8A7B74',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: 5
   },
   trackButton: {
     flexDirection: 'row',

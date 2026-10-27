@@ -1,7 +1,8 @@
+import ProductImage from '@/components/ProductImage';
 import { marketplaceHeading } from '@/constants/marketplaceTypography';
 import { matchesArtworkCategory } from '@/services/artworkCategories';
 import { Text } from '@/components/Typography';
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { ArtItem } from "@/module/home/types";
 import ArtworkBorder from '@/components/ArtworkBorder';
 
@@ -37,7 +38,7 @@ export default function LatestSection({
               style={styles.artCard}
               onPress={() => onSelect(item, item.type)}
             >
-              <Image source={{ uri: item.image }} style={styles.cardImg} />
+              <ProductImage source={{ uri: item.image }} style={styles.cardImg} />
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName}>{item.artist}</Text>
                 <Text style={styles.cardPrice}>₱ {item.price}</Text>
