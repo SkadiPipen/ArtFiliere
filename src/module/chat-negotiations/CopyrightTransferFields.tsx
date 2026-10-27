@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import { RequiredMark } from './NegotiationSection';
 import ArtistReservedUses from './ArtistReservedUses';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
 import InfoAccordion from './InfoAccordion';
 
 export type CopyrightTransfer = { kind: 'full' | 'partial'; rights: string[]; effective: 'both_signed' | 'signed_and_paid'; existing_commitments: string; artist_reserved_uses: string; additional_terms: string; acknowledged: boolean };

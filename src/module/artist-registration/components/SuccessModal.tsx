@@ -1,4 +1,5 @@
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Text } from '@/components/Typography';
+import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface Props {
   visible: boolean;

@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import { checkedDriverPosition, getDriverPosition } from '@/services/driverLocation';
 import { ArtistPickupCard } from '@/module/delivery/components/ArtistPickupCard';
 import { BuyerDeliveryCard } from '@/module/delivery/components/BuyerDeliveryCard';
@@ -10,7 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function DeliveryDetailScreen() {
     const router = useRouter();

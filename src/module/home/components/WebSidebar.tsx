@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import { Link, usePathname, type Href } from 'expo-router';
 import {
   Clock,
@@ -11,14 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { useContext, useEffect, useState } from 'react';
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AuthContext } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';

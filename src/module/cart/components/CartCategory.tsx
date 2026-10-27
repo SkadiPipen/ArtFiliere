@@ -1,4 +1,5 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Text } from '@/components/Typography';
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { FilterType } from "@/module/cart/types";
 
 interface Props {

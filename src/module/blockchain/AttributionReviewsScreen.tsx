@@ -1,6 +1,7 @@
+import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { purchaseRequest } from '@/services/purchases';
 import { auth } from '@/firebase/config';
 import ProvenancePanel from './ProvenancePanel';

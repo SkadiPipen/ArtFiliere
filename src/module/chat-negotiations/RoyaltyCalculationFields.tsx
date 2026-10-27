@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import { RequiredMark } from './NegotiationSection';
 import InfoAccordion from './InfoAccordion';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import type { CompensationTerms } from './compensation';
 
 export default function RoyaltyCalculationFields({ terms, onChange }: { terms: CompensationTerms; onChange: (value: Partial<CompensationTerms>) => void }) {

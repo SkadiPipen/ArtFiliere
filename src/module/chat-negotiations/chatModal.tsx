@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 // ========================================
 // FILE: chatModal.tsx
 // PURPOSE: Switches between chatList(group) view to chatWindow(pm).
@@ -8,14 +9,7 @@ import ContractPanel from './ContractPanel';
 import CommissionChat from '@/module/commissions/CommissionChat';
 import { X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import {
-  Modal,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Modal, SafeAreaView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import type { Artwork } from './types';
 import { ChatList } from './chatList';
 import { ChatWindow } from './chats';

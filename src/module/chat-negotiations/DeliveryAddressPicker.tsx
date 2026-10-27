@@ -1,7 +1,8 @@
+import { Text, TextInput } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Switch, View } from 'react-native';
 
 export interface DeliveryQuote {
   token: string;

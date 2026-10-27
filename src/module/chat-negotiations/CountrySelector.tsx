@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import { RequiredMark } from './NegotiationSection';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Check, Search, X } from 'lucide-react-native';
 import { countries } from './countries';
 

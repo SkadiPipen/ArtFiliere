@@ -1,4 +1,9 @@
+import { CATEGORY_FILTERS } from '@/services/artworkCategories';
+
 export interface ArtItem {
+  category?: string;
+  categories?: string[];
+  category_labels?: string[];
   id: string;
   artist: string;
   price: string;
@@ -24,12 +29,7 @@ export interface ArtistItem {
 }
 
 export const CATEGORIES = [
-  "All",
-  "Digital",
-  "Physical",
-  "Paintings",
-  "Sketches",
-  "Trending",
+  'All', 'Digital', 'Physical', ...CATEGORY_FILTERS.slice(1), 'Trending',
 ];
 
 export const HERO_DATA = [

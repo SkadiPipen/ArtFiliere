@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import { RequiredMark } from './NegotiationSection';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
 import InfoAccordion from './InfoAccordion';
 
 export default function PricingFields({ mode, onMode, license, exclusivity, fixed, onLicense, onExclusivity, onFixed, base, subtotal, fee, total, error }: {

@@ -1,3 +1,5 @@
+import useChatAutoScroll from '@/hooks/useChatAutoScroll';
+import { Text, TextInput } from '@/components/Typography';
 import { buildChatTimeline } from './negotiationThreads';
 import { LegacyNegotiationCard } from './NegotiationHistory';
 import { proposalPayload } from './proposalPayload';
@@ -16,17 +18,7 @@ import type { Artwork } from './types';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, doc, getDoc, onSnapshot, orderBy, query, setDoc, updateDoc, increment, writeBatch, runTransaction } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../../firebase/config';
 import API_URL from '@/services/api';
 import { purchaseRequest } from '@/services/purchases';
@@ -309,6 +301,7 @@ export function ChatWindow({
     const timer = setInterval(refreshContracts, 5000);
     return () => clearInterval(timer);
   }, [user?.id, currentUser?.uid]);
+  const autoScroll = useChatAutoScroll<FlatList<ChatMessage>>(`${currentUser?.uid || ''}:${user?.id || ''}`);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -400,6 +393,7 @@ export function ChatWindow({
 
     try {
       await contractRequest(`artworks/${proposal.artworkId}/`, 'POST', proposalPayload(proposal, negotiationArtwork?.art_type || 'digital'));
+      autoScroll.scrollToLatest();
       await refreshContracts();
 
       setShowNewNegotiationForm(false);
@@ -412,6 +406,7 @@ export function ChatWindow({
   };
 
   const handleSendMessage = () => {
+    autoScroll.scrollToLatest();
     sendMessage(messageText);
   };
 
@@ -560,6 +555,11 @@ export function ChatWindow({
 
     return (
       <FlatList
+        ref={autoScroll.ref}
+        onContentSizeChange={autoScroll.onContentSizeChange}
+        onLayout={autoScroll.onLayout}
+        onScroll={autoScroll.onScroll}
+        scrollEventThrottle={16}
         data={buildChatTimeline(messages, contracts)}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
@@ -642,6 +642,7 @@ export function ChatWindow({
         )}
       </View>
 
+      {!showNewNegotiationForm && !autoScroll.atLatest && <TouchableOpacity accessibilityRole="button" onPress={autoScroll.scrollToLatest}><Text style={{ color: '#A33F45', textAlign: 'center', padding: 10 }}>Latest messages</Text></TouchableOpacity>}
       {/* Message Input - only show when negotiation form is not visible */}
       {!showNewNegotiationForm && (
         <View style={styles.messageInputContainer}>

@@ -1,9 +1,12 @@
 from rest_framework import serializers
 
 from .models import Artwork
+from .categories import CATEGORIES, category_ids
 
 
 class ArtworkSerializer(serializers.ModelSerializer):
+    categories = serializers.SerializerMethodField()
+    category_labels = serializers.SerializerMethodField()
     artist_name = serializers.SerializerMethodField()
     similarity_matches = serializers.SerializerMethodField()
     is_sold = serializers.SerializerMethodField()
@@ -19,6 +22,8 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "category",
+            "categories",
+            "category_labels",
             "tags",
             "art_type",
             "price",
@@ -48,6 +53,12 @@ class ArtworkSerializer(serializers.ModelSerializer):
             'end_time': {'required': False},
         }
         read_only_fields = ["id", "artist_id", "status", "decline_reason", "created_at"]
+
+    def get_categories(self, artwork):
+        return [key for key in artwork.categories if key in CATEGORIES] if artwork.categories else category_ids(artwork.category)
+
+    def get_category_labels(self, artwork):
+        return [CATEGORIES[key]['label'] for key in self.get_categories(artwork)]
 
     def get_artist_name(self, artwork):
         return (

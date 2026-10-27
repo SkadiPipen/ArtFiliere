@@ -1,11 +1,13 @@
+import { Text, TextInput } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
+import { preparePaymentWindow } from '@/services/paymentReturn';
 
 const box = { padding: 16, borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 12, gap: 12, backgroundColor: '#fff' };
 const input = { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 8 };
@@ -101,7 +103,21 @@ function ReportCard({ report, reload }: { report: Period; reload: () => Promise<
     </>}
     {report.admin_review && <View style={{ gap: 8, padding: 12, backgroundColor: '#FFF7F0', borderRadius: 10 }}>
       <Text>Payment: {report.payment_status?.replaceAll('_', ' ') || 'not started'}. Funds are released to the artist wallet only after admin verification.</Text>
-      {report.is_buyer && report.status === 'submitted' && Number(report.amount) > 0 && !['held', 'released'].includes(report.payment_status || '') && <Pressable disabled={busy} onPress={() => run(async () => { const data = await request(`periods/${report.id}/payment/`, 'POST', { action: 'pay' }); if (data.url) { if (Platform.OS === 'web') window.location.assign(data.url); else await Linking.openURL(data.url); } })}><Text style={link}>Pay reported royalty</Text></Pressable>}
+      {report.is_buyer && report.status === 'submitted' && Number(report.amount) > 0 && !['held', 'released'].includes(report.payment_status || '') && <Pressable disabled={busy} onPress={() => {
+        const tab = preparePaymentWindow();
+        void run(async () => {
+          try {
+            if (Platform.OS === 'web' && !tab) throw Error('Allow payment pop-ups, then try again.');
+            const data = await request(`periods/${report.id}/payment/`, 'POST', { action: 'pay' });
+            if (data.url) {
+              if (!/^https:\/\//i.test(data.url)) throw Error('Invalid checkout URL.');
+              if (tab) tab.location.href = data.url;
+              else await Linking.openURL(data.url);
+            } else tab?.close();
+          } catch (error) { tab?.close(); throw error; }
+        });
+      }}><Text style={link}>Pay reported royalty</Text></Pressable>}
+      {report.is_buyer && report.payment_status === 'pending' && <Text>Checkout opens separately so you can return to this report. After paying, use Confirm / refresh payment status below.</Text>}
       {report.is_buyer && ['pending', 'creating', 'expired'].includes(report.payment_status || '') && <Pressable disabled={busy} onPress={() => run(() => request(`periods/${report.id}/payment/`, 'POST', { action: 'refresh' }))}><Text style={link}>Confirm / refresh payment status</Text></Pressable>}
       {report.payment_status === 'held' && <Text style={{ color: '#70482F' }}>Payment received and held. Awaiting admin verification and release.</Text>}
     </View>}

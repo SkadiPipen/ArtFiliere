@@ -1,15 +1,17 @@
+import { Text, TextInput } from '@/components/Typography';
 import SignaturePad, { Strokes } from './SignaturePad';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useState } from 'react';
-import { Modal, ScrollView, View, Text, TextInput, TouchableOpacity, Platform, Image, StyleSheet } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Modal, ScrollView, View, TouchableOpacity, Platform, Image, StyleSheet } from 'react-native';
 import { Check, FileText, PenLine, ShieldCheck, Upload, X } from 'lucide-react-native';
-import { auth } from '@/firebase/config';
-import API_URL from '@/services/api';
+import { downloadLicensePdf } from '@/services/purchases';
 import AgreementPaper from '@/module/messages/components/AgreementPaper';
 import { contractRequest } from './contracts';
 
 export default function SigningModal({ id, onClose, onSigned }: { id: number; onClose: () => void; onSigned: () => void | Promise<void> }) {
   const [data, setData] = useState<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const signingPosition = useRef(0);
   const [strokes, setStrokes] = useState<Strokes>([]);
   const [signatureImage, setSignatureImage] = useState('');
   const [drawing, setDrawing] = useState(false);
@@ -40,21 +42,10 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
     return () => { active = false; clearInterval(timer); };
   }, [id, !!signed, !!data?.fully_signed, data?.can_sign]);
   const preview = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/users/contracts/${id}/pdf/`, { headers: { Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` } });
-      if (!response.ok) throw new Error('Unable to generate agreement PDF.');
-      if (Platform.OS === 'web') {
-        const url = URL.createObjectURL(await response.blob());
-        const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-      } else {
-        const FileSystem = await import('expo-file-system/legacy');
-        const Sharing = await import('expo-sharing');
-        const path = `${FileSystem.cacheDirectory}agreement-${id}.pdf`;
-        await FileSystem.downloadAsync(`${API_URL}/api/users/contracts/${id}/pdf/`, path, { headers: { Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` } });
-        await Sharing.shareAsync(path, { mimeType: 'application/pdf' });
-      }
-    } catch (e: any) { setError(e.message); }
+    setBusy(true); setError('');
+    try { await downloadLicensePdf(id); }
+    catch (e: any) { setError(e.message); }
+    finally { setBusy(false); }
   };
   const upload = async () => {
     try {
@@ -72,13 +63,14 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
     finally { setBusy(false); }
   };
   return <Modal visible animationType="slide" onRequestClose={onClose}>
+    <View style={{ flex: 1 }}>
     {/* The web pad blocks touch panning and captures the pointer itself. Keep
         scrolling enabled there so drawing never removes the scrollbar. */}
-    <ScrollView style={s.screen} keyboardShouldPersistTaps="handled" scrollEnabled={Platform.OS === 'web' || !drawing} contentContainerStyle={s.content}>
+    <ScrollView ref={scrollRef} style={s.screen} keyboardShouldPersistTaps="handled" scrollEnabled={Platform.OS === 'web' || !drawing} contentContainerStyle={s.content}>
       <View style={s.pageHeader}><View style={{ flex: 1, gap: 5 }}><Text style={s.eyebrow}>ARTFILIER AGREEMENT</Text><Text accessibilityRole="header" style={s.pageTitle}>Review & sign</Text><Text style={s.description}>Review the terms, add your signature, then confirm your agreement.</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Close agreement" onPress={onClose} style={s.close}><X size={22} color="#775D53" /></TouchableOpacity></View>
       {!!error && <Text style={{ color: '#b00020' }}>{error}</Text>}
       {!data ? <Text>Loading agreement...</Text> : <>
-        <View style={s.section}><View style={s.sectionHeading}><FileText size={21} color="#B55D4C" /><View style={s.headingText}><Text style={s.eyebrow}>01 / REVIEW</Text><Text accessibilityRole="header" style={s.sectionTitle}>Agreement details</Text></View></View><AgreementPaper document={data.document} /><TouchableOpacity accessibilityRole="button" onPress={preview} style={s.outlineButton}><FileText size={17} color="#A24F41" /><Text style={s.buttonText}>Preview / download PDF</Text></TouchableOpacity></View>
+        <View style={s.section}><View style={s.sectionHeading}><FileText size={21} color="#B55D4C" /><View style={s.headingText}><Text style={s.eyebrow}>01 / REVIEW</Text><Text accessibilityRole="header" style={s.sectionTitle}>Agreement details</Text></View></View><AgreementPaper document={data.document} /><TouchableOpacity accessibilityRole="button" disabled={busy} onPress={preview} style={s.outlineButton}><FileText size={17} color="#A24F41" /><Text style={s.buttonText}>Download license agreement (PDF)</Text></TouchableOpacity></View>
         <View style={s.section}><View style={s.sectionHeading}><ShieldCheck size={21} color="#B55D4C" /><Text accessibilityRole="header" style={s.sectionTitle}>Signing status</Text></View>
         {!!data.artist_presigned_document && <Text>The artist signed the fixed auction terms on {new Date(data.artist_signed_at).toLocaleString()}. Your signature confirms those terms and the completed winner details shown above.</Text>}
         <Text>Artist: {data.artist_signature || 'Awaiting signature'}</Text>
@@ -87,6 +79,7 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
         {['artist', 'buyer'].map(role => data[`${role}_signature_image`] ? <View key={role}><Text>{role} signature</Text><Image source={{ uri: data[`${role}_signature_image`] }} style={{ width: 240, height: 80 }} resizeMode="contain" /></View> : null)}
 
         </View>
+        <View onLayout={event => { signingPosition.current = event.nativeEvent.layout.y; }} />
         {signed ? <View style={[s.section, s.success]}><Text accessibilityRole="header" style={s.sectionTitle}>Signature saved</Text><Text style={s.description}>{data.fully_signed ? data.checkout_status === 'paid' ? 'Both parties have signed and payment is recorded.' : data.checkout_available === false ? 'Both parties have signed. Continue funding in the commission workspace.' : data.my_role === 'buyer' ? 'Both parties have signed. Close this agreement, then choose Checkout in your cart or negotiation chat when ready. Signing does not open Xendit or take payment.' : 'Both parties have signed. The buyer can now choose checkout and pay.' : 'Your signature is saved. Waiting for the other party to sign.'}</Text><TouchableOpacity style={s.outlineButton} onPress={onClose}><Text style={s.buttonText}>Done — return to negotiation</Text></TouchableOpacity></View> : data.can_sign === false ? <View style={s.section}><Text style={s.sectionTitle}>Waiting for the artist’s signature</Text><Text style={s.description}>The artist signs first. Your signature form will become available after their signature is saved.</Text></View> : <>
           <View style={s.section}><View style={s.sectionHeading}><PenLine size={21} color="#B55D4C" /><View style={s.headingText}><Text style={s.eyebrow}>02 / SIGNATURE</Text><Text accessibilityRole="header" style={s.sectionTitle}>Your signature</Text></View></View>
           <Text style={s.description}>Signing as {data.my_role}. Enter your full name and draw or upload your signature.</Text>
@@ -109,12 +102,17 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
         </>}
       </>}
     </ScrollView>
+    {data && !drawing && <View style={{ position: 'absolute', left: 18, right: 18, bottom: 18, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Return to agreement terms" onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })} style={[s.outlineButton, { backgroundColor: '#FFFCFA' }]}><Text style={s.buttonText}>Back to terms</Text></TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" onPress={() => scrollRef.current?.scrollTo({ y: Math.max(0, signingPosition.current - 16), animated: true })} style={[s.signButton, { paddingHorizontal: 16 }]}><Text style={s.signText}>{signed || data.can_sign === false ? 'Jump to signing status' : 'Jump to signature & consent'}</Text></TouchableOpacity>
+    </View>}
+    </View>
   </Modal>;
 }
 
 const s = StyleSheet.create({
   screen: { backgroundColor: '#FAF7F4' },
-  content: { padding: 18, paddingTop: 50, paddingBottom: 60, gap: 18, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  content: { padding: 18, paddingTop: 50, paddingBottom: 120, gap: 18, maxWidth: 800, width: '100%', alignSelf: 'center' },
   pageHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 8 },
   pageTitle: { fontSize: 26, fontWeight: '800', color: '#674737' },
   close: { padding: 11, borderRadius: 24, backgroundColor: '#F0E8E2' },

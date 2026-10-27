@@ -1,4 +1,5 @@
-import { View, Text, Pressable } from "react-native";
+import { Text } from '@/components/Typography';
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { COLORS } from "@/constants/colors";

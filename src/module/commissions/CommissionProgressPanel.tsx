@@ -1,20 +1,11 @@
+import { Text, TextInput } from '@/components/Typography';
 import CommissionDeliveryPanel from './CommissionDeliveryPanel';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { downloadProtectedFile } from '@/services/purchases';
 import * as DocumentPicker from 'expo-document-picker';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Animated,
-  Easing,
-  Image,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Animated, Easing, Image, Platform, TouchableOpacity, View } from 'react-native';
 import { commissionApi } from './CommissionDetailScreen';
 
 const field = { borderWidth: 1, borderColor: '#DCCFC5', borderRadius: 10, padding: 12, backgroundColor: '#FFF', color: '#40322E' } as const;

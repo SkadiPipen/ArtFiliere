@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import { RefreshCw } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 

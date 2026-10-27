@@ -1,20 +1,10 @@
+import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import AgreementPaper from '@/module/messages/components/AgreementPaper';
 import { FileText, Pencil, Plus } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 type T = { id: number; name: string; body: string; is_active: boolean };
 const standard =
   "ARTFILIERE ART LICENSE AGREEMENT\n\nBuyer: {{buyer_name}}\nArtist: {{artist_name}}\nAgreed price: PHP {{amount}}\n\nDescribe the permitted use, exclusivity, delivery requirements, and other conditions here.";

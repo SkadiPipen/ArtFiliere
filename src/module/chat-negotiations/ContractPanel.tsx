@@ -1,9 +1,10 @@
+import { Text } from '@/components/Typography';
 import { proposalPayload } from './proposalPayload';
 import { auth } from '@/firebase/config';
 import { ChatWindow } from './chats';
 import NegotiationForm from './negotiationForm';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Contract, ContractResponse, contractRequest, isAgreed } from './contracts';
 
 export default function ContractPanel({ artworkId, onClose, revision, startInChat = false }: { artworkId?: string; onClose: () => void; revision?: Contract; startInChat?: boolean }) {
@@ -52,7 +53,7 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
   }
   if (artwork && (artwork.can_propose || revision) && (!agreed || revision) && (revising || !formSubmitted)) {
     return <Modal visible animationType="slide" onRequestClose={cancelForm}>
-      <View style={{ flex: 1, paddingTop: 45, width: '100%', maxWidth: 800, alignSelf: 'center' }}>
+      <View style={{ flex: 1, paddingTop: 45, width: '100%', maxWidth: 1120, alignSelf: 'center' }}>
         {!!error && <Text style={s.error}>{error}</Text>}
         <View style={s.header}><Text style={s.heading}>Negotiate a contract</Text><TouchableOpacity onPress={cancelForm}><Text style={s.link}>Cancel</Text></TouchableOpacity></View>
         <View style={{ flex: 1 }}>
@@ -104,7 +105,7 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
   </Modal>;
 }
 const s = StyleSheet.create({
-  page: { padding: 24, paddingTop: 50, gap: 14, width: '100%', maxWidth: 800, alignSelf: 'center' },
+  page: { padding: 24, paddingTop: 50, gap: 14, width: '100%', maxWidth: 1120, alignSelf: 'center' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heading: { fontSize: 18, fontWeight: '700', color: '#603c36' },
   card: { padding: 18, borderWidth: 1, borderColor: '#e3d7d0', borderRadius: 12, gap: 10 },

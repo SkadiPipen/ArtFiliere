@@ -1,3 +1,5 @@
+import { CATEGORY_FILTERS } from '@/services/artworkCategories';
+import { Text, TextInput } from '@/components/Typography';
 import { useCart } from '@/context/CartContext';
 import { auth } from '@/firebase/config';
 import { ChatUser, ChatWindow } from '@/module/chat-negotiations/chats';
@@ -8,7 +10,7 @@ import API_URL from '@/services/api';
 import { useRouter } from 'expo-router';
 import { Bell, ChevronDown, Folder, Menu, Search, Settings, ShoppingCart, SlidersHorizontal } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 interface HeaderProps {
   searchQuery?: string;
@@ -190,40 +192,36 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
                   ]}
                 >
                   <Text style={styles.popoverSectionLabel}>CATEGORIES</Text>
-                  {[
-                    "Visual Arts",
-                    "Digital and Graphics",
-                    "Photography",
-                    "Traditional Art",
-                    "Contemporary / Modern",
-                  ].map((cat) => (
+                  <ScrollView nestedScrollEnabled style={{ maxHeight: 300 }}>
+                  {CATEGORY_FILTERS.map((cat) => (
                     <TouchableOpacity
                       key={cat}
                       style={styles.popoverItem}
                       onPress={() => {
-                        onSelectCategory(cat === "Visual Arts" ? "All" : cat);
+                        onSelectCategory(cat);
                         handlePointerLeave();
                       }}
                     >
                       <Text
                         style={[
                           styles.popoverItemText,
-                          activeCategory === (cat === "Visual Arts" ? "All" : cat) && styles.popoverItemTextActive,
+                          activeCategory === (cat) && styles.popoverItemTextActive,
                         ]}
                       >
                         {cat}
                       </Text>
                     </TouchableOpacity>
                   ))}
+                  </ScrollView>
 
                   <View style={styles.popoverDivider} />
 
                   <Text style={styles.popoverSectionLabel}>FILTERS</Text>
-                  {["Artwork Type", "Price", "Artist Style"].map((filterName) => (
+                  {["Digital", "Physical", "Trending"].map((filterName) => (
                     <TouchableOpacity
                       key={filterName}
                       style={styles.popoverItem}
-                      onPress={handlePointerLeave}
+                      onPress={() => { onSelectCategory(filterName); handlePointerLeave(); }}
                     >
                       <Text style={styles.popoverItemText}>{filterName}</Text>
                     </TouchableOpacity>
@@ -239,10 +237,10 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
                 placeholder="Search Artwork..."
                 placeholderTextColor="#888"
                 underlineColorAndroid="transparent"
-                value={webDesktop && onSearchChange ? (searchQuery ?? '') : localSearchQuery}
+                value={onSearchChange ? (searchQuery ?? '') : localSearchQuery}
                 onChangeText={(query) => {
                   setLocalSearchQuery(query);
-                  if (webDesktop) onSearchChange?.(query);
+                  onSearchChange?.(query);
                 }}
                 {...(webDesktop ? { accessibilityLabel: 'Search artwork by title, artist or tag' } : {})}
               />

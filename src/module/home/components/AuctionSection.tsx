@@ -1,16 +1,11 @@
+import { Text } from '@/components/Typography';
+import { marketplaceHeading } from '@/constants/marketplaceTypography';
 import { Clock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ArtItem } from "@/module/home/types";
+import ArtworkBorder from '@/components/ArtworkBorder';
 
 interface AuctionSectionProps {
   onSelect: (item: ArtItem, type: string) => void;
@@ -41,7 +36,7 @@ export default function AuctionSection({ onSelect, items }: AuctionSectionProps)
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 15, paddingTop: 6, paddingBottom: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 12 }}
       >
         {auctions.map((item) => (
           <Pressable
@@ -75,6 +70,7 @@ export default function AuctionSection({ onSelect, items }: AuctionSectionProps)
               <Text style={styles.cardName} numberOfLines={1}>{item.artist}</Text>
               <Text style={styles.cardPrice}>₱ {Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
             </View>
+            <ArtworkBorder artType={item.artType || item.type} imageHeight={190} />
           </Pressable>
         ))}
       </ScrollView>
@@ -84,16 +80,14 @@ export default function AuctionSection({ onSelect, items }: AuctionSectionProps)
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#C15656",
+    ...marketplaceHeading,
     margin: 15,
   },
   artCard: {
     width: 220,
-    marginRight: 15,
+    marginRight: 28,
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 20,
     elevation: 3,
     paddingBottom: 10,
     borderWidth: 1.5,
@@ -113,9 +107,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     transform: Platform.OS === 'web' ? [{ translateY: -3 }] : undefined,
   },
-  imageWrapper: { position: 'relative', overflow: 'hidden', borderTopLeftRadius: 10, borderTopRightRadius: 10 },
-  hoverCaptionContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 10, paddingTop: 18, paddingBottom: 8 },
-  hoverCaptionText: { color: '#FFFFFF', fontSize: 12, lineHeight: 16, fontWeight: '500' },
+  imageWrapper: { position: 'relative', overflow: 'hidden', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  hoverCaptionContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 10, paddingTop: 18, paddingBottom: 8, alignItems: 'center', justifyContent: 'center' },
+  hoverCaptionText: { color: '#FFFFFF', fontSize: 12, lineHeight: 16, fontWeight: '500', textAlign: 'center' },
   cardImg: {
     width: "100%",
     height: 190,

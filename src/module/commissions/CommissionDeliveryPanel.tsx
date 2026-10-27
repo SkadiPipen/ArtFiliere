@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import React, { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 
 const steps = [ ['pending', 'Waiting for driver'], ['accepted', 'Driver assigned'], ['arrived_at_artist', 'Driver arrived at artist'], ['picked_up', 'Picked up'], ['in_transit', 'In transit'], ['arrived_at_buyer', 'Driver arrived at buyer'], ['delivered', 'Delivered'] ];
 

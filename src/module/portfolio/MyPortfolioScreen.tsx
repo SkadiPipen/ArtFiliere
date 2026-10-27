@@ -1,20 +1,18 @@
+import { Text } from '@/components/Typography';
+import CategoryPicker from '@/module/artwork/components/CategoryPicker';
+import { artworkCategoryIds } from '@/services/artworkCategories';
+import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, Plus } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Artwork = {
+  categories?: string[];
+  category_labels?: string[];
   id: number | string;
   source?: string;
   commission_id?: number;
@@ -34,6 +32,24 @@ export default function MyPortfolioScreen() {
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Artwork | null>(null);
+  const [draftCategories, setDraftCategories] = useState<string[]>([]);
+  const [savingCategories, setSavingCategories] = useState(false);
+  const [categoryError, setCategoryError] = useState('');
+  const saveCategories = async () => {
+    if (!editing) return;
+    setSavingCategories(true); setCategoryError('');
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw Error('Please sign in again.');
+      const result = await readApiResponse(await fetch(`${API_URL}/api/users/artworks/${editing.id}/`, {
+        method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ categories: draftCategories }),
+      }));
+      setArtworks(current => current.map(work => work.id === editing.id ? { ...work, ...result } : work));
+      setEditing(null);
+    } catch (error: any) { setCategoryError(error.message); }
+    finally { setSavingCategories(false); }
+  };
   const visibleArtworks = useMemo(
     () =>
       artworks.filter(
@@ -62,6 +78,15 @@ export default function MyPortfolioScreen() {
 
   return (
     <SafeAreaView style={s.page} edges={["top", "left", "right"]}>
+      {editing && <Modal visible animationType="slide" onRequestClose={() => { if (!savingCategories) setEditing(null); }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F4' }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ width: '100%', maxWidth: 700, alignSelf: 'center', padding: 24, gap: 16 }}>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#70482F' }}>Categories for {editing.title}</Text>
+          <CategoryPicker value={draftCategories} onChange={setDraftCategories} />
+          {!!categoryError && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{categoryError}</Text>}
+          <TouchableOpacity disabled={savingCategories || !draftCategories.length} onPress={saveCategories} style={[s.post, { alignSelf: 'flex-start', opacity: savingCategories || !draftCategories.length ? 0.5 : 1 }]}><Text style={s.postText}>{savingCategories ? 'Saving...' : 'Save categories'}</Text></TouchableOpacity>
+          <TouchableOpacity disabled={savingCategories} onPress={() => setEditing(null)}><Text style={{ color: '#A24F41', paddingVertical: 12 }}>Cancel</Text></TouchableOpacity>
+        </ScrollView></SafeAreaView>
+      </Modal>}
       <View style={s.header}>
         <TouchableOpacity
           onPress={() =>
@@ -157,6 +182,7 @@ export default function MyPortfolioScreen() {
                   <Text style={s.price}>
                     {artwork.source === "commission" ? "Completed commission" : `₱ ${Number(artwork.price).toLocaleString()}`}
                   </Text>
+                  {artwork.source !== 'commission' && <Text style={{ color: '#75655F', fontSize: 12 }}>{artwork.category_labels?.length ? artwork.category_labels.join(' · ') : 'Choose artwork categories'}</Text>}
                   {artwork.status === "declined" && artwork.decline_reason ? (
                     <Text style={s.reason} numberOfLines={2}>
                       {artwork.decline_reason}
@@ -164,6 +190,7 @@ export default function MyPortfolioScreen() {
                   ) : null}
                 </View>
               </TouchableOpacity>
+              {artwork.source !== 'commission' && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit categories for ${artwork.title}`} onPress={() => { setDraftCategories(artworkCategoryIds(artwork)); setCategoryError(''); setEditing(artwork); }} style={{ padding: 14 }}><Text style={{ color: '#C15656', fontWeight: '700' }}>Edit categories</Text></TouchableOpacity>}
               {artwork.status === "declined" && (
                 <TouchableOpacity
                   accessibilityRole="button"

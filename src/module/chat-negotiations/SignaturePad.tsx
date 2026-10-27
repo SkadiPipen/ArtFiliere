@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useRef, useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
 export type Strokes = number[][][];
 export default function SignaturePad({ onChange, onDrawing }: { onChange: (strokes: Strokes) => void; onDrawing: (drawing: boolean) => void }) {

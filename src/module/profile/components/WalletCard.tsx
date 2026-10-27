@@ -1,14 +1,8 @@
+import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function WalletCard() {
   const [available, setAvailable] = useState("0.00");
@@ -68,7 +62,7 @@ export default function WalletCard() {
 
 const styles = StyleSheet.create({
   walletCard: {
-    backgroundColor: "#F28527",
+    backgroundColor: "#C15656",
     borderRadius: 16,
     padding: 22,
     marginTop: -30,
@@ -90,12 +84,12 @@ const styles = StyleSheet.create({
   },
   currency: { color: "#fff", fontSize: 20, fontWeight: "500" },
   amount: { fontSize: 32, fontWeight: "bold" },
-  pending: { color: "#FFF7E9", fontSize: 11, marginTop: 3 },
+  pending: { color: "#FFF5F5", fontSize: 11, marginTop: 3 },
   viewWalletBtn: {
     backgroundColor: "#fff",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
   },
-  viewWalletText: { color: "#E67E22", fontSize: 12, fontWeight: "bold" },
+  viewWalletText: { color: "#C15656", fontSize: 12, fontWeight: "bold" },
 });

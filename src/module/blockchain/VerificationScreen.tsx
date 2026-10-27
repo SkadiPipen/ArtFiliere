@@ -1,8 +1,9 @@
+import { Text, TextInput } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { router } from 'expo-router';
 import { ShieldCheck } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Result = { verified: boolean; record_type?: string; message: string };
 

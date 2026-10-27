@@ -1,10 +1,11 @@
+import { Text, TextInput } from '@/components/Typography';
 import { AuthContext } from '@/context/AuthContext';
 import { auth } from '@/firebase/config';
 import { purchaseRequest } from '@/services/purchases';
 import * as DocumentPicker from 'expo-document-picker';
 import { router, usePathname } from 'expo-router';
 import { useContext, useEffect, useRef, useState } from 'react';
-import { AppState, Modal, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { AppState, Modal, Platform, ScrollView, View } from 'react-native';
 import { Action, styles as s } from '@/module/moderation/ui';
 
 type Restriction = { id: number; source: string; action: string; reason: string; review_note?: string; ends_at?: string };

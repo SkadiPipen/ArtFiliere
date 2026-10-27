@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { createContext, useContext, type ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { CheckCircle, ChevronDown, ChevronUp } from 'lucide-react-native';
 
 export const NegotiationSectionsContext = createContext<{

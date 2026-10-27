@@ -1,23 +1,11 @@
+import { readApiResponse } from '@/module/chat-negotiations/contracts';
+import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, MessageCircle, Paintbrush, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { ActivityIndicator, Alert, Dimensions, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AvailabilityCalendar from '@/module/commissions/AvailabilityCalendar';
@@ -33,6 +21,7 @@ export default function ArtistProfileScreen() {
 
   const [artist, setArtist] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState('');
 
   // Commission Modal States
   const [modalVisible, setModalVisible] = useState(false);
@@ -46,30 +35,21 @@ export default function ArtistProfileScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true); setArtist(null); setProfileError('');
     (async () => {
       try {
-        if (auth.currentUser) {
-          const me = await fetch(`${API_URL}/auth/me/`, { headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` } });
-          if (me.ok) {
-            const ownProfile = await me.json();
-            if (ownProfile.role === 'artist' && String(ownProfile.id) === String(artistId)) {
-              router.replace('/(home)/profile'); return;
-            }
-          }
-        }
-        const r = await fetch(`${API_URL}/api/users/artists/${artistId}/`);
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error);
-        setArtist(d);
-      } catch (e: any) {
-        Alert.alert(
-          "Artist profile",
-          e.message || "Unable to load this artist.",
-        );
+        if (!/^\d+$/.test(artistId || '')) throw Error('This artist profile link is missing a valid artist ID.');
+        const response = await fetch(`${API_URL}/api/users/artists/${artistId}/`);
+        const data = await readApiResponse(response);
+        if (active) setArtist(data);
+      } catch (error: any) {
+        if (active) setProfileError(error.message || 'Unable to load this artist.');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     })();
+    return () => { active = false; };
   }, [artistId]);
 
   const handleCreateCommission = async () => {
@@ -140,7 +120,8 @@ export default function ArtistProfileScreen() {
   if (!artist) {
     return (
       <View style={s.center}>
-        <Text style={{ color: "#666" }}>Artist not found.</Text>
+        <Text accessibilityRole="alert" style={{ color: "#666", textAlign: 'center', padding: 16 }}>{profileError || 'Artist not found.'}</Text>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/artists')}><Text style={{ color: '#C15656', padding: 12 }}>Back to artists</Text></TouchableOpacity>
       </View>
     );
   }
@@ -154,7 +135,7 @@ export default function ArtistProfileScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/(tabs)" as any);
+      router.replace("/(home)");
     }
   };
 

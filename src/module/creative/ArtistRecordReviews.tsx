@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { auth } from '@/firebase/config';
 import { settingsRequest, openSettingsDocument } from '@/module/settings/settingsApi';
 

@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@/components/Typography';
 import ResaleRoyaltyPolicy from '@/module/commissions/ResaleRoyaltyPolicy';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
@@ -11,17 +12,7 @@ import InfoAccordion from './InfoAccordion';
 
 import { CheckCircle, Circle } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import DeliveryAddressPicker, { DeliveryQuote } from './DeliveryAddressPicker';
 import type { Artwork, ExclusivityType, LicenseType } from './types';
 

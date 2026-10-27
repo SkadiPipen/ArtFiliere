@@ -24,12 +24,15 @@ class ArtistProfileView(APIView):
             return Response({"error": "Artist not found."}, status=status.HTTP_404_NOT_FOUND)
 
         artworks = artist.artworks.filter(status=Artwork.Status.APPROVED)
+        application = getattr(artist, 'artist_application', None)
         return Response(
             {
                 "id": artist.id,
                 "name": f"{artist.first_name} {artist.last_name}".strip() or artist.username,
                 "username": artist.username,
-                "bio": getattr(artist.artist_application, "bio", "") or "",
+                "bio": getattr(application, "bio", "") or "",
+                "profile_image": artist.profile_image,
+                "cover_image": artist.cover_image,
                 "is_accepting_commissions": artist.is_accepting_commissions,
                 "artworks": ArtworkSerializer(artworks, many=True).data,
                 "portfolio": artist_portfolio(artist),

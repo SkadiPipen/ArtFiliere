@@ -1,8 +1,9 @@
+import { Text } from '@/components/Typography';
 // Step 1 and 2 details ug photo upload
 import { ActiveDelivery } from '@/module/delivery/types/delivery';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {
     artist: ActiveDelivery['artist'];

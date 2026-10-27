@@ -1,5 +1,6 @@
 """Hosted royalty payments: verified receipt -> held balance -> admin release."""
 import uuid
+from urllib.parse import urlencode, urlsplit, urlunsplit
 from decimal import Decimal, InvalidOperation
 import requests
 from django.conf import settings
@@ -85,7 +86,11 @@ class RoyaltyCheckoutView(AuthenticatedAPIView):
                 'amount': float(funding.amount), 'currency': 'PHP', 'country': 'PH', 'capture_method': 'AUTOMATIC',
                 'allow_save_payment_method': 'DISABLED', 'description': f'Royalty report #{period.pk}; funds held until admin verification'}
             return_url = settings.ROYALTY_RETURN_URL or settings.XENDIT_RETURN_URL
-            if return_url.startswith('https://'):
+            destination = urlsplit(return_url)
+            if destination.scheme == 'https' and destination.netloc:
+                # Derive the destination from trusted server configuration only.
+                return_url = urlunsplit(('https', destination.netloc, '/royalty-payment-return',
+                    urlencode({'agreementId': period.agreement_id, 'reportId': period.pk}), ''))
                 payload.update(success_return_url=return_url, cancel_return_url=return_url)
             data = provider('POST', '/sessions', json=payload)
             session_id, url = data.get('payment_session_id'), data.get('payment_link_url')

@@ -1,15 +1,9 @@
+import { Text } from '@/components/Typography';
 import API_URL from "@/services/api";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Star } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Artist = {

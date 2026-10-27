@@ -1,18 +1,10 @@
+import { Text } from '@/components/Typography';
 import UnreadMessageBadge from "@/module/chat-negotiations/UnreadMessageBadge";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { MessageSquare } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import {
-  Alert,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -25,6 +17,9 @@ import AuctionSection from "@/module/home/components/AuctionSection";
 import ForYouGrid from "@/module/home/components/ForYouGrid";
 import Header from "@/module/home/components/Header";
 import HeroCarousel from "@/module/home/components/HeroCarousel";
+import PromoArtwork from '@/module/home/components/PromoArtwork';
+import { categoryLabel, matchesArtworkCategory } from '@/services/artworkCategories';
+import { marketplaceHeading } from '@/constants/marketplaceTypography';
 import LatestSection from "@/module/home/components/LatestSection";
 import { ArtItem } from "@/module/home/types";
 import API_URL from "@/services/api";
@@ -117,7 +112,7 @@ export default function Dashboard() {
     });
   };
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     fetch(`${API_URL}/api/users/artworks/`)
       .then((response) => (response.ok ? response.json() : []))
       .then((artworks) =>
@@ -141,18 +136,13 @@ export default function Dashboard() {
         ),
       )
       .catch(() => undefined);
-  }, []);
+  }, []));
 
   const webItems = approvedArtworks.filter(item => {
     const data = item as ArtItem & { description?: string; tags?: string[]; category?: string };
-    const words = [item.artist, item.artistName, data.description, data.category, ...(data.tags || [])].join(' ').toLowerCase();
+    const words = [item.artist, item.artistName, data.description, data.category, ...(item.categories || []).map(categoryLabel), ...(data.tags || [])].join(' ').toLowerCase();
     if (!searchQuery.trim().toLowerCase().split(/\s+/).every(word => words.includes(word))) return false;
-    const category = activeCategory.toLowerCase();
-    if (category === 'all' || category === 'trending') return true;
-    if (category === 'digital' || category === 'physical') return item.artType?.toLowerCase() === category;
-    if (category === 'paintings') return /paint|watercolor|acrylic|oil/.test([item.type, ...(data.tags || [])].join(' ').toLowerCase());
-    if (category === 'sketches') return /sketch|drawing|pencil|charcoal/.test([item.type, ...(data.tags || [])].join(' ').toLowerCase());
-    return item.type?.toLowerCase() === category;
+    return matchesArtworkCategory(item, activeCategory);
   });
   // The API has no popularity metric; show the newest available artwork for Trending.
   if (activeCategory === 'Trending') webItems.sort((a, b) => Number(b.id) - Number(a.id));
@@ -180,37 +170,40 @@ export default function Dashboard() {
 
             <View style={styles.desktopPromoRow}>
               <View style={[styles.promoCard, styles.latestPromo]}>
+                <PromoArtwork variant="paint" />
                 <Text style={styles.promoEyebrow}>LATEST</Text>
-                <Text style={styles.promoTitle}>Discover original work</Text>
+                <Text style={[styles.promoTitle, { fontSize: width >= 1100 ? 34 : 28, lineHeight: width >= 1100 ? 39 : 33 }]}>{'Discover\noriginal work'}</Text>
                 <Text style={styles.promoBody}>
                   Fresh art from independent creators.
                 </Text>
               </View>
               <View style={[styles.promoCard, styles.commissionPromo]}>
+                <PromoArtwork variant="botanical" />
                 <Text style={styles.promoEyebrow}>OPEN COMMISSION</Text>
-                <Text style={styles.promoTitle}>Bring your idea to life</Text>
+                <Text style={[styles.promoTitle, { fontSize: width >= 1100 ? 34 : 28, lineHeight: width >= 1100 ? 39 : 33 }]}>{'Bring your\nidea to life'}</Text>
                 <TouchableOpacity onPress={() => router.push("/artists")}>
                   <Text style={styles.promoLink}>Find an artist →</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <AuctionSection onSelect={handleViewPost} items={approvedArtworks} />
+            <AuctionSection onSelect={handleViewPost} items={webItems} />
             <View style={styles.catalogueLayout}>
               <View style={styles.catalogueContent}>
                 <Text style={styles.catalogueTitle}>
                   {searchQuery.trim()
                     ? `Search results for ${searchQuery.trim()}`
                     : activeCategory === "All"
-                    ? "Artwork for you"
+                    ? "Artworks For You"
                     : activeCategory}
                 </Text>
                 {activeCategory === "Trending" && <Text>Newest artwork</Text>}
                 <ForYouGrid
+                  showHeading={false}
                   activeCategory={hasSidebar ? "All" : activeCategory}
                   onSelect={handleViewPost}
-                  items={hasSidebar ? webItems : approvedArtworks}
-                  webFiltered={hasSidebar}
+                  items={webItems}
+                  webFiltered
                 />
               </View>
             </View>
@@ -227,15 +220,17 @@ export default function Dashboard() {
           <View style={styles.centerContainer}>
             <HeroCarousel onSelect={handleViewPost} />
             <LatestSection
+              items={webItems}
               activeCategory={activeCategory}
               onSelect={handleViewPost}
             />
             <ArtistCommission />
-            <AuctionSection onSelect={handleViewPost} items={approvedArtworks} />
+            <AuctionSection onSelect={handleViewPost} items={webItems} />
             <ForYouGrid
               activeCategory={activeCategory}
               onSelect={handleViewPost}
-              items={approvedArtworks}
+              items={webItems}
+              webFiltered
             />
           </View>
         )}
@@ -272,17 +267,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
   },
-  desktopPromoRow: { flexDirection: "row", gap: 16, marginBottom: 26 },
+  desktopPromoRow: { flexDirection: "row", gap: 20, marginTop: -53, marginHorizontal: 24, marginBottom: 26, zIndex: 2 },
   promoCard: {
     flex: 1,
-    minHeight: 132,
-    borderRadius: 12,
-    padding: 22,
-    justifyContent: "flex-end",
+    minHeight: 212,
+    borderRadius: 18,
+    padding: 24,
+    justifyContent: "center",
     overflow: "hidden",
   },
   latestPromo: { backgroundColor: "#F7E9BD" },
-  commissionPromo: { backgroundColor: "#d2d2d2" },
+  commissionPromo: { backgroundColor: "#E3E1DF" },
   promoEyebrow: {
     color: "#1F2933",
     fontSize: 11,
@@ -290,8 +285,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     marginBottom: 6,
   },
-  promoTitle: { color: "#C15656", fontSize: 22, fontWeight: "800" },
-  promoBody: { color: "#5F6973", fontSize: 13, marginTop: 5 },
+  promoTitle: { color: "#382C26", fontSize: 34, fontWeight: "700" },
+  promoBody: { color: "#5F554E", fontSize: 13, lineHeight: 19, marginTop: 9 },
   promoLink: {
     color: "#100f0f",
     fontSize: 13,
@@ -327,9 +322,7 @@ const styles = StyleSheet.create({
   filterOption: { color: "#7B6A65", fontSize: 12, marginBottom: 9 },
   catalogueContent: { flex: 1, minWidth: 0 },
   catalogueTitle: {
-    color: "#C15656",
-    fontSize: 20,
-    fontWeight: "800",
+    ...marketplaceHeading,
     marginLeft: 15,
     marginBottom: -8,
   },

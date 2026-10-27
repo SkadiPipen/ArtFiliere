@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import { RequiredMark } from './NegotiationSection';
 import CountrySelector from './CountrySelector';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import InfoAccordion from './InfoAccordion';
 
 export type LicenseScope = { allow_resale?: boolean; copyright_transfer?: import('./CopyrightTransferFields').CopyrightTransfer; territory: string; territory_details: string; uses: string[]; products: string; modifications: string; sublicensing: string; credit: string; credit_name: string; duration_months: number };

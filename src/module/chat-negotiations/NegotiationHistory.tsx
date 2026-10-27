@@ -1,7 +1,8 @@
+import { Text } from '@/components/Typography';
 import ArtworkPreview from './ArtworkPreview';
 import { auth } from '@/firebase/config';
 import { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import type { Contract } from './contracts';
 import type { ChatMessage } from './chats';
 import { AttemptChange, legacyChanges, legacyProposal } from './negotiationThreads';

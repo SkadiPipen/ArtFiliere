@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 let leafletPromise: Promise<any> | undefined;
 function loadLeaflet(): Promise<any> {

@@ -1,4 +1,5 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Text } from '@/components/Typography';
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import AgreementPaper from './AgreementPaper';
 
 export type AgreementTerms = {

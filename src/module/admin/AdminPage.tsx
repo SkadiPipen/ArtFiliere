@@ -1,8 +1,9 @@
+import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import { router } from 'expo-router';
 import { LogOut, RefreshCcw } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Tab = 'dashboard' | 'payments' | 'templates';
 const tabs = [

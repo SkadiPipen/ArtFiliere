@@ -1,3 +1,5 @@
+import FloatingProgressTracker from './FloatingProgressTracker';
+import { Text, TextInput } from '@/components/Typography';
 import NegotiationSection, { NegotiationSectionsContext, RequiredMark } from './NegotiationSection';
 import CommissionNegotiationForm from './CommissionNegotiationForm';
 import API_URL from '@/services/api';
@@ -15,17 +17,7 @@ import InfoAccordion from './InfoAccordion';
 
 import { CheckCircle, Circle, Info } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import DeliveryAddressPicker, { DeliveryQuote } from './DeliveryAddressPicker';
 import type { Artwork, ExclusivityType, LicenseType } from './types';
 
@@ -125,6 +117,8 @@ function ArtworkNegotiationForm({
   const [note, setNote] = useState('');
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const [availableWidth, setAvailableWidth] = useState(0);
+  const trackerWide = availableWidth >= 980;
   const sectionPositions = useRef<Record<string, number>>({});
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ presets: false });
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
@@ -203,7 +197,6 @@ function ArtworkNegotiationForm({
     ...(licenseType === 'commercial' ? [['compensation', 'Compensation']] : []), ['pricing', 'Pricing'],
   ];
   const completed = Object.fromEntries(requiredSections.map(([id]) => [id, !sectionIssues[id]]));
-  const completedCount = requiredSections.filter(([id]) => completed[id]).length;
   const handleSend = async () => {
     setSubmitError('');
     setAttemptedSubmit(true);
@@ -358,14 +351,8 @@ function ArtworkNegotiationForm({
   return (
     <>
     <NegotiationSectionsContext.Provider value={{ collapsed, toggle: id => setCollapsed(previous => ({ ...previous, [id]: !(previous[id] ?? true) })), positions: (id, y) => { sectionPositions.current[id] = y; }, errors: attemptedSubmit ? sectionIssues : {}, completed }}>
-    <ScrollView ref={scrollRef} style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Proposal progress ? {completedCount}/{requiredSections.length} ready</Text>
-        <Text style={styles.sectionDescription}>Expand only what you need. Completed sections reflect valid draft values, not acceptance by the other party. <RequiredMark /> Required</Text>
-        <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: requiredSections.length, now: completedCount }} style={{ height: 7, borderRadius: 4, backgroundColor: '#EAE2DA', overflow: 'hidden' }}><View style={{ height: 7, backgroundColor: '#D48C62', width: `${Math.round(completedCount / requiredSections.length * 100)}%` }} /></View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{requiredSections.map(([id, label]) => <TouchableOpacity key={id} accessibilityRole="button" onPress={() => openSection(id)} style={{ padding: 8, borderRadius: 8, backgroundColor: attemptedSubmit && sectionIssues[id] ? '#FDE8E8' : completed[id] ? '#EAF5ED' : '#F3F0ED' }}><Text style={{ fontSize: 12, color: attemptedSubmit && sectionIssues[id] ? '#B91C1C' : '#655B53' }}>{completed[id] ? '[done] ' : ''}{label}</Text></TouchableOpacity>)}</View>
-        <View style={{ flexDirection: 'row', gap: 16 }}><TouchableOpacity onPress={() => setCollapsed(Object.fromEntries(['presets', 'license', 'exclusivity', 'copyright', 'permissions', 'duration', 'delivery', 'compensation', 'notes', 'pricing'].map(id => [id, true])))}><Text style={{ color: '#A33F45' }}>Collapse all</Text></TouchableOpacity><TouchableOpacity onPress={() => setCollapsed(Object.fromEntries(['presets', 'license', 'exclusivity', 'copyright', 'permissions', 'duration', 'delivery', 'compensation', 'notes', 'pricing'].map(id => [id, false])))}><Text style={{ color: '#A33F45' }}>Expand all</Text></TouchableOpacity></View>
-      </View>
+    <View onLayout={event => setAvailableWidth(event.nativeEvent.layout.width)} style={{ flex: 1, flexDirection: 'row', position: 'relative', backgroundColor: '#F8F5F1' }}>
+    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
       {/* Artwork Preview */}
       <View style={styles.preview}>
         <Text style={styles.previewTitle}>{artwork.title}</Text>
@@ -529,6 +516,12 @@ function ArtworkNegotiationForm({
         </TouchableOpacity>
       </View>
     </ScrollView>
+    <View style={trackerWide ? { width: 240, paddingTop: 16, paddingRight: 12 } : { position: 'absolute', right: 16, bottom: 16, zIndex: 50 }}>
+      <FloatingProgressTracker sections={requiredSections} completed={completed} errors={sectionIssues} attempted={attemptedSubmit} desktop={trackerWide} onSelect={openSection}
+        onCollapseAll={() => setCollapsed(Object.fromEntries(['presets', 'license', 'exclusivity', 'copyright', 'permissions', 'duration', 'delivery', 'compensation', 'notes', 'pricing'].map(id => [id, true])))}
+        onExpandAll={() => setCollapsed(Object.fromEntries(['presets', 'license', 'exclusivity', 'copyright', 'permissions', 'duration', 'delivery', 'compensation', 'notes', 'pricing'].map(id => [id, false])))} />
+    </View>
+    </View>
     </NegotiationSectionsContext.Provider>
     </>
   );

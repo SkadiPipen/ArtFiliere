@@ -38,6 +38,24 @@ class RoyaltyFundingTests(TestCase):
         return {'amount': str(funding.amount), 'currency': 'PHP', 'session_type': 'PAY', 'payment_session_id': funding.session_id,
                 'reference_id': funding.reference, 'status': 'COMPLETED', 'payment_id': 'payment-verified'}
 
+    @override_settings(ROYALTY_RETURN_URL='https://art.example/old-path?ignored=1')
+    def test_checkout_returns_to_report_with_server_chosen_destination(self):
+        self.submit()
+        with patch('messaging.royalty_funding.provider', return_value={'payment_session_id': 'ps-test', 'payment_link_url': 'https://example.com/pay'}) as provider:
+            response = self.call(RoyaltyCheckoutView, self.buyer, 'post', {'action': 'pay', 'return_url': 'https://untrusted.example'}, period_id=self.period.pk)
+        self.assertEqual(response.status_code, 201)
+        payload = provider.call_args.kwargs['json']
+        expected = f'https://art.example/royalty-payment-return?agreementId={self.agreement.pk}&reportId={self.period.pk}'
+        self.assertEqual(payload['success_return_url'], expected)
+        self.assertEqual(payload['cancel_return_url'], expected)
+
+    @override_settings(ROYALTY_RETURN_URL='http://localhost:8081')
+    def test_http_return_is_not_sent_to_provider(self):
+        self.submit()
+        with patch('messaging.royalty_funding.provider', return_value={'payment_session_id': 'ps-test', 'payment_link_url': 'https://example.com/pay'}) as provider:
+            self.call(RoyaltyCheckoutView, self.buyer, 'post', {'action': 'pay'}, period_id=self.period.pk)
+        self.assertNotIn('success_return_url', provider.call_args.kwargs['json'])
+
     def test_paid_money_is_held_until_admin_release_and_both_are_idempotent(self):
         funding = self.start()
         data = self.session(funding)

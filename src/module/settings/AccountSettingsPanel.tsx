@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { auth } from '@/firebase/config';
 import CalendarDateField from '@/components/CalendarDateField';

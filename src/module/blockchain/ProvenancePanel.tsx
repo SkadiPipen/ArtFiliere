@@ -1,9 +1,10 @@
+import { Text, TextInput } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: number | string; recordId?: string }) {
   const [open, setOpen] = useState(false);

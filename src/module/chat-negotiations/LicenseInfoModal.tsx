@@ -1,10 +1,11 @@
+import { Text } from '@/components/Typography';
 // ========================================
 // FILE: components/artworks/LicenseInfoModal.tsx
 // PURPOSE: Modal popup showing license/exclusivity information
 // ========================================
 
 import { X } from 'lucide-react-native';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface LicenseInfoModalProps {
   visible: boolean;

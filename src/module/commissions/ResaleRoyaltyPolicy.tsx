@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import React from 'react';
-import { Linking, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, TouchableOpacity, View } from 'react-native';
 
 export default function ResaleRoyaltyPolicy() {
   return <View style={{ gap: 6 }}>

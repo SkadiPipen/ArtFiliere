@@ -1,6 +1,7 @@
+import { Text } from '@/components/Typography';
 import { Check } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 
 export default function AppToast({ visible, message, onDismiss, duration = 1000 }: { visible: boolean; message: string; onDismiss: () => void; duration?: number }) {
   const opacity = useRef(new Animated.Value(0)).current;

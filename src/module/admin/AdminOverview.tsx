@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text } from '@/components/Typography';
+import { StyleSheet, View } from 'react-native';
 
 export type AdminAnalytics = {
   as_of: string; period: string;

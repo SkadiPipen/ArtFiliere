@@ -1,6 +1,7 @@
+import { Text } from '@/components/Typography';
 import WebDeliveryTiles from './WebDeliveryTiles';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 interface DeliveryMapProps {
   driverLat?: number | null; driverLng?: number | null;

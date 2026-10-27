@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import CommissionReviews from '@/module/commissions/CommissionReviews';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -8,15 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import AdminPage from "./AdminPage";
 import AdminOverview, { type AdminAnalytics } from './AdminOverview';
 type Payment = {

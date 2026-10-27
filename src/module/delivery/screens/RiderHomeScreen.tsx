@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import { checkedDriverPosition } from '@/services/driverLocation';
 import DeliveryMap from '@/module/delivery/components/DeliveryMap';
 import { ActiveDelivery } from '@/module/delivery/types/delivery';
@@ -6,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Modal, Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Modal, Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 

@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import ContractPanel from '@/module/chat-negotiations/ContractPanel';
 import { Contract, contractRequest, isAgreed, readApiResponse } from '@/module/chat-negotiations/contracts';
@@ -10,7 +11,7 @@ import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentRet
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, MoreHorizontal } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useCart } from '@/context/CartContext';

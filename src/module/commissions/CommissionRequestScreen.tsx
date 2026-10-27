@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@/components/Typography';
 import CommissionDeliveryDetails from './CommissionDeliveryDetails';
 import { auth } from "@/firebase/config";
 import NegotiationForm from '@/module/chat-negotiations/negotiationForm';
@@ -6,19 +7,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Plus, X } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Dimensions, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { parseProposedBudget } from './budget';
 

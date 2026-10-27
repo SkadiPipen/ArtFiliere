@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import ArtRoyalties from '../ArtRoyalties';
 import OngoingNegotiations from "@/module/chat-negotiations/OngoingNegotiations";
 import { auth } from "@/firebase/config";
@@ -13,7 +14,7 @@ import {
   Wallet,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import MyPurchases from "../MyPurchases";
 
 export default function TransactionGrid({ role }: { role?: string }) {

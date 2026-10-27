@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { Image, ScrollView, Text, TextInput, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { purchaseRequest } from '@/services/purchases';

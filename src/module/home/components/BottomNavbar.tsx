@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import { useCart } from '@/context/CartContext';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
@@ -5,7 +6,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { Clock, Disc, Home, Plus, ShoppingCart, User } from 'lucide-react-native';
 import { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '@/context/AuthContext';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BottomNavBar() {

@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useState } from 'react';
-import { View, Text, Pressable, Image } from "react-native";
+import { View, Pressable, Image } from "react-native";
 import CalendarDateField from '@/components/CalendarDateField';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from "@expo/vector-icons";

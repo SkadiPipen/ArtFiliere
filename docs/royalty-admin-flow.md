@@ -27,3 +27,19 @@ Signed document snapshots are never rewritten. Existing period deadlines are ret
 `python manage.py test messaging.test_royalty_funding messaging.test_royalty_reporting`
 
 The tests use mocked provider responses; they do not charge a buyer or validate merchant account permissions. Ambiguous session creation is not automatically retried. Use its saved reference for provider/support reconciliation.
+# Returning from Xendit checkout
+
+Royalty checkout opens in a separate browser tab, preserving the original report.
+Set `ROYALTY_RETURN_URL=https://your-frontend-domain` in the backend environment
+(or use the existing `XENDIT_RETURN_URL` HTTPS frontend address), then restart the
+backend. New payment sessions receive success and cancellation URLs pointing to
+`/royalty-payment-return` with the agreement and report IDs. This page verifies the
+session with the backend and provides a **Return to royalty reports** button.
+The frontend host must serve this Expo route directly.
+
+HTTP localhost addresses cannot be sent as Xendit return URLs. For local testing,
+keep the original report tab open and use **Confirm / refresh payment status**,
+or configure an HTTPS frontend deployment/tunnel. Existing Xendit sessions retain
+their original return URLs; do not create a second payment to change a return URL.
+Returning or cancelling alone never marks a payment as paid or releases funds.
+

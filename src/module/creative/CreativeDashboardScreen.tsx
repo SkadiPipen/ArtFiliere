@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@/components/Typography';
 import ArtistRecordReviews from './ArtistRecordReviews';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -12,19 +13,7 @@ import {
   XCircle,
 } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type Match = {
   id: number;

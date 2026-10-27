@@ -1,12 +1,13 @@
+import { Text, TextInput } from '@/components/Typography';
 import { filterPurchases, PurchaseKind } from './purchaseFilters';
 import RoyaltyReminder, { type RoyaltyReminderData } from './RoyaltyReminder';
 import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import { openPaymentCheckout } from '@/services/paymentReturn';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
-import { downloadPurchase, downloadProtectedFile, downloadCertificate, purchaseRequest } from '@/services/purchases';
+import { downloadPurchase, downloadProtectedFile, downloadCertificate, downloadLicensePdf, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Purchase = {
   artwork_id?: number;
@@ -163,6 +164,10 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
                 <Text style={s.link}>View signed agreement</Text>
               </TouchableOpacity>
             ) : null}
+
+            {Boolean(p.agreement_id) && <TouchableOpacity accessibilityRole="button" disabled={busy} style={s.button} onPress={() => run(() => downloadLicensePdf(p.agreement_id))}>
+              <Text style={s.white}>Download license agreement (PDF)</Text>
+            </TouchableOpacity>}
 
             {p.status === 'pending' && Boolean(p.checkout_url) ? (
               <TouchableOpacity disabled={busy} onPress={() => run(() => openPaymentCheckout(p.checkout_url!, 'shop', Number(p.id)))}>

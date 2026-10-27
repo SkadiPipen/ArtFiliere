@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import { RequiredMark } from './NegotiationSection';
 import RoyaltyCalculationFields from './RoyaltyCalculationFields';
-import { Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, View } from 'react-native';
 import { useState } from 'react';
 import RoyaltyApplicationScreen from '@/module/royalties/RoyaltyApplicationScreen';
 import InfoAccordion from './InfoAccordion';

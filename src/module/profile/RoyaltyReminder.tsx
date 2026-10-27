@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { router } from 'expo-router';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 
 export type RoyaltyReminderData = {
   status: string; message: string; report_opens_on?: string; due_on?: string;

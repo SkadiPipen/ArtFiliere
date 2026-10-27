@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import { useCart } from "@/context/CartContext";
 import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import { auth } from "@/firebase/config";
@@ -18,17 +19,7 @@ import {
   X,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ViewPostPage() {
@@ -353,6 +344,7 @@ export default function ViewPostPage() {
             <Text style={styles.title}>{title}</Text>
 
             {/* Artist Profile */}
+            {!!artworkData?.category_labels?.length && <Text style={{ color: '#75655F', fontSize: 13, lineHeight: 19, marginBottom: 12 }}>Categories: {artworkData.category_labels.join(' · ')}</Text>}
             <TouchableOpacity
               onPress={() =>
                 router.push({

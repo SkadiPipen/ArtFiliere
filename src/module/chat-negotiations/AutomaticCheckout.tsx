@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import AuctionDeliveryCheckout, { type AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';

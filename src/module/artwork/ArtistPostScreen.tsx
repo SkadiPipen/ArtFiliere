@@ -1,3 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
+import CategoryPicker from './components/CategoryPicker';
+import { categoryLabel, MAX_ARTWORK_CATEGORIES } from '@/services/artworkCategories';
 import Toast from "@/components/Toast";
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -11,20 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { ArrowLeft, ImagePlus, Plus, Sparkles } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const ART_TYPES = ["Physical", "Digital"];
@@ -46,7 +36,7 @@ export default function ArtistPostScreen() {
   ]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Painting");
+  const [categories, setCategories] = useState<string[]>([]);
   const [hours, setHours] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [materials, setMaterials] = useState("0");
@@ -114,7 +104,8 @@ export default function ArtistPostScreen() {
   const [preparingDocument, setPreparingDocument] = useState(false);
   const [auctionAgreementError, setAuctionAgreementError] = useState('');
   const agreementScrollRef = useRef<ScrollView>(null);
-  const scrollToPreparedDocument = useRef(false);
+  const preparedDocumentY = useRef(0);
+  const auctionSignatureY = useRef(0);
   useEffect(() => {
     setAuctionAgreementError('');
     setAuctionDocument(null); setAuctionTermsConfirmed(false); setAuctionStrokes([]); setAuctionSignatureImage(''); setSignatureRevision(value => value + 1);
@@ -139,7 +130,6 @@ export default function ArtistPostScreen() {
       if (!result || typeof result.document !== 'string' || !result.document.trim() || typeof result.document_hash !== 'string' || !result.document_hash) {
         throw new Error('The server did not return the full agreement. Please try again.');
       }
-      scrollToPreparedDocument.current = true;
       setAuctionDocument(result); setAuctionTermsConfirmed(false); setAuctionStrokes([]); setAuctionSignatureImage(''); setSignatureRevision(value => value + 1);
     } catch (e: any) { setAuctionAgreementError(e.message || 'Unable to prepare the agreement. Please try again.'); }
     finally { setPreparingDocument(false); }
@@ -335,6 +325,9 @@ export default function ArtistPostScreen() {
   };
 
   const submit = async () => {
+    if (!categories.length || categories.length > MAX_ARTWORK_CATEGORIES) {
+      return showToast(`Choose 1–${MAX_ARTWORK_CATEGORIES} artwork categories.`, 'error');
+    }
     if (!imageData || !title.trim() || !description.trim()) {
       return showToast(
         "Add an image, artwork name, and description.",
@@ -388,7 +381,8 @@ export default function ArtistPostScreen() {
         additional_images: additionalImages.filter(Boolean),
         title,
         description,
-        category: category.trim(),
+        category: categoryLabel(categories[0]),
+        categories,
         selected_ai_tags: selectedAiTags,
         custom_tags: customTags,
         price,
@@ -769,14 +763,9 @@ export default function ArtistPostScreen() {
             )}
 
             <View style={styles.rule} />
+            <CategoryPicker value={categories} onChange={setCategories} />
+            <View style={styles.rule} />
             <Text style={styles.pricingTitle}>PRICING</Text>
-            <Text style={styles.label}>Category:</Text>
-            <TextInput
-              style={styles.input}
-              value={category}
-              onChangeText={setCategory}
-              placeholder="Painting, Photography..."
-            />
 
             {saleType === "Auction" && (
               <>
@@ -881,6 +870,10 @@ export default function ArtistPostScreen() {
       >
         <Pressable style={styles.agreementOverlay} onPress={() => setAuctionTermsOpen(false)}>
           <Pressable style={styles.agreementModal} onPress={(event) => event.stopPropagation()}>
+            {auctionDocument && !auctionDrawing && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 }}>
+              <TouchableOpacity style={[styles.confirmAgreement, { flex: 1 }]} onPress={() => agreementScrollRef.current?.scrollTo({ y: Math.max(0, preparedDocumentY.current - 12), animated: true })}><Text style={styles.confirmAgreementText}>Read full agreement</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.confirmAgreement, { flex: 1 }]} onPress={() => agreementScrollRef.current?.scrollTo({ y: Math.max(0, preparedDocumentY.current + auctionSignatureY.current - 12), animated: true })}><Text style={styles.confirmAgreementText}>Jump to signature</Text></TouchableOpacity>
+            </View>}
             <ScrollView ref={agreementScrollRef} scrollEnabled={!auctionDrawing} contentContainerStyle={styles.agreementScroll}>
               <Text style={styles.agreementModalHeading}>Auction Terms & Agreements</Text>
               <Text style={styles.agreementModalHint}>
@@ -893,14 +886,10 @@ export default function ArtistPostScreen() {
               />
               <TouchableOpacity style={styles.confirmAgreement} disabled={preparingDocument} onPress={prepareAuctionDocument}><Text style={styles.confirmAgreementText}>{preparingDocument ? 'Preparing document…' : 'Review full agreement and sign'}</Text></TouchableOpacity>
               {!!auctionAgreementError && <Text accessibilityRole="alert" style={{ color: '#B33535', backgroundColor: '#FFF0ED', borderRadius: 8, padding: 14, lineHeight: 21 }}>{auctionAgreementError}</Text>}
-              {auctionDocument && <View key={`auction-document-${signatureRevision}`} onLayout={event => {
-                if (!scrollToPreparedDocument.current) return;
-                scrollToPreparedDocument.current = false;
-                const y = event.nativeEvent.layout.y;
-                requestAnimationFrame(() => agreementScrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true }));
-              }}>
+              {auctionDocument && <View key={`auction-document-${signatureRevision}`} onLayout={event => { preparedDocumentY.current = event.nativeEvent.layout.y; }}>
                 <Text style={styles.agreementModalHint}>Full agreement ready. Read the document, then enter your name and add your signature below.</Text>
                 <AgreementPaper document={auctionDocument.document} />
+                <View onLayout={event => { auctionSignatureY.current = event.nativeEvent.layout.y; }} />
                 <TextInput accessibilityLabel="Artist full name for auction signature" placeholder="Your full name" value={auctionSignatureName} onChangeText={value => { setAuctionSignatureName(value); setAuctionTermsConfirmed(false); }} style={{ borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12 }} />
                 <SignaturePad key={signatureRevision} onDrawing={setAuctionDrawing} onChange={strokes => { setAuctionStrokes(strokes); setAuctionSignatureImage(''); setAuctionTermsConfirmed(false); }} />
                 <TouchableOpacity style={styles.confirmAgreement} onPress={uploadAuctionSignature}><Text style={styles.confirmAgreementText}>Or upload a transparent PNG signature</Text></TouchableOpacity>

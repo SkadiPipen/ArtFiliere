@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@/components/Typography';
 import CommissionDeliveryPanel from './CommissionDeliveryPanel';
 import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import { auth } from '@/firebase/config';
@@ -9,19 +10,7 @@ import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentRet
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  AppState,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { ActivityIndicator, AppState, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AvailabilityCalendar from './AvailabilityCalendar';
 import ResaleRoyaltyPolicy from './ResaleRoyaltyPolicy';

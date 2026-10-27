@@ -1,8 +1,9 @@
+import { Text, TextInput } from '@/components/Typography';
 import RoyaltyReportReviews from './RoyaltyReportReviews';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import AdminPage from './AdminPage';
 
 type Payment = { id: number; reference_id: string; status: string; artwork: string; artist: string; buyer: string; gross_amount: string; artist_amount: string; platform_fee: string; can_release: boolean };

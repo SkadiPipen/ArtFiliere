@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { commissionApi } from './CommissionDetailScreen';
 
 export default function CommissionReviews() {

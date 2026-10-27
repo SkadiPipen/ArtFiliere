@@ -1,6 +1,7 @@
+import { Text } from '@/components/Typography';
 import { useState, type ReactNode } from 'react';
 import { CheckCircle, Circle, ChevronDown, ChevronUp } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 type Props = {
   embedded?: boolean;

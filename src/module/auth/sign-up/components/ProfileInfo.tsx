@@ -1,4 +1,5 @@
-import { View, Text, TextInput } from "react-native";
+import { Text, TextInput } from '@/components/Typography';
+import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/colors";
 import type {

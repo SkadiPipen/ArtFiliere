@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import PortfolioAvailability from '@/module/profile/components/PortfolioAvailability';
 import ProfileHeader from "@/module/profile/components/ProfileHeader";
@@ -5,20 +6,10 @@ import PurchaseGallery from "@/module/profile/components/PurchaseGallery";
 import TransactionGrid from "@/module/profile/components/TransactionGrid";
 import WalletCard from "@/module/profile/components/WalletCard";
 import API_URL from "@/services/api";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { signOut, User } from "firebase/auth";
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
 export default function UserProfile() {
   const router = useRouter();
@@ -27,9 +18,7 @@ export default function UserProfile() {
   const [defaultHourlyRate, setDefaultHourlyRate] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProfileFromDjango();
-  }, []);
+  useFocusEffect(useCallback(() => { void fetchProfileFromDjango(); }, []));
 
   const fetchProfileFromDjango = async () => {
     const currentUser = auth.currentUser;
@@ -182,6 +171,7 @@ export default function UserProfile() {
           profileData={profileData}
           user={user}
           onLogout={handleLogout}
+          onCoverSaved={fetchProfileFromDjango}
         />
 
         <View style={styles.contentBody}>

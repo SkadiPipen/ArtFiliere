@@ -1,7 +1,8 @@
+import { Text } from '@/components/Typography';
 import WebDeliveryTiles from './WebDeliveryTiles';
 import { useEffect, useRef, useState } from 'react';
 import DeliveryLeafletMap from './DeliveryLeafletMap';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 // import MapViewDirections from  'react-native-maps-directions';
 
 let MapView: any = View;
