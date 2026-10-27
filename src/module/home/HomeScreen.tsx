@@ -238,7 +238,7 @@ export default function Dashboard() {
 
       {/* Floating chat button */}
       <TouchableOpacity
-        style={[styles.msgFab, { bottom: (hasSidebar ? 24 : 85) + insets.bottom }]}
+        style={[styles.msgFab, width < 480 && { width: 44, height: 44, borderRadius: 22, right: 12 }, { bottom: (hasSidebar ? 24 : 85) + insets.bottom }]}
         onPress={handleOpenChat}
         accessibilityRole="button"
         accessibilityLabel="Open messages"
@@ -335,8 +335,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 18,
   },
-  footerBrand: { color: "#C15656", fontSize: 18, fontWeight: "800" },
-  footerText: { color: "#8A7C76", fontSize: 11, flex: 1 },
+  footerBrand: { color: "#C15656", fontSize: 18, fontFamily: "LoraSemiBold", fontWeight: "600" },
+  footerText: { color: "#8A7C76", fontSize: 11, fontFamily: "NunitoSans", lineHeight: 17, flex: 1 },
   msgFab: {
     position: "absolute",
     right: 20,

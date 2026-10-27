@@ -27,6 +27,8 @@ function ArtCardItem({
   widthPercent: string;
   onSelect: (item: ArtItem, type: string) => void;
 }) {
+  const { width: viewportWidth } = useWindowDimensions();
+  const imageHeight = viewportWidth < 480 ? Math.min(300, viewportWidth - 48) : 280;
   const [isHovered, setIsHovered] = useState(false);
   const badgeLift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -50,7 +52,8 @@ function ArtCardItem({
 
   const titleText = item.title || item.artist || 'Untitled';
   const artistLabel = item.artistName || item.artist_name || 'ArtFiliere Artist';
-  const ratingVal = item.rating || item.artistRating || '5.0';
+  const reviewCount = Number(item.review_count || 0);
+  const ratingVal = reviewCount > 0 && item.average_rating != null ? Number(item.average_rating).toFixed(1) : null;
   const tagsList = Array.isArray(item.tags) ? item.tags.slice(0, 3) : [];
   const workCategories = artworkCategoryIds(item).map(categoryLabel);
 
@@ -67,7 +70,7 @@ function ArtCardItem({
     >
       {/* Image with Watermark and Hover Description Overlay */}
       <View style={styles.imageWrapper}>
-        <Watermark uri={item.image} height={280} />
+        <Watermark uri={item.image} height={imageHeight} />
 
         {isSold && (
           <View style={styles.soldOverlay}>
@@ -118,12 +121,12 @@ function ArtCardItem({
             {artistLabel}
           </Text>
           <View style={styles.ratingBox}>
-            <Star size={13} color="#E67E22" fill="#E67E22" />
-            <Text style={styles.ratingText}>{ratingVal}</Text>
+            <Star size={13} color={ratingVal ? "#BC5555" : "#9B8B85"} fill={ratingVal ? "#BC5555" : "transparent"} />
+            <Text style={styles.ratingText}>{ratingVal ? `${ratingVal} (${reviewCount})` : 'No reviews yet'}</Text>
           </View>
         </View>
       </View>
-      <ArtworkBorder artType={item.artType || item.art_type || item.type} imageHeight={280} />
+      <ArtworkBorder artType={item.artType || item.art_type || item.type} imageHeight={imageHeight} />
     </Pressable>
   );
 }
@@ -138,7 +141,7 @@ export default function ForYouGrid({
   const { width } = useWindowDimensions();
   const [gridPage, setGridPage] = useState(1);
 
-  const numColumns = width > 768 ? 2 : 2;
+  const numColumns = width < 480 ? 1 : 2;
   const itemsPerPage = numColumns * 2;
 
   const sourceItems = items ?? (webFiltered ? [] : FOR_YOU_DATA);
@@ -162,12 +165,12 @@ export default function ForYouGrid({
         {filteredForYou
           .slice((gridPage - 1) * itemsPerPage, gridPage * itemsPerPage)
           .map((item) => (
-            <ArtCardItem key={item.id} item={item} widthPercent={`${100 / numColumns - 4}%`} onSelect={onSelect} />
+            <ArtCardItem key={item.id} item={item} widthPercent={numColumns === 1 ? '100%' : `${100 / numColumns - 4}%`} onSelect={onSelect} />
           ))}
       </View>
 
       {/* PAGINATION */}
-      <View style={styles.pagination}>
+      <View style={[styles.pagination, width < 480 && { flexWrap: 'wrap', paddingHorizontal: 16, rowGap: 8 }]}>
         <TouchableOpacity
           onPress={() => setGridPage(Math.max(1, gridPage - 1))}
         >

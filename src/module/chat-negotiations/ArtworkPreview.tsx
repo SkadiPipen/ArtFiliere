@@ -1,14 +1,14 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ImageIcon } from 'lucide-react-native';
 
 export default function ArtworkPreview({ uri, title }: { uri?: string | null; title: string }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [uri]);
   return <View style={s.frame} accessibilityLabel={`Watermarked preview of ${title}`}>
-    {uri && !failed ? <Image source={{ uri }} resizeMode="cover" style={StyleSheet.absoluteFill} onError={() => setFailed(true)} /> : <ImageIcon size={28} color="#BD8D7C" />}
-    <View pointerEvents="none" style={s.watermark}><Text style={s.brand}>ArtFilier</Text></View>
+    {uri && !failed ? <ProductImage source={{ uri }} resizeMode="cover" style={StyleSheet.absoluteFill} onError={() => setFailed(true)} /> : <ImageIcon size={28} color="#BD8D7C" />}
     <View pointerEvents="none" style={s.label}><Text style={s.labelText}>PREVIEW</Text></View>
   </View>;
 }

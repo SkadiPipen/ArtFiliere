@@ -1,9 +1,10 @@
+import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AuctionDashboardScreen() {
@@ -206,7 +207,7 @@ export default function AuctionDashboardScreen() {
                         {item.is_physical ? 'Physical' : 'Digital'}
                       </Text>
                     </View>
-                    <Image
+                    <ProductImage
                       source={getImageSource(item)}
                       style={styles.cardImage}
                       resizeMode="cover"
@@ -263,7 +264,7 @@ export default function AuctionDashboardScreen() {
                             {isClosed ? 'Ended' : formatTimer(item.end_time)}
                           </Text>
                         </View>
-                        <Image
+                        <ProductImage
                           source={getImageSource(item)}
                           style={styles.gridImage}
                           resizeMode="cover"

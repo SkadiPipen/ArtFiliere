@@ -60,32 +60,65 @@ class PurchasesView(AuthenticatedAPIView):
             if not agreement: return None
             if agreement.pk not in reminders: reminders[agreement.pk] = purchase_royalty_reminder(agreement, user)
             return reminders[agreement.pk]
+        from messaging.download_access import royalty_download_block, restricted_preview
+        download_blocks = {}
+        def download_block(agreement):
+            if not agreement: return None
+            if agreement.pk not in download_blocks: download_blocks[agreement.pk] = royalty_download_block(agreement)
+            return download_blocks[agreement.pk]
         rows = []
         for p in payments:
             delivery = getattr(p, 'delivery_order', None)
             review = getattr(p, 'review', None)
             paid = p.status == 'paid'
             certificate = issue_certificate(p) if paid else None
+            blocked = download_block(p.agreement) if paid else None
             digital = p.agreement.delivery_type == 'digital' if p.agreement else p.artwork.art_type == 'digital'
             from wallets.auction_delivery import auction_agreement
             is_auction = bool(p.agreement and auction_agreement(p.agreement)) or str(p.artwork.sale_type).upper() == 'AUCTION'
             rows.append({'art_type': 'digital' if digital else 'physical', 'purchase_type': 'auction' if is_auction else 'direct', 'is_auction': is_auction,
                          'purchase_date': p.paid_at or p.created_at, 'created_at': p.created_at, 'id': p.id, 'title': p.artwork.title, 'artist': p.artist.username,
-                         'image': ('data:image/png;base64,' + base64.b64encode(bytes(p.artwork_png)).decode() if digital and p.artwork_png else p.artwork.image_data) if paid else None,
+                         'image': restricted_preview(bytes(p.artwork_png) if p.artwork_png else png_bytes(p.artwork)) if paid and digital and blocked else ('data:image/png;base64,' + base64.b64encode(bytes(p.artwork_png)).decode() if digital and p.artwork_png else p.artwork.image_data) if paid else None,
                          'is_simulated': p.is_simulated, 'status': p.status, 'amount': str(p.gross_amount), 'agreement_id': p.agreement_id, 'verification_code': p.verification_code,
                          'royalty_reminder': reminder(p.agreement) if paid else None,
                          'artwork_id': p.artwork_id,
                          'checkout_url': p.checkout_url if p.status == 'pending' else None,
-                         'can_download': paid and digital, 'can_rate': paid and not review,
+                         'download_block': blocked, 'can_download': paid and digital and not blocked, 'can_rate': paid and not review,
                          'certificate_code': certificate.code if certificate else None,
                          'certificate_path': f'purchases/{p.id}/coa/' if certificate else None,
                          'delivery': delivery_data(delivery) if delivery else None,
-                         'review': {'artist_rating': review.artist_rating, 'artwork_rating': review.artwork_rating, 'comment': review.comment, 'artist_comment': review.artist_comment, 'artwork_comment': review.artwork_comment} if review else None})
+                         'review': {'artist_rating': review.artist_rating, 'artwork_rating': review.artwork_rating, 'comment': review.comment, 'artist_comment': review.artist_comment, 'artwork_comment': review.artwork_comment, 'images': review.images} if review else None})
+
+        # Royalty-only licenses need no upfront checkout session to appear here.
+        royalty_licenses = Agreement.objects.filter(
+            buyer=user, status='accepted', compensation_type='royalty', artwork__isnull=False,
+            artist_signed_at__isnull=False, buyer_signed_at__isnull=False,
+            commission_contract__isnull=True,
+        ).exclude(artist_signature_image='').exclude(buyer_signature_image='').exclude(
+            pk__in=payments.values_list('agreement_id', flat=True)
+        ).select_related('artwork', 'artist')
+        for license in royalty_licenses:
+            blocked = download_block(license)
+            digital = license.delivery_type == 'digital'
+            rows.append({
+                'id': f'royalty-{license.pk}', 'agreement_id': license.pk,
+                'artwork_id': license.artwork_id, 'title': license.artwork.title,
+                'artist': license.artist.username, 'image': license.artwork.image_data,
+                'art_type': 'digital' if digital else 'physical', 'purchase_type': 'direct',
+                'purchase_date': max(license.artist_signed_at, license.buyer_signed_at),
+                'created_at': license.created_at, 'status': 'active', 'amount': str(license.price),
+                'is_royalty_license': True, 'is_simulated': False,
+                'royalty_reminder': reminder(license), 'download_block': blocked,
+                'can_download': digital and not blocked, 'can_rate': False,
+                'download_path': f'purchases/royalty-licenses/{license.pk}/png/' if digital else None,
+                'download_filename': f'artwork-{license.artwork_id}.png', 'download_mime': 'image/png',
+            })
 
         commissions = CommissionRequest.objects.filter(buyer=user).select_related('artist', 'agreement', 'purchase_review').prefetch_related('milestones', 'photos').order_by('-commission_req_id')
         for c in commissions:
             if c.flow_version == 2 and not c.funded_at and c.status != 'COMPLETE': continue
             complete = commission_completed(c)
+            blocked = download_block(c.agreement) if complete else None
             digital = c.art_type.lower() == 'digital'
             review = getattr(c, 'purchase_review', None)
             image = None; submission = None
@@ -123,7 +156,7 @@ class PurchasesView(AuthenticatedAPIView):
                 'status': 'paid' if complete else 'cancelled' if c.status == 'CANCELLED' else 'in_progress',
                 'commission_status': c.status, 'amount': str(c.time_duration), 'agreement_id': c.agreement_id,
                 'royalty_reminder': reminder(c.agreement),
-                'checkout_url': None, 'can_download': bool(complete and digital and (submission or image)),
+                'checkout_url': None, 'download_block': blocked, 'can_download': bool(complete and digital and (submission or image) and not blocked),
                 'download_path': f'commissions/flow/{c.pk}/files/{submission.pk}/' if complete and digital and submission else None,
                 'download_filename': submission.filename if submission else None,
                 'download_mime': submission.content_type if submission else None,
@@ -132,7 +165,7 @@ class PurchasesView(AuthenticatedAPIView):
                 'certificate_path': f'commissions/{c.pk}/coa/' if certificate else None,
                 'delivery': delivery,
                 'review': {'artist_rating': review.artist_rating, 'artwork_rating': review.artwork_rating,
-                           'comment': review.comment, 'artist_comment': review.artist_comment, 'artwork_comment': review.artwork_comment} if review else None})
+                           'comment': review.comment, 'artist_comment': review.artist_comment, 'artwork_comment': review.artwork_comment, 'images': review.images} if review else None})
 
         rows.sort(key=lambda row: (row['purchase_date'], str(row['id'])), reverse=True)
         return Response(rows)
@@ -164,12 +197,42 @@ class PurchaseDownloadView(AuthenticatedAPIView):
             return Response({'error': 'Paid purchase not found.'}, status=404)
         if (payment.agreement and payment.agreement.delivery_type != 'digital') or (not payment.agreement and payment.artwork.art_type != 'digital'):
             return Response({'error': 'This artwork is delivered physically.'}, status=409)
+        from messaging.download_access import royalty_download_block
+        blocked = royalty_download_block(payment.agreement)
+        if blocked:
+            return Response({'error': blocked['message'], 'download_block': blocked}, status=403)
         try:
             payload = bytes(payment.artwork_png) if payment.artwork_png else png_bytes(payment.artwork)
         except ValueError as error:
             return Response({'error': str(error)}, status=409)
         response = HttpResponse(payload, content_type='image/png')
         response['Content-Disposition'] = f'attachment; filename="artwork-{payment.artwork_id}.png"'
+        response['Cache-Control'] = 'private, no-store'
+        return response
+
+
+class RoyaltyLicenseDownloadView(AuthenticatedAPIView):
+    permission_classes = [IsAuthenticatedUser]
+
+    def get(self, request, agreement_id):
+        license = Agreement.objects.select_related('artwork').filter(
+            pk=agreement_id, buyer=self.get_request_user(request), status='accepted',
+            compensation_type='royalty', artwork__isnull=False, delivery_type='digital',
+            artist_signed_at__isnull=False, buyer_signed_at__isnull=False,
+            commission_contract__isnull=True,
+        ).exclude(artist_signature_image='').exclude(buyer_signature_image='').first()
+        if not license:
+            return Response({'error': 'Signed royalty license not found.'}, status=404)
+        from messaging.download_access import royalty_download_block
+        blocked = royalty_download_block(license)
+        if blocked:
+            return Response({'error': blocked['message'], 'download_block': blocked}, status=403)
+        try:
+            payload = png_bytes(license.artwork)
+        except ValueError as error:
+            return Response({'error': str(error)}, status=409)
+        response = HttpResponse(payload, content_type='image/png')
+        response['Content-Disposition'] = f'attachment; filename="artwork-{license.artwork_id}.png"'
         response['Cache-Control'] = 'private, no-store'
         return response
 
@@ -201,7 +264,12 @@ class PurchaseReviewView(AuthenticatedAPIView):
         comments = {key: request.data.get(key, '') for key in ('artist_comment', 'artwork_comment')}
         if any(not isinstance(value, str) or len(value) > 2000 for value in comments.values()):
             return Response({'error': 'Each review must be at most 2,000 characters.'}, status=400)
-        PurchaseReview.objects.create(**lookup, comment=comment.strip(), **{key: value.strip() for key, value in comments.items()}, **ratings)
+        from .review_images import validate_review_images
+        try:
+            images = validate_review_images(request.data.get('images', []))
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=400)
+        PurchaseReview.objects.create(**lookup, images=images, comment=comment.strip(), **{key: value.strip() for key, value in comments.items()}, **ratings)
         return Response({'saved': True}, status=201)
 
 

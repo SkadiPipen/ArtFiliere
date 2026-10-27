@@ -1,3 +1,4 @@
+import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import CategoryPicker from './components/CategoryPicker';
 import { categoryLabel, MAX_ARTWORK_CATEGORIES } from '@/services/artworkCategories';
@@ -466,7 +467,7 @@ export default function ArtistPostScreen() {
                 onPress={() => pickImage()}
               >
                 {imageData ? (
-                  <Image
+                  <ProductImage
                     source={{ uri: imageData }}
                     style={styles.selectedImage}
                   />
@@ -481,7 +482,7 @@ export default function ArtistPostScreen() {
                   onPress={() => pickImage(slot)}
                 >
                   {additionalImages[slot] ? (
-                    <Image
+                    <ProductImage
                       source={{ uri: additionalImages[slot] }}
                       style={styles.selectedImage}
                     />

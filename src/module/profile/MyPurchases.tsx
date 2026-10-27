@@ -1,3 +1,7 @@
+import ProductImage from '@/components/ProductImage';
+import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
+import PurchaseRatingCard from './PurchaseRatingCard';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { Text, TextInput } from '@/components/Typography';
 import { filterPurchases, PurchaseKind } from './purchaseFilters';
 import RoyaltyReminder, { type RoyaltyReminderData } from './RoyaltyReminder';
@@ -7,10 +11,13 @@ import SigningModal from '@/module/chat-negotiations/SigningModal';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
 import { downloadPurchase, downloadProtectedFile, downloadCertificate, downloadLicensePdf, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Purchase = {
   artwork_id?: number;
+  is_royalty_license?: boolean;
+  download_block?: { message: string; due_on: string; blocked_from: string } | null;
   provenance_id?: string;
   royalty_reminder?: RoyaltyReminderData | null;
   id: number | string; is_commission?: boolean; commission_id?: number; download_path?: string; download_filename?: string; download_mime?: string; title: string; artist: string; status: string; amount: string; agreement_id: number;
@@ -25,6 +32,7 @@ type Purchase = {
 export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () => void; filter?: 'all' | 'receive' | 'rate' | 'pay' }) {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [kind, setKind] = useState<PurchaseKind>('all');
+  const [expandedPurchase, setExpandedPurchase] = useState<number | string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -52,25 +60,25 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
         if (failed?.status === 'rejected') setError(failed.reason.message); else setError('');
       }
       setPurchases(rows);
-    } catch (e: any) { 
-      setError(e.message); 
-    } finally { 
-      syncing.current = false; 
-      setLoading(false); 
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      syncing.current = false;
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => { 
-    load(); 
-    const timer = setInterval(load, 5000); 
-    return () => clearInterval(timer); 
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
   }, [load]);
 
   const run = async (action: () => Promise<unknown>) => {
-    setBusy(true); 
+    setBusy(true);
     setError('');
-    try { await action(); } 
-    catch (e: any) { setError(e.message); } 
+    try { await action(); }
+    catch (e: any) { setError(e.message); }
     finally { setBusy(false); }
   };
 
@@ -81,9 +89,9 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
       <Text>{label}</Text>
       <View style={s.row}>
         {[1, 2, 3, 4, 5].map(n => (
-          <TouchableOpacity 
-            key={n} 
-            accessibilityLabel={`${label}: ${n} stars`} 
+          <TouchableOpacity
+            key={n}
+            accessibilityLabel={`${label}: ${n} stars`}
             onPress={() => change(n)}
           >
             <Text style={{ fontSize: 28, color: n <= rating ? '#D48C62' : '#aaa' }}>
@@ -110,22 +118,19 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
       {agreement !== null ? (
         <SigningModal id={agreement} onClose={() => setAgreement(null)} onSigned={() => load(true)} />
       ) : null}
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
+      <TransactionHeader title="My Transactions" onBack={onClose} onRefresh={() => { void load(true); }} refreshing={loading || busy} />
       <ScrollView contentContainerStyle={s.page}>
-        <View style={s.row}>
-          <Text style={s.title}>{filter === 'rate' ? 'To Rate' : 'My Purchases'}</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={s.link}>Close</Text>
-          </TouchableOpacity>
-        </View>
+        <TransactionTitle title={filter === 'rate' ? 'To Rate' : filter === 'pay' ? 'To Pay' : filter === 'receive' ? 'To Receive' : 'My Purchases'} />
 
         <Text>
-          {filter === 'rate' 
-            ? 'Paid purchases stay here until you submit your ratings. You can come back anytime.' 
+          {filter === 'rate'
+            ? 'Paid purchases stay here until you submit your ratings. You can come back anytime.'
             : 'Once payment is confirmed, your purchase appears here. Digital artworks are available as PNG downloads.'}
         </Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
-          {(['all', 'physical', 'digital', 'auction', 'commission'] as PurchaseKind[]).map(value => <TouchableOpacity key={value} accessibilityRole="button" accessibilityLabel={`Filter ${value} purchases`} accessibilityState={{ selected: kind === value }} onPress={() => { setKind(value); setReviewing(null); }} style={[s.filterChip, kind === value && s.filterChipActive]}>
+          {(['all', 'physical', 'digital', 'auction', 'commission'] as PurchaseKind[]).map(value => <TouchableOpacity key={value} accessibilityRole="button" accessibilityLabel={`Filter ${value} purchases`} accessibilityState={{ selected: kind === value }} onPress={() => { setKind(value); setReviewing(null); setExpandedPurchase(null); }} style={[s.filterChip, kind === value && s.filterChipActive]}>
             <Text style={[s.filterText, kind === value && s.filterTextActive]}>{value.charAt(0).toUpperCase() + value.slice(1)}</Text>
           </TouchableOpacity>)}
         </ScrollView>
@@ -139,10 +144,29 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
         {Boolean(error) ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
         {!loading && rows.length === 0 ? <Text>No purchases in this category yet.</Text> : null}
 
-        {rows.map(p => (
+        {rows.map(p => filter === 'rate' ? (
+          <PurchaseRatingCard key={p.id} purchase={p} onSaved={() => load()} />
+        ) : (
           <View key={p.id} style={s.card}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`${expandedPurchase === p.id ? 'Collapse' : 'View'} purchase: ${p.title}`}
+              accessibilityState={{ expanded: expandedPurchase === p.id }}
+              onPress={() => setExpandedPurchase(current => current === p.id ? null : p.id)}
+              style={s.purchaseSummary}
+            >
+              {p.image ? <ProductImage source={{ uri: p.image }} style={s.purchaseThumbnail} resizeMode="contain" /> : <View style={[s.purchaseThumbnail, s.thumbnailPlaceholder]}><Text style={s.purchaseMeta}>No image</Text></View>}
+              <View style={s.purchaseCopy}>
+                <Text style={s.purchaseTitle} numberOfLines={2}>{p.title}</Text>
+                <Text style={s.purchaseMeta} numberOfLines={1}>by {p.artist}</Text>
+                <Text style={s.purchaseAmount}>{p.is_royalty_license ? 'Royalty-based license' : `PHP ${p.amount}`}</Text>
+                <Text style={s.purchaseStatus}>{p.status.replaceAll('_', ' ')}{p.delivery ? ` / ${p.delivery.status_label}` : ''}</Text>
+              </View>
+              {expandedPurchase === p.id ? <ChevronUp size={20} color="#BC5555" /> : <ChevronDown size={20} color="#BC5555" />}
+            </TouchableOpacity>
+            {expandedPurchase === p.id && <View style={s.purchaseDetails}>
             {Boolean(p.image) ? (
-              <Image source={{ uri: p.image }} style={{ width: '100%', height: 180 }} resizeMode="contain" />
+              <ProductImage source={{ uri: p.image }} style={{ width: '100%', height: 180 }} resizeMode="contain" />
             ) : null}
 
             {Boolean(p.is_simulated) ? (
@@ -152,7 +176,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             <Text style={s.title}>{p.title}</Text>
             <Text>by {p.artist}</Text>
             {p.is_commission && <Text>Commission purchase</Text>}
-            <Text>PHP {p.amount} · {p.status}</Text>
+            <Text>{p.is_royalty_license ? 'Royalty-based license' : `PHP ${p.amount}`} · {p.status}</Text>
             {!!p.purchase_date && <Text>Date: {new Date(p.purchase_date).toLocaleString()}</Text>}
             <RoyaltyReminder data={p.royalty_reminder} onOpen={onClose} />
             {!!p.artwork_id && p.status === 'paid' && <ProvenancePanel artworkId={p.artwork_id} />}
@@ -190,11 +214,12 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
               </TouchableOpacity>
             ) : null}
 
+            {!!p.download_block && <Text accessibilityRole="alert" style={s.error}>{p.download_block.message}</Text>}
             {Boolean(p.can_download) ? (
-              <TouchableOpacity 
-                disabled={busy} 
-                style={s.button} 
-                onPress={() => 
+              <TouchableOpacity
+                disabled={busy}
+                style={s.button}
+                onPress={() =>
                   run(async () => {
                     if (p.download_path) {
                       await downloadProtectedFile(p.download_path, p.download_filename || 'commission-artwork', p.download_mime);
@@ -242,12 +267,12 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             ) : null}
 
             {Boolean(p.can_rate) && reviewing !== p.id ? (
-              <TouchableOpacity onPress={() => { 
-                setReviewing(p.id); 
-                setArtistRating(0); 
-                setArtworkRating(0); 
-                setArtistComment(''); 
-                setArtworkComment(''); 
+              <TouchableOpacity onPress={() => {
+                setReviewing(p.id);
+                setArtistRating(0);
+                setArtworkRating(0);
+                setArtistComment('');
+                setArtworkComment('');
               }}>
                 <Text style={s.link}>Rate artist and artwork</Text>
               </TouchableOpacity>
@@ -256,37 +281,37 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             {Boolean(p.can_rate) && reviewing === p.id ? (
               <View style={s.gap}>
                 {stars('Artist', artistRating, setArtistRating)}
-                <TextInput 
-                  accessibilityLabel="Artist review" 
-                  style={s.input} 
-                  multiline 
-                  maxLength={2000} 
-                  placeholder="Review your experience with the artist (optional)" 
-                  value={artistComment} 
-                  onChangeText={setArtistComment} 
+                <TextInput
+                  accessibilityLabel="Artist review"
+                  style={s.input}
+                  multiline
+                  maxLength={2000}
+                  placeholder="Review your experience with the artist (optional)"
+                  value={artistComment}
+                  onChangeText={setArtistComment}
                 />
                 {stars('Artwork', artworkRating, setArtworkRating)}
-                <TextInput 
-                  accessibilityLabel="Artwork review" 
-                  style={s.input} 
-                  multiline 
-                  maxLength={2000} 
-                  placeholder="Review the artwork (optional)" 
-                  value={artworkComment} 
-                  onChangeText={setArtworkComment} 
+                <TextInput
+                  accessibilityLabel="Artwork review"
+                  style={s.input}
+                  multiline
+                  maxLength={2000}
+                  placeholder="Review the artwork (optional)"
+                  value={artworkComment}
+                  onChangeText={setArtworkComment}
                 />
-                <TouchableOpacity 
-                  disabled={busy || !artistRating || !artworkRating} 
-                  style={[s.button, (!artistRating || !artworkRating || busy) && { opacity: 0.4 }]} 
-                  onPress={() => run(async () => { 
+                <TouchableOpacity
+                  disabled={busy || !artistRating || !artworkRating}
+                  style={[s.button, (!artistRating || !artworkRating || busy) && { opacity: 0.4 }]}
+                  onPress={() => run(async () => {
                     await purchaseRequest(p.is_commission ? `commissions/${p.commission_id}/review/` : `purchases/${p.id}/review/`, 'POST', {
-                      artist_rating: artistRating, 
-                      artwork_rating: artworkRating, 
-                      artist_comment: artistComment, 
-                      artwork_comment: artworkComment 
-                    }); 
-                    setReviewing(null); 
-                    await load(); 
+                      artist_rating: artistRating,
+                      artwork_rating: artworkRating,
+                      artist_comment: artistComment,
+                      artwork_comment: artworkComment
+                    });
+                    setReviewing(null);
+                    await load();
                   })}
                 >
                   <Text style={s.white}>Submit ratings and reviews</Text>
@@ -297,15 +322,17 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
                 <Text>This purchase stays under To Rate in your profile until you submit.</Text>
               </View>
             ) : null}
+            </View>}
           </View>
         ))}
       </ScrollView>
+      </SafeAreaView>
     </Modal>
   );
 }
 
 const s = StyleSheet.create({
-  page: { padding: 24, paddingTop: 50, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  page: { padding: 24, paddingTop: 28, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
   filterChip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, backgroundColor: '#F5EAE5', borderWidth: 1, borderColor: '#E3D7D0' },
   filterChipActive: { backgroundColor: '#C15656', borderColor: '#C15656' },
   filterText: { color: '#845951', fontWeight: '600' },
@@ -313,10 +340,19 @@ const s = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '700', color: '#603c36' },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center', justifyContent: 'space-between' },
   card: { padding: 18, borderWidth: 1, borderColor: '#e3d7d0', borderRadius: 12, gap: 10 },
-  gap: { gap: 8 }, 
+  purchaseSummary: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 84 },
+  purchaseThumbnail: { width: 76, height: 76, borderRadius: 8, backgroundColor: '#F5E8E3' },
+  thumbnailPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  purchaseCopy: { flex: 1, gap: 4 },
+  purchaseTitle: { fontSize: 16, fontWeight: '700', color: '#3A2D2A' },
+  purchaseMeta: { fontSize: 12, color: '#786862' },
+  purchaseAmount: { fontSize: 14, fontWeight: '700', color: '#BC5555' },
+  purchaseStatus: { fontSize: 12, color: '#786862', textTransform: 'capitalize' },
+  purchaseDetails: { gap: 10, borderTopWidth: 1, borderTopColor: '#EFE1DC', paddingTop: 16, marginTop: 4 },
+  gap: { gap: 8 },
   input: { borderWidth: 1, borderColor: '#bbb', padding: 12, borderRadius: 8 },
-  link: { color: '#C15656', paddingVertical: 8 }, 
+  link: { color: '#C15656', paddingVertical: 8 },
   error: { color: '#b00020' },
-  button: { backgroundColor: '#C15656', padding: 12, borderRadius: 8, alignItems: 'center' }, 
+  button: { backgroundColor: '#C15656', padding: 12, borderRadius: 8, alignItems: 'center' },
   white: { color: '#fff', fontWeight: '700' },
 });

@@ -1,3 +1,4 @@
+import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, TouchableOpacity, View } from 'react-native';
@@ -8,6 +9,7 @@ import { ChatWindow } from './chats';
 
 export default function OngoingNegotiations({ onClose }: { onClose: () => void }) {
   const [rows, setRows] = useState<Contract[]>([]);
+  const [revision, setRevision] = useState(0);
   const [selected, setSelected] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,14 +24,15 @@ export default function OngoingNegotiations({ onClose }: { onClose: () => void }
     };
     load(); const timer = setInterval(load, 5000);
     return () => { active = false; clearInterval(timer); };
-  }, []);
+  }, [revision]);
   const buying = selected?.buyer_uid === auth.currentUser?.uid;
   return <Modal visible animationType="slide" onRequestClose={selected ? () => setSelected(null) : onClose}>
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
       {selected ? <ChatWindow currentUser={auth.currentUser} user={{ id: buying ? selected.artist_uid : selected.buyer_uid, displayName: buying ? selected.artist : selected.buyer, role: buying ? 'artist' : 'buyer', email: '', photoURL: '' }} onClose={() => setSelected(null)} /> : <>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 20 }}><Text style={{ fontSize: 20, fontWeight: '700', color: '#C15656' }}>Ongoing negotiations</Text><TouchableOpacity onPress={onClose}><Text>Close</Text></TouchableOpacity></View>
+        <TransactionHeader title="Ongoing Negotiations" onBack={onClose} onRefresh={() => { setLoading(true); setRevision(value => value + 1); }} refreshing={loading} />
+        <View style={{ paddingHorizontal: 24, paddingTop: 28, paddingBottom: 16, width: '100%', maxWidth: 800, alignSelf: 'center' }}><TransactionTitle title="Ongoing Negotiations" /></View>
         {!!error && <Text accessibilityRole="alert" style={{ padding: 16, color: '#b00020' }}>{error}</Text>}
-        {loading ? <ActivityIndicator /> : <FlatList data={rows} keyExtractor={item => String(item.id)} contentContainerStyle={{ padding: 16 }} ListEmptyComponent={<Text>{error ? 'Unable to load negotiations.' : 'No ongoing negotiations.'}</Text>} renderItem={({ item }) => <TouchableOpacity accessibilityRole="button" onPress={() => setSelected(item)} style={{ padding: 16, borderWidth: 1, borderColor: '#E8D8D0', borderRadius: 10, marginBottom: 10 }}>
+        {loading ? <ActivityIndicator /> : <FlatList data={rows} keyExtractor={item => String(item.id)} contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 16, width: '100%', maxWidth: 800, alignSelf: 'center' }} ListEmptyComponent={<Text>{error ? 'Unable to load negotiations.' : 'No ongoing negotiations.'}</Text>} renderItem={({ item }) => <TouchableOpacity accessibilityRole="button" onPress={() => setSelected(item)} style={{ padding: 16, borderWidth: 1, borderColor: '#E8D8D0', borderRadius: 10, marginBottom: 10 }}>
           <Text style={{ fontWeight: '700', fontSize: 16 }}>{item.title}</Text>
           <Text>{item.buyer} / {item.artist}</Text>
           <Text>PHP {item.price} - Awaiting agreement</Text>

@@ -1,9 +1,10 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -84,7 +85,7 @@ export default function ProcessTrackScreen() {
       {/* Main Artwork Preview Box */}
       <View style={s.imageCenterWrapper}>
         <View style={s.imageCard}>
-          <Image source={{ uri: activeImage }} style={s.artworkImage} resizeMode="contain" />
+          <ProductImage source={{ uri: activeImage }} style={s.artworkImage} resizeMode="contain" />
         </View>
 
         <Text style={s.progressLabel}>{currentPercentage}% Completed</Text>
