@@ -44,6 +44,9 @@ export default function ViewPostPage() {
     review_count: number;
     reviews: Array<{
       rating: number;
+      artist_rating?: number;
+      artist_comment?: string;
+      images?: string[];
       comment: string;
       reviewer: string;
       created_at: string;
@@ -544,6 +547,9 @@ export default function ViewPostPage() {
                     Buyer left a rating without a written comment.
                   </Text>
                 )}
+                {!!review.artist_rating && <Text style={styles.reviewComment}>Artist rating: {review.artist_rating}/5</Text>}
+                {!!review.artist_comment && <Text style={styles.reviewComment}>{review.artist_comment}</Text>}
+                {!!review.images?.length && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{review.images.map((uri, photoIndex) => <Image key={photoIndex} accessibilityLabel={`Review photo ${photoIndex + 1}`} source={{ uri }} style={{ width: 96, height: 96, borderRadius: 8 }} resizeMode="contain" />)}</View>}
                 <Text style={styles.reviewDate}>
                   {new Date(review.created_at).toLocaleDateString()}
                 </Text>

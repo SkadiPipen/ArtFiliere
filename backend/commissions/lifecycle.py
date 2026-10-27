@@ -445,6 +445,11 @@ class SubmissionFileView(CommissionFlowView):
         if not s: raise NotFound('File not found.')
         raw = bytes(s.content); mime = s.content_type
         preview = request.query_params.get('preview') == '1'
+        if user.pk == c.buyer_id and (s.final_original or s.milestone.milestone_number == 3) and not (preview and mime.startswith('image/')):
+            from messaging.download_access import royalty_download_block
+            blocked = royalty_download_block(c.agreement)
+            if blocked:
+                raise PermissionDenied(blocked['message'])
         if user.pk == c.buyer_id and s.final_original and c.status != 'COMPLETE' and not preview: raise Conflict('The original is available after final approval.')
         if preview and mime.startswith('image/'):
             from PIL import Image, ImageDraw

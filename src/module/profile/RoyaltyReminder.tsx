@@ -10,7 +10,7 @@ const date = (value: string) => new Date(`${value}T00:00:00`).toLocaleDateString
 export default function RoyaltyReminder({ data, onOpen }: { data?: RoyaltyReminderData | null; onOpen: () => void }) {
   if (!data) return null;
   const waiting = (data.days_until_report ?? 0) > 0;
-  return <View style={{ padding: 14, gap: 6, borderRadius: 10, backgroundColor: data.overdue ? '#FCE7E4' : '#FFF3CF' }}>
+  return <View style={{ padding: 14, gap: 6, borderRadius: 10, backgroundColor: data.overdue ? '#FCE7E4' : '#F5E8E3' }}>
     <Text style={{ fontWeight: '800', color: '#5A4944' }}>Royalty reporting reminder</Text>
     <Text>{data.message}</Text>
     {waiting && <Text>Reporting opens in {data.days_until_report} day(s) · {date(data.report_opens_on!)}</Text>}

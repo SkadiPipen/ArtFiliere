@@ -843,8 +843,8 @@ export default function CommissionsScreen() {
       {/* MOBILE TOP NAVIGATION BAR (< 960px) */}
       {!isDesktop && (
         <View style={s.mobileTopNav}>
-          <TouchableOpacity onPress={handleBack} style={s.mobileBrandRow}>
-            <ArrowLeft color="#B84A4A" size={22} />
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from Commissions" onPress={handleBack} style={s.mobileBrandRow}>
+            <ArrowLeft color="#000000" size={22} />
             <Text style={s.brandTitle}>Commissions</Text>
           </TouchableOpacity>
           {isArtist ? (
@@ -894,8 +894,8 @@ export default function CommissionsScreen() {
         {/* LEFT COLUMN */}
         {isDesktop && (
           <View style={s.sidebar}>
-            <TouchableOpacity onPress={handleBack} style={s.brandRow}>
-              <ArrowLeft color="#B84A4A" size={24} />
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from Commissions" onPress={handleBack} style={s.brandRow}>
+              <ArrowLeft color="#000000" size={24} />
               <Text style={s.brandTitle}>Commissions</Text>
             </TouchableOpacity>
 

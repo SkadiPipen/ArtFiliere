@@ -50,7 +50,8 @@ function ArtCardItem({
 
   const titleText = item.title || item.artist || 'Untitled';
   const artistLabel = item.artistName || item.artist_name || 'ArtFiliere Artist';
-  const ratingVal = item.rating || item.artistRating || '5.0';
+  const reviewCount = Number(item.review_count || 0);
+  const ratingVal = reviewCount > 0 && item.average_rating != null ? Number(item.average_rating).toFixed(1) : null;
   const tagsList = Array.isArray(item.tags) ? item.tags.slice(0, 3) : [];
   const workCategories = artworkCategoryIds(item).map(categoryLabel);
 
@@ -118,8 +119,8 @@ function ArtCardItem({
             {artistLabel}
           </Text>
           <View style={styles.ratingBox}>
-            <Star size={13} color="#E67E22" fill="#E67E22" />
-            <Text style={styles.ratingText}>{ratingVal}</Text>
+            <Star size={13} color={ratingVal ? "#BC5555" : "#9B8B85"} fill={ratingVal ? "#BC5555" : "transparent"} />
+            <Text style={styles.ratingText}>{ratingVal ? `${ratingVal} (${reviewCount})` : 'No reviews yet'}</Text>
           </View>
         </View>
       </View>

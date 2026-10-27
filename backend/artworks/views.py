@@ -61,16 +61,8 @@ class ArtworkView(AuthenticatedAPIView):
         elif user and user.role == User.Role.CREATIVE_MODERATOR:
             artworks = artworks.all()
         else:
-            # One-of-one works disappear from the public catalogue after a
-            # completed platform payment. Non-exclusive digital licences stay
-            # available because they may be sold to more than one buyer.
-            sold_one_of_one = (
-                Q(art_type="physical", payment_sessions__status="paid")
-                | Q(payment_sessions__status="paid", payment_sessions__agreement__exclusivity__in=["exclusive", "sole"])
-                | Q(auction_listings__status="SETTLED")
-                | (Q(provenance_listing__record__registered_at__isnull=False) & ~Q(provenance_listing__record__current_owner_id=F('artist_id')))
-            )
-            artworks = artworks.filter(status=Artwork.Status.APPROVED).exclude(sold_one_of_one).distinct()
+            from .availability import restricted_artwork_ids
+            artworks = artworks.filter(status=Artwork.Status.APPROVED).exclude(pk__in=restricted_artwork_ids())
 
         return Response(ArtworkSerializer(
             artworks, many=True,
@@ -370,6 +362,9 @@ class ArtworkReviewsView(APIView):
             "review_count": reviews.count(),
             "reviews": [{
                 "rating": review.artwork_rating,
+                "artist_rating": review.artist_rating,
+                "artist_comment": review.artist_comment,
+                "images": review.images,
                 "comment": review.artwork_comment or review.comment,
                 "reviewer": (review.payment.buyer.first_name or "Verified buyer").strip(),
                 "created_at": review.created_at.isoformat(),

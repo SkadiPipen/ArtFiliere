@@ -79,8 +79,8 @@ export default function MyPortfolioScreen() {
   return (
     <SafeAreaView style={s.page} edges={["top", "left", "right"]}>
       {editing && <Modal visible animationType="slide" onRequestClose={() => { if (!savingCategories) setEditing(null); }}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F4' }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ width: '100%', maxWidth: 700, alignSelf: 'center', padding: 24, gap: 16 }}>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#70482F' }}>Categories for {editing.title}</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFCFA' }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ width: '100%', maxWidth: 700, alignSelf: 'center', padding: 24, gap: 16 }}>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#A84B46' }}>Categories for {editing.title}</Text>
           <CategoryPicker value={draftCategories} onChange={setDraftCategories} />
           {!!categoryError && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{categoryError}</Text>}
           <TouchableOpacity disabled={savingCategories || !draftCategories.length} onPress={saveCategories} style={[s.post, { alignSelf: 'flex-start', opacity: savingCategories || !draftCategories.length ? 0.5 : 1 }]}><Text style={s.postText}>{savingCategories ? 'Saving...' : 'Save categories'}</Text></TouchableOpacity>
@@ -96,7 +96,7 @@ export default function MyPortfolioScreen() {
           }
           style={s.back}
         >
-          <ArrowLeft size={23} color="#C15656" />
+          <ArrowLeft size={23} color="#BC5555" />
         </TouchableOpacity>
         <View style={s.headerText}>
           <Text style={s.title}>My portfolio</Text>
@@ -148,7 +148,7 @@ export default function MyPortfolioScreen() {
           )}
         </ScrollView>
         {loading ? (
-          <ActivityIndicator color="#C15656" size="large" style={s.loader} />
+          <ActivityIndicator color="#BC5555" size="large" style={s.loader} />
         ) : visibleArtworks.length ? (
           <View style={s.grid}>
             {visibleArtworks.map((artwork) => (
@@ -190,7 +190,7 @@ export default function MyPortfolioScreen() {
                   ) : null}
                 </View>
               </TouchableOpacity>
-              {artwork.source !== 'commission' && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit categories for ${artwork.title}`} onPress={() => { setDraftCategories(artworkCategoryIds(artwork)); setCategoryError(''); setEditing(artwork); }} style={{ padding: 14 }}><Text style={{ color: '#C15656', fontWeight: '700' }}>Edit categories</Text></TouchableOpacity>}
+              {artwork.source !== 'commission' && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit categories for ${artwork.title}`} onPress={() => { setDraftCategories(artworkCategoryIds(artwork)); setCategoryError(''); setEditing(artwork); }} style={{ padding: 14 }}><Text style={{ color: '#BC5555', fontWeight: '700' }}>Edit categories</Text></TouchableOpacity>}
               {artwork.status === "declined" && (
                 <TouchableOpacity
                   accessibilityRole="button"
@@ -228,7 +228,7 @@ export default function MyPortfolioScreen() {
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FFFCF0" },
+  page: { flex: 1, backgroundColor: "#F7F8FA" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -236,7 +236,7 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderColor: "#E9DDD6",
+    borderColor: "#EFE1DC",
     gap: 12,
   },
   back: { padding: 5 },
@@ -247,7 +247,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#C15656",
+    backgroundColor: "#BC5555",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -260,8 +260,8 @@ const s = StyleSheet.create({
     padding: 18,
     paddingBottom: 60,
   },
-  summary: { backgroundColor: "#FFF3CF", borderRadius: 14, padding: 18 },
-  summaryCount: { color: "#C15656", fontSize: 28, fontWeight: "900" },
+  summary: { backgroundColor: "#F5E8E3", borderRadius: 14, padding: 18 },
+  summaryCount: { color: "#BC5555", fontSize: 28, fontWeight: "900" },
   summaryText: { color: "#5A4944", fontSize: 13, fontWeight: "800" },
   summaryDetail: { color: "#806E65", fontSize: 12, marginTop: 5 },
   filters: { gap: 8, paddingVertical: 16 },
@@ -269,10 +269,10 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 18,
-    backgroundColor: "#F2E7E2",
+    backgroundColor: "#EBDAD4",
   },
-  filterActive: { backgroundColor: "#C15656" },
-  filterText: { color: "#9B655E", fontSize: 12, fontWeight: "800" },
+  filterActive: { backgroundColor: "#BC5555" },
+  filterText: { color: "#A84B46", fontSize: 12, fontWeight: "800" },
   filterTextActive: { color: "#FFFFFF" },
   loader: { marginTop: 70 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
@@ -280,7 +280,7 @@ const s = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E9DDD6",
+    borderColor: "#EFE1DC",
     overflow: "hidden",
     width: "48%",
     minWidth: 200,
@@ -305,17 +305,17 @@ const s = StyleSheet.create({
     overflow: "hidden",
     textTransform: "capitalize",
   },
-  status_pending: { color: "#946315", backgroundColor: "#FFF0C8" },
+  status_pending: { color: "#964B48", backgroundColor: "#F5E8E3" },
   status_approved: { color: "#407648", backgroundColor: "#E5F2E6" },
   status_declined: { color: "#A34C46", backgroundColor: "#FCE7E4" },
-  price: { color: "#C15656", fontSize: 14, fontWeight: "800", marginTop: 7 },
-  appeal: { backgroundColor: "#C15656", margin: 12, marginTop: 0, borderRadius: 8, padding: 10, alignItems: "center" },
+  price: { color: "#BC5555", fontSize: 14, fontWeight: "800", marginTop: 7 },
+  appeal: { backgroundColor: "#BC5555", margin: 12, marginTop: 0, borderRadius: 8, padding: 10, alignItems: "center" },
   reason: { color: "#96625C", fontSize: 11, lineHeight: 16, marginTop: 7 },
   empty: {
     marginTop: 25,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E9DDD6",
+    borderColor: "#EFE1DC",
     borderRadius: 14,
     alignItems: "center",
     padding: 32,
@@ -330,7 +330,7 @@ const s = StyleSheet.create({
     maxWidth: 340,
   },
   emptyButton: {
-    backgroundColor: "#C15656",
+    backgroundColor: "#BC5555",
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 16,
