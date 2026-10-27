@@ -60,3 +60,4 @@ tools/foundry/
 
 # Local backups and verification exports
 /tmp/
+.local/backups/
