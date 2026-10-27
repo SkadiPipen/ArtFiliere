@@ -1,16 +1,21 @@
+import { Text } from '@/components/Typography';
+import { marketplaceHeading } from '@/constants/marketplaceTypography';
+import { matchesArtworkCategory, artworkCategoryIds, categoryLabel } from '@/services/artworkCategories';
 
 import { Watermark } from '@/module/artwork/components/Watermark';
+import ArtworkBorder from '@/components/ArtworkBorder';
 import { ArtItem, FOR_YOU_DATA } from '@/module/home/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Platform, Pressable, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 interface ForYouGridProps {
   activeCategory: string;
   onSelect: (item: ArtItem, type: string) => void;
   items?: ArtItem[];
   webFiltered?: boolean;
+  showHeading?: boolean;
 }
 
 function ArtCardItem({
@@ -23,6 +28,16 @@ function ArtCardItem({
   onSelect: (item: ArtItem, type: string) => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const badgeLift = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const animation = Animated.timing(badgeLift, {
+      toValue: isHovered ? -58 : 0,
+      duration: 180,
+      useNativeDriver: Platform.OS !== 'web',
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [isHovered, badgeLift]);
   const isSold = Boolean(item.is_sold);
 
   // Type: Physical, Digital, or Auction
@@ -36,7 +51,8 @@ function ArtCardItem({
   const titleText = item.title || item.artist || 'Untitled';
   const artistLabel = item.artistName || item.artist_name || 'ArtFiliere Artist';
   const ratingVal = item.rating || item.artistRating || '5.0';
-  const tagsList = Array.isArray(item.tags) && item.tags.length > 0 ? item.tags.slice(0, 3) : [item.category || item.type || 'Artwork'];
+  const tagsList = Array.isArray(item.tags) ? item.tags.slice(0, 3) : [];
+  const workCategories = artworkCategoryIds(item).map(categoryLabel);
 
   return (
     <Pressable
@@ -73,17 +89,13 @@ function ArtCardItem({
             </Text>
           </LinearGradient>
         )}
+        <Animated.View pointerEvents="none" style={[styles.typeBadge, { transform: [{ translateY: badgeLift }] }]}>
+          <Text style={styles.typeBadgeText}>{typeLabel}</Text>
+        </Animated.View>
       </View>
 
       <View style={styles.gridContent}>
-        <Text style={styles.titleRow}>
-          <View style={styles.typeBadge}>
-            <Text style={styles.typeBadgeText}>{typeLabel}</Text>
-          </View>
-          <Text style={styles.titleBold} numberOfLines={1}>
-            {titleText}
-          </Text>
-        </Text>
+        <Text style={styles.titleBold} numberOfLines={1}>{titleText}</Text>
 
         {/* Price */}
         <Text style={styles.gridPrice}>
@@ -91,6 +103,7 @@ function ArtCardItem({
         </Text>
 
         {/* Tags */}
+        {!!workCategories.length && <Text style={{ color: '#75655F', fontSize: 11, lineHeight: 16 }} numberOfLines={2}>Categories: {workCategories.join(' · ')}</Text>}
         <View style={styles.tagRow}>
           {tagsList.map((tag: string, index: number) => (
             <View key={index} style={styles.tagBadge}>
@@ -110,6 +123,7 @@ function ArtCardItem({
           </View>
         </View>
       </View>
+      <ArtworkBorder artType={item.artType || item.art_type || item.type} imageHeight={280} />
     </Pressable>
   );
 }
@@ -119,6 +133,7 @@ export default function ForYouGrid({
   onSelect,
   items,
   webFiltered = false,
+  showHeading = true,
 }: ForYouGridProps) {
   const { width } = useWindowDimensions();
   const [gridPage, setGridPage] = useState(1);
@@ -133,7 +148,7 @@ export default function ForYouGrid({
   const filteredForYou =
     activeCategory === "All"
       ? availableItems
-      : availableItems.filter((item) => item.type === activeCategory);
+      : availableItems.filter((item) => matchesArtworkCategory(item, activeCategory));
 
   const pageCount = webFiltered ? Math.max(1, Math.ceil(filteredForYou.length / itemsPerPage)) : 5;
   useEffect(() => { if (webFiltered) setGridPage(1); }, [items, activeCategory, webFiltered]);
@@ -141,13 +156,13 @@ export default function ForYouGrid({
   
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>For You</Text>
+      {showHeading && <Text style={styles.sectionTitle}>Artworks For You</Text>}
       {webFiltered && !filteredForYou.length && <Text style={{ padding: 16, color: '#766C66' }}>No artwork matches your search and filters.</Text>}
       <View style={styles.grid}>
         {filteredForYou
           .slice((gridPage - 1) * itemsPerPage, gridPage * itemsPerPage)
           .map((item) => (
-            <ArtCardItem key={item.id} item={item} widthPercent={`${100 / numColumns - 2}%`} onSelect={onSelect} />
+            <ArtCardItem key={item.id} item={item} widthPercent={`${100 / numColumns - 4}%`} onSelect={onSelect} />
           ))}
       </View>
 
@@ -182,24 +197,22 @@ export default function ForYouGrid({
 const styles = StyleSheet.create({
   container: { marginTop: 20, flex: 1 },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#C15656',
+    ...marketplaceHeading,
     marginHorizontal: 15,
     marginBottom: 12,
-    textAlign: 'center',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: 15,
+    paddingHorizontal: 24,
   },
   gridCard: {
-    marginBottom: 18,
+    marginBottom: 28,
+    marginTop: 18,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
+    borderRadius: 20,
+    overflow: 'visible',
     borderWidth: 1.5,
     borderColor: '#eee',
     elevation: 2,
@@ -219,12 +232,17 @@ const styles = StyleSheet.create({
     transform: Platform.OS === 'web' ? [{ translateY: -3 }] : undefined,
   } as any,
   imageWrapper: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     position: 'relative',
     overflow: 'hidden',
     width: '100%',
     backgroundColor: '#F8F9FA',
   },
   hoverCaptionContainer: {
+    height: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -234,6 +252,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   hoverCaptionText: {
+    textAlign: 'center',
     color: '#FFFFFF',
     fontSize: 12,
     lineHeight: 16,
@@ -267,15 +286,11 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 3,
   },
-  titleRow: {
-    fontSize: 14,
-    color: '#2C3E50',
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 4,
-  },
   typeBadge: {
+    position: 'absolute',
+    bottom: 12,
+    left: 24,
+    zIndex: 2,
     borderRadius: 4,
     backgroundColor: '#C15656',
     paddingHorizontal: 7,
@@ -289,8 +304,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   titleBold: {
-    left: 5,
-    flex: 1,
+    marginBottom: 4,
     fontWeight: '700',
     fontSize: 18,
     color: '#2C3E50',

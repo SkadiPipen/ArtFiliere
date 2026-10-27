@@ -1,8 +1,10 @@
 from django.urls import path
+from .featured import FeaturedArtworkView
 
 from .views import ArtworkView, ArtworkTagSuggestionView, ArtworkReviewView, ArtworkReviewsView, ArtworkSimilarityReviewView, AuctionAgreementDefaultsView, AuctionAgreementPreviewView
 
 urlpatterns = [
+    path('artworks/featured/', FeaturedArtworkView.as_view(), name='featured_artworks'),
     path('artworks/', ArtworkView.as_view(), name='artworks'),
     path('artworks/<int:artwork_id>/', ArtworkView.as_view(), name='artwork_detail'),
     path('artworks/<int:artwork_id>/reviews/', ArtworkReviewsView.as_view(), name='artwork_reviews'),

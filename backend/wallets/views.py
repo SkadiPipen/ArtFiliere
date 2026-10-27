@@ -54,77 +54,14 @@ class WalletView(AuthenticatedAPIView):
         })
 
 def create_delivery_and_notify(payment):
-    # Triggers delivery order creation for physical artworks upon payment confirmation.
-    # 50 base for first 2km. 15/km for succeeding distance and +40 for priority
-    print(">>> [DEBUG] create_delivery_and_notify triggered for payment:", payment.id)
-    artwork = payment.artwork
-    agreement = getattr(payment, "agreement", None)
-
-    raw_art_type = (
-        getattr(artwork, "art_type", None)
-        or getattr(artwork, "artwork_type", None)
-        or getattr(artwork, "category", None)
-        or ""
-    )
-    art_type_str = str(raw_art_type).upper()
-    
-    agreement_delivery_type = str(getattr(agreement, "delivery_type", "")).upper() if agreement else ""
-
-    physical_keywords = ["PHYSICAL", "PAINTING", "SCULPTURE", "TRADITIONAL", "CRAFT", "CANVAS"]
-    is_physical = (
-        "PHYSICAL" in agreement_delivery_type
-        or any(kw in art_type_str for kw in physical_keywords)
-        or (art_type_str and "DIGITAL" not in art_type_str)
-    )
-
-    if not is_physical:
-        print(">>> [DEBUG] Digital artwork detected. Bypassing delivery.")
+    """Compatibility entry point: dispatch only after verified payment."""
+    from fulfillment.services import ensure_shop_delivery
+    if payment.status != PaymentSession.Status.PAID:
         return None
+    if physical(payment.artwork) or (payment.agreement and payment.agreement.delivery_type == 'physical'):
+        return ensure_shop_delivery(payment)
+    return None
 
-    buyer = payment.buyer
-    artist = payment.artist
-
-    delivery_details = getattr(agreement, "delivery_details", {}) or {}
-    if not isinstance(delivery_details, dict):
-        delivery_details = {}
-
-    buyer_profile = getattr(buyer, "profile", None)
-    buyer_address = (
-        delivery_details.get("delivery_address")
-        or getattr(agreement, "delivery_address", None)
-        or getattr(payment, "delivery_address", None)
-        or getattr(buyer, "delivery_address", None)
-        or getattr(buyer_profile, "delivery_address", None)
-        or getattr(buyer_profile, "address", None)
-        or getattr(buyer, "address", None)
-        or "Cebu"
-    )
-
-    is_priority = bool(
-        delivery_details.get("is_priority")
-        or getattr(agreement, "is_priority", False)
-        or getattr(payment, "is_priority", False)
-    )
-
-    try:
-        distance_km = float(delivery_details.get("distance_km") or 5.0)
-    except (ValueError, TypeError):
-        distance_km = 5.0
-
-    from delivery.views import create_delivery_and_notify_driver_order
-    delivery_order = create_delivery_and_notify_driver_order(
-        buyer_id=buyer.id,
-        address=buyer_address,
-        payment_method="ONLINE",
-        artwork_title=artwork.title if artwork else "Physical Artwork Asset",
-        price=float(payment.gross_amount or 0.0),
-        is_physical=True,
-        is_priority=is_priority,
-        distance_km=distance_km
-    )
-    print(f">>> [DEBUG] Successfully generated Delivery Order #{delivery_order.id}")
-
-    return delivery_order
 
 class ArtworkCheckoutView(AuthenticatedAPIView):
     def post(self, request, artwork_id):
@@ -151,6 +88,9 @@ class AgreementCheckoutView(AuthenticatedAPIView):
         buyer = self.get_request_user(request)
         if not buyer:
             return Response({"error": "Authentication is required."}, status=401)
+        candidate = Agreement.objects.filter(id=agreement_id, buyer=buyer).first()
+        if candidate and candidate.artwork_id:
+            Artwork.objects.select_for_update().get(pk=candidate.artwork_id)
         agreement = Agreement.objects.select_for_update(of=("self",)).select_related("artwork", "artist", "buyer").filter(id=agreement_id).first()
         if not agreement or agreement.buyer_id != buyer.id:
             return Response({"error": "Agreement not found."}, status=404)
@@ -166,9 +106,13 @@ class AgreementCheckoutView(AuthenticatedAPIView):
         if existing and existing.is_simulated and existing.status == PaymentSession.Status.PAID:
             return Response({"simulated": True, "purchase_id": existing.id})
         if existing and existing.status == PaymentSession.Status.PENDING and existing.checkout_url:
-            return Response({"checkout_url": existing.checkout_url, "reference_id": existing.reference_id})
+            return Response({"checkout_url": existing.checkout_url, "reference_id": existing.reference_id, 'payment_id': existing.pk})
         if existing:
             return Response({"error": "This agreement already has an active payment.", "reference_id": existing.reference_id}, status=409)
+        # Serialize different agreements competing for the same one-of-one listing.
+        Artwork.objects.select_for_update().get(pk=agreement.artwork_id)
+        from blockchain.provenance import check_checkout
+        check_checkout(agreement)
         simulate = settings.DEBUG and getattr(settings, "ENABLE_SIMULATED_CHECKOUT", False)
         if not simulate and not getattr(settings, "XENDIT_SECRET_KEY", ""):
             return Response({"error": "Payments are not configured yet. Please contact support before trying checkout again."}, status=503)
@@ -211,6 +155,8 @@ class AgreementCheckoutView(AuthenticatedAPIView):
             CartItem.objects.filter(cart__buyer=buyer, listing_id=agreement.artwork_id).delete()
             ActivityLog.objects.create(user=buyer, action='checkout_simulated', description='Test checkout completed. No money was charged.', reference_type='payment_session', reference_id=session.id)
             return Response({'simulated': True, 'purchase_id': session.id}, status=201)
+        from blockchain.provenance import reserve_checkout
+        reserve_checkout(session)
         try:
             payload = {
                 "reference_id": session.reference_id, "session_type": "PAY", "mode": "PAYMENT_LINK",
@@ -241,11 +187,7 @@ class AgreementCheckoutView(AuthenticatedAPIView):
         session.checkout_url = result.get("payment_link_url", "")
         session.save(update_fields=["xendit_session_id", "checkout_url"])
         ActivityLog.objects.create(user=buyer, action="payment_started", description=f"Started payment for agreement #{agreement.id}.", reference_type="payment_session", reference_id=session.id)
-        try:
-            create_delivery_and_notify(session)
-        except Exception as err:
-            print(">>> [DEBUG] Error triggering delivery order:", err)
-        return Response({"checkout_url": result.get("payment_link_url"), "reference_id": session.reference_id}, status=201)
+        return Response({"checkout_url": result.get("payment_link_url"), "reference_id": session.reference_id, 'payment_id': session.pk}, status=201)
 
 
 class ActivityHistoryView(AuthenticatedAPIView):
@@ -281,25 +223,33 @@ def serialize_request(row):
     return {"id": row.id, "type": row.request_type, "reason": row.reason, "status": row.status, "admin_note": row.admin_note, "payment_id": row.payment_session_id, "artwork": row.payment_session.artwork.title, "created_at": row.created_at.isoformat()}
 
 
+
+
+def admin_payment_data(payment):
+    return {
+                "id": payment.id, "reference_id": payment.reference_id, "status": payment.status,
+                "artwork": payment.artwork.title, "artist": payment.artist.username, "buyer": payment.buyer.username,
+                "gross_amount": str(payment.gross_amount), "artist_amount": str(payment.artist_amount), "platform_fee": str(payment.platform_fee),
+                "paid_at": payment.paid_at.isoformat() if payment.paid_at else None,
+                "can_release": payment.status == PaymentSession.Status.PAID and not payment.ledger_entries.filter(entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE).exists() and not payment.incident_reports.filter(status__in=['open', 'under_review']).exists() and not payment.cancellation_requests.filter(status__in=['pending', 'approved']).exists() and not payment.financial_authorizations.filter(status='authorized').exists(),
+            }
+
 class PlatformAdminWalletView(AuthenticatedAPIView):
     permission_classes = [IsPlatformAdmin]
 
     def get(self, request):
         payments = PaymentSession.objects.filter(is_simulated=False).select_related("artist", "buyer", "artwork").order_by("-created_at")[:100]
         wallets = WalletAccount.objects.all()
+        from .analytics import admin_analytics
+        analytics = admin_analytics()
         return Response({
+            "analytics": analytics,
             "summary": {
                 "held_artist_earnings": str(sum((wallet.pending_balance for wallet in wallets), Decimal("0"))),
                 "available_artist_earnings": str(sum((wallet.available_balance for wallet in wallets), Decimal("0"))),
-                "platform_fees": str(sum((payment.platform_fee for payment in payments if payment.status == PaymentSession.Status.PAID), Decimal("0"))),
+                "platform_fees": analytics["revenue"]["total_platform_fees"],
             },
-            "payments": [{
-                "id": payment.id, "reference_id": payment.reference_id, "status": payment.status,
-                "artwork": payment.artwork.title, "artist": payment.artist.username, "buyer": payment.buyer.username,
-                "gross_amount": str(payment.gross_amount), "artist_amount": str(payment.artist_amount), "platform_fee": str(payment.platform_fee),
-                "paid_at": payment.paid_at.isoformat() if payment.paid_at else None,
-                "can_release": payment.status == PaymentSession.Status.PAID and not payment.ledger_entries.filter(entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE).exists() and not payment.incident_reports.filter(status__in=['open', 'under_review']).exists() and not payment.cancellation_requests.filter(status__in=['pending', 'approved']).exists() and not payment.financial_authorizations.filter(status='authorized').exists(),
-            } for payment in payments],
+            "payments": [admin_payment_data(payment) for payment in payments],
         })
 
     def post(self, request, payment_id):
@@ -313,6 +263,9 @@ class PlatformAdminWalletView(AuthenticatedAPIView):
                 return Response({"error": "Paid transaction not found."}, status=status.HTTP_404_NOT_FOUND)
             wallet = WalletAccount.objects.select_for_update().get(user=payment.artist)
             if action == "release":
+                ownership = getattr(payment, 'ownership_transfer', None)
+                if ownership and ownership.status != 'confirmed':
+                    return Response({'error': 'Wait for confirmed blockchain ownership before releasing this exclusive sale.'}, status=409)
                 if payment.incident_reports.filter(status__in=['open', 'under_review']).exists() or payment.cancellation_requests.filter(status__in=['pending', 'approved']).exists() or payment.financial_authorizations.filter(status='authorized').exists():
                     return Response({'error': 'Resolve open reports, transaction requests, and pending compensation authorizations before releasing funds.'}, status=409)
                 if WalletLedgerEntry.objects.filter(payment_session=payment, entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE).exists():
@@ -323,6 +276,8 @@ class PlatformAdminWalletView(AuthenticatedAPIView):
                 from commissions.resale import settle_royalty
                 settle_royalty(payment)
             else:
+                from blockchain.provenance import check_refund
+                check_refund(payment)
                 if WalletLedgerEntry.objects.filter(payment_session=payment, entry_type=WalletLedgerEntry.EntryType.SALE_AVAILABLE).exists():
                     return Response({"error": "Available funds need a payout/refund workflow; do not reverse them here."}, status=status.HTTP_409_CONFLICT)
                 WalletLedgerEntry.objects.create(wallet=wallet, payment_session=payment, entry_type=WalletLedgerEntry.EntryType.REFUND_REVERSAL, amount=-payment.artist_amount)
@@ -331,6 +286,8 @@ class PlatformAdminWalletView(AuthenticatedAPIView):
                 from commissions.resale import settle_royalty
                 settle_royalty(payment, refund=True)
                 payment.save(update_fields=["status"])
+                from blockchain.provenance import queue_refund
+                queue_refund(payment)
             wallet.save(update_fields=["pending_balance", "available_balance", "updated_at"])
         return Response({"message": f"Funds {action}d successfully."})
 
@@ -414,6 +371,8 @@ def apply_xendit_status(payment_id, data):
             payment.xendit_payment_id = data.get('payment_id') or ''
             payment.paid_at = timezone.now()
             payment.save(update_fields=['status', 'xendit_payment_id', 'paid_at'])
+            from blockchain.provenance import queue_payment
+            queue_payment(payment)
             fulfill_payment(payment)
             record_sale_proof(payment)
             CartItem.objects.filter(cart__buyer=payment.buyer, listing_id=payment.artwork_id).delete()
@@ -459,6 +418,21 @@ def xendit_payment_session_webhook(request):
         return Response({'error': 'Invalid payload.'}, status=400)
     if data.get('session_type') == 'SAVE':
         return Response({'received': True, 'ignored': 'Payment-method saving session.'})
+    reference = data.get('reference_id', '')
+    if isinstance(reference, str) and reference.startswith('af-royalty-report-'):
+        from messaging.models import RoyaltyFunding
+        from messaging.royalty_funding import apply_session
+        from messaging.royalty_payments import provider
+        funding = RoyaltyFunding.objects.filter(reference=reference).first()
+        if not funding or not funding.session_id:
+            return Response({'error': 'Royalty session is awaiting reconciliation.'}, status=503)
+        try:
+            apply_session(funding.pk, provider('GET', '/sessions/' + funding.session_id))
+        except ValueError as error:
+            return Response({'error': str(error)}, status=400)
+        except requests.RequestException:
+            return Response({'error': 'Provider verification unavailable.'}, status=503)
+        return Response({'received': True})
     payment = PaymentSession.objects.filter(reference_id=data.get('reference_id', ''), is_simulated=False).first()
     if not payment:
         return Response({'error': 'Unknown payment reference.'}, status=404)
@@ -492,3 +466,26 @@ class CustomerSupportRequestView(AuthenticatedAPIView):
         row.save(update_fields=["status", "admin_note", "reviewed_by", "reviewed_at"])
         ActivityLog.objects.create(user=row.requester, action=f"{row.request_type}_{decision}", description=f"Your {row.request_type} request for transaction #{row.payment_session_id} was {decision}.", reference_type="payment_session", reference_id=row.payment_session_id)
         return Response(serialize_request(row))
+
+
+class PlatformAdminPaymentsView(AuthenticatedAPIView):
+    permission_classes = [IsPlatformAdmin]
+
+    def get(self, request):
+        from django.core.paginator import Paginator
+        from django.db.models import Q
+        rows = PaymentSession.objects.filter(is_simulated=False).select_related('artist', 'buyer', 'artwork').order_by('-created_at', '-pk')
+        selected = request.query_params.get('status', 'all')
+        if selected != 'all':
+            if selected not in PaymentSession.Status.values:
+                return Response({'error': 'Unsupported payment status.'}, status=400)
+            rows = rows.filter(status=selected)
+        search = request.query_params.get('search', '').strip()[:200]
+        if search:
+            query = Q(artwork__title__icontains=search) | Q(buyer__username__icontains=search) | Q(artist__username__icontains=search) | Q(reference_id__icontains=search)
+            if search.isascii() and search.isdigit() and len(search) <= 19 and int(search) <= 9223372036854775807:
+                query |= Q(pk=int(search))
+            rows = rows.filter(query)
+        page = Paginator(rows, 25).get_page(request.query_params.get('page', 1))
+        return Response({'payments': [admin_payment_data(payment) for payment in page], 'page': page.number,
+                         'pages': page.paginator.num_pages, 'total': page.paginator.count})

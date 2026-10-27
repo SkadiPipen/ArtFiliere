@@ -100,6 +100,116 @@ class FulfillmentTests(TestCase):
         self.assertEqual(WalletAccount.objects.get(user=self.artist).pending_balance, 100)
         self.assertEqual(self.call(PurchaseDownloadView, self.buyer, payment_id=payment.id).status_code, 409)
 
+    def test_shop_payment_dispatches_once_to_verified_driver_with_saved_pins(self):
+        from notifications.models import UserNotification
+        from .services import ensure_shop_delivery
+        from .models import RiderProfile
+        for owner, latitude, longitude in [(self.artist, 10.31, 123.89), (self.buyer, 10.33, 123.93)]:
+            address = owner.address
+            address.latitude = latitude; address.longitude = longitude; address.save()
+        self.assertFalse(self.call(RiderProfileView, self.driver).data['is_clocked_in'])
+        self.assertIsNone(RiderProfile.objects.get(user=self.driver).clock_in_time)
+        self.call(RiderProfileView, self.driver, 'post', {'is_clocked_in': True})
+        payment = self.checkout(self.proposal(True))
+        from cart.models import Cart, CartItem
+        cart, _ = Cart.objects.get_or_create(buyer=self.buyer)
+        CartItem.objects.create(cart=cart, listing=self.art, quantity=1)
+        self.assertFalse(UserNotification.objects.filter(user=self.artist, title='Artwork sold').exists())
+        self.assertFalse(DeliveryOrder.objects.filter(payment=payment).exists())
+        self.complete(payment)
+        self.assertFalse(CartItem.objects.filter(cart=cart, listing=self.art).exists())
+        self.assertEqual(UserNotification.objects.filter(user=self.artist, title='Artwork sold').count(), 1)
+        order = DeliveryOrder.objects.get(payment=payment)
+        payment.refresh_from_db()
+        ensure_shop_delivery(payment)
+        self.assertEqual(DeliveryOrder.objects.filter(payment=payment).count(), 1)
+        self.assertEqual(UserNotification.objects.filter(user=self.driver, title='Artwork pickup available').count(), 1)
+        pending = self.call(RiderOrdersView, self.driver, scope='pending')
+        row = next(row for row in pending.data if row['id'] == order.pk)
+        self.assertEqual(row['payment_id'], payment.pk)
+        self.assertEqual(row['artist']['latitude'], 10.31)
+        self.assertEqual(row['buyer']['longitude'], 123.93)
+        self.assertEqual(str(order.fee), '200.00')
+        address = self.buyer.address
+        address.latitude = 10.34; address.save()
+        row = self.call(RiderOrdersView, self.driver, scope='pending').data[0]
+        self.assertEqual(row['buyer']['latitude'], 10.34)
+
+    def test_repair_shop_delivery_preserves_completed_legacy_status(self):
+        from django.core.management import call_command
+        from delivery.models import Order
+        payment = self.checkout(self.proposal(True))
+        self.complete(payment)
+        DeliveryOrder.objects.filter(payment=payment).delete()
+        legacy = Order.objects.create(payment=payment, buyerId=str(self.buyer.pk), address='Buyer address', status='DELIVERED', pickup_proof='pickup', delivery_proof='proof')
+        call_command('repair_shop_deliveries')
+        self.assertFalse(DeliveryOrder.objects.filter(payment=payment).exists())
+        call_command('repair_shop_deliveries', apply=True)
+        call_command('repair_shop_deliveries', apply=True)
+        order = DeliveryOrder.objects.get(payment=payment)
+        self.assertEqual(order.status, 'delivered')
+        self.assertEqual(order.delivery_proof, 'proof')
+        self.assertEqual(order.delivered_at, legacy.updated_at)
+        self.assertEqual(DeliveryOrder.objects.filter(payment=payment).count(), 1)
+
+    def test_stale_shift_expires_and_profile_counts_are_real_manila_day(self):
+        from .models import RiderProfile
+        from commissions.models import CommissionRequest
+        from datetime import datetime, timezone as dt_timezone
+        now = datetime(2026, 10, 20, 1, 0, tzinfo=dt_timezone.utc)
+        profile = RiderProfile.objects.create(user=self.driver, is_clocked_in=True, clock_in_time=now-timezone.timedelta(hours=97))
+        for index, (status, delivered) in enumerate([('delivered', now-timezone.timedelta(hours=2)), ('delivered', now-timezone.timedelta(hours=12)), ('accepted', None)]):
+            commission = CommissionRequest.objects.create(buyer=self.buyer, artist=self.artist, title=f'Count {index}', flow_version=2, funded_at=now, deadline=now+timezone.timedelta(days=1))
+            DeliveryOrder.objects.create(commission=commission, driver=self.driver, status=status, pickup_address='Pickup', delivery_address='Buyer', fee=50, delivered_at=delivered, route_details={'location_validation_version': 2})
+        with patch('fulfillment.riders.timezone.now', return_value=now):
+            response = self.call(RiderProfileView, self.driver)
+            self.assertFalse(response.data['is_clocked_in'])
+            self.assertEqual(response.data['today_deliveries'], 1)
+            self.assertEqual(response.data['active_tasks'], 1)
+            self.assertEqual(response.data['total_delivery'], 2)
+            assigned = self.call(RiderOrdersView, self.driver, scope='assigned')
+            self.assertEqual(len(assigned.data), 1)
+            self.assertEqual(self.call(RiderOrdersView, self.driver2, scope='assigned').data, [])
+            fresh = self.call(RiderProfileView, self.driver, 'post', {'is_clocked_in': True})
+            self.assertTrue(fresh.data['is_clocked_in'])
+        profile.refresh_from_db()
+        self.assertEqual(profile.clock_in_time, now)
+
+    def test_shop_reconciliation_verifies_before_dispatch_and_is_idempotent(self):
+        from fulfillment.management.commands.process_shop_payments import reconcile_shop_payments
+        payment = self.checkout(self.proposal(True))
+        payload = {'reference_id': payment.reference_id, 'status': 'COMPLETED', 'payment_session_id': payment.xendit_session_id, 'amount': str(payment.gross_amount), 'currency': 'PHP', 'session_type': 'PAY'}
+        with patch('fulfillment.management.commands.process_shop_payments.requests.get') as provider:
+            provider.return_value.ok = True
+            provider.return_value.json.return_value = {**payload, 'amount': '1.00'}
+            self.assertEqual(reconcile_shop_payments(), 0)
+            self.assertFalse(DeliveryOrder.objects.filter(payment=payment).exists())
+            provider.return_value.json.return_value = payload
+            self.assertEqual(reconcile_shop_payments(), 1)
+            self.assertEqual(reconcile_shop_payments(), 0)
+        self.assertEqual(DeliveryOrder.objects.filter(payment=payment).count(), 1)
+
+    def test_driver_resolves_missing_destination_without_changing_agreement(self):
+        from .riders import RiderResolveLocationView
+        payment = self.checkout(self.proposal(True)); self.complete(payment)
+        order = DeliveryOrder.objects.get(payment=payment)
+        order.driver = self.driver; order.status = 'accepted'; order.save()
+        address, fee = order.pickup_address, order.fee
+        with patch('fulfillment.routing.geocode_address', return_value=[123.93, 10.33]) as geocode:
+            self.assertEqual(self.call(RiderResolveLocationView, self.driver2, 'post', {'side': 'pickup'}, order_id=order.pk).status_code, 404)
+            result = self.call(RiderResolveLocationView, self.driver, 'post', {'side': 'pickup'}, order_id=order.pk)
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(result.data['artist']['latitude'], 10.33)
+            geocode.assert_called_once_with(address)
+        order.refresh_from_db()
+        self.assertEqual(order.pickup_address, address)
+        self.assertEqual(order.fee, fee)
+        with patch('fulfillment.routing.geocode_address', side_effect=ValueError('Save a precise pin.')):
+            result = self.call(RiderResolveLocationView, self.driver, 'post', {'side': 'delivery'}, order_id=order.pk)
+            self.assertIsNone(result.data['buyer']['latitude'])
+            self.assertEqual(result.data['location_errors']['delivery'], 'Save a precise pin.')
+        self.assertEqual(self.call(RiderResolveLocationView, self.driver, 'post', {'side': 'other'}, order_id=order.pk).status_code, 400)
+
     def test_digital_png_only_after_payment_and_only_for_buyer(self):
         payment = self.checkout(self.proposal())
         self.assertEqual(self.call(PurchaseDownloadView, self.buyer, payment_id=payment.id).status_code, 404)
@@ -243,7 +353,10 @@ class FulfillmentTests(TestCase):
         self.call(RiderOrdersView, self.driver, 'post', order_id=order.id, action='accept')
         self.assertEqual(self.call(RiderProfileView, self.driver, 'post', {'is_clocked_in': False}).status_code, 409)
         self.assertEqual(self.call(RiderOrdersView, self.driver, scope='active').data['id'], order.id)
-        self.assertIsNone(self.call(RiderOrdersView, self.driver2, scope='active').data)
+        empty_active = self.call(RiderOrdersView, self.driver2, scope='active')
+        self.assertEqual(empty_active.status_code, 200)
+        self.assertEqual(empty_active.content, b'null')
+        self.assertEqual(empty_active['Content-Type'], 'application/json')
 
     @override_settings(DEBUG=True, ENABLE_SIMULATED_CHECKOUT=True, XENDIT_SECRET_KEY='')
     def test_simulated_checkout_fulfills_without_charging_or_wallet_credit(self):

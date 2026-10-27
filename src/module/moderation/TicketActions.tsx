@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { purchaseRequest } from '@/services/purchases';
 import { Action, styles as s } from './ui';

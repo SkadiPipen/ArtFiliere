@@ -1,16 +1,8 @@
+import { Text, TextInput } from '@/components/Typography';
 import * as ImagePicker from "expo-image-picker";
 import { Edit2, HelpCircle, Plus, Trash2 } from "lucide-react-native";
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import { PortfolioItem } from "@/module/artist-registration/types";
 
 interface Props {

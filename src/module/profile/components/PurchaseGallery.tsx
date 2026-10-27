@@ -1,6 +1,7 @@
+import { Text } from '@/components/Typography';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { Image, TouchableOpacity, View } from 'react-native';
 import { purchaseRequest } from '@/services/purchases';
 import MyPurchases from '../MyPurchases';
 

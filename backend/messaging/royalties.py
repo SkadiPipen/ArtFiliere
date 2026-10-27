@@ -43,7 +43,7 @@ def ensure_periods(agreement, today=None):
             break
         end = add_months(anchor, min(offset + interval, duration))
         RoyaltyPeriod.objects.get_or_create(agreement=agreement, starts_on=start,
-            defaults={'ends_on': end, 'due_on': end + timedelta(days=7), 'terms': terms})
+            defaults={'ends_on': end, 'due_on': end + timedelta(days=14 if terms.get('review_mode') == 'admin_held' else 7), 'terms': terms})
 
 
 def evidence_files(raw):
@@ -85,16 +85,47 @@ def royalty_title(agreement):
 
 
 def period_data(period, user):
+    funding = getattr(period, 'funding', None)
     return {'id': period.pk, 'agreement_id': period.agreement_id, 'title': royalty_title(period.agreement),
             'is_buyer': period.agreement.buyer_id == user.pk, 'starts_on': str(period.starts_on), 'ends_on': str(period.ends_on),
-            'due_on': str(period.due_on), 'status': period.status,
-            'overdue': timezone.localdate() > period.due_on and period.status not in ('paid', 'zero_due'),
+            'due_on': str(period.due_on), 'report_due_on': str(period.due_on - timedelta(days=7) if period.terms.get('review_mode') == 'admin_held' else period.due_on), 'status': period.status,
+            'admin_review': period.terms.get('review_mode') == 'admin_held',
+            'payment_status': funding.status if funding else 'not_started',
+            'report_overdue': timezone.localdate() > period.due_on - timedelta(days=7) and period.status in ('awaiting_report', 'rejected'),
+            'overdue': timezone.localdate() > period.due_on and period.status not in ('paid', 'zero_due', 'funded'),
             'can_submit': timezone.localdate() >= period.ends_on and period.status in ('awaiting_report', 'rejected'),
             'terms': period.terms, 'basis': basis_for(period.terms), 'metrics': period.metrics,
             'amount': str(period.amount) if period.amount is not None else None, 'review_note': period.review_note,
             'evidence': [{'name': item['name'], 'path': f'royalties/periods/{period.pk}/evidence/{i}/'} for i, item in enumerate(period.evidence)],
             'history': [{key: value for key, value in item.items() if key != 'evidence'} for item in period.history],
             'collection_error': period.collection_error}
+
+
+def royalty_license_data(agreement, today=None):
+    today = today or timezone.localdate()
+    terms = agreement.compensation_terms
+    start = None
+    waiting = 'Awaiting both signatures'
+    if agreement.artist_signed_at and agreement.buyer_signed_at:
+        start = max(agreement.artist_signed_at, agreement.buyer_signed_at).date()
+        waiting = ''
+        if terms.get('reporting_policy') == 'commission_delivery_plus_7_days_artist_approval':
+            commission = getattr(agreement, 'commission_contract', None)
+            if not commission or commission.status != 'COMPLETE' or commission.disputed or not hasattr(commission, 'asset'):
+                start = None
+                waiting = 'Awaiting final commission delivery approval'
+            else:
+                start = timezone.localdate(commission.asset.created_at)
+    duration = agreement.license_scope.get('duration_months') or terms.get('reporting_duration_months')
+    end = add_months(start, duration) if start and type(duration) is int and duration > 0 else None
+    expired = bool(end and today >= end)
+    return {'starts_on': str(start) if start else None, 'ends_on': str(end) if end else None,
+            'license_status': 'expired' if expired else 'active',
+            'status_label': 'Expired' if expired else waiting or ('Active' if end else 'Term not recorded'),
+            'artist': agreement.artist.username, 'buyer': agreement.buyer.username,
+            'compensation_type': agreement.compensation_type, 'terms': terms,
+            'license_type': agreement.license_type, 'exclusivity': agreement.exclusivity,
+            'outstanding_reports': agreement.royalty_periods.exclude(status__in=['paid', 'zero_due']).count()}
 
 
 class RoyaltyReportsView(AuthenticatedAPIView):
@@ -116,7 +147,9 @@ class RoyaltyReportsView(AuthenticatedAPIView):
             mandate = RoyaltyMandate.objects.filter(agreement=agreement).first()
             licenses.append({'id': agreement.pk, 'title': royalty_title(agreement),
                              'is_buyer': agreement.buyer_id == user.pk, 'configured': bool(agreement.compensation_terms.get('reporting_policy')),
-                             'mandate_status': mandate.status if mandate else 'not_linked'})
+                             'admin_review': agreement.compensation_terms.get('review_mode') == 'admin_held',
+                             'mandate_status': mandate.status if mandate else 'not_linked',
+                             **royalty_license_data(agreement)})
         periods = RoyaltyPeriod.objects.filter(Q(agreement__buyer=user) | Q(agreement__artist=user)).select_related('agreement__artwork').order_by('-starts_on', '-pk')
         from django.conf import settings
         response = Response({'agreements': licenses, 'periods': [period_data(p, user) for p in periods],
@@ -132,6 +165,8 @@ class RoyaltyReportsView(AuthenticatedAPIView):
             return Response({'error': 'Report not found.'}, status=404)
         if period.status not in ('awaiting_report', 'rejected') or timezone.localdate() < period.ends_on:
             return Response({'error': 'This report is not open for submission.'}, status=409)
+        if getattr(period, 'funding', None):
+            return Response({'error': 'Payment has been initiated; report changes require support reconciliation.'}, status=409)
         try:
             metrics, amount = calculate(period.terms, request.data.get('metrics'))
             evidence = evidence_files(request.data.get('evidence'))
@@ -149,6 +184,8 @@ class RoyaltyReportsView(AuthenticatedAPIView):
         period = RoyaltyPeriod.objects.select_for_update(of=('self',)).select_related('agreement__artwork').filter(pk=period_id, agreement__artist=user).first()
         if not period:
             return Response({'error': 'Report not found.'}, status=404)
+        if period.terms.get('review_mode') == 'admin_held':
+            return Response({'error': 'A platform administrator must verify this report and release held funds.'}, status=403)
         action, note = request.data.get('action'), request.data.get('note', '')
         if period.status != 'submitted':
             return Response({'error': 'Only submitted reports may be reviewed.'}, status=409)
@@ -169,7 +206,8 @@ class RoyaltyEvidenceView(AuthenticatedAPIView):
 
     def get(self, request, period_id, index):
         user = self.get_request_user(request)
-        period = RoyaltyPeriod.objects.filter(Q(agreement__buyer=user) | Q(agreement__artist=user)).filter(pk=period_id).first()
+        access = Q() if user.role == 'platform_admin' else Q(agreement__buyer=user) | Q(agreement__artist=user)
+        period = RoyaltyPeriod.objects.filter(access).filter(pk=period_id).first()
         if not period or index >= len(period.evidence):
             return Response({'error': 'Evidence not found.'}, status=404)
         file = period.evidence[index]
@@ -177,3 +215,35 @@ class RoyaltyEvidenceView(AuthenticatedAPIView):
         response['Content-Disposition'] = 'attachment; filename="royalty-evidence.' + {'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp'}[file['mime']] + '"'
         response['Cache-Control'], response['X-Content-Type-Options'] = 'private, no-store', 'nosniff'
         return response
+
+
+def purchase_royalty_reminder(agreement, buyer):
+    """Buyer-owned reporting reminder, independent of the background notification job."""
+    if (not agreement or agreement.buyer_id != buyer.pk or agreement.status != 'accepted'
+            or agreement.compensation_type not in ('royalty', 'hybrid')
+            or not agreement.artist_signed_at or not agreement.buyer_signed_at
+            or not agreement.compensation_terms.get('reporting_policy')):
+        return None
+    terms = agreement.compensation_terms
+    if terms['reporting_policy'] == 'commission_delivery_plus_7_days_artist_approval':
+        commission = getattr(agreement, 'commission_contract', None)
+        if not commission or commission.status != 'COMPLETE' or commission.disputed or not hasattr(commission, 'asset'):
+            return {'status': 'not_started', 'message': 'Royalty reporting starts after final commission delivery approval.'}
+    ensure_periods(agreement)
+    period = agreement.royalty_periods.exclude(status__in=['paid', 'zero_due']).order_by('ends_on', 'pk').first()
+    if not period:
+        return {'status': 'settled', 'message': 'No royalty reports currently outstanding.'}
+    today = timezone.localdate()
+    can_submit = today >= period.ends_on and period.status in ('awaiting_report', 'rejected')
+    overdue = today > period.due_on
+    if period.status == 'submitted': message = 'Report submitted. Pay the calculated royalty; admin verification is required before release.' if period.terms.get('review_mode') == 'admin_held' else 'Report submitted. Awaiting artist review.'
+    elif period.status == 'funded': message = 'Payment received and held. Awaiting admin verification and release.'
+    elif period.status == 'approved': message = 'Report approved. Royalty payment pending.'
+    elif period.status == 'collecting': message = 'Royalty payment is processing.'
+    elif period.status == 'collection_failed': message = 'Royalty payment needs attention.'
+    elif can_submit: message = 'Royalty report overdue.' if overdue else 'Your royalty report is ready to submit.'
+    else: message = 'Your next royalty reporting period is in progress.'
+    return {'status': period.status, 'period_id': period.pk, 'message': message,
+            'starts_on': str(period.starts_on), 'report_opens_on': str(period.ends_on), 'due_on': str(period.due_on),
+            'days_until_report': max(0, (period.ends_on - today).days),
+            'days_until_due': (period.due_on - today).days, 'can_submit': can_submit, 'overdue': overdue}

@@ -1,15 +1,8 @@
+import { Text, TextInput } from '@/components/Typography';
 import * as DocumentPicker from "expo-document-picker";
 import { FilePlus, HelpCircle } from "lucide-react-native";
 import React, { useRef, useState } from "react";
-import {
-  Alert,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { DocumentFile } from "@/module/artist-registration/types";
 
 interface Props {

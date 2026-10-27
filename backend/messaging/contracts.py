@@ -84,6 +84,7 @@ def contract_data(item, user):
         "unread_count": int(unread),
         "fully_signed": bool(item.artist_signed_at and item.buyer_signed_at and item.artist_signature_image and item.buyer_signature_image),
         "checkout_status": checkout_status(item),
+        'is_auction': bool(item.artwork and str(item.artwork.sale_type).lower() == 'auction'),
         "is_proposer": user.id == proposer_id,
         "id": item.id, "artwork_id": item.artwork_id,
         "verification_code": item.verification_code,

@@ -16,6 +16,11 @@ export async function downloadPurchase(id: number) {
   return downloadProtectedFile(`purchases/${id}/png/`, `artwork-${id}.png`, 'image/png');
 }
 
+export async function downloadLicensePdf(agreementId: number) {
+  if (!Number.isInteger(agreementId) || agreementId <= 0) throw new Error('No license agreement is available for this purchase.');
+  return downloadProtectedFile(`users/contracts/${agreementId}/pdf/`, `license-agreement-${agreementId}.pdf`, 'application/pdf');
+}
+
 export async function downloadProtectedFile(path: string, name: string, mimeType?: string) {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('Please log in again.');

@@ -2,6 +2,7 @@ import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 
 export type Contract = {
+  is_auction?: boolean;
   commission_id?: number | null;
   negotiation_key?: string;
   restart?: boolean;

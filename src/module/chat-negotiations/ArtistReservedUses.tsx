@@ -1,5 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
+import { RequiredMark } from './NegotiationSection';
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
 import InfoAccordion from './InfoAccordion';
 
 const options = [
@@ -16,7 +18,7 @@ export default function ArtistReservedUses({ value, onChange }: { value: string;
   const [otherOpen, setOtherOpen] = useState(!!custom);
   const save = (texts: string[], other: string) => onChange([...texts, ...(other ? [other] : [])].join('\n'));
   return <View style={{ gap: 10 }}>
-    <Text style={{ fontWeight: '600' }}>Uses reserved to the artist after transfer</Text>
+    <Text style={{ fontWeight: '600' }}>Uses reserved to the artist after transfer<RequiredMark /></Text>
     <Text style={{ fontSize: 12, color: '#81756D', lineHeight: 18 }}>Select all uses the artist may keep. These reservations will be written into the assignment and must be accepted by both parties.</Text>
     <InfoAccordion title="No reserved uses" description="The artist keeps no contractual permission to exercise the assigned rights. Authorship, moral rights and statutory exceptions remain protected." multiple selected={value.trim().toLowerCase() === 'none'} onSelect={() => { setOtherOpen(false); onChange(value.trim().toLowerCase() === 'none' ? '' : 'None'); }} />
     {options.map(option => <InfoAccordion key={option.title} title={option.title} description={option.description} details={option.text} multiple selected={selected.includes(option)} onSelect={() => save(selected.includes(option) ? selected.filter(item => item !== option).map(item => item.text) : [...selected.map(item => item.text), option.text], custom)} />)}

@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import InfoAccordion from './InfoAccordion';
 import { defaultScope, type LicenseScope } from './LicenseScopeFields';
 import type { CompensationCategory, CompensationTerms } from './compensation';

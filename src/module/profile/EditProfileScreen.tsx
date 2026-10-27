@@ -1,3 +1,7 @@
+import ProfileCover from '@/components/ProfileCover';
+import { pickProfileImage } from '@/services/profileImages';
+import { readApiResponse } from '@/module/chat-negotiations/contracts';
+import { Text, TextInput } from '@/components/Typography';
 import AddressBook from '@/components/AddressBook';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
@@ -5,19 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Camera } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
-} from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EditProfile() {
@@ -39,6 +31,7 @@ export default function EditProfile() {
     street: '',
     barangay: '', city: '', province: '', region: '', postal_code: '',
     profileImage: null as string | null,
+    coverImage: '',
   });
 
   useEffect(() => {
@@ -65,6 +58,7 @@ export default function EditProfile() {
             contact: data.contact_number || data.contact || '',
             street: data.address?.street || data.street || '',
             barangay: data.address?.barangay || '', city: data.address?.city || '', province: data.address?.province || '', region: data.address?.region || '', postal_code: data.address?.postal_code || '',
+            coverImage: data.cover_image || '',
             profileImage: data.profile_image || data.profileImage || user.photoURL || null,
           });
         } else {
@@ -107,21 +101,25 @@ export default function EditProfile() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
+      base64: true,
     });
     if (!result.canceled) {
-      setForm((prev) => ({ ...prev, profileImage: result.assets[0].uri }));
+      const asset = result.assets[0];
+      if (asset.base64) setForm((prev) => ({ ...prev, profileImage: `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}` }));
     }
   };
 
   const openLibrary = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) {
-      setForm((prev) => ({ ...prev, profileImage: result.assets[0].uri }));
-    }
+    try {
+      const image = await pickProfileImage();
+      if (image) setForm(previous => ({ ...previous, profileImage: image }));
+    } catch (error: any) { Alert.alert('Profile photo', error.message); }
+  };
+  const changeCover = async () => {
+    try {
+      const image = await pickProfileImage(true);
+      if (image) setForm(previous => ({ ...previous, coverImage: image }));
+    } catch (error: any) { Alert.alert('Cover photo', error.message); }
   };
 
   const handleGoBack = () => {
@@ -157,12 +155,15 @@ export default function EditProfile() {
           first_name: form.firstName,
           last_name: form.lastName,
           contact_number: form.contact,
+          cover_image: form.coverImage,
+          ...(form.profileImage?.startsWith('data:image/') ? { profile_image: form.profileImage } : {}),
 
 
         }),
       });
 
-      if (!response.ok) throw new Error('Save failed');
+      const saved = await readApiResponse(response);
+      if (saved.cover_image !== form.coverImage) throw new Error('The backend did not save the cover photo. Restart Django and try again.');
 
       if (Platform.OS === 'web') {
         alert('Profile updated successfully!');
@@ -172,11 +173,11 @@ export default function EditProfile() {
           { text: 'OK', onPress: handleGoBack },
         ]);
       }
-    } catch (e) {
+    } catch (e: any) {
       if (Platform.OS === 'web') {
-        alert('Failed to save profile changes.');
+        alert(e.message || 'Failed to save profile changes.');
       } else {
-        Alert.alert('Error', 'Failed to save profile changes.');
+        Alert.alert('Error', e.message || 'Failed to save profile changes.');
       }
     } finally {
       setSaving(false);
@@ -214,7 +215,7 @@ export default function EditProfile() {
         <View style={[styles.mainLayout, isDesktop && styles.desktopLayout]}>
           {/* LEFT SIDE (WEB) / TOP SIDE (MOBILE): COVER & AVATAR CARD */}
           <View style={[styles.avatarCard, isDesktop && styles.desktopAvatarCard]}>
-            <View style={styles.coverBanner} />
+            <View style={styles.coverBanner}><ProfileCover uri={form.coverImage} /></View>
             <View style={styles.avatarSection}>
               <TouchableOpacity style={styles.avatarWrap} onPress={pickImage} activeOpacity={0.8}>
                 <Image
@@ -227,6 +228,10 @@ export default function EditProfile() {
                   <Camera color="#fff" size={16} />
                 </View>
               </TouchableOpacity>
+              <TouchableOpacity accessibilityRole="button" style={styles.changePhotoBtn} onPress={changeCover}>
+                <Camera color="#C15656" size={14} /><Text style={styles.changePhotoText}>Change cover photo</Text>
+              </TouchableOpacity>
+              {!!form.coverImage && <TouchableOpacity accessibilityRole="button" onPress={() => setForm(previous => ({ ...previous, coverImage: '' }))}><Text style={styles.changePhotoText}>Use default cover</Text></TouchableOpacity>}
               <Text style={styles.profileNameDisplay}>
                 {form.firstName || form.lastName
                   ? `${form.firstName} ${form.lastName}`.trim()
@@ -383,7 +388,8 @@ const styles = StyleSheet.create({
   },
   coverBanner: {
     height: 90,
-    backgroundColor: '#D48C62',
+    backgroundColor: '#FFF',
+    overflow: 'hidden',
   },
   avatarSection: {
     alignItems: 'center',

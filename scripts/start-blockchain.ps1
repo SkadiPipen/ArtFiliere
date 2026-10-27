@@ -37,3 +37,6 @@ if (-not (Test-LocalRpc)) {
 if ($LASTEXITCODE -ne 0) { throw 'Contract compilation failed.' }
 & "$projectRoot/venv/Scripts/python.exe" "$PSScriptRoot/local-blockchain.py"
 if ($LASTEXITCODE -ne 0) { throw 'Local blockchain setup or verification failed.' }
+& "$projectRoot/venv/Scripts/python.exe" "$PSScriptRoot/configure-provenance.py"
+if ($LASTEXITCODE -ne 0) { throw 'Ownership registry setup failed.' }
+& "$PSScriptRoot/start-provenance-worker.ps1"

@@ -1,4 +1,5 @@
-import { Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Text } from '@/components/Typography';
+import { Platform, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useContext } from 'react';
 import { AuthContext } from '@/context/AuthContext';
 

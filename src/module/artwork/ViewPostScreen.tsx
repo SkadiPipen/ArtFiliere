@@ -1,4 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useCart } from "@/context/CartContext";
+import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import { auth } from "@/firebase/config";
 import { Watermark } from "@/module/artwork/components/Watermark";
 import AppDialog, { AppDialogProps } from "@/components/AppDialog";
@@ -17,17 +19,7 @@ import {
   X,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ViewPostPage() {
@@ -352,16 +344,17 @@ export default function ViewPostPage() {
             <Text style={styles.title}>{title}</Text>
 
             {/* Artist Profile */}
+            {!!artworkData?.category_labels?.length && <Text style={{ color: '#75655F', fontSize: 13, lineHeight: 19, marginBottom: 12 }}>Categories: {artworkData.category_labels.join(' · ')}</Text>}
             <TouchableOpacity
               onPress={() =>
                 router.push({
                   pathname: "/artist-profile" as any,
-                  params: { artistId: resolvedArtistId },
+                  params: { artistId: artworkData?.provenance?.creator_account_id || resolvedArtistId },
                 })
               }
             >
               <Text style={styles.artistLink}>
-                View artist profile ({artistName})
+                View creator profile ({artworkData?.provenance?.created_by || artistName})
               </Text>
             </TouchableOpacity>
 
@@ -379,7 +372,7 @@ export default function ViewPostPage() {
                 <ShieldCheck color="#357A47" size={17} />
                 <View>
                   <Text style={styles.verifiedTitle}>
-                    Verified registration
+                    File registration recorded
                   </Text>
                   <Text style={styles.verifiedHint}>
                     Registered by ArtFiliere · View proof
@@ -387,6 +380,12 @@ export default function ViewPostPage() {
                 </View>
               </TouchableOpacity>
             )}
+
+            <ProvenancePanel artworkId={artworkId} />
+            {!!artworkData?.provenance && <View style={{ gap: 4, marginVertical: 10 }}>
+              <Text>Created by @{artworkData.provenance.created_by} · {artworkData.provenance.creator_verified ? 'Reviewed attribution' : 'Claimed attribution'}</Text>
+              <Text>Currently owned by {artworkData.provenance.current_owner ? `@${artworkData.provenance.current_owner}` : 'Awaiting blockchain confirmation'}</Text>
+            </View>}
 
             <View style={styles.detailsSection}>
               <Text style={styles.detailsHeader}>About the Art</Text>
@@ -633,11 +632,11 @@ export default function ViewPostPage() {
             <View style={styles.proofIcon}>
               <CheckCircle2 color="#357A47" size={30} />
             </View>
-            <Text style={styles.proofTitle}>Verified by ArtFiliere</Text>
+            <Text style={styles.proofTitle}>File registration proof</Text>
             <Text style={styles.proofText}>
-              This artwork was approved by ArtFiliere and its file was securely
-              registered. This helps confirm that the artwork listing has not
-              been changed after approval.
+              This record confirms a registered file fingerprint. Registration alone
+              does not prove authorship, transfer copyright, or prevent copying.
+              View provenance for creator attribution and confirmed ownership history.
             </Text>
             <View style={styles.proofStatus}>
               <Text style={styles.proofStatusText}>

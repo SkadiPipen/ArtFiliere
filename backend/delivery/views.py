@@ -415,7 +415,7 @@ class RiderProfileView(APIView):
         return Response({
             "fullName": "ArtFiliere Express Rider",
             "email": "rider@artfiliere.ph",
-            "is_clocked_in": True,
+            "is_clocked_in": False,
             "total_delivery": completed_count,
             "date_registered": "2026-01-01",
             "vehicle": {

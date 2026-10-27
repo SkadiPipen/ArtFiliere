@@ -2,11 +2,12 @@ import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 
 export type DriverPosition = { latitude: number; longitude: number; accuracy: number };
-export function checkedDriverPosition(coords: { latitude: number; longitude: number; accuracy: number | null }): DriverPosition {
-  if (!Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude) || Math.abs(coords.latitude) > 90 || Math.abs(coords.longitude) > 180 || coords.accuracy == null || !Number.isFinite(coords.accuracy) || coords.accuracy < 0 || coords.accuracy > 200) {
+export function checkedDriverPosition(coords: { latitude: number; longitude: number; accuracy: number | null }, allowApproximate = false): DriverPosition {
+  if (!Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude) || Math.abs(coords.latitude) > 90 || Math.abs(coords.longitude) > 180 || coords.accuracy == null || !Number.isFinite(coords.accuracy) || coords.accuracy < 0 || (!allowApproximate && coords.accuracy > 200)) {
     throw new Error('A precise GPS location is unavailable. Enable precise location or use your phone outdoors. No estimated location has been used.');
   }
-  return { ...coords, accuracy: coords.accuracy };
+  // Browser GeolocationCoordinates uses prototype getters, not enumerable fields.
+  return { latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy };
 }
 export async function getDriverPosition(): Promise<DriverPosition> {
   if (Platform.OS === 'web') {

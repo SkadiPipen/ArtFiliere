@@ -15,6 +15,8 @@ class ArtworkBlockchainView(AuthenticatedAPIView):
         artwork = Artwork.objects.filter(id=artwork_id, artist=self.get_request_user(request), status=Artwork.Status.APPROVED).first()
         if not artwork: return Response({"error": "Approved artwork not found."}, status=404)
         if not artwork.sha256_hash: return Response({"error": "Artwork hash is missing."}, status=400)
+        from .provenance import ensure_artwork
+        ensure_artwork(artwork)
         if artwork.blockchain_transactions.filter(operation="artwork_registration", status="confirmed").exists(): return Response({"error": "Artwork is already registered."}, status=409)
         item = BlockchainTransaction.objects.create(artwork=artwork, network=settings.BLOCKCHAIN_NETWORK)
         try:
@@ -27,7 +29,7 @@ class ArtworkBlockchainView(AuthenticatedAPIView):
     def get(self, request, artwork_id, action):
         artwork = Artwork.objects.filter(id=artwork_id).first()
         if not artwork: return Response({"error": "Artwork not found."}, status=404)
-        item = artwork.blockchain_transactions.order_by("-created_at").first()
+        item = artwork.blockchain_transactions.filter(operation='artwork_registration').order_by("-created_at").first()
         if action == "proof": return Response({"artwork_id": artwork.id, "artwork_hash": artwork.sha256_hash, "transaction_hash": item.transaction_hash if item else None, "block_number": item.block_number if item else None, "network": item.network if item else None, "status": item.status if item else "not_registered"})
         try:
             valid, chain = verify_artwork(artwork.id, artwork.sha256_hash)

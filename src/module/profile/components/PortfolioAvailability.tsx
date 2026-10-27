@@ -1,9 +1,10 @@
+import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import AvailabilityCalendar from '@/module/commissions/AvailabilityCalendar';
 import API_URL from '@/services/api';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Image, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { Image, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 export default function PortfolioAvailability({ artistId }: { artistId: number }) {
   const router = useRouter();

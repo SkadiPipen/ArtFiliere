@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 // ========================================
 // FILE: src/components/artworks/AITagSuggestions.tsx
 // PURPOSE: UI component for AI tag suggestions
@@ -5,14 +6,7 @@
 
 import { Plus, Sparkles, X } from 'lucide-react-native';
 import { useState } from 'react';
-import {
-    ActivityIndicator,
-    Animated,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface AITagSuggestionsProps {
   title: string;

@@ -1,3 +1,5 @@
+import useChatAutoScroll from '@/hooks/useChatAutoScroll';
+import { Text, TextInput } from '@/components/Typography';
 import InfoAccordion from '@/module/chat-negotiations/InfoAccordion';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -6,20 +8,7 @@ import { CompensationSettings, CompensationCategory, CompensationTerms, compensa
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, FileText, Send } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 type A = {
   id: number;
   price: string;
@@ -75,6 +64,7 @@ export default function DirectMessageScreen() {
     [comp, setComp] = useState<CompensationCategory>('one_time');
   const [compensationTerms, setCompensationTerms] = useState<CompensationTerms>({ subtype: 'one_time_payment' });
   const [royaltyEnabled, setRoyaltyEnabled] = useState(false);
+  const autoScroll = useChatAutoScroll<FlatList<M>>(chat?.id || q.conversationId || q.artistId || 'chat');
   const h = async () => ({
     Authorization: `Bearer ${await auth.currentUser!.getIdToken()}`,
     "Content-Type": "application/json",
@@ -124,6 +114,7 @@ export default function DirectMessageScreen() {
   }, [q.artistId, q.conversationId]);
   const send = async () => {
     if (!body || !chat) return;
+    autoScroll.scrollToLatest();
     const r = await fetch(
         `${API_URL}/api/users/conversations/${chat.id}/messages/`,
         { method: "POST", headers: await h(), body: JSON.stringify({ body }) },
@@ -184,6 +175,11 @@ export default function DirectMessageScreen() {
         </TouchableOpacity>
       </View>
       <FlatList
+        ref={autoScroll.ref}
+        onContentSizeChange={autoScroll.onContentSizeChange}
+        onLayout={autoScroll.onLayout}
+        onScroll={autoScroll.onScroll}
+        scrollEventThrottle={16}
         data={chat?.messages || []}
         keyExtractor={(x) => String(x.id)}
         contentContainerStyle={s.list}
@@ -208,6 +204,7 @@ export default function DirectMessageScreen() {
           )
         }
       />
+      {!autoScroll.atLatest && <TouchableOpacity onPress={autoScroll.scrollToLatest}><Text style={{ color: '#A33F45', textAlign: 'center', padding: 10 }}>Latest messages</Text></TouchableOpacity>}
       <View style={s.compose}>
         <TextInput
           value={body}

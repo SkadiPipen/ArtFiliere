@@ -1,5 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
+import { RequiredMark } from './NegotiationSection';
 import InfoAccordion from './InfoAccordion';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import type { CompensationTerms } from './compensation';
 
 export default function RoyaltyCalculationFields({ terms, onChange }: { terms: CompensationTerms; onChange: (value: Partial<CompensationTerms>) => void }) {
@@ -12,7 +14,7 @@ export default function RoyaltyCalculationFields({ terms, onChange }: { terms: C
     <Text>Royalty reporting duration (months, 1–60)</Text>
     <TextInput accessibilityLabel="Royalty reporting duration" keyboardType="number-pad" value={String(terms.reporting_duration_months ?? 12)} onChangeText={value => onChange({ reporting_duration_months: Number(value) })} style={input} />
     {(tiered || guarantee) && <>
-      <Text style={{ fontWeight: '700' }}>Calculation basis</Text>
+      <Text style={{ fontWeight: '700' }}>Calculation basis<RequiredMark /></Text>
       {Object.entries({ units: 'Items sold', gross_sales: 'Gross sales', net_sales: 'Net sales after permitted deductions', profit: 'Profit after deductions and costs' }).map(([value, label]) => <InfoAccordion key={value} title={label} description={value === 'units' ? 'Whole items sold multiplied by the agreed PHP rate per item.' : value === 'gross_sales' ? 'The percentage applies to gross sales before deductions.' : value === 'net_sales' ? 'The percentage applies after only deductions expressly permitted by the agreement.' : 'The percentage applies after permitted deductions and costs. Losses yield a zero calculation base.'} selected={rules.basis === value} onSelect={() => update({ basis: value })} />)}
     </>}
     {tiered && <>
@@ -26,7 +28,7 @@ export default function RoyaltyCalculationFields({ terms, onChange }: { terms: C
       {(rules.tiers?.length || 1) < 10 && <Pressable onPress={() => update({ tiers: [...(rules.tiers || [{ from: '0', rate: '' }]), { from: '', rate: '' }] })}><Text>Add tier</Text></Pressable>}
     </>}
     {guarantee && <>
-      <Text>{rules.basis === 'units' ? 'PHP royalty per item sold' : 'Royalty percentage'}</Text>
+      <Text>{rules.basis === 'units' ? 'PHP royalty per item sold' : 'Royalty percentage'}<RequiredMark /></Text>
       <TextInput accessibilityLabel="Guaranteed royalty calculation rate" value={rules.rate || ''} keyboardType="decimal-pad" onChangeText={rate => update({ rate })} style={input} />
       <Text>The guarantee applies to EACH reporting period. Amount due = the greater of the guarantee or calculated royalty; it is not charged twice.</Text>
     </>}

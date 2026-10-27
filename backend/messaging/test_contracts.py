@@ -198,9 +198,15 @@ class ContractFlowTests(TestCase):
         data = self.call(AgreementSigningView, self.buyer, agreement_id=pk).data
         self.assertEqual(self.call(AgreementSigningView, self.stranger, agreement_id=pk).status_code, 404)
         self.assertEqual(self.call(AgreementSigningView, self.buyer, "post", {"signature": "Buyer", "consent": True, "document_hash": "stale"}, agreement_id=pk).status_code, 409)
-        for user in (self.buyer, self.artist):
-            response = self.call(AgreementSigningView, user, "post", {"signature": user.username, "signature_strokes": [[[0.1, 0.2], [0.3, 0.7], [0.6, 0.3]]], "consent": True, "document_hash": data["document_hash"]}, agreement_id=pk)
-            self.assertEqual(response.status_code, 200)
+        self.assertFalse(data['can_sign'])
+        early = self.call(AgreementSigningView, self.buyer, 'post', {'signature': 'Buyer', 'consent': True, 'document_hash': data['document_hash'], 'signature_strokes': [[[0.1, 0.2], [0.3, 0.7]]]}, agreement_id=pk)
+        self.assertEqual(early.status_code, 409)
+        with patch('messaging.signing.record_agreement_proof'), patch('wallets.views.requests.post') as gateway:
+            for user in (self.artist, self.buyer):
+                response = self.call(AgreementSigningView, user, "post", {"signature": user.username, "signature_strokes": [[[0.1, 0.2], [0.3, 0.7], [0.6, 0.3]]], "consent": True, "document_hash": data["document_hash"]}, agreement_id=pk)
+                self.assertEqual(response.status_code, 200)
+            gateway.assert_not_called()
+        self.assertFalse(PaymentSession.objects.filter(agreement_id=pk).exists())
         self.assertTrue(response.data["fully_signed"])
         pdf = self.call(AgreementSigningView, self.buyer, agreement_id=pk, pdf=True)
         self.assertTrue(pdf.content.startswith(b"%PDF"))
@@ -208,6 +214,7 @@ class ContractFlowTests(TestCase):
     def test_license_permissions_survive_counteroffer_and_require_artist_authority(self):
         from messaging.signing import AgreementSigningView
         scope = {'territory': 'philippines', 'territory_details': '', 'uses': ['personal_display'],
+                 'allow_resale': False,
                  'products': '', 'modifications': 'none', 'sublicensing': 'none',
                  'credit': 'required', 'credit_name': 'Painter', 'duration_months': 12}
         response = self.call(ContractsView, self.buyer, 'post',
@@ -232,11 +239,11 @@ class ContractFlowTests(TestCase):
 
     def test_negotiated_pricing_roundtrips_and_counteroffer_can_change_mode(self):
         response = self.call(ContractsView, self.buyer, 'post', {
-            'price': '11.00', 'terms': 'Negotiated license',
-            'pricing_terms': {'mode': 'fixed', 'fixed_fee': '10'}}, artwork_id=self.artwork.pk)
+            'price': '55.00', 'terms': 'Negotiated license',
+            'pricing_terms': {'mode': 'fixed', 'fixed_fee': '50'}}, artwork_id=self.artwork.pk)
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data['pricing_terms']['license_fee'], '10.00')
-        self.assertIn('Platform fee (10%, not negotiable): PHP 1.00', response.data['terms'])
+        self.assertEqual(response.data['pricing_terms']['license_fee'], '50.00')
+        self.assertIn('Platform fee (10%, not negotiable): PHP 5.00', response.data['terms'])
         pk = response.data['id']
         changed = self.call(ContractsView, self.artist, 'post', {
             'price': '82.50', 'terms': 'Counteroffer', 'revision_of': pk,

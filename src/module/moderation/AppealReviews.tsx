@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { Linking, Text, TextInput, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
 import { Action, styles as s } from './ui';
 

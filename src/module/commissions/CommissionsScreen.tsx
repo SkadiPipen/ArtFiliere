@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@/components/Typography';
 import { AuthContext } from '@/context/AuthContext';
 import { auth } from "@/firebase/config";
 import { ChatModal } from "@/module/chat-negotiations/chat-index";
@@ -19,22 +20,7 @@ import {
   XCircle,
 } from "lucide-react-native";
 import { useContext, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Linking,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Linking, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CommissionProgressPanel from './CommissionProgressPanel';
 

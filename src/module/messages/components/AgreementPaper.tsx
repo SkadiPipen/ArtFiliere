@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text } from '@/components/Typography';
+import { StyleSheet, View } from 'react-native';
 
 /** Preserve the agreement wording and paragraph breaks in a readable document. */
 export default function AgreementPaper({ document }: { document: string }) {

@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import { AuthContext } from '@/context/AuthContext';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 

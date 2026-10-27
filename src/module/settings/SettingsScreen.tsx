@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
@@ -13,17 +14,7 @@ import {
   User,
 } from "lucide-react-native";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AccountSettingsPanel from './AccountSettingsPanel';
 

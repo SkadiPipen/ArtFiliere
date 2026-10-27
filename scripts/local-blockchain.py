@@ -1,4 +1,4 @@
-"""Deploy/configure the local registry and exercise the actual backend service."""
+"""Deploy/configure the local registry, then validate it without reverting live history."""
 import argparse
 import json
 import sys
@@ -28,6 +28,8 @@ def main():
     expected_code = artifact["deployedBytecode"]["object"]
     valid = bool(address and Web3.is_address(address) and w3.eth.get_code(Web3.to_checksum_address(address)).hex().removeprefix("0x") == expected_code.removeprefix("0x"))
     if not valid:
+        if address and Web3.is_address(address) and w3.eth.get_code(Web3.to_checksum_address(address)):
+            raise RuntimeError('The existing proof registry differs from the compiled contract. Preserve its history and reconcile the artifact; do not replace it automatically.')
         if args.check:
             raise RuntimeError("Configured registry is missing or differs from the compiled contract.")
         account = w3.eth.account.from_key(LOCAL_KEY)
@@ -48,24 +50,20 @@ def main():
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     import django
     django.setup()
-    from blockchain.service import register_artwork, record_license, record_sale, verify_artwork, verify_license, verify_sale
+    from blockchain.service import contract
     from django.conf import settings
     if settings.BLOCKCHAIN_CHAIN_ID != 31337 or settings.BLOCKCHAIN_RPC_URL != "http://127.0.0.1:8545" or settings.BLOCKCHAIN_CONTRACT_ADDRESS.lower() != address.lower():
         raise RuntimeError("Backend environment overrides do not match the local configuration.")
-    snapshot = w3.provider.make_request("evm_snapshot", [])
-    if "result" not in snapshot:
-        raise RuntimeError("Cannot snapshot chain for verification.")
-    try:
-        test_id = 2**63 - 1
-        fingerprint = "ab" * 32
-        for write, verify, label in [(register_artwork, verify_artwork, "artwork"), (record_license, verify_license, "agreement"), (record_sale, verify_sale, "sale")]:
-            result = write(test_id, fingerprint)
-            if not verify(test_id, fingerprint)[0] or verify(test_id, "cd" * 32)[0]:
-                raise RuntimeError(f"{label} verification failed")
-            print(f"PASS: {label} signed transaction and hash verification (block {result['block_number']})")
-    finally:
-        if w3.provider.make_request("evm_revert", [snapshot["result"]]).get("result") is not True:
-            raise RuntimeError("Failed to remove verification transactions.")
+    # Snapshot/revert during normal startup can erase concurrent worker transactions.
+    # Contract writes are exercised by separate integration tests instead.
+    _, registry = contract()
+    test_id, fingerprint = 2**63 - 1, "ab" * 32
+    for getter, verifier, label in [('getArtwork', 'verifyArtwork', 'artwork'), ('getLicense', 'verifyLicense', 'agreement'), ('getSale', 'verifySale', 'sale')]:
+        record = getattr(registry.functions, getter)(test_id).call()
+        expected = bool(record[3] and bytes(record[0]).hex() == fingerprint)
+        if getattr(registry.functions, verifier)(test_id, bytes.fromhex(fingerprint)).call() != expected:
+            raise RuntimeError(f'{label} verification failed')
+        print(f'PASS: {label} registry read and hash verification')
     print(f"Local blockchain ready: chain 31337, registry {address}")
 
 

@@ -1,5 +1,7 @@
+import { Text } from '@/components/Typography';
+import WebDeliveryTiles from './WebDeliveryTiles';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 interface DeliveryMapProps {
   driverLat?: number | null; driverLng?: number | null;
@@ -8,7 +10,6 @@ interface DeliveryMapProps {
   onRouteUnavailable?: () => void;
 }
 const valid = (lat: any, lng: any) => typeof lat === 'number' && typeof lng === 'number' && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
-const jsValue = (value: any) => JSON.stringify(value).replace(/</g, '\\u003c');
 
 export default function DeliveryLeafletMap({ driverLat, driverLng, targetLat, targetLng, targetLabel, isPickupStep, onRouteCalculated, onRouteUnavailable }: DeliveryMapProps) {
   const [route, setRoute] = useState<[number, number][]>([]);
@@ -35,21 +36,17 @@ export default function DeliveryLeafletMap({ driverLat, driverLng, targetLat, ta
     })();
     return () => { active = false; controller.abort(); };
   }, [driverLat, driverLng, targetLat, targetLng, hasDriver, hasTarget]);
-  if (!hasTarget) return <View style={{ padding: 20 }}><Text>Exact destination location unavailable. Ask the artist or buyer to save an accurate address pin, then refresh the delivery.</Text></View>;
+  if (!hasTarget) return <View style={{ gap: 8 }}>
+    <Text>Pickup or destination pin unavailable. Your location is shown when GPS is available; a route requires a verified destination.</Text>
+    {Platform.OS === 'web' && <WebDeliveryTiles
+      target={hasDriver ? [driverLat!, driverLng!] : [12.8797, 121.7740]}
+      driver={null} points={[]} label="Your GPS location" color="#2980B9" overview={!hasDriver}
+    />}
+  </View>;
   const color = isPickupStep ? '#BC5454' : '#27AE60';
-  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><style>html,body,#map{height:100%;width:100%;margin:0}</style></head><body><div id="map"></div><script>
-    const target=${jsValue([targetLat, targetLng])}, driver=${jsValue(hasDriver ? [driverLat, driverLng] : null)}, points=${jsValue(route)};
-    const map=L.map('map').setView(target,16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
-    const label=document.createElement('div');label.textContent=${jsValue(`${isPickupStep ? 'Artist pickup' : 'Buyer destination'}: ${targetLabel}`)};
-    L.circleMarker(target,{radius:10,fillColor:'${color}',color:'#fff',weight:3,fillOpacity:1}).addTo(map).bindPopup(label).openPopup();
-    if(driver)L.circleMarker(driver,{radius:9,fillColor:'#2980B9',color:'#fff',weight:3,fillOpacity:1}).addTo(map).bindPopup('Your GPS location');
-    if(points.length>1){const line=L.polyline(points,{color:'${color}',weight:5}).addTo(map);map.fitBounds(line.getBounds(),{padding:[30,30],maxZoom:17});}
-    else if(driver)map.fitBounds(L.latLngBounds([driver,target]),{padding:[30,30],maxZoom:17});
-  </script></body></html>`;
   return <View style={{ gap: 8 }}>
     {!hasDriver && <Text>Waiting for precise driver GPS. No route or ETA is estimated.</Text>}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}
-    {Platform.OS === 'web' ? <iframe srcDoc={html} sandbox="allow-scripts" title="Verified delivery location and road route" style={{ width: '100%', height: 300, border: 'none', borderRadius: 14 }} /> : <Text>Destination: {targetLabel}. Use Open in Maps for navigation.</Text>}
+    {Platform.OS === 'web' ? <WebDeliveryTiles target={[targetLat!, targetLng!]} driver={hasDriver ? [driverLat!, driverLng!] : null} points={route} label={`${isPickupStep ? 'Artist pickup' : 'Buyer destination'}: ${targetLabel}`} color={color} /> : <Text>Destination: {targetLabel}. Use Open in Maps for navigation.</Text>}
   </View>;
 }

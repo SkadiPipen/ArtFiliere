@@ -1,8 +1,9 @@
+import { Text, TextInput } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import { useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export type AuctionCheckoutContext = {
   is_auction: boolean; delivery_type: string; price: string;

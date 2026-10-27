@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import SupportScreen from '@/module/support/SupportScreen';
@@ -20,14 +21,7 @@ import { chatService } from './chats';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { db } from '../../firebase/config';
 
 // I. Interfaces

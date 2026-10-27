@@ -1,5 +1,6 @@
+import { Text, TextInput } from '@/components/Typography';
 import { useState } from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/colors";
 import type {

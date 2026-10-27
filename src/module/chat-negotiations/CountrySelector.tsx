@@ -1,5 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
+import { RequiredMark } from './NegotiationSection';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Check, Search, X } from 'lucide-react-native';
 import { countries } from './countries';
 
@@ -15,7 +17,7 @@ export default function CountrySelector({ value, onChange }: { value: string; on
     onChange(next.join('; '));
   };
   return <View style={{ gap: 10, paddingTop: 8 }}>
-    <Text style={{ fontWeight: '600', color: '#382C26' }}>Countries / regions</Text>
+    <Text style={{ fontWeight: '600', color: '#382C26' }}>Countries / regions<RequiredMark /></Text>
     <Text style={{ fontSize: 12, lineHeight: 18, color: '#81756D' }}>Philippines is a starting selection. Search to add countries, or remove any selection below.</Text>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{selected.map(name => <Pressable key={name} accessibilityRole="button" accessibilityLabel={`Remove ${name}`} onPress={() => toggle(name)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 20, borderWidth: 1, borderColor: '#E68A50', backgroundColor: '#FFF7F0' }}><Text style={{ color: '#70482F', flexShrink: 1 }}>{name}</Text><X size={15} color="#A56840" /></Pressable>)}</View>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: focused ? '#E68A50' : '#DCD5CF', borderRadius: 10, paddingHorizontal: 12 }}><Search size={18} color="#81756D" /><TextInput accessibilityLabel="Search countries or regions" placeholder="Search countries, e.g. Philippines or Japan" value={query} onChangeText={setQuery} onFocus={() => setFocused(true)} style={{ flex: 1, minWidth: 0, paddingVertical: 14, color: '#382C26' }} /><Pressable accessibilityRole="button" accessibilityLabel={query ? 'Clear country search' : 'Close country list'} onPress={() => { setQuery(''); setFocused(false); }} style={{ padding: 8 }}><X size={16} color="#81756D" /></Pressable></View>

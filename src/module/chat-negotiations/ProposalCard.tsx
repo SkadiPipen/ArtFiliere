@@ -1,6 +1,7 @@
+import { Text } from '@/components/Typography';
 import NegotiationHistory, { ChangeHighlights } from './NegotiationHistory';
 import CopyrightProposalSummary from './CopyrightProposalSummary';
-import AutomaticCheckout from './AutomaticCheckout';
+import AgreementCheckout from './AutomaticCheckout';
 import { contractChanges } from './negotiationThreads';
 import type { ChatMessage } from './chats';
 import { router } from 'expo-router';
@@ -8,9 +9,10 @@ import SigningModal from './SigningModal';
 import ArtworkPreview from './ArtworkPreview';
 import { auth } from '@/firebase/config';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Check, ChevronDown, ChevronUp, FileText, MessageSquare } from 'lucide-react-native';
 import { Contract, contractRequest, isAgreed } from './contracts';
+import { downloadLicensePdf } from '@/services/purchases';
 
 export default function ProposalCard({ contract, history = [contract], legacyHistory = [], onChange, onRevise }: { contract: Contract; history?: Contract[]; legacyHistory?: ChatMessage[]; onChange: () => void; onRevise: (contract: Contract) => void }) {
   const changes = contractChanges(contract, history[history.length - 2]);
@@ -25,6 +27,12 @@ export default function ProposalCard({ contract, history = [contract], legacyHis
   const decide = async (action: string) => {
     setBusy(true); setError('');
     try { await contractRequest(`${contract.id}/`, 'PATCH', { action }); onChange(); if (action === 'accept') setSigning(true); }
+    catch (e: any) { setError(e.message); }
+    finally { setBusy(false); }
+  };
+  const download = async () => {
+    setBusy(true); setError('');
+    try { await downloadLicensePdf(contract.id); }
     catch (e: any) { setError(e.message); }
     finally { setBusy(false); }
   };
@@ -50,9 +58,10 @@ export default function ProposalCard({ contract, history = [contract], legacyHis
     </View>
     {!!priceChange && <View style={s.changePill}><Text style={s.changeText}>Price changed: <Text style={{ textDecorationLine: 'line-through', color: '#9A8B82', fontWeight: '400' }}>{priceChange.before}</Text>{'  '}<Text style={{ color: '#BC3535', fontWeight: '800' }}>{priceChange.after}</Text></Text></View>}
     <CopyrightProposalSummary transfer={contract.license_scope?.copyright_transfer} />
-    {!contract.commission_id && !signing && agreed && contract.fully_signed && contract.buyer_uid === auth.currentUser?.uid && contract.checkout_status !== 'paid' && <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}><AutomaticCheckout id={contract.id} onChange={onChange} /></View>}
+    {!contract.commission_id && !signing && agreed && contract.fully_signed && contract.buyer_uid === auth.currentUser?.uid && contract.checkout_status !== 'paid' && <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}><AgreementCheckout id={contract.id} onChange={onChange} /></View>}
     {agreed && <View style={s.agreedActions}>
       <TouchableOpacity accessibilityRole="button" onPress={() => setSigning(true)} style={s.secondaryButton}><FileText size={16} color="#A24F41" /><Text style={s.secondaryText}>Sign / preview agreement PDF</Text></TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={download} style={s.secondaryButton}><FileText size={16} color="#A24F41" /><Text style={s.secondaryText}>Download license agreement (PDF)</Text></TouchableOpacity>
       {['royalty', 'hybrid'].includes(contract.compensation_type || '') && <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/royalty-reports' as any)} style={s.secondaryButton}><Text style={s.secondaryText}>Royalty reports / Payments</Text></TouchableOpacity>}
     </View>}
     {expanded && <View style={s.details}>

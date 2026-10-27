@@ -47,6 +47,31 @@ class CalculationTests(SimpleTestCase):
 
 
 class ReportingTests(TestCase):
+    def test_license_expiry_boundary_and_waiting_signatures(self):
+        from .royalties import royalty_license_data
+        current = royalty_license_data(self.agreement, date(2026, 3, 30))
+        self.assertEqual(current['license_status'], 'active')
+        self.assertEqual(current['ends_on'], '2026-03-31')
+        expired = royalty_license_data(self.agreement, date(2026, 3, 31))
+        self.assertEqual(expired['license_status'], 'expired')
+        self.assertGreater(expired['outstanding_reports'], 0)
+        self.agreement.buyer_signed_at = None
+        waiting = royalty_license_data(self.agreement, date(2026, 4, 1))
+        self.assertEqual(waiting['license_status'], 'active')
+        self.assertEqual(waiting['status_label'], 'Awaiting both signatures')
+        self.assertIsNone(waiting['ends_on'])
+
+    def test_royalty_license_list_is_private_and_includes_expiry(self):
+        response = self.call(RoyaltyReportsView, self.buyer, 'get')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['agreements'][0]['id'], self.agreement.pk)
+        self.assertEqual(response.data['agreements'][0]['ends_on'], '2026-03-31')
+        self.assertTrue(response.data['agreements'][0]['is_buyer'])
+        artist_response = self.call(RoyaltyReportsView, self.artist, 'get')
+        self.assertFalse(artist_response.data['agreements'][0]['is_buyer'])
+        outsider = self.call(RoyaltyReportsView, self.outsider, 'get')
+        self.assertEqual(outsider.data['agreements'], [])
+
     def setUp(self):
         self.factory = APIRequestFactory()
         self.buyer = User.objects.create(username='buyer', firebase_uid='buyer', email='buyer@test.com')
@@ -64,6 +89,42 @@ class ReportingTests(TestCase):
         self.period = self.agreement.royalty_periods.order_by('starts_on').first()
         image = BytesIO(); Image.new('RGB', (2, 2)).save(image, 'PNG')
         self.evidence = [{'name': 'sales.png', 'data': 'data:image/png;base64,' + base64.b64encode(image.getvalue()).decode()}]
+
+    def test_purchase_reminder_dates_submission_window_and_privacy(self):
+        from .royalties import purchase_royalty_reminder
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 2, 1)):
+            reminder = purchase_royalty_reminder(self.agreement, self.buyer)
+            self.assertEqual(reminder['report_opens_on'], '2026-02-28')
+            self.assertEqual(reminder['due_on'], '2026-03-07')
+            self.assertEqual(reminder['days_until_report'], 27)
+            self.assertFalse(reminder['can_submit'])
+            self.assertIsNone(purchase_royalty_reminder(self.agreement, self.outsider))
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 2, 28)):
+            reminder = purchase_royalty_reminder(self.agreement, self.buyer)
+            self.assertTrue(reminder['can_submit'])
+            self.assertEqual(reminder['days_until_due'], 7)
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 3, 8)):
+            reminder = purchase_royalty_reminder(self.agreement, self.buyer)
+            self.assertTrue(reminder['overdue'])
+            self.assertEqual(reminder['days_until_due'], -1)
+        self.period.status = 'submitted'; self.period.save()
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 3, 8)):
+            reminder = purchase_royalty_reminder(self.agreement, self.buyer)
+            self.assertFalse(reminder['can_submit'])
+            self.assertIn('Awaiting artist review', reminder['message'])
+        self.agreement.compensation_terms['reporting_policy'] = 'commission_delivery_plus_7_days_artist_approval'
+        self.assertEqual(purchase_royalty_reminder(self.agreement, self.buyer)['status'], 'not_started')
+
+    def test_royalty_reminder_is_in_buyer_purchases(self):
+        from wallets.models import PaymentSession
+        from fulfillment.views import PurchasesView
+        PaymentSession.objects.create(reference_id='royalty-reminder-purchase', buyer=self.buyer, artist=self.artist,
+            artwork=self.agreement.artwork, agreement=self.agreement, gross_amount=100, platform_fee=10, artist_amount=90, status='paid')
+        with patch('messaging.royalties.timezone.localdate', return_value=date(2026, 2, 1)):
+            response = self.call(PurchasesView, self.buyer)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['royalty_reminder']['report_opens_on'], '2026-02-28')
+        self.assertEqual(self.call(PurchasesView, self.outsider).data, [])
 
     def call(self, view, user, method='get', data=None, **kwargs):
         request = getattr(self.factory, method)('/', data or {}, format='json')

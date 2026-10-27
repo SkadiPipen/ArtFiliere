@@ -1,11 +1,18 @@
+import { Text, TextInput } from '@/components/Typography';
 import { filterPurchases, PurchaseKind } from './purchaseFilters';
+import RoyaltyReminder, { type RoyaltyReminderData } from './RoyaltyReminder';
+import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
+import { openPaymentCheckout } from '@/services/paymentReturn';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
-import { downloadPurchase, downloadProtectedFile, downloadCertificate, purchaseRequest } from '@/services/purchases';
+import { downloadPurchase, downloadProtectedFile, downloadCertificate, downloadLicensePdf, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Purchase = {
+  artwork_id?: number;
+  provenance_id?: string;
+  royalty_reminder?: RoyaltyReminderData | null;
   id: number | string; is_commission?: boolean; commission_id?: number; download_path?: string; download_filename?: string; download_mime?: string; title: string; artist: string; status: string; amount: string; agreement_id: number;
   art_type?: string; purchase_type?: string; is_auction?: boolean; purchase_date?: string; created_at?: string;
   verification_code?: string;
@@ -96,7 +103,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
           try {
             const result = await purchaseRequest(`checkout/agreements/${deliveryCheckout.agreementId}/`, 'POST', { delivery_quote: token });
             setDeliveryCheckout(null);
-            if (result.checkout_url) await Linking.openURL(result.checkout_url);
+            if (result.checkout_url) await openPaymentCheckout(result.checkout_url, 'shop', result.payment_id);
             await load(true);
           } finally { setBusy(false); }
         }} />}
@@ -147,6 +154,9 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             {p.is_commission && <Text>Commission purchase</Text>}
             <Text>PHP {p.amount} · {p.status}</Text>
             {!!p.purchase_date && <Text>Date: {new Date(p.purchase_date).toLocaleString()}</Text>}
+            <RoyaltyReminder data={p.royalty_reminder} onOpen={onClose} />
+            {!!p.artwork_id && p.status === 'paid' && <ProvenancePanel artworkId={p.artwork_id} />}
+            {!!p.provenance_id && <ProvenancePanel recordId={p.provenance_id} />}
             {p.status === 'paid' && p.verification_code ? <Text selectable style={{ color: '#5D8A63', fontWeight: '800' }}>Transaction verification code: {p.verification_code}</Text> : null}
 
             {Boolean(p.agreement_id) ? (
@@ -155,8 +165,12 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
               </TouchableOpacity>
             ) : null}
 
+            {Boolean(p.agreement_id) && <TouchableOpacity accessibilityRole="button" disabled={busy} style={s.button} onPress={() => run(() => downloadLicensePdf(p.agreement_id))}>
+              <Text style={s.white}>Download license agreement (PDF)</Text>
+            </TouchableOpacity>}
+
             {p.status === 'pending' && Boolean(p.checkout_url) ? (
-              <TouchableOpacity disabled={busy} onPress={() => run(() => Linking.openURL(p.checkout_url!))}>
+              <TouchableOpacity disabled={busy} onPress={() => run(() => openPaymentCheckout(p.checkout_url!, 'shop', Number(p.id)))}>
                 <Text style={s.link}>Continue payment</Text>
               </TouchableOpacity>
             ) : null}
@@ -169,7 +183,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
                   return;
                 }
                 const result = await purchaseRequest(`checkout/agreements/${p.agreement_id}/`, 'POST');
-                if (result.checkout_url) await Linking.openURL(result.checkout_url);
+                if (result.checkout_url) await openPaymentCheckout(result.checkout_url, 'shop', result.payment_id);
                 await load(true);
               })}>
                 <Text style={s.link}>Start a new payment</Text>

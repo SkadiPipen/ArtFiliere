@@ -1,7 +1,16 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+import { auth } from '@/firebase/config';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { Clock, Home, Truck, User } from 'lucide-react-native';
 
 export default function RiderTabsLayout() {
+  const [ready, setReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => onAuthStateChanged(auth, user => { setSignedIn(!!user); setReady(true); }), []);
+  if (!ready) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color="#BC5454" /></View>;
+  if (!signedIn) return <Redirect href="/rider/login" />;
   return (
     <Tabs
       screenOptions={{

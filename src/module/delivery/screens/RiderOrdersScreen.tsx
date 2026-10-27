@@ -1,20 +1,9 @@
-import { acceptOrderApi, fetchPendingOrders } from '@/services/deliveryApi';
+import { Text } from '@/components/Typography';
+import { acceptOrderApi, fetchPendingOrders, fetchAssignedOrders } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface OrderRequest {
   id: string | number;
@@ -29,6 +18,7 @@ interface OrderRequest {
   estimatedTime: string;
   paymentMethod: string;
   delivery_fee?: number;
+  status?: string;
 }
 
 export default function RiderOrdersScreen() {
@@ -43,7 +33,8 @@ export default function RiderOrdersScreen() {
 
   const loadOrders = useCallback(async () => {
     try {
-      const data = await fetchPendingOrders();
+      const [pending, assigned] = await Promise.all([fetchPendingOrders(), fetchAssignedOrders()]);
+      const data = [...assigned, ...pending];
       setLoadError('');
       if (Array.isArray(data)) {
         setOrderRequests(data);
@@ -57,11 +48,12 @@ export default function RiderOrdersScreen() {
     }
   }, []);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    setLoading(true);
     loadOrders();
     const timer = setInterval(loadOrders, 15000);
     return () => clearInterval(timer);
-  }, [loadOrders]);
+  }, [loadOrders]));
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -145,8 +137,8 @@ export default function RiderOrdersScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Order Requests</Text>
-        <Text style={styles.headerSubtitle}>{orderRequests.length} pending orders</Text>
+        <Text style={styles.headerTitle}>Orders</Text>
+        <Text style={styles.headerSubtitle}>{orderRequests.length} orders</Text>
       </View>
 
       <ScrollView
@@ -174,11 +166,12 @@ export default function RiderOrdersScreen() {
           </View>
         ) : orderRequests.length > 0 ? (
           orderRequests.map((order) => {
+            const assigned = !!order.status && order.status.toUpperCase() !== 'PENDING';
             const items = order.items_count || order.itemsCount || 1;
             const dist = order.distance;
             const eta = order.estimatedTime;
             const payment = order.paymentMethod;
-            const fee = order.delivery_fee ? Number(order.delivery_fee).toFixed(2) : '129.50';
+            const fee = order.delivery_fee != null ? Number(order.delivery_fee).toFixed(2) : '—';
             const customer = formatCustomerName(order);
             const artwork = order.artwork_title || 'Physical Artwork Piece';
             const displayAddress = order.formatted_address || order.address;
@@ -187,7 +180,7 @@ export default function RiderOrdersScreen() {
               <View key={String(order.id)} style={styles.orderCard}>
                 <View style={styles.cardHeaderRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.orderTag}>Order #{order.id}</Text>
+                    <Text style={styles.orderTag}>Order #{String(order.id).replace("verified-", "")} {assigned ? ` · ${(order.status || "").replace(/_/g, " ")}` : ""}</Text>
                     <Text style={styles.customerName}>{customer}</Text>
                     <Text style={styles.artworkTitle}>{artwork}</Text>
                   </View>
@@ -226,10 +219,10 @@ export default function RiderOrdersScreen() {
                 {/* Accept Button */}
                 <TouchableOpacity
                   style={styles.acceptButton}
-                  onPress={() => openAcceptModal(order)}
+                  onPress={() => assigned ? router.push({ pathname: '/delivery-details', params: { id: String(order.id) } } as any) : openAcceptModal(order)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.acceptButtonText}>Accept Order</Text>
+                  <Text style={styles.acceptButtonText}>{assigned ? 'Open Delivery' : 'Accept Order'}</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -238,7 +231,7 @@ export default function RiderOrdersScreen() {
           <View style={styles.emptyContainer}>
             <Ionicons name="checkmark-circle-outline" size={60} color="#2ECC71" />
             <Text style={styles.emptyTitle}>All Caught Up!</Text>
-            <Text style={styles.emptySubtitle}>No pending order requests available right now. For a commission, the buyer must approve the artwork as ready for delivery, then the artist requests platform driver pickup.</Text>
+            <Text style={styles.emptySubtitle}>No new requests or active deliveries. Physical shop orders appear after payment is verified; commission orders appear after pickup is requested.</Text>
           </View>
         )}
       </ScrollView>

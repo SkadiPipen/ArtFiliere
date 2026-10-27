@@ -103,6 +103,7 @@ def validate_compensation(data, user, license_type):
             raise ValueError('Royalty reporting duration must be between 1 and 60 months.')
         result['reporting_duration_months'] = duration
         result['reporting_policy'] = 'signing_date_plus_7_days_artist_approval'
+        result['review_mode'] = 'admin_held'
     return result
 
 
@@ -132,6 +133,9 @@ def compensation_summary(category, values):
                   'Calculation rules: ' + json.dumps(values.get('calculation', {}), sort_keys=True)]
         if values.get('calculation', {}).get('guarantee_scope'):
             lines.append('The minimum guarantee applies to EACH reporting period and offsets the calculated royalty: payable = max(guarantee, calculated royalty).')
+    if values.get('review_mode') == 'admin_held':
+        lines = [line for line in lines if 'seven days after' not in line and 'artist must approve' not in line and 'Automatic collection' not in line]
+        lines += ['Buyer reports are due seven days after the reporting period ends. Payment is due seven days after the report deadline (fourteen days after the period ends).', 'The buyer pays the server-calculated royalty through hosted checkout. Verified payments are held in the platform pending balance. A platform administrator verifies the evidence and releases funds to the artist wallet; the artist cannot self-approve release. Saved-method automatic collection is not used for these reports.']
     return '\n'.join(lines)
 
 

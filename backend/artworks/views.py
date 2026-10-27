@@ -9,8 +9,9 @@ from users.models import User
 from .models import Artwork, ArtworkReviewLog, ArtworkSimilarityMatch
 from .serializers import ArtworkSerializer
 from .tagging import generate_tags, validate_final_tags
+from .categories import CATEGORIES, validate_categories
 from django.db import IntegrityError, transaction
-from django.db.models import Avg, Q
+from django.db.models import Avg, Q, F
 from rest_framework.views import APIView
 from fulfillment.models import PurchaseReview
 from .hashing import (
@@ -32,7 +33,7 @@ from django.utils.dateparse import parse_datetime
 
 class ArtworkView(AuthenticatedAPIView):
     def get_permissions(self):
-        if self.request.method == "POST":
+        if self.request.method in ("POST", "PATCH"):
             return [IsArtist()]
         return [AllowAny()]
 
@@ -67,6 +68,7 @@ class ArtworkView(AuthenticatedAPIView):
                 Q(art_type="physical", payment_sessions__status="paid")
                 | Q(payment_sessions__status="paid", payment_sessions__agreement__exclusivity__in=["exclusive", "sole"])
                 | Q(auction_listings__status="SETTLED")
+                | (Q(provenance_listing__record__registered_at__isnull=False) & ~Q(provenance_listing__record__current_owner_id=F('artist_id')))
             )
             artworks = artworks.filter(status=Artwork.Status.APPROVED).exclude(sold_one_of_one).distinct()
 
@@ -75,9 +77,25 @@ class ArtworkView(AuthenticatedAPIView):
             context={"include_similarity": bool(user and user.role == User.Role.CREATIVE_MODERATOR)},
         ).data)
 
+    def patch(self, request, artwork_id=None):
+        user = self.get_request_user(request)
+        artwork = Artwork.objects.filter(pk=artwork_id, artist=user).first()
+        if not artwork:
+            return Response({'error': 'Artwork not found.'}, status=404)
+        if set(request.data) != {'categories'}:
+            return Response({'error': 'This action updates artwork categories only.'}, status=400)
+        try:
+            selected = validate_categories(request.data)
+        except ValueError as error:
+            return Response({'error': str(error)}, status=400)
+        artwork.categories = selected
+        artwork.category = CATEGORIES[selected[0]]['label']
+        artwork.save(update_fields=['categories', 'category', 'updated_at'])
+        return Response(ArtworkSerializer(artwork).data)
+
     def post(self, request):
         user = self.get_request_user(request)
-        required = ["title", "description", "category", "price", "image_data"]
+        required = ["title", "description", "price", "image_data"]
         missing = [field for field in required if not request.data.get(field)]
         if missing:
             return Response(
@@ -86,6 +104,7 @@ class ArtworkView(AuthenticatedAPIView):
             )
 
         try:
+            selected_categories = validate_categories(request.data)
             final_tags = validate_final_tags(
                 request.data.get("selected_ai_tags", []),
                 request.data.get("custom_tags", []),
@@ -243,7 +262,8 @@ class ArtworkView(AuthenticatedAPIView):
                 artist=user,
                 title=request.data["title"].strip(),
                 description=request.data["description"].strip(),
-                category=request.data["category"].strip(),
+                category=CATEGORIES[selected_categories[0]]['label'],
+                categories=selected_categories,
                 tags=final_tags,
                 price=listing_price,
                 hours=hours,
@@ -454,6 +474,8 @@ class ArtworkReviewView(AuthenticatedAPIView):
         # never undo a valid moderation decision; it is recorded for retry.
         blockchain_result = None
         if review_status == Artwork.Status.APPROVED and artwork.sha256_hash:
+            from blockchain.provenance import ensure_artwork
+            ensure_artwork(artwork)
             from django.conf import settings
             from django.utils import timezone
             from blockchain.models import BlockchainTransaction

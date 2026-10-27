@@ -1,18 +1,10 @@
+import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, FileText, MessageCircle } from "lucide-react-native";
 import { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, FlatList, SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type Row = {
   id: number;

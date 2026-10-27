@@ -1,6 +1,7 @@
+import { Text } from '@/components/Typography';
 import { CartItem } from '@/module/cart/types';
 import { ChevronDown, Handshake } from 'lucide-react-native';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {
   item: CartItem;

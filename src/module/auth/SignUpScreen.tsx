@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import API_URL from "@/services/api";
 import { loginUser, registerUser } from "@/services/auth";

@@ -54,6 +54,12 @@ class PurchasesView(AuthenticatedAPIView):
     def get(self, request):
         user = self.get_request_user(request)
         payments = PaymentSession.objects.filter(buyer=self.get_request_user(request)).select_related('artwork', 'artist', 'agreement', 'delivery_order__driver', 'review').order_by('-id')
+        from messaging.royalties import purchase_royalty_reminder
+        reminders = {}
+        def reminder(agreement):
+            if not agreement: return None
+            if agreement.pk not in reminders: reminders[agreement.pk] = purchase_royalty_reminder(agreement, user)
+            return reminders[agreement.pk]
         rows = []
         for p in payments:
             delivery = getattr(p, 'delivery_order', None)
@@ -67,6 +73,8 @@ class PurchasesView(AuthenticatedAPIView):
                          'purchase_date': p.paid_at or p.created_at, 'created_at': p.created_at, 'id': p.id, 'title': p.artwork.title, 'artist': p.artist.username,
                          'image': ('data:image/png;base64,' + base64.b64encode(bytes(p.artwork_png)).decode() if digital and p.artwork_png else p.artwork.image_data) if paid else None,
                          'is_simulated': p.is_simulated, 'status': p.status, 'amount': str(p.gross_amount), 'agreement_id': p.agreement_id, 'verification_code': p.verification_code,
+                         'royalty_reminder': reminder(p.agreement) if paid else None,
+                         'artwork_id': p.artwork_id,
                          'checkout_url': p.checkout_url if p.status == 'pending' else None,
                          'can_download': paid and digital, 'can_rate': paid and not review,
                          'certificate_code': certificate.code if certificate else None,
@@ -106,11 +114,15 @@ class PurchasesView(AuthenticatedAPIView):
                     'driver': None, 'delivery_address': c.locked_terms.get('delivery_address', ''), 'fee': str(c.locked_terms.get('delivery_fee', '0'))}
             completion_dates = [m.approved_at or m.paid_at for m in c.milestones.all() if m.milestone_number == 3 and (m.approved_at or m.paid_at)]
             purchase_date = max(completion_dates) if complete and completion_dates else c.funded_at or c.created_at
+            asset = getattr(c, 'asset', None)
+            provenance = getattr(asset, 'provenance_origin', None) if asset else None
             rows.append({'art_type': c.art_type.lower(), 'purchase_type': 'commission', 'is_auction': False,
+                'provenance_id': str(provenance.pk) if provenance else None,
                 'purchase_date': purchase_date, 'created_at': c.created_at, 'id': f'commission-{c.pk}', 'commission_id': c.pk, 'is_commission': True,
                 'title': c.title, 'artist': c.artist.username, 'image': image, 'is_simulated': False,
                 'status': 'paid' if complete else 'cancelled' if c.status == 'CANCELLED' else 'in_progress',
                 'commission_status': c.status, 'amount': str(c.time_duration), 'agreement_id': c.agreement_id,
+                'royalty_reminder': reminder(c.agreement),
                 'checkout_url': None, 'can_download': bool(complete and digital and (submission or image)),
                 'download_path': f'commissions/flow/{c.pk}/files/{submission.pk}/' if complete and digital and submission else None,
                 'download_filename': submission.filename if submission else None,

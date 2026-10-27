@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CalendarDays } from 'lucide-react-native';
 import type { CalendarDateFieldProps } from './calendarDateValue';

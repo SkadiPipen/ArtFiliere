@@ -30,6 +30,11 @@ class CommissionResaleView(AuthenticatedAPIView):
         if not user or asset.owner_id != user.pk: raise PermissionDenied('Only the current asset owner may list it.')
         if not asset.license_terms.get('allow_resale'): raise Conflict('This commission license does not permit resale.')
         if not license_active(asset): raise Conflict('The original license has expired.')
+        if asset.license_terms.get('exclusivity') == 'exclusive':
+            from blockchain.provenance import ensure_commission
+            provenance = ensure_commission(asset)
+            if not provenance.registered_at or provenance.current_owner_id != user.pk or provenance.events.filter(kind='transfer').exclude(status='confirmed').exists():
+                raise Conflict('Wait for confirmed blockchain ownership before listing this exclusive asset.')
         if asset.resales.filter(payment__isnull=True).exclude(artwork__status='declined').exists(): raise Conflict('An active resale listing already exists.')
         price = money(request.data.get('price'))
         if price <= 0: raise Conflict('Set a positive listing price.')
@@ -47,6 +52,8 @@ class CommissionResaleView(AuthenticatedAPIView):
         artwork = Artwork.objects.create(artist=user, title=asset.commission.title, description=f'Licensed resale of commission #{asset.commission_id}. Original artist: {asset.original_artist.username}.',
             category='Commission resale', price=price, art_type=asset.commission.art_type.lower(), image_data='data:image/jpeg;base64,' + base64.b64encode(output.getvalue()).decode(), status='pending', sale_type='DIRECT')
         CommissionResale.objects.create(asset=asset, seller=user, artwork=artwork)
+        from blockchain.provenance import ensure_artwork
+        ensure_artwork(artwork)
         return Response({'artwork_id': artwork.pk, 'status': 'pending'}, status=201)
 
 
@@ -73,7 +80,8 @@ def allocate_royalty(payment):
         wallet = WalletAccount.objects.select_for_update().get(pk=wallet.pk)
         wallet.pending_balance += amount; wallet.save()
         CommissionLedger.objects.create(commission=asset.commission, reference=f'resale-{payment.pk}-royalty-held', kind='ROYALTY_HELD', amount=amount)
-    asset.owner = payment.buyer; asset.save(update_fields=['owner'])
+    if asset.license_terms.get('exclusivity') != 'exclusive':
+        asset.owner = payment.buyer; asset.save(update_fields=['owner'])
 
 
 def settle_royalty(payment, refund=False):
@@ -85,7 +93,7 @@ def settle_royalty(payment, refund=False):
         if not refund: wallet.available_balance += resale.royalty_amount
         wallet.save()
         CommissionLedger.objects.create(commission=resale.asset.commission, reference=f'resale-{payment.pk}-royalty-settled', kind='ROYALTY_REFUNDED' if refund else 'ROYALTY_AVAILABLE', amount=resale.royalty_amount)
-    if refund:
+    if refund and resale.asset.license_terms.get('exclusivity') != 'exclusive':
         resale.asset.owner = resale.seller; resale.asset.save(update_fields=['owner'])
     resale.settled_at = timezone.now(); resale.save()
     if not refund and resale.royalty_amount:

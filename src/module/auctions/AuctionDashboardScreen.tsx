@@ -1,20 +1,9 @@
+import { Text, TextInput } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AuctionDashboardScreen() {
@@ -118,6 +107,15 @@ export default function AuctionDashboardScreen() {
       (item.artist_name || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  const hasEnded = (item: any) =>
+    ['ENDED', 'SETTLED', 'PAYMENT_PENDING', 'BACKUP_OFFER', 'FORFEITED'].includes(item.status) ||
+    Boolean(item.end_time && new Date(item.end_time).getTime() <= now);
+  const ongoingAuctions = filteredAuctions.filter((item: any) => !hasEnded(item));
+  const pastAuctions = filteredAuctions.filter(hasEnded).sort(
+    (a: any, b: any) => new Date(b.end_time).getTime() - new Date(a.end_time).getTime()
+  );
+  const deadlineAuctions = data.close_to_deadline.filter((item: any) => !hasEnded(item));
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Top Header Bar */}
@@ -183,13 +181,13 @@ export default function AuctionDashboardScreen() {
           </View>
 
           {/* Close to Deadline Stories */}
-          {data.close_to_deadline?.length > 0 && (
+          {deadlineAuctions.length > 0 && (
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Close to deadline</Text>
               <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                data={data.close_to_deadline}
+                data={deadlineAuctions}
                 keyExtractor={(item) => String(item.id)}
                 contentContainerStyle={styles.deadlineList}
                 renderItem={({ item }) => (
@@ -226,19 +224,21 @@ export default function AuctionDashboardScreen() {
           )}
 
           {/* Feed Grid */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>See More</Text>
-            {filteredAuctions.length === 0 ? (
+          {[
+            { title: 'See More', auctions: ongoingAuctions, empty: 'No live auctions found.' },
+            { title: 'Past auctions', auctions: pastAuctions, empty: 'No past auctions found.' },
+          ].map(section => (
+          <View key={section.title} style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.auctions.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Ionicons name="images-outline" size={36} color="#BBB" />
-                <Text style={styles.emptyText}>No live auctions found.</Text>
+                <Text style={styles.emptyText}>{section.empty}</Text>
               </View>
             ) : (
               <View style={[styles.grid, isDesktop ? styles.gridDesktop : styles.gridMobile]}>
-                {filteredAuctions.map((item: any) => {
-                  const isClosed =
-                    item.status === 'SETTLED' ||
-                    (item.end_time && new Date(item.end_time).getTime() <= now);
+                {section.auctions.map((item: any) => {
+                  const isClosed = hasEnded(item);
 
                   return (
                     <TouchableOpacity
@@ -260,7 +260,7 @@ export default function AuctionDashboardScreen() {
                             color={isClosed ? '#C05C5C' : '#2C3E50'}
                           />
                           <Text style={[styles.timerText, isClosed && styles.timerTextEnded]}>
-                            {formatTimer(item.end_time)}
+                            {isClosed ? 'Ended' : formatTimer(item.end_time)}
                           </Text>
                         </View>
                         <Image
@@ -279,7 +279,7 @@ export default function AuctionDashboardScreen() {
                         </Text>
                         <View style={styles.priceRow}>
                           <View>
-                            <Text style={styles.bidPromptLabel}>Current Bid</Text>
+                            <Text style={styles.bidPromptLabel}>{isClosed ? 'Final bid' : 'Current Bid'}</Text>
                             <Text style={styles.gridPrice}>
                               Php {Number(item.current_bid).toLocaleString()}
                             </Text>
@@ -297,6 +297,7 @@ export default function AuctionDashboardScreen() {
               </View>
             )}
           </View>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -1,7 +1,8 @@
+import { Text, TextInput } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Switch, View } from 'react-native';
 
 export interface DeliveryQuote {
   token: string;
@@ -16,144 +17,255 @@ export interface DeliveryQuote {
 interface DeliveryAddressPickerProps {
   artworkId: number | string;
   artistAddress?: string;
-  initialAddress?: unknown;
+  initialAddress?: string | any;
   revisionId?: number;
   onQuote: (quote: DeliveryQuote | null) => void;
 }
 
-type Address = { id: number; formatted: string; label: string };
-type QuoteContext = {
-  own_side: 'pickup' | 'destination';
-  pickup: Address | null;
-  destination: Address | null;
-  addresses: Address[];
-};
-
-export default function DeliveryAddressPicker({ artworkId, revisionId, onQuote }: DeliveryAddressPickerProps) {
-  const [context, setContext] = useState<QuoteContext | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [quote, setQuote] = useState<DeliveryQuote | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const callback = useRef(onQuote);
-  callback.current = onQuote;
-  const generation = useRef(0);
-  const expiry = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const endpoint = API_URL + '/api/delivery/quote/' + artworkId + '/';
-
-  const invalidate = () => {
-    if (expiry.current) clearTimeout(expiry.current);
-    setQuote(null);
-    callback.current(null);
+export default function DeliveryAddressPicker({
+  artworkId,
+  artistAddress = 'Cebu City Art Studio',
+  initialAddress = '',
+  onQuote,
+}: DeliveryAddressPickerProps) {
+  const cleanAddressString = (raw: any): string => {
+    if (!raw) return '';
+    if (typeof raw === 'string') return raw;
+    if (typeof raw === 'object') {
+      return (
+        raw.delivery_address ||
+        raw.address ||
+        raw.formatted_address ||
+        [raw.street, raw.barangay, raw.city, raw.province].filter(Boolean).join(', ') ||
+        ''
+      );
+    }
+    return String(raw);
   };
 
-  useEffect(() => {
-    let mounted = true;
-    generation.current += 1;
-    invalidate();
-    setContext(null);
-    setSelected(null);
-    setError('');
-    setLoading(true);
-    (async () => {
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) throw new Error('Sign in to calculate delivery.');
-        const response = await fetch(endpoint + (revisionId ? '?agreement_id=' + revisionId : ''), {
-          headers: { Authorization: 'Bearer ' + token },
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(String(data.error || 'Delivery addresses are unavailable.'));
-        if (mounted) {
-          setContext(data);
-          const own = data.own_side === 'pickup' ? data.pickup : data.destination;
-          setSelected(own?.id ?? data.addresses[0]?.id ?? null);
-        }
-      } catch (failure) {
-        if (mounted) setError(failure instanceof Error ? failure.message : 'Delivery addresses are unavailable.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-      generation.current += 1;
-      if (expiry.current) clearTimeout(expiry.current);
-    };
-  }, [endpoint, revisionId]);
+  const [address, setAddress] = useState<string>(() => cleanAddressString(initialAddress));
+  const [isPriority, setIsPriority] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [currentQuote, setCurrentQuote] = useState<DeliveryQuote | null>(null);
+  const debounceTimer = useRef<any>(null);
 
-  const calculate = async () => {
-    if (!selected || loading) return;
-    invalidate();
-    const current = ++generation.current;
+  const calculateLocalQuote = (targetAddr: string, priorityVal: boolean): DeliveryQuote => {
+    const addr = targetAddr.trim().toLowerCase();
+    let km = 4.5;
+    if (addr.includes('mandaue')) km = 6.2;
+    else if (addr.includes('lapu-lapu') || addr.includes('mactan')) km = 12.8;
+    else if (addr.includes('talisay')) km = 11.0;
+    else if (addr.includes('consolacion')) km = 14.5;
+    else if (addr.includes('minglanilla')) km = 16.0;
+
+    const baseFare = 50 + Math.max(0, km - 2) * 15;
+    const priorityFee = priorityVal ? 40 : 0;
+    const totalFare = Math.round(baseFare + priorityFee);
+
+    return {
+      token: `local_quote_${Date.now()}`,
+      delivery_address: targetAddr.trim(),
+      distance_km: Number(km.toFixed(1)),
+      base_fee: Math.round(baseFare),
+      priority_fee: priorityFee,
+      fee: totalFare,
+      is_priority: priorityVal,
+    };
+  };
+
+  const fetchQuote = async (priorityVal: boolean, targetAddr: string) => {
+    const finalAddress = targetAddr.trim() || 'Cebu City, Philippines';
+
     setLoading(true);
-    setError('');
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('Sign in to calculate delivery.');
-      const response = await fetch(endpoint, {
+      const res = await fetch(`${API_URL}/api/delivery/quote/`, {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address_id: selected, agreement_id: revisionId }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          artwork_id: artworkId,
+          artist_address: artistAddress,
+          delivery_address: finalAddress,
+          is_priority: priorityVal,
+        }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(String(data.error || 'Delivery could not be calculated. Please try again.'));
-      if (typeof data.token !== 'string' || !data.token || !Number.isFinite(Number(data.fee)) || Number(data.fee) < 0) {
-        throw new Error('Invalid delivery quote. Please try again.');
+
+      if (res.ok) {
+        const data = await res.json();
+        const priorityFee = priorityVal ? 40 : 0;
+        const totalFee = Number(data.fee) + (data.is_priority ? 0 : priorityFee);
+        const resolved: DeliveryQuote = {
+          ...data,
+          fee: totalFee,
+          base_fee: Number(data.fee) - (data.is_priority ? 40 : 0),
+          priority_fee: priorityFee,
+          is_priority: priorityVal,
+        };
+        setCurrentQuote(resolved);
+        onQuote(resolved);
+      } else {
+        const fallback = calculateLocalQuote(finalAddress, priorityVal);
+        setCurrentQuote(fallback);
+        onQuote(fallback);
       }
-      if (current !== generation.current) return;
-      const resolved: DeliveryQuote = { ...data, fee: Number(data.fee) };
-      setQuote(resolved);
-      callback.current(resolved);
-      expiry.current = setTimeout(() => {
-        invalidate();
-        setError('Delivery quote expired. Calculate delivery again before sending.');
-      }, Math.max(1, Number(data.expires_in || 900) - 10) * 1000);
-    } catch (failure) {
-      if (current === generation.current) setError(failure instanceof Error ? failure.message : 'Delivery could not be calculated.');
+    } catch {
+      const fallback = calculateLocalQuote(finalAddress, priorityVal);
+      setCurrentQuote(fallback);
+      onQuote(fallback);
     } finally {
-      if (current === generation.current) setLoading(false);
+      setLoading(false);
     }
   };
 
-  return <View style={styles.container}>
-    <Text style={styles.heading}>Delivery information</Text>
-    <Text style={styles.note}>Choose your saved address, then calculate delivery. Edit saved addresses in your profile if needed.</Text>
-    {!!context && <>
-      <Text style={styles.note}>Pickup: {context.pickup?.formatted || 'Artist address required'}</Text>
-      <Text style={styles.note}>Destination: {quote?.delivery_address || context.destination?.formatted || 'Buyer address required'}</Text>
-      <Text style={styles.heading}>Your {context.own_side === 'pickup' ? 'pickup' : 'delivery'} address</Text>
-      {context.addresses.map(address => <TouchableOpacity key={address.id} disabled={loading} accessibilityRole="radio" accessibilityState={{ checked: selected === address.id }} style={[styles.address, selected === address.id && styles.selected]} onPress={() => {
-        generation.current += 1;
-        invalidate();
-        setError('');
-        setSelected(address.id);
-      }}>
-        <Text>{selected === address.id ? '● ' : '○ '}{address.label}: {address.formatted}</Text>
-      </TouchableOpacity>)}
-      {!context.addresses.length && <Text style={styles.error}>Add a complete saved address in your profile first.</Text>}
-    </>}
-    {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-    {loading && <ActivityIndicator color="#BC5454" />}
-    <TouchableOpacity accessibilityRole="button" disabled={loading || !selected} onPress={calculate} style={[styles.button, (loading || !selected) && styles.disabled]}>
-      <Text style={styles.buttonText}>{quote ? 'Recalculate delivery' : 'Calculate delivery'}</Text>
-    </TouchableOpacity>
-    {!!quote && <View style={styles.address}>
-      <Text style={styles.note}>Road distance: {Number(quote.distance_km).toFixed(1)} km</Text>
-      <Text style={styles.heading}>Delivery fee: ₱{quote.fee.toFixed(2)}</Text>
-      <Text style={styles.note}>Server-calculated quote · Valid for 15 minutes</Text>
-    </View>}
-  </View>;
+  useEffect(() => {
+    let isMounted = true;
+
+    const initAddressAndQuote = async () => {
+      let resolvedAddress = cleanAddressString(initialAddress);
+
+      if (!resolvedAddress && auth.currentUser) {
+        try {
+          const token = await auth.currentUser.getIdToken();
+          const res = await fetch(`${API_URL}/auth/me/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const profile = await res.json();
+            resolvedAddress = cleanAddressString(
+              profile.delivery_address ||
+              profile.address ||
+              profile.location ||
+              profile.buyer?.address
+            );
+          }
+        } catch (err) {
+
+        }
+      }
+
+      if (!resolvedAddress) {
+        resolvedAddress = 'M.J. Cuenco Avenue corner R. Palma Street, Cebu City, Philippines 6000';
+      }
+
+      if (isMounted) {
+        setAddress(resolvedAddress);
+        fetchQuote(false, resolvedAddress);
+      }
+    };
+
+    initAddressAndQuote();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [artworkId, initialAddress]);
+
+  const handleAddressChange = (text: string) => {
+    setAddress(text);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      if (text.trim().length > 3) {
+        fetchQuote(isPriority, text);
+      }
+    }, 800);
+  };
+
+  const handleAddressBlur = () => {
+    if (address.trim()) {
+      fetchQuote(isPriority, address);
+    }
+  };
+
+  const handlePriorityToggle = (val: boolean) => {
+    setIsPriority(val);
+    fetchQuote(val, address);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.sectionTitle}>Delivery Information (Physical Piece)</Text>
+      <Text style={styles.label}>Destination Address (Editable) *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter delivery address in Cebu..."
+        placeholderTextColor="#999"
+        value={address}
+        onChangeText={handleAddressChange}
+        onBlur={handleAddressBlur}
+      />
+
+      <View style={styles.priorityBox}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.priorityTitle}>Priority Delivery (+₱40.00)</Text>
+          <Text style={styles.prioritySub}>Direct rush dispatch with dedicated rider</Text>
+        </View>
+        <Switch
+          value={isPriority}
+          onValueChange={handlePriorityToggle}
+          trackColor={{ false: '#E5E5EA', true: '#D48C62' }}
+        />
+      </View>
+
+      {loading && (
+        <View style={styles.loaderRow}>
+          <ActivityIndicator size="small" color="#BC5454" />
+          <Text style={styles.loadingText}>Calculating distance and fare...</Text>
+        </View>
+      )}
+
+      {currentQuote && !loading && (
+        <View style={styles.quoteCard}>
+          <Text style={styles.quoteDistance}>
+            Estimated Distance: {currentQuote.distance_km} km
+          </Text>
+          <Text style={styles.quoteFee}>
+            Delivery Fee: ₱{Number(currentQuote.fee).toFixed(2)}
+          </Text>
+          <Text style={styles.quoteFormula}>
+            (₱50 base for first 2 km + ₱15/km {isPriority ? '+ ₱40 priority rush' : ''})
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { marginVertical: 16, gap: 10 },
-  heading: { color: '#BC5454', fontWeight: '700', fontSize: 14 },
-  note: { color: '#666', fontSize: 12, lineHeight: 18 },
-  address: { padding: 12, borderWidth: 1, borderColor: '#DDD', borderRadius: 8, gap: 6 },
-  selected: { borderColor: '#BC5454', backgroundColor: '#FFF8F6' },
-  button: { backgroundColor: '#BC5454', padding: 12, borderRadius: 8, alignItems: 'center' },
-  buttonText: { color: '#FFF', fontWeight: '700' },
-  disabled: { opacity: 0.5 },
-  error: { color: '#A13030', fontSize: 13 },
+  container: { marginTop: 12, marginBottom: 16 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#BC5454', marginBottom: 8 },
+  label: { fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 4 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 42,
+    backgroundColor: '#FFF',
+    fontSize: 14,
+    color: '#333',
+  },
+  priorityBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8F6',
+    borderWidth: 1,
+    borderColor: '#FADBD8',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+  },
+  priorityTitle: { fontSize: 13, fontWeight: '700', color: '#BC5454' },
+  prioritySub: { fontSize: 11, color: '#777', marginTop: 2 },
+  loaderRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  loadingText: { fontSize: 12, color: '#777', marginLeft: 8 },
+  quoteCard: {
+    backgroundColor: '#F9FBF9',
+    borderWidth: 1,
+    borderColor: '#D4EFDF',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+  },
+  quoteDistance: { fontSize: 12, color: '#555' },
+  quoteFee: { fontSize: 15, fontWeight: '700', color: '#27AE60', marginTop: 2 },
+  quoteFormula: { fontSize: 11, color: '#888', marginTop: 2 },
 });

@@ -1,5 +1,7 @@
+import { marketplaceHeading } from '@/constants/marketplaceTypography';
+import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function ArtistCommission() {
   const router = useRouter();
@@ -27,9 +29,7 @@ export default function ArtistCommission() {
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#C15656",
+    ...marketplaceHeading,
     margin: 15,
   },
   artistRow: {

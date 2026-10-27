@@ -23,7 +23,7 @@ class AuctionSigningTests(TestCase):
         self.buyer = User.objects.create(username='auction-winner', firebase_uid='auction-winner', email='auction-winner@example.com', role='buyer')
         self.template = AgreementTemplate.objects.create(name='Signed auction test', body='Artist: {{artist_name}}\nBuyer: {{buyer_name}}\nAmount: {{amount}}\n\nFixed platform terms.')
         self.factory = APIRequestFactory()
-        self.payload = {'title':'Signed portrait', 'description':'Original portrait made for this auction', 'category':'Portrait', 'price':'100', 'starting_bid':'100', 'image_data':image_data_url(), 'sale_type':'Auction', 'art_type':'digital', 'bid_increment':'10',
+        self.payload = {'title':'Signed portrait', 'description':'Original portrait made for this auction', 'category':'Painting', 'categories':['painting'], 'price':'100', 'starting_bid':'100', 'image_data':image_data_url(), 'sale_type':'Auction', 'art_type':'digital', 'bid_increment':'10',
                         'starting_time':(timezone.now()+timezone.timedelta(days=1)).isoformat(), 'end_time':(timezone.now()+timezone.timedelta(days=2)).isoformat(),
                         'auction_agreement_template_id':self.template.pk, 'auction_terms':self.template.body, 'auction_terms_confirmed':True,
                         'auction_license_type':'personal', 'auction_exclusivity':'non_exclusive', 'auction_delivery_type':'digital'}
@@ -39,6 +39,16 @@ class AuctionSigningTests(TestCase):
         response = self.call(ArtworkView, self.artist, payload)
         self.assertEqual(response.status_code, 201, response.data)
         return AuctionListing.objects.get(), document, payload
+
+    def test_preview_endpoint_returns_full_signable_document_for_each_delivery_type(self):
+        import hashlib
+        for delivery in ('physical', 'digital'):
+            with self.subTest(delivery=delivery):
+                response = self.call(AuctionAgreementPreviewView, self.artist, {**self.payload, 'art_type':delivery, 'auction_delivery_type':delivery})
+                self.assertEqual(response.status_code, 200, response.data)
+                self.assertIn('ART LICENSING AGREEMENT', response.data['document'])
+                self.assertIn('Signed portrait', response.data['document'])
+                self.assertEqual(response.data['document_hash'], hashlib.sha256(response.data['document'].encode()).hexdigest())
 
     def test_artist_must_review_current_document_and_sign_before_request(self):
         self.assertEqual(self.call(ArtworkView, self.artist, self.payload).status_code, 400)

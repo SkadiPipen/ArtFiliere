@@ -53,7 +53,7 @@ class LifecycleTests(TestCase):
         result = self.flow(self.artist, c, 'accept', version=1)
         self.assertEqual(result.status_code, 200, result.data)
         c.refresh_from_db()
-        for user in (self.buyer, self.artist):
+        for user in (self.artist, self.buyer):
             c.agreement.refresh_from_db()
             document = signing_data(c.agreement, user)
             result = self.call(user, f'/api/users/contracts/{c.agreement_id}/sign/', {
@@ -352,7 +352,7 @@ class LifecycleTests(TestCase):
         from notifications.models import UserNotification
         driver = User.objects.create(username='commission-driver', email='driver@example.com', firebase_uid='commission-driver', role='rider')
         other_driver = User.objects.create(username='commission-driver2', email='driver2@example.com', firebase_uid='commission-driver2', role='driver')
-        RiderProfile.objects.create(user=driver, is_clocked_in=True)
+        RiderProfile.objects.create(user=driver, is_clocked_in=True, clock_in_time=timezone.now())
         c, m = self.physical_ready_to_dispatch()
         self.assertEqual(self.flow(self.artist, c, 'request_pickup', milestone_id=m.pk).status_code, 409)
         self.assertEqual(self.flow(self.artist, c, 'ready_delivery', milestone_id=m.pk).status_code, 403)

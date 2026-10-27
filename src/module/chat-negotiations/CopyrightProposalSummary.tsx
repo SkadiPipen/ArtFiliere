@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { Text } from '@/components/Typography';
+import { View } from 'react-native';
 import InfoAccordion from './InfoAccordion';
 import { assignmentRights, type CopyrightTransfer } from './CopyrightTransferFields';
 

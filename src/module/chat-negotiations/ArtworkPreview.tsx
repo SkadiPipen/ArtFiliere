@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { ImageIcon } from 'lucide-react-native';
 
 export default function ArtworkPreview({ uri, title }: { uri?: string | null; title: string }) {

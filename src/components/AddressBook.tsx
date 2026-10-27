@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import { getDriverPosition } from '@/services/driverLocation';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { purchaseRequest } from '@/services/purchases';
 
 const fields = ['label', 'street', 'barangay', 'city', 'province', 'region', 'postal_code'] as const;

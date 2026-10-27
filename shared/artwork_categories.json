@@ -1,0 +1,19 @@
+{
+  "max_categories": 5,
+  "source": "https://www.getty.edu/publications/vocabularies-editorial-guidelines/cona-guidelines/3_editorial_rules/3.6_fields/3.6.1/",
+  "categories": [
+    {"id":"painting","label":"Painting","description":"Paint-based works, including oil, acrylic and watercolor.","aliases":["paintings","oil painting","acrylic painting","watercolor","watercolour","oil on canvas","acrylic"]},
+    {"id":"drawing","label":"Drawing","description":"Works made with pencil, charcoal, ink or similar drawing tools.","aliases":["drawings","sketch","sketches","pencil drawing","charcoal drawing","ink drawing"]},
+    {"id":"photography","label":"Photography","description":"Photographic works, whether captured digitally or on film.","aliases":["photograph","photographs","photo","photos"]},
+    {"id":"print","label":"Print","description":"Printmaking works such as etchings, engravings, screenprints and woodcuts.","aliases":["prints","printmaking","etching","engraving","screenprint","woodcut"]},
+    {"id":"sculpture","label":"Sculpture","description":"Three-dimensional works that are carved, modeled, cast or assembled.","aliases":["sculptures","statue","bust","relief sculpture"]},
+    {"id":"illustration","label":"Illustration","description":"Images made to interpret a story, concept or subject, in any medium.","aliases":["illustrations","book illustration","editorial illustration"]},
+    {"id":"collage","label":"Collage","description":"Works assembled from pieces of paper, photographs or other flat materials.","aliases":["collages","paper collage"]},
+    {"id":"mixed_media","label":"Mixed Media","description":"Works intentionally combining two or more distinct media.","aliases":["mixed media work","mixed media works","mixed-media"]},
+    {"id":"digital_art","label":"Digital Art","description":"Works created or substantially composed using digital tools.","aliases":["digital artwork","computer art","digital painting"]},
+    {"id":"graphic_design","label":"Graphic Design","description":"Visual communication works such as posters, typography and layout design.","aliases":["graphic designs","poster design","typography"]},
+    {"id":"textile_art","label":"Textile Art","description":"Artworks made with fibers or fabric, including weaving and embroidery.","aliases":["textile","textiles","fiber art","fibre art","tapestry","embroidery"]},
+    {"id":"ceramic_art","label":"Ceramic Art","description":"Artworks shaped from clay and hardened by firing.","aliases":["ceramics","ceramic","pottery"]},
+    {"id":"other_visual_art","label":"Other Visual Art","description":"Use only when none of the listed work types accurately describes the work; explain the type in your description.","aliases":[]}
+  ]
+}

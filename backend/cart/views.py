@@ -10,12 +10,37 @@ from wallets.models import PaymentSession
 
 
 def payload(cart):
+    paid_artworks = PaymentSession.objects.filter(buyer=cart.buyer, status='paid').values_list('artwork_id', flat=True)
     return {"cart_id": cart.pk, "items": [{
         "id": str(item.pk), "artworkId": str(item.listing_id),
         "artistName": item.listing.artist.username, "title": item.listing.title,
         "price": str(item.listing.price), "type": item.listing.category.split(" \u00b7 ")[0],
         "image": item.listing.image_data, "quantity": item.quantity,
-    } for item in cart.items.select_related("listing__artist").order_by("cart_item_id")]}
+    } for item in cart.items.exclude(listing_id__in=paid_artworks).select_related("listing__artist").order_by("cart_item_id")]}
+
+
+class CartContractView(AuthenticatedAPIView):
+    permission_classes = [IsAuthenticatedUser]
+
+    @transaction.atomic
+    def delete(self, request, agreement_id):
+        from django.utils import timezone
+        user = self.get_request_user(request)
+        candidate = Agreement.objects.filter(pk=agreement_id, buyer=user).first()
+        if not candidate:
+            return Response({'error': 'Agreement not found.'}, status=404)
+        if candidate.artwork_id:
+            Artwork.objects.select_for_update().get(pk=candidate.artwork_id)
+        agreement = Agreement.objects.select_for_update().get(pk=candidate.pk)
+        if PaymentSession.objects.filter(agreement=agreement, status__in=['pending', 'paid']).exists():
+            return Response({'error': 'Resolve the active payment before removing this agreement.'}, status=409)
+        agreement.status = Agreement.Status.CANCELLED; agreement.closure_reason = 'cancelled'
+        agreement.cancelled_by = user; agreement.cancelled_at = timezone.now(); agreement.save()
+        Conversation.objects.filter(pk=agreement.conversation_id).update(status=Conversation.Status.CANCELLED)
+        CartItem.objects.filter(cart__buyer=user, listing_id=agreement.artwork_id).delete()
+        from messaging.notifications import notify_negotiation
+        notify_negotiation(agreement, user, 'cancelled')
+        return Response({'removed': True})
 
 
 def quantity(data):

@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, StyleSheet, View } from "react-native";
 
 type ToastType = "success" | "error";
 

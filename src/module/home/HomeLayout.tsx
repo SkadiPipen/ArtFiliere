@@ -1,19 +1,14 @@
 import BottomNavBar from "@/module/home/components/BottomNavbar";
 import WebSidebar from "@/module/home/components/WebSidebar";
-import { Stack, usePathname } from "expo-router";
-import { useEffect, useState } from "react";
+import { Stack } from "expo-router";
 import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 
 export default function HomeLayout() {
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === 'web' && width >= 768;
-  const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(true);
-  const compact = collapsed;
-  useEffect(() => { setCollapsed(true); }, [pathname]);
   return (
     <View style={[styles.container, desktop && { flexDirection: 'row' }]}>
-      {desktop && <WebSidebar compact={compact} onToggle={() => setCollapsed(!compact)} />}
+      {desktop && <WebSidebar />}
       <View style={styles.content}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />

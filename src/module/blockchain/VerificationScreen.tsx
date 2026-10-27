@@ -1,8 +1,9 @@
+import { Text, TextInput } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { router } from 'expo-router';
 import { ShieldCheck } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Result = { verified: boolean; record_type?: string; message: string };
 
@@ -41,8 +42,9 @@ export default function VerificationScreen() {
           {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Verify record</Text>}
         </TouchableOpacity>
         {result && <View style={[styles.result, result.verified ? styles.verified : styles.notVerified]}>
-          <Text style={styles.resultTitle}>{result.verified ? '✓ Verified by ArtFiliere' : 'Not verified'}</Text>
+          <Text style={styles.resultTitle}>{result.verified ? '✓ Blockchain record confirmed' : 'Not verified'}</Text>
           <Text style={styles.resultBody}>{result.message}</Text>
+          <Text style={styles.resultBody}>A blockchain record does not automatically prove authorship, transfer copyright, or prevent external copying. The signed sale terms define the ownership entitlement.</Text>
         </View>}
       </View>
     </View>

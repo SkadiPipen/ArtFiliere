@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
 import * as DocumentPicker from 'expo-document-picker';
 import { auth } from '@/firebase/config';
@@ -5,7 +6,7 @@ import { signOut } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Flag, RefreshCw, ShieldCheck } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Report = { id: number; title: string; category: string; description: string; evidence: string; links: string[]; attachments: { id: number; name: string; size: number }[]; status: string; reporter: string; reported_user?: string; reported_user_id?: number; payment_id?: number; resolution: string };

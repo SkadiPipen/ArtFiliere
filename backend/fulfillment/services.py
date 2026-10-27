@@ -5,7 +5,6 @@ from PIL import Image, ImageOps
 from notifications.models import UserNotification
 from users.models import ActivityLog
 from .models import DeliveryOrder, DeliveryRoute
-from delivery.views import create_delivery_and_notify_driver_order
 
 
 def physical(artwork):
@@ -84,32 +83,9 @@ def fulfill_payment(payment):
     elif artwork and 'physical' in str(getattr(artwork, 'art_type', '')).lower():
         is_physical = True
 
-    # Physical Dispatch to Rider
+    # Paid physical shop purchases use the same verified driver queue as commissions.
     if is_physical:
-        info = (agreement.delivery_details if agreement else {}) or {}
-        
-        # Resolve destination address safely
-        buyer_addr = getattr(payment.buyer, 'address', None)
-        if not buyer_addr and hasattr(payment.buyer, 'profile'):
-            buyer_addr = getattr(payment.buyer.profile, 'address', None)
-        
-        dest_addr = info.get('delivery_address') or buyer_addr or 'Cebu City'
-        dist_km = float(info.get('distance_km', 5.0))
-        is_prio = bool(info.get('is_priority', False))
-
-        create_delivery_and_notify_driver_order(
-            payment=payment,
-            buyer_id=payment.buyer.id,
-            address=str(dest_addr),
-            payment_method=str(getattr(payment, 'payment_method', 'PAYPAL')),
-            artwork_title=artwork_title,
-            price=float(getattr(payment, 'gross_amount', 0.0) or 0.0),
-            is_physical=True,
-            is_priority=is_prio,
-            distance_km=dist_km,
-            delivery_coords=info.get('delivery_coordinates'),
-            pickup_coords=info.get('pickup_coordinates'),
-        )
+        ensure_shop_delivery(payment)
     else:
         # Digital Asset Access Grant (Unlock download)
         if artwork and hasattr(artwork, 'unlocked_by'):
@@ -145,3 +121,45 @@ def fulfill_payment(payment):
             title='Test sale - no money charged' if is_simulated else 'Artwork sold',
             message=artist_msg
         )
+
+
+def ensure_shop_delivery(payment, *, notify=True):
+    """Idempotent dispatch using agreed addresses and fees, with no guessed coordinates."""
+    from django.utils import timezone
+    from .routing import pinned_coordinates
+    from .addresses import address_data
+    from users.models import User
+    from authentication.services import account_access
+    if payment.status != 'paid':
+        raise ValueError('Only verified paid purchases can be dispatched.')
+    agreement = payment.agreement
+    details = dict((agreement.delivery_details if agreement else {}) or {})
+    pickup = details.get('pickup_address') or full_address(payment.artist)
+    destination = details.get('delivery_address') or full_address(payment.buyer)
+    for side, owner, address_text in [('pickup', payment.artist, pickup), ('delivery', payment.buyer, destination)]:
+        snapshot = details.get(f'{side}_snapshot')
+        if not snapshot:
+            for address in owner.addresses.all():
+                candidate = address_data(address)
+                formatted = ', '.join(str(candidate.get(f, '')).strip() for f in ('street', 'barangay', 'city', 'province', 'region', 'postal_code'))
+                if formatted.casefold() == address_text.casefold():
+                    snapshot = candidate; details[f'{side}_snapshot'] = snapshot; break
+        point = pinned_coordinates(snapshot)
+        existing = details.get(f'{side}_coordinates')
+        if point:
+            details[f'{side}_coordinates'] = point
+        elif not (isinstance(existing, (list, tuple)) and len(existing) == 2 and all(isinstance(v, (int, float)) for v in existing) and -180 <= existing[0] <= 180 and -90 <= existing[1] <= 90):
+            details[f'{side}_coordinates'] = None
+    details['location_validation_version'] = 2
+    order, created = DeliveryOrder.objects.get_or_create(payment=payment, defaults={
+        'pickup_address': pickup, 'delivery_address': destination,
+        'fee': agreement.delivery_fee if agreement else Decimal('0'),
+        'route_details': details, 'timeline': {'pending': timezone.now().isoformat()},
+    })
+    if created and notify:
+        for driver in User.objects.filter(role__in=['driver', 'rider'], rider_profile__is_clocked_in=True):
+            access = account_access(driver)
+            if not access['banned'] and not access['suspended']:
+                UserNotification.objects.create(user=driver, artwork=payment.artwork,
+                    title='Artwork pickup available', message=f'{payment.artwork.title}: Open Delivery Requests to accept.')
+    return order

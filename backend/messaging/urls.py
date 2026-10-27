@@ -1,3 +1,4 @@
+from .royalty_funding import RoyaltyCheckoutView, RoyaltyAdminReviewView
 from django.urls import path
 
 from .views import DirectMessageView, ConversationView, ConversationMessageView, AgreementView, AgreementTemplateAdminView
@@ -10,6 +11,9 @@ from .royalties import RoyaltyReportsView, RoyaltyEvidenceView
 from .royalty_payments import RoyaltyMandateView, royalty_payment_webhook
 
 urlpatterns = [
+    path('royalties/admin/reports/', RoyaltyAdminReviewView.as_view()),
+    path('royalties/admin/reports/<int:period_id>/', RoyaltyAdminReviewView.as_view()),
+    path('royalties/periods/<int:period_id>/payment/', RoyaltyCheckoutView.as_view()),
     path('royalties/', RoyaltyReportsView.as_view()),
     path('royalties/periods/<int:period_id>/', RoyaltyReportsView.as_view()),
     path('royalties/periods/<int:period_id>/evidence/<int:index>/', RoyaltyEvidenceView.as_view()),

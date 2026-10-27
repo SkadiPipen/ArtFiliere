@@ -1,14 +1,16 @@
 from django.urls import path
 from . import views
-from fulfillment.riders import RiderOrdersView, RiderProfileView, RiderProofView, RiderLocationView
+from fulfillment.riders import RiderOrdersView, RiderProfileView, RiderProofView, RiderLocationView, RiderResolveLocationView
 
 urlpatterns = [
     path('verified/orders/pending/', RiderOrdersView.as_view(), {'scope': 'pending'}),
+    path('verified/orders/assigned/', RiderOrdersView.as_view(), {'scope': 'assigned'}),
     path('verified/orders/active/', RiderOrdersView.as_view(), {'scope': 'active'}),
     path('verified/orders/history/', RiderOrdersView.as_view(), {'scope': 'history'}),
     path('verified/orders/<int:order_id>/', RiderOrdersView.as_view()),
     path('verified/orders/accept/<int:order_id>/', RiderOrdersView.as_view(), {'action': 'accept'}),
     path('verified/orders/<int:order_id>/status/', RiderOrdersView.as_view()),
+    path('verified/orders/<int:order_id>/resolve-location/', RiderResolveLocationView.as_view()),
     path('verified/orders/<int:order_id>/proof/', RiderProofView.as_view()),
     path('verified/rider/profile/', RiderProfileView.as_view()),
     path('verified/rider/location/', RiderLocationView.as_view()),

@@ -1,3 +1,4 @@
+import { Text, TextInput } from '@/components/Typography';
 import {
   AddressOption,
   getBarangaysByCity,
@@ -9,7 +10,7 @@ import {
 import { COLORS } from '@/constants/colors';
 import type { SignUpFormData, UpdateSignUpField } from '@/module/auth/sign-up/types';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import Dropdown from './Dropdown';
 
 type AddressProps = {

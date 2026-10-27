@@ -206,11 +206,20 @@ def me(request):
             'royalty_enabled': user.royalty_enabled,
             'default_hourly_rate': str(artist_application.hourly_rate) if artist_application else None,
             'profile_image': getattr(user, 'profile_image', None),
+            'cover_image': user.cover_image,
             'address': {field: getattr(address, field, '') if address else '' for field in ('street', 'barangay', 'city', 'province', 'region', 'postal_code')}
         })
 
     elif request.method == 'PATCH':
         data = request.data
+        from .profile_images import validate_profile_image
+        images = {}
+        try:
+            for field in ('profile_image', 'cover_image'):
+                if field in data:
+                    images[field] = validate_profile_image(data[field])
+        except ValueError as error:
+            return Response({'error': str(error)}, status=400)
         address_fields = ('street', 'barangay', 'city', 'province', 'region', 'postal_code')
         address_updates = {field: data[field] for field in address_fields if field in data}
         for field, value in address_updates.items():
@@ -247,6 +256,8 @@ def me(request):
                 return Response({'error': 'Artist application not found.'}, status=404)
             application.hourly_rate = default_hourly_rate
             application.save(update_fields=['hourly_rate'])
+        for field, value in images.items():
+            setattr(user, field, value)
         user.save()
 
         if address_updates:
@@ -259,6 +270,8 @@ def me(request):
 
         return Response({
             'message': 'Profile updated successfully',
+            'profile_image': user.profile_image,
+            'cover_image': user.cover_image,
             'first_name': user.first_name,
             'last_name': user.last_name,
             'username': user.username,

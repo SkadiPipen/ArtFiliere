@@ -1,3 +1,4 @@
+import { Text } from '@/components/Typography';
 import CommissionReviews from '@/module/commissions/CommissionReviews';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -5,21 +6,12 @@ import { router } from "expo-router";
 import {
   Banknote,
   Clock3,
-  LogOut,
-  RefreshCcw,
   ShieldCheck,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import AgreementTemplateManager from "./AgreementTemplateManager";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import AdminPage from "./AdminPage";
+import AdminOverview, { type AdminAnalytics } from './AdminOverview';
 type Payment = {
   id: number;
   status: string;
@@ -32,6 +24,7 @@ type Payment = {
   can_release: boolean;
 };
 type Dashboard = {
+  analytics: AdminAnalytics;
   summary: {
     held_artist_earnings: string;
     available_artist_earnings: string;
@@ -43,9 +36,9 @@ const money = (x: string) =>
   `₱${Number(x).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
 export default function PlatformAdminScreen() {
   const [data, setData] = useState<Dashboard | null>(null),
-    [loading, setLoading] = useState(true),
-    [working, setWorking] = useState<number | null>(null);
+    [loading, setLoading] = useState(true);
   const token = async () => {
+    await auth.authStateReady();
     if (!auth.currentUser) throw Error("Please log in again.");
     return auth.currentUser.getIdToken();
   };
@@ -67,27 +60,6 @@ export default function PlatformAdminScreen() {
   useEffect(() => {
     load();
   }, []);
-  const act = async (p: Payment, action: "release" | "refund") => {
-    try {
-      setWorking(p.id);
-      const r = await fetch(`${API_URL}/api/admin/wallet/payments/${p.id}/`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${await token()}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ action }),
-        }),
-        d = await r.json();
-      if (!r.ok) throw Error(d.error);
-      Alert.alert("Funds updated", d.message);
-      load();
-    } catch (e: any) {
-      Alert.alert("Action failed", e.message || "Please try again.");
-    } finally {
-      setWorking(null);
-    }
-  };
   if (loading)
     return (
       <View style={s.loading}>
@@ -95,109 +67,29 @@ export default function PlatformAdminScreen() {
       </View>
     );
   return (
-    <View style={s.page}>
-      <View style={s.header}>
-        <View>
-          <Text style={s.brand}>ArtFiliere</Text>
-          <Text style={s.role}>PLATFORM ADMIN</Text>
-        </View>
-        <View style={s.headActions}>
-          <TouchableOpacity onPress={() => router.push('/royalty-approvals' as any)} style={s.round}><Text>Royalty approvals</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/moderation-approvals' as any)} style={s.round}><Text>Account action approvals</Text></TouchableOpacity>
-          <TouchableOpacity onPress={load} style={s.round}>
-            <RefreshCcw size={16} color="#5A4039" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={async () => {
-              await auth.signOut();
-              router.replace("/login");
-            }}
-            style={s.logout}
-          >
-            <LogOut size={15} color="#5A4039" />
-            <Text>Log out</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+    <AdminPage activeTab="dashboard" onRefresh={load}>
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={s.title}>Platform finances</Text>
+        <Text style={s.title}>Financial overview</Text>
+        <Text style={s.lead}>Recorded platform income and funds held for artists and commissions.</Text>
+        <View style={s.metrics}>
+          <Metric icon={<ShieldCheck color="#C15656" size={22} />} label="Platform fee revenue" value={money(data?.summary.platform_fees || "0")} />
+          <Metric icon={<Clock3 color="#A86868" size={22} />} label="Commission holding balance" value={money(data?.analytics?.revenue.commission_holding || "0")} />
+          <Metric icon={<Clock3 color="#A86868" size={22} />} label="Held artist earnings" value={money(data?.summary.held_artist_earnings || "0")} />
+          <Metric icon={<Banknote color="#5D8A63" size={22} />} label="Artist funds available for payout" value={money(data?.summary.available_artist_earnings || "0")} />
+        </View>
+        <Text style={s.meta}>Platform fee revenue is recorded income, not the live Xendit account balance. Held artist and commission funds are separate obligations.</Text>
+        <View style={[s.metrics, { marginTop: 16 }]}>
+          <TouchableOpacity onPress={() => router.push('/admin-payments' as any)} style={s.round}><Text style={{ color: '#C15656', fontWeight: '700' }}>Manage payments →</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/admin-agreement-templates' as any)} style={s.round}><Text style={{ color: '#C15656', fontWeight: '700' }}>Agreement templates →</Text></TouchableOpacity>
+        </View>
+        <AdminOverview data={data?.analytics} />
         <CommissionReviews />
         <TouchableOpacity onPress={() => router.push('/report-management')} style={{ padding: 16, backgroundColor: '#F6E8E1', borderRadius: 12, marginVertical: 14 }}>
           <Text style={{ color: '#A74646', fontWeight: '700' }}>Reports, transaction requests & account approvals</Text>
         </TouchableOpacity>
-        <Text style={s.lead}>
-          Release artist funds only after delivery and dispute checks.
-        </Text>
-        <View style={s.metrics}>
-          <Metric
-            icon={<Clock3 color="#A86868" size={22} />}
-            label="Held artist earnings"
-            value={money(data?.summary.held_artist_earnings || "0")}
-          />
-          <Metric
-            icon={<Banknote color="#5D8A63" size={22} />}
-            label="Available for payout"
-            value={money(data?.summary.available_artist_earnings || "0")}
-          />
-          <Metric
-            icon={<ShieldCheck color="#C15656" size={22} />}
-            label="Platform commission"
-            value={money(data?.summary.platform_fees || "0")}
-          />
-        </View>
-        <View style={s.panel}>
-          <Text style={s.panelTitle}>Payment controls</Text>
-          {data?.payments.length ? (
-            data.payments.map((p) => (
-              <View key={p.id} style={s.row}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.artwork}>{p.artwork}</Text>
-                  <Text style={s.meta}>
-                    Buyer: {p.buyer} · Artist: {p.artist}
-                  </Text>
-                  <Text style={s.meta}>
-                    {money(p.gross_amount)} · Artist {money(p.artist_amount)} ·
-                    Fee {money(p.platform_fee)}
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text
-                    style={[
-                      s.status,
-                      p.status === "paid" ? s.paid : s.refunded,
-                    ]}
-                  >
-                    {p.status}
-                  </Text>
-                  {p.can_release && (
-                    <View style={s.buttons}>
-                      <TouchableOpacity
-                        onPress={() => act(p, "refund")}
-                        style={s.refund}
-                      >
-                        <Text style={s.buttonText}>Refund</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => act(p, "release")}
-                        disabled={working === p.id}
-                        style={s.release}
-                      >
-                        <Text style={s.buttonText}>
-                          {working === p.id ? "Saving…" : "Release"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={s.empty}>No payment records yet.</Text>
-          )}
-        </View>
-        <AgreementTemplateManager />
+
       </ScrollView>
-    </View>
+    </AdminPage>
   );
 }
 function Metric({

@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { CheckCircle2, CircleAlert, Info, X } from 'lucide-react-native';
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export type AppDialogTone = 'success' | 'error' | 'info';
 

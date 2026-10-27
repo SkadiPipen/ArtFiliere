@@ -1,4 +1,5 @@
-import { getDriverPosition } from '@/services/driverLocation';
+import { Text } from '@/components/Typography';
+import { checkedDriverPosition } from '@/services/driverLocation';
 import DeliveryMap from '@/module/delivery/components/DeliveryMap';
 import { ActiveDelivery } from '@/module/delivery/types/delivery';
 import { fetchActiveDeliveryApi, updateRiderLocationApi, fetchRiderProfile, setRiderClockApi } from '@/services/deliveryApi';
@@ -6,20 +7,23 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Modal, Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Modal, Platform, RefreshControl, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   // Time Clock State
   const [isClockedIn, setIsClockedIn] = useState(false);
+  const [clockLoading, setClockLoading] = useState(true);
+  const [stats, setStats] = useState({ today: 0, active: 0 });
   const [startTime, setStartTime] = useState<string | null>(null);
   const [endTime, setEndTime] = useState<string | null>(null);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const clockStartedRef = useRef<number | null>(null);
 
   // Live map
   const [showMap, setShowMap] = useState(false);
-  const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const locationSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
   const [addressName, setAddressName] = useState<string>('Fetching address...');
 
@@ -34,7 +38,7 @@ export default function HomeScreen() {
     let interval: any;
     if (isClockedIn) {
       interval = setInterval(() => {
-        setSecondsElapsed((prevSec) => prevSec + 1);
+        setSecondsElapsed(clockStartedRef.current ? Math.max(0, Math.floor((Date.now() - clockStartedRef.current) / 1000)) : 0);
       }, 1000);
     } else {
       setSecondsElapsed(0);
@@ -64,13 +68,22 @@ export default function HomeScreen() {
     }
   };
 
+  const applyProfile = (profile: any) => {
+    setStats({ today: profile.today_deliveries ?? 0, active: profile.active_tasks ?? 0 });
+    setIsClockedIn(!!profile.is_clocked_in);
+    clockStartedRef.current = profile.is_clocked_in && profile.clock_in_time ? Date.parse(profile.clock_in_time) : null;
+    setSecondsElapsed(clockStartedRef.current ? Math.max(0, Math.floor((Date.now() - clockStartedRef.current) / 1000)) : 0);
+    setStartTime(profile.clock_in_time ? new Date(profile.clock_in_time).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : null);
+    setEndTime(profile.clock_out_time ? new Date(profile.clock_out_time).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : null);
+  };
+
   useFocusEffect(
     useCallback(() => {
       loadActiveDelivery();
-      void fetchRiderProfile().then(profile => {
-        setIsClockedIn(!!profile?.is_clocked_in);
-        setStartTime(profile?.clock_in_time ? new Date(profile.clock_in_time).toLocaleTimeString() : null);
-      });
+      setClockLoading(true);
+      void fetchRiderProfile().then(applyProfile).catch((error: any) => { setIsClockedIn(false); Alert.alert('Unable to load time clock', error.message); }).finally(() => setClockLoading(false));
+      const timer = setInterval(() => { loadActiveDelivery(); void fetchRiderProfile().then(applyProfile).catch(() => undefined); }, 15000);
+      return () => clearInterval(timer);
     }, [])
   );
 
@@ -87,31 +100,20 @@ export default function HomeScreen() {
   };
 
   const handleClockIn = async () => {
-    try { await setRiderClockApi(true); }
-    catch (e: any) { Alert.alert('Unable to clock in', e.message); return; }
-    // Logic for clocking in
-    const now = new Date();
-    const formattedTime = now.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Manila'
-    });
-    setStartTime(formattedTime);
-    setIsClockedIn(true);
+    if (clockLoading) return;
+    setClockLoading(true);
+    try { applyProfile(await setRiderClockApi(true)); }
+    catch (e: any) { Alert.alert('Unable to clock in', e.message); }
+    finally { setClockLoading(false); }
   };
 
   const handleClockOut = () => {
     const doClockOut = async () => {
-      try { await setRiderClockApi(false); }
-      catch (e: any) { Alert.alert('Unable to clock out', e.message); return; }
-      const now = new Date();
-      const formattedTime = now.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Manila',
-      });
-      setEndTime(formattedTime);
-      setIsClockedIn(false);
+      if (clockLoading) return;
+      setClockLoading(true);
+      try { applyProfile(await setRiderClockApi(false)); }
+      catch (e: any) { Alert.alert('Unable to clock out', e.message); }
+      finally { setClockLoading(false); }
     };
 
     if (Platform.OS === 'web') {
@@ -142,7 +144,7 @@ export default function HomeScreen() {
           latitude: Number(delivery.artist.latitude),
           longitude: Number(delivery.artist.longitude),
         },
-        title: `Pickup: ${delivery.artist.name} || 'Artist Studio'`
+        title: `Pickup: ${delivery.artist.name || 'Artist Studio'}`
       };
     }
 
@@ -152,42 +154,49 @@ export default function HomeScreen() {
           latitude: Number(delivery.buyer.latitude),
           longitude: Number(delivery.buyer.longitude),
         },
-        title: `Drop-off: ${delivery.buyer.name} || 'Customer Address'`
+        title: `Drop-off: ${delivery.buyer.name || 'Customer Address'}`
       };
     }
 
     return null;
   }
 
-  // GPS tracker handler
-  const handleLocationPress = async () => {
-    setShowMap(true);
-    setAddressName('Acquiring rider location...');
-
-    try {
-      const { latitude: lat, longitude: lng } = await getDriverPosition();
-
-      setDriverLocation({ latitude: lat, longitude: lng });
-
+  // Continuously track while the tracker is open; stop subscriptions on close.
+  useEffect(() => {
+    if (!showMap) return;
+    let active = true;
+    let webWatch: number | undefined;
+    let nativeWatch: Location.LocationSubscription | undefined;
+    const update = (coords: { latitude: number; longitude: number; accuracy: number | null }) => {
+      if (!active) return;
       try {
-        const reverse = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-        if (reverse.length > 0) {
-          const place = reverse[0];
-          const formatted = [place.street, place.district, place.city].filter(Boolean).join(', ');
-          setAddressName(formatted || 'Current GPS location');
-        } else {
-          setAddressName('Current GPS location');
-        }
-      } catch {
-        setAddressName('Current Rider Location');
-      }
+        const point = checkedDriverPosition(coords, true);
+        setDriverLocation(point); setAddressName(point.accuracy <= 200 ? 'Your live GPS location' : `Approximate device location (±${Math.round(point.accuracy)} m). Enable precise location for routing.`);
+        if (point.accuracy > 200) setRouteStats(null);
+        if (isClockedIn && point.accuracy <= 200) void updateRiderLocationApi(1, point.latitude, point.longitude).catch(error => { if (active) setAddressName(error.message); });
+      } catch (error: any) { setDriverLocation(null); setRouteStats(null); setAddressName(error.message); }
+    };
+    if (Platform.OS === 'web' && navigator.geolocation) {
+      webWatch = navigator.geolocation.watchPosition(position => update(position.coords), error => {
+        if (active) { setDriverLocation(null); setRouteStats(null); setAddressName(error.code === 1 ? 'Allow browser location access, then reopen the tracker.' : 'Waiting for accurate GPS. Enable device location.'); }
+      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    } else if (Platform.OS !== 'web') {
+      void (async () => {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (!active) return;
+        if (permission.status !== 'granted') { setAddressName('Allow precise location access.'); return; }
+        nativeWatch = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, timeInterval: 5000, distanceInterval: 10 }, loc => update(loc.coords));
+        if (!active) nativeWatch.remove();
+      })().catch(error => { if (active) setAddressName(error.message); });
+    } else setAddressName('GPS is unavailable in this browser.');
+    return () => { active = false; if (webWatch !== undefined) navigator.geolocation.clearWatch(webWatch); nativeWatch?.remove(); };
+  }, [showMap, isClockedIn]);
 
-      updateRiderLocationApi(1, lat, lng).catch(() => {});
-    } catch (error) {
-      console.warn('GPS error:', error);
-      setDriverLocation(null); setRouteStats(null);
-      setAddressName(error instanceof Error ? error.message : 'Precise GPS is unavailable.');
-    }
+  // GPS tracker handler
+  const handleLocationPress = () => {
+    setDriverLocation(null); setRouteStats(null);
+    setAddressName('Acquiring precise rider GPS...');
+    setShowMap(true);
   };
 
   const closeMapModal = () => {
@@ -232,7 +241,7 @@ export default function HomeScreen() {
             </View>
             <View style={[styles.statusBadge, isClockedIn ? styles.badgeIn : styles.badgeOut]}>
               <Text style={[styles.badgeText, isClockedIn ? styles.textIn : styles.textOut]}>
-                {isClockedIn ? 'Clocked In' : 'Clocked Out'}
+                {clockLoading ? 'Loading shift...' : isClockedIn ? 'Clocked In' : 'Clocked Out'}
               </Text>
             </View>
           </View>
@@ -254,7 +263,7 @@ export default function HomeScreen() {
             <TouchableOpacity 
               style={[styles.clockButton, { flex: 1, backgroundColor: isClockedIn ? '#D5D8DC' : '#27AE60' }]}
               onPress={handleClockIn}
-              disabled={isClockedIn}
+              disabled={clockLoading || isClockedIn}
               activeOpacity={0.8}
             >
               <Text style={styles.clockButtonText}>Clock In</Text>
@@ -263,7 +272,7 @@ export default function HomeScreen() {
             <TouchableOpacity 
               style={[styles.clockButton, { flex: 1, backgroundColor: !isClockedIn ? '#D5D8DC' : '#C0392B' }]}
               onPress={handleClockOut}
-              disabled={!isClockedIn}
+              disabled={clockLoading || !isClockedIn}
               activeOpacity={0.8}
             >
               <Text style={styles.clockButtonText}>Clock Out</Text>
@@ -275,11 +284,11 @@ export default function HomeScreen() {
         <View style={styles.metricsRow}>
           <View style={styles.metricCard}>
             <Text style={styles.metricLabel}>Today's Deliveries</Text>
-            <Text style={styles.metricNumber}>{delivery ? '1' : '0'}</Text>
+            <Text style={styles.metricNumber}>{stats.today}</Text>
           </View>
           <View style={styles.metricCard}>
             <Text style={styles.metricLabel}>Active Tasks</Text>
-            <Text style={styles.metricNumber}>{delivery ? '1' : '0'}</Text>
+            <Text style={styles.metricNumber}>{stats.active}</Text>
           </View>
         </View>
 
@@ -393,9 +402,11 @@ export default function HomeScreen() {
           {/* Reusable Map with lines and pins */}
           <DeliveryMap
             driverLocation={driverLocation}
-            destinationLocation={target?.coords || null}
+            destinationLocation={driverLocation?.accuracy && driverLocation.accuracy > 200 ? null : target?.coords || null}
+            driverAccuracy={driverLocation?.accuracy}
             destinationTitle={target?.title || 'Destination'}
             onRouteCalculated={(dist, mins) => setRouteStats({ distance: dist, eta: mins})}
+            onRouteUnavailable={() => setRouteStats(null)}
             style={styles.fullScreenMap}
           />
         </View>

@@ -1,18 +1,11 @@
+import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import { fetchRiderProfile } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface RiderProfile {
   fullName: string;

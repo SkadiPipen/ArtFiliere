@@ -1,6 +1,7 @@
+import { Text, TextInput } from '@/components/Typography';
 import CommissionReviews from '@/module/commissions/CommissionReviews';
 import { useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { auth } from '@/firebase/config';

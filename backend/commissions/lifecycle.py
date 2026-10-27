@@ -197,6 +197,8 @@ def serialize(c, user):
     from .shipping import delivery_status
     delivery = delivery_status(c)
     asset = CommissionAsset.objects.filter(commission=c).first()
+    provenance = getattr(asset, 'provenance_origin', None) if asset else None
+    asset_owner = (provenance.current_owner.username if provenance and provenance.registered_at else 'Awaiting blockchain confirmation') if asset and asset.license_terms.get('exclusivity') == 'exclusive' else asset.owner.username if asset else ''
     return {'id': c.pk, 'title': c.title, 'status': c.status, 'is_artist': user.pk == c.artist_id,
         'artist': c.artist.username, 'buyer': c.buyer.username, 'artist_id': c.artist_id, 'buyer_id': c.buyer_id,
         'buyer_royalty_enabled': c.buyer.royalty_enabled,
@@ -209,7 +211,8 @@ def serialize(c, user):
         'funded_at': c.funded_at, 'held_amount': str(c.held_amount), 'platform_fee': str(c.platform_fee),
         'terms': c.locked_terms, 'milestones': milestones, 'disputed': c.disputed,
         'courier_tracking': c.courier_tracking, 'delivered_at': c.delivered_at, 'delivery': delivery,
-        'asset': {'id': asset.pk, 'record_hash': asset.record_hash, 'license': asset.license_terms, 'owner': asset.owner.username,
+          'asset': {'id': asset.pk, 'record_hash': asset.record_hash, 'license': asset.license_terms, 'owner': asset_owner,
+              'provenance_id': str(asset.provenance_origin.pk) if hasattr(asset, 'provenance_origin') else None,
             'proof_status': asset.proof.status if hasattr(asset, 'proof') else 'PENDING',
             'transaction_hash': asset.proof.transaction_hash if hasattr(asset, 'proof') else ''} if asset else None}
 
@@ -370,8 +373,13 @@ def production_action(c, user, request, action):
                 'artist_signature_hash': hashlib.sha256(c.agreement.artist_signature_image.encode()).hexdigest(),
                 'buyer_signature_hash': hashlib.sha256(c.agreement.buyer_signature_image.encode()).hexdigest(),
                 'artist_signed_at': c.agreement.artist_signed_at.isoformat(), 'buyer_signed_at': c.agreement.buyer_signed_at.isoformat()}
-            asset, created = CommissionAsset.objects.get_or_create(commission=c, defaults={'original_artist': c.artist, 'owner': c.buyer, 'submission': final, 'license_terms': c.locked_terms, 'record_hash': hashlib.sha256(json.dumps(proof, sort_keys=True).encode()).hexdigest()})
+            asset, created = CommissionAsset.objects.get_or_create(commission=c, defaults={'original_artist': c.artist, 'owner': c.artist if c.locked_terms.get('exclusivity') == 'exclusive' else c.buyer, 'submission': final, 'license_terms': c.locked_terms, 'record_hash': hashlib.sha256(json.dumps(proof, sort_keys=True).encode()).hexdigest()})
             if created:
+                from blockchain.provenance import ensure_commission
+                # The file and license stay off-chain; registration and exclusive transfer are queued.
+                # Mark complete before validating the initial paid entitlement.
+                c.save(update_fields=['status'])
+                ensure_commission(asset)
                 from .models import CommissionProof
                 CommissionProof.objects.create(commission=c, asset=asset, record_hash=asset.record_hash, registry_id=str(2**192 + asset.pk))
         c.save()
@@ -460,7 +468,7 @@ def funding_checkout(c):
     payload = {'external_id': c.funding_reference, 'amount': float(c.time_duration), 'currency': 'PHP',
         'invoice_duration': max(1, int((c.funding_due_at-timezone.now()).total_seconds())),
         'payer_email': c.buyer.email, 'description': f'Full upfront funding: {c.title}',
-        'success_redirect_url': f'{getattr(settings, "FRONTEND_URL", "http://localhost:8081")}/commission-detail?id={c.pk}',
+        'success_redirect_url': settings.FRONTEND_URL.rstrip('/') + '/',
         'failure_redirect_url': f'{getattr(settings, "FRONTEND_URL", "http://localhost:8081")}/commission-detail?id={c.pk}'}
     c.funding_payload = payload; c.save()
     try:

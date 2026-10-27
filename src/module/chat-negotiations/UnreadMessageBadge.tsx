@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Contract, contractRequest } from './contracts';

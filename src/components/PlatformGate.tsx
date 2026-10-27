@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import { useContext, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, TouchableOpacity, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { AuthContext } from '@/context/AuthContext';
 import { auth } from '@/firebase/config';

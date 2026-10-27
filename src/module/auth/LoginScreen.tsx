@@ -1,19 +1,11 @@
+import { Text, TextInput } from '@/components/Typography';
 import { COLORS } from '@/constants/colors';
 import API_URL from '@/services/api';
 import { loginUser, logOut } from '@/services/auth';
 import { platformAccessError } from '@/services/platformAccess';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Image, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {

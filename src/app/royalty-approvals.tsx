@@ -1,5 +1,6 @@
+import { Text } from '@/components/Typography';
 import PlatformGate from '@/components/PlatformGate';
-import { ScrollView, Pressable, Text } from 'react-native';
+import { ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import RoyaltyApprovals from '@/module/admin/RoyaltyApprovals';
