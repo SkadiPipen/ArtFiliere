@@ -190,7 +190,7 @@ def me(request):
 
     if request.method == 'GET':
         address = getattr(user, 'address', None)
-        artist_application = ArtistApplication.objects.filter(user=user).only('hourly_rate').first()
+        artist_application = ArtistApplication.objects.filter(user=user).only('hourly_rate', 'bio').first()
         return Response({
             'id': user.id,
             'username': user.username,
@@ -205,6 +205,7 @@ def me(request):
             'is_accepting_commissions': user.is_accepting_commissions,
             'royalty_enabled': user.royalty_enabled,
             'default_hourly_rate': str(artist_application.hourly_rate) if artist_application else None,
+            'bio': user.bio if user.bio is not None else ((artist_application.bio or '') if artist_application else ''),
             'profile_image': getattr(user, 'profile_image', None),
             'cover_image': user.cover_image,
             'address': {field: getattr(address, field, '') if address else '' for field in ('street', 'barangay', 'city', 'province', 'region', 'postal_code')}
@@ -228,6 +229,14 @@ def me(request):
                 return Response({'error': f'Enter a valid {field.replace("_", " ")} (up to {limit} characters).'}, status=400)
         if address_updates and not user.address and len(address_updates) != len(address_fields):
             return Response({'error': 'Enter all address fields.'}, status=400)
+        bio_application = None
+        if 'bio' in data:
+            if user.role != User.Role.ARTIST:
+                return Response({'error': 'Only artists can edit an artist bio.'}, status=403)
+            if not isinstance(data['bio'], str) or len(data['bio']) > 2000:
+                return Response({'error': 'Bio must be at most 2,000 characters.'}, status=400)
+            bio_application = ArtistApplication.objects.filter(user=user).first()
+            user.bio = data['bio'].strip()
         if 'first_name' in data or 'firstName' in data:
             user.first_name = data.get('first_name') or data.get('firstName')
         if 'last_name' in data or 'lastName' in data:
@@ -256,6 +265,9 @@ def me(request):
                 return Response({'error': 'Artist application not found.'}, status=404)
             application.hourly_rate = default_hourly_rate
             application.save(update_fields=['hourly_rate'])
+        if bio_application is not None:
+            bio_application.bio = data['bio'].strip()
+            bio_application.save(update_fields=['bio', 'updated_at'])
         for field, value in images.items():
             setattr(user, field, value)
         user.save()
@@ -270,6 +282,7 @@ def me(request):
 
         return Response({
             'message': 'Profile updated successfully',
+            'bio': user.bio if user.bio is not None else (ArtistApplication.objects.filter(user=user).values_list('bio', flat=True).first() or ''),
             'profile_image': user.profile_image,
             'cover_image': user.cover_image,
             'first_name': user.first_name,

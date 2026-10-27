@@ -8,6 +8,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
     categories = serializers.SerializerMethodField()
     category_labels = serializers.SerializerMethodField()
     artist_name = serializers.SerializerMethodField()
+    artist_username = serializers.CharField(source='artist.username', read_only=True)
     similarity_matches = serializers.SerializerMethodField()
     is_sold = serializers.SerializerMethodField()
     auction_request = serializers.SerializerMethodField()
@@ -35,6 +36,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "id",
             "artist_id",
             "artist_name",
+            "artist_username",
             "title",
             "description",
             "category",

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
 import { Bell, Camera, Edit3, FileText, Folder, Settings } from "lucide-react-native";
-import { Alert, Image, Platform, Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface ProfileHeaderProps {
@@ -26,6 +26,9 @@ export default function ProfileHeader({
   onCoverSaved,
 }: ProfileHeaderProps) {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compactEdit = width < 768;
+  const mobile = width < 600;
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverError, setCoverError] = useState('');
   const [savedCover, setSavedCover] = useState<string>();
@@ -75,10 +78,10 @@ export default function ProfileHeader({
         "Your Name";
 
   return (
-    <Pressable accessible={false} onHoverIn={() => setCoverHovered(true)} onHoverOut={() => setCoverHovered(false)} style={styles.headerBackground}>
+    <Pressable accessible={false} onHoverIn={() => setCoverHovered(true)} onHoverOut={() => setCoverHovered(false)} style={[styles.headerBackground, mobile && { paddingBottom: 28 }]}>
       <ProfileCover uri={savedCover ?? profileData?.cover_image} />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
-        <View style={styles.innerContainer}>
+        <View style={[styles.innerContainer, mobile && { paddingHorizontal: 16 }]}>
           {!!coverError && <Text accessibilityRole="alert" style={{ color: '#B91C1C', backgroundColor: '#FFF', padding: 12, borderRadius: 10 }}>{coverError}</Text>}
           {/* TOP BAR */}
           <View style={styles.topRow}>
@@ -111,9 +114,9 @@ export default function ProfileHeader({
           </View>
 
           {/* Profile and cover action share the same bottom alignment. */}
-          <View style={styles.profileActions}>
-          <View style={styles.profileContent}>
-            <View style={styles.avatarContainer}>
+          <View style={[styles.profileActions, mobile && styles.mobileActions]}>
+          <View style={[styles.profileContent, mobile && styles.mobileProfile]}>
+            <View style={[styles.avatarContainer, mobile && styles.mobileAvatar]}>
               <Image
                 source={{
                   uri:
@@ -125,23 +128,34 @@ export default function ProfileHeader({
               />
             </View>
 
-            <View style={styles.userDetails}>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleText}>{roleLabel}</Text>
+            <View style={[styles.userDetails, mobile && styles.mobileDetails]}>
+              <View style={styles.tagsRow}>
+                <View style={styles.roleBadge}><Text style={styles.roleText}>{roleLabel}</Text></View>
+                {normalizedRole === 'artist' && <View style={[styles.commissionBadge, profileData?.is_accepting_commissions && styles.commissionBadgeOpen]}><Text style={[styles.commissionText, profileData?.is_accepting_commissions && styles.commissionTextOpen]}>{profileData?.is_accepting_commissions ? 'Commissions Open' : 'Commissions Closed'}</Text></View>}
               </View>
-              <View style={styles.nameRow}>
-                <Text style={styles.userName} numberOfLines={1}>
+              <View style={[styles.nameRow, compactEdit && { flexWrap: 'nowrap' }]}>
+                <Text style={[styles.userName, mobile && styles.mobileName]} numberOfLines={mobile ? undefined : 1}>
                   {fullName}
                 </Text>
                 <TouchableOpacity
-                  style={styles.editBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit profile"
+                  hitSlop={6}
+                  style={[styles.editBtn, compactEdit && styles.editIconBtn]}
                   onPress={() => router.push("/(home)/edit-profile")}
                 >
-                  <Edit3 color="#A24F41" size={12} />
-                  <Text style={styles.editBtnText}>Edit Profile</Text>
+                  <Edit3 color="#A24F41" size={compactEdit ? 16 : 12} />
+                  {!compactEdit && <Text style={styles.editBtnText}>Edit Profile</Text>}
                 </TouchableOpacity>
               </View>
 
+              {!!profileData?.username && <Text style={styles.username}>@{profileData.username}</Text>}
+              {profileData?.bio?.trim() ? <Text style={styles.bio}>{profileData.bio}</Text> : normalizedRole === 'artist' ? <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/(home)/edit-profile')}><Text style={[styles.bio, { color: '#A84B46' }]}>Add artist bio</Text></TouchableOpacity> : null}
+              {mobile ? <View style={styles.mobileStats}>
+                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>25</Text><Text style={styles.mobileStatLabel}>Reviews</Text></View>
+                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>19</Text><Text style={styles.mobileStatLabel}>Followers</Text></View>
+                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>3</Text><Text style={styles.mobileStatLabel}>Following</Text></View>
+              </View> : (
               <View style={styles.statsRow}>
                 <Text style={styles.statText}>25 Reviews</Text>
                 <Text style={styles.statDot}>•</Text>
@@ -149,6 +163,7 @@ export default function ProfileHeader({
                 <Text style={styles.statDot}>•</Text>
                 <Text style={styles.statText}>3 Following</Text>
               </View>
+              )}
             </View>
 
           </View>
@@ -178,6 +193,15 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
     alignItems: "center",
   },
+  mobileActions: { flexDirection: 'column', alignItems: 'stretch', flexWrap: 'nowrap', gap: 12, marginTop: 16 },
+  mobileProfile: { width: '100%', flexDirection: 'column', alignItems: 'stretch' },
+  mobileAvatar: { width: 80, height: 80, borderRadius: 40, alignSelf: 'flex-start', marginLeft: 16, marginRight: 0, marginBottom: -38 },
+  mobileDetails: { width: '100%', maxWidth: '100%', flexShrink: 0, paddingLeft: 16, paddingRight: 16, paddingTop: 50, paddingBottom: 16 },
+  mobileName: { flex: 1, fontSize: 21, lineHeight: 28 },
+  mobileStats: { flexDirection: 'row', marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E3D7D0' },
+  mobileStat: { flex: 1, alignItems: 'center', gap: 2 },
+  mobileStatCount: { fontSize: 16, fontWeight: '700', color: '#3A2D2A' },
+  mobileStatLabel: { fontSize: 11, color: '#786862' },
   profileActions: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginTop: 40 },
   coverButton: { alignSelf: 'flex-end', marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 7, padding: 10, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.9)', borderWidth: 1, borderColor: '#E5DAD3' },
   safeArea: {
@@ -197,13 +221,19 @@ const styles = StyleSheet.create({
   },
   roleBadge: {
     alignSelf: 'flex-start',
-    marginBottom: 7,
     backgroundColor: "#fff",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 20,
     elevation: 3,
   },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 7 },
+  commissionBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, backgroundColor: '#EBDAD4' },
+  commissionBadgeOpen: { backgroundColor: '#EDF4EE' },
+  commissionText: { color: '#786862', fontWeight: '600', fontSize: 12 },
+  commissionTextOpen: { color: '#477452' },
+  username: { color: '#A84B46', fontSize: 13, fontWeight: '600', marginTop: 4 },
+  bio: { color: '#5A4944', fontSize: 13, lineHeight: 19, marginTop: 5 },
   roleText: { color: "#C15656", fontWeight: "bold", fontSize: 12 },
   iconGroup: { flexDirection: "row", alignItems: "center" },
   iconBtn: { marginLeft: 8, padding: 9, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.82)' },
@@ -211,7 +241,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     maxWidth: '100%',
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     flexWrap: "nowrap",
     gap: 0,
   },
@@ -235,6 +265,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   userName: { fontSize: 22, fontWeight: "bold", color: "#382C26", flexShrink: 1 },
+  editIconBtn: { width: 32, height: 32, paddingHorizontal: 0, paddingVertical: 0, justifyContent: 'center', flexShrink: 0 },
   editBtn: {
     flexDirection: "row",
     alignItems: "center",

@@ -357,7 +357,7 @@ export default function ViewPostPage() {
               }
             >
               <Text style={styles.artistLink}>
-                View creator profile ({artworkData?.provenance?.created_by || artistName})
+                {(artworkData?.provenance?.created_by || artworkData?.artist_username || artworkData?.artist?.username) ? `@${artworkData?.provenance?.created_by || artworkData?.artist_username || artworkData?.artist?.username}` : 'Creator Profile'}
               </Text>
             </TouchableOpacity>
 

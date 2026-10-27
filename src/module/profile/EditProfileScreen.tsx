@@ -22,9 +22,11 @@ export default function EditProfile() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isArtist, setIsArtist] = useState(false);
 
   const [form, setForm] = useState({
     username: '',
+    bio: '',
     firstName: '',
     lastName: '',
     contact: '',
@@ -51,7 +53,9 @@ export default function EditProfile() {
 
         if (response.ok) {
           const data = await response.json();
+          setIsArtist(String(data.role || '').toLowerCase() === 'artist');
           setForm({
+            bio: data.bio || '',
             username: data.username || user.displayName?.split(' ')[0] || '',
             firstName: data.first_name || data.firstName || '',
             lastName: data.last_name || data.lastName || '',
@@ -152,6 +156,7 @@ export default function EditProfile() {
         },
         body: JSON.stringify({
           username: form.username,
+          ...(isArtist ? { bio: form.bio } : {}),
           first_name: form.firstName,
           last_name: form.lastName,
           contact_number: form.contact,
@@ -267,6 +272,11 @@ export default function EditProfile() {
                 />
               </View>
 
+              {isArtist && <View style={styles.inputGroup}>
+                <Text style={styles.label}>Artist Bio</Text>
+                <TextInput accessibilityLabel="Artist bio" style={[styles.input, { minHeight: 100, textAlignVertical: 'top' }]} multiline maxLength={2000} value={form.bio} onChangeText={bio => setForm(current => ({ ...current, bio }))} placeholder="Tell visitors about yourself and your art" placeholderTextColor="#999" />
+                <Text style={{ color: '#81756D', fontSize: 12 }}>{form.bio.length}/2000</Text>
+              </View>}
               <View style={[styles.rowGrid, isDesktop && styles.rowGridSplit]}>
                 <View style={[styles.inputGroup, isDesktop && { flex: 1 }]}>
                   <Text style={styles.label}>First Name *</Text>
