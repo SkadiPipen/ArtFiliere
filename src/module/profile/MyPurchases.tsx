@@ -1,4 +1,4 @@
-import TransactionHeader from '@/components/TransactionHeader';
+import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
 import PurchaseRatingCard from './PurchaseRatingCard';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { Text, TextInput } from '@/components/Typography';
@@ -11,6 +11,7 @@ import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/c
 import { downloadPurchase, downloadProtectedFile, downloadCertificate, downloadLicensePdf, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Purchase = {
   artwork_id?: number;
@@ -116,8 +117,10 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
       {agreement !== null ? (
         <SigningModal id={agreement} onClose={() => setAgreement(null)} onSigned={() => load(true)} />
       ) : null}
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
+      <TransactionHeader title="My Transactions" onBack={onClose} onRefresh={() => { void load(true); }} refreshing={loading || busy} />
       <ScrollView contentContainerStyle={s.page}>
-        <TransactionHeader title={filter === 'rate' ? 'To Rate' : filter === 'pay' ? 'To Pay' : filter === 'receive' ? 'To Receive' : 'My Purchases'} onBack={onClose} />
+        <TransactionTitle title={filter === 'rate' ? 'To Rate' : filter === 'pay' ? 'To Pay' : filter === 'receive' ? 'To Receive' : 'My Purchases'} />
 
         <Text>
           {filter === 'rate' 
@@ -322,12 +325,13 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
           </View>
         ))}
       </ScrollView>
+      </SafeAreaView>
     </Modal>
   );
 }
 
 const s = StyleSheet.create({
-  page: { padding: 24, paddingTop: 50, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  page: { padding: 24, paddingTop: 28, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
   filterChip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, backgroundColor: '#F5EAE5', borderWidth: 1, borderColor: '#E3D7D0' },
   filterChipActive: { backgroundColor: '#C15656', borderColor: '#C15656' },
   filterText: { color: '#845951', fontWeight: '600' },

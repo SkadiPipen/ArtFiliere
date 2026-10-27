@@ -201,7 +201,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
   return <SafeAreaView style={s.page} edges={embedded ? [] : undefined}><KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <View style={s.header}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={close} style={s.iconButton}><ArrowLeft size={23} color="#62493E" /></TouchableOpacity><View style={{ flex: 1 }}><Text style={s.brand}>ArtFiliere</Text><Text style={s.muted}>{moderator ? `${catalog?.department_label || 'Moderator'} reports` : 'Support & account safety'}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh customer support" disabled={busy} style={[s.iconButton, busy && s.disabled]} onPress={() => { if (selected) run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))); else if (mode === 'tickets' && catalog) run(() => loadTickets()); else loadCatalog(); }}><RefreshCw size={22} color="#984E43" /></TouchableOpacity></View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-      <View style={s.hero}><ShieldCheck size={34} color="#B65B50" /><Text accessibilityRole="header" style={s.heroTitle}>{moderator ? 'Review concerns and reply to members' : 'Customer support'}</Text><Text style={s.heroCopy}>{moderator ? 'Review concerns and reply to members' : 'Guided help and report tracking'}</Text></View>
+      <View style={s.hero}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><ShieldCheck size={30} color="#BC5555" /><Text accessibilityRole="header" style={[s.heroTitle, { flex: 1 }]}>{moderator ? 'Review Concerns and Reply to Members' : 'Customer Support'}</Text></View><Text style={s.heroCopy}>{moderator ? 'Review concerns and reply to members' : 'Guided help and report tracking'}</Text></View>
       {!catalog ? <><Text>{authLoading ? 'Checking your session...' : user ? 'Connecting to customer support...' : 'Sign in to view help and your reports.'}</Text>{!authLoading && <Button disabled={busy} onPress={loadCatalog}>Retry connection</Button>}{!authLoading && !user && <Button onPress={() => router.push('/login')}>Sign in</Button>}</> : moderator && !catalog.is_moderator ? <Text>Moderator access is required.</Text> : <>
         <View style={s.row}>{!moderator && <Button disabled={busy} primary={mode === 'new'} onPress={() => { setMode('new'); setSelected(null); }}>New report / FAQs</Button>}<Button disabled={busy} primary={mode === 'tickets'} onPress={() => { setMode('tickets'); setSelected(null); run(() => loadTickets()); }}>{assignments ? 'Concern queues' : moderator ? 'Department reports' : 'My reports'}</Button></View>
         {assignments && <View style={s.row}>{(['waiting', 'mine', 'transfers'] as const).map(value => <Button key={value} disabled={busy} primary={queue === value} onPress={() => { setQueue(value); setSelected(null); setStatusFilter(''); }}>{value === 'waiting' ? 'Waiting' : value === 'mine' ? 'My concerns' : 'Incoming transfers'}</Button>)}</View>}
@@ -303,10 +303,10 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#FAF7F3' }, header: { padding: 18, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#E8DAD2', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  brand: { fontSize: 23, fontWeight: '800', color: '#B54848', marginBottom: 4 },
+  brand: { fontSize: 23, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#B54848', marginBottom: 4 },
   iconButton: { padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   hero: { gap: 16, paddingVertical: 12, marginBottom: 8 },
-  heroTitle: { fontSize: 29, lineHeight: 37, fontWeight: '800', color: '#3E322B' },
+  heroTitle: { fontSize: 26, lineHeight: 34, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#3E322B' },
   heroCopy: { fontSize: 16, lineHeight: 24, color: '#74665D' },
   restartButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#52687C', borderRadius: 10, paddingVertical: 13, paddingHorizontal: 18, minHeight: 46 },
   restartText: { color: '#FFF', fontSize: 14, fontWeight: '700' },

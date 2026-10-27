@@ -1,4 +1,4 @@
-import TransactionHeader from '@/components/TransactionHeader';
+import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -31,8 +31,9 @@ export default function ArtRoyalties({ onClose }: { onClose: () => void }) {
   useEffect(() => { const stop = auth.onAuthStateChanged(user => { if (user) void load(); else { setLicenses([]); setLoading(false); setError('Please sign in to view your royalty licenses.'); } }); return stop; }, [load]);
   const visible = licenses.filter(item => item.license_status === tab);
   return <Modal visible animationType="slide" onRequestClose={onClose}><SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F4' }}>
-    <ScrollView contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 850, width: '100%', alignSelf: 'center' }}>
-      <TransactionHeader title="Art Royalties" onBack={onClose} />
+    <TransactionHeader title="Art Royalties" onBack={onClose} onRefresh={() => { void load(); }} refreshing={loading} />
+    <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28, gap: 16, maxWidth: 850, width: '100%', alignSelf: 'center' }}>
+      <TransactionTitle title="Art Royalties" />
       <Text style={{ color: '#81756D', lineHeight: 20 }}>Your royalty-bearing artwork and commission licenses, as buyer or artist.</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>{(['active', 'expired'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value)} style={{ flex: 1, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: tab === value ? '#E68A50' : '#E5DAD3', backgroundColor: tab === value ? '#FFF0E4' : '#FFFFFF' }}><Text style={{ textAlign: 'center', fontWeight: '700', color: '#70482F' }}>{value === 'active' ? 'Active' : 'Expired'} ({licenses.filter(item => item.license_status === value).length})</Text></Pressable>)}</View>
       <Text style={{ color: '#81756D', fontSize: 12, lineHeight: 19 }}>{tab === 'active' ? 'Includes accepted agreements awaiting signatures or final commission delivery. Each card shows its current status.' : 'Expiry ends the agreed term; outstanding reporting and payment obligations may remain due.'}</Text>

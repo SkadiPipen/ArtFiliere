@@ -1,10 +1,10 @@
-import TransactionHeader from '@/components/TransactionHeader';
+import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { router } from 'expo-router';
-import { ShieldCheck } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type Result = { verified: boolean; record_type?: string; message: string };
 
@@ -32,10 +32,10 @@ export default function VerificationScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <TransactionHeader title="Verify an ArtFiliere Record" onBack={() => router.canGoBack() ? router.back() : router.replace('/(home)')} />
-      <View style={styles.card}>
-        <ShieldCheck size={42} color="#5D8A63" />
+      <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28 }}><View style={styles.card}>
+        <TransactionTitle title="Verify an ArtFiliere Record" />
         <Text style={styles.body}>Enter the verification code shown on a finalized agreement or completed sale receipt.</Text>
         <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" placeholder="Example: AF-AGR-7KQ9X2" style={styles.input} />
         <TouchableOpacity style={styles.button} onPress={verify} disabled={loading}>
@@ -46,15 +46,15 @@ export default function VerificationScreen() {
           <Text style={styles.resultBody}>{result.message}</Text>
           <Text style={styles.resultBody}>A blockchain record does not automatically prove authorship, transfer copyright, or prevent external copying. The signed sale terms define the ownership entitlement.</Text>
         </View>}
-      </View>
-    </View>
+      </View></ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA', padding: 24 },
+  container: { flex: 1, backgroundColor: '#FAF7F3' },
   back: { color: '#C15656', fontWeight: '800', fontSize: 15 },
-  card: { width: '100%', maxWidth: 480, alignSelf: 'center', marginTop: 56, backgroundColor: '#FFFDF5', borderRadius: 16, padding: 28, alignItems: 'center', borderWidth: 1, borderColor: '#E9DDD6' },
+  card: { width: '100%', maxWidth: 700, alignSelf: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignItems: 'stretch', borderWidth: 1, borderColor: '#E9DDD6' },
   title: { color: '#3A2D2A', fontSize: 23, fontWeight: '800', textAlign: 'center', marginTop: 14 },
   body: { color: '#75655F', fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 10, marginBottom: 22 },
   input: { width: '100%', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D8C7C0', borderRadius: 9, paddingHorizontal: 14, paddingVertical: 13, color: '#3A2D2A', fontWeight: '700' },
