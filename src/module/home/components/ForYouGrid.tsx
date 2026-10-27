@@ -27,6 +27,8 @@ function ArtCardItem({
   widthPercent: string;
   onSelect: (item: ArtItem, type: string) => void;
 }) {
+  const { width: viewportWidth } = useWindowDimensions();
+  const imageHeight = viewportWidth < 480 ? Math.min(300, viewportWidth - 48) : 280;
   const [isHovered, setIsHovered] = useState(false);
   const badgeLift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -68,7 +70,7 @@ function ArtCardItem({
     >
       {/* Image with Watermark and Hover Description Overlay */}
       <View style={styles.imageWrapper}>
-        <Watermark uri={item.image} height={280} />
+        <Watermark uri={item.image} height={imageHeight} />
 
         {isSold && (
           <View style={styles.soldOverlay}>
@@ -124,7 +126,7 @@ function ArtCardItem({
           </View>
         </View>
       </View>
-      <ArtworkBorder artType={item.artType || item.art_type || item.type} imageHeight={280} />
+      <ArtworkBorder artType={item.artType || item.art_type || item.type} imageHeight={imageHeight} />
     </Pressable>
   );
 }
@@ -139,7 +141,7 @@ export default function ForYouGrid({
   const { width } = useWindowDimensions();
   const [gridPage, setGridPage] = useState(1);
 
-  const numColumns = width > 768 ? 2 : 2;
+  const numColumns = width < 480 ? 1 : 2;
   const itemsPerPage = numColumns * 2;
 
   const sourceItems = items ?? (webFiltered ? [] : FOR_YOU_DATA);
@@ -163,12 +165,12 @@ export default function ForYouGrid({
         {filteredForYou
           .slice((gridPage - 1) * itemsPerPage, gridPage * itemsPerPage)
           .map((item) => (
-            <ArtCardItem key={item.id} item={item} widthPercent={`${100 / numColumns - 4}%`} onSelect={onSelect} />
+            <ArtCardItem key={item.id} item={item} widthPercent={numColumns === 1 ? '100%' : `${100 / numColumns - 4}%`} onSelect={onSelect} />
           ))}
       </View>
 
       {/* PAGINATION */}
-      <View style={styles.pagination}>
+      <View style={[styles.pagination, width < 480 && { flexWrap: 'wrap', paddingHorizontal: 16, rowGap: 8 }]}>
         <TouchableOpacity
           onPress={() => setGridPage(Math.max(1, gridPage - 1))}
         >

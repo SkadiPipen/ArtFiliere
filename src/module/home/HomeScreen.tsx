@@ -238,7 +238,7 @@ export default function Dashboard() {
 
       {/* Floating chat button */}
       <TouchableOpacity
-        style={[styles.msgFab, { bottom: (hasSidebar ? 24 : 85) + insets.bottom }]}
+        style={[styles.msgFab, width < 480 && { width: 44, height: 44, borderRadius: 22, right: 12 }, { bottom: (hasSidebar ? 24 : 85) + insets.bottom }]}
         onPress={handleOpenChat}
         accessibilityRole="button"
         accessibilityLabel="Open messages"
