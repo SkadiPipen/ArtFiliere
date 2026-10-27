@@ -1,9 +1,10 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { marketplaceHeading } from '@/constants/marketplaceTypography';
 import { Clock } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ArtItem } from "@/module/home/types";
 import ArtworkBorder from '@/components/ArtworkBorder';
 
@@ -49,7 +50,7 @@ export default function AuctionSection({ onSelect, items }: AuctionSectionProps)
             onPress={() => onSelect(item, "Auction")}
           >
             <View style={styles.imageWrapper}>
-              <Image source={{ uri: item.image }} style={styles.cardImg} />
+              <ProductImage source={{ uri: item.image }} style={styles.cardImg} />
               {hoveredId === item.id && <LinearGradient
                 colors={['transparent', 'rgba(20, 16, 16, 0.6)', 'rgba(20, 16, 16, 0.78)']}
                 locations={[0, 0.4, 1]}

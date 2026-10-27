@@ -1,3 +1,4 @@
+import { TransactionTitle } from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
 import * as DocumentPicker from 'expo-document-picker';
@@ -128,7 +129,7 @@ export default function ReportManagementScreen() {
       {data?.role === 'customer_support' && <TouchableOpacity onPress={() => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }}><Text style={{ color: '#8C4C43', fontWeight: '700' }}>Log out</Text></TouchableOpacity>}
     </View>
     <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-      <View style={s.hero}><ShieldCheck color="#B65B50" size={30} /><Text style={s.title}>Reports, disputes & transactions</Text>
+      <View style={s.hero}><TransactionTitle title="Reports, Disputes & Transactions" />
         <Text style={s.body}>{admin ? 'Resolve disputes, authorize refunds or wallet credits, and approve or deny account actions.' : staff ? 'Resolve disputes, authorize refunds or wallet credits, and recommend account actions for Platform Admin approval.' : 'Report an incident, track a dispute, or manage your transaction requests.'}</Text></View>
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {!!message && <Text style={s.success}>{message}</Text>}
@@ -258,7 +259,7 @@ export default function ReportManagementScreen() {
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#FAF7F3' }, header: { padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE5DE' },
-  brand: { fontSize: 18, fontWeight: '800', color: '#A74646' }, subhead: { fontSize: 11, color: '#8B8078', marginTop: 3 },
+  brand: { fontSize: 23, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#A74646' }, subhead: { fontSize: 11, color: '#8B8078', marginTop: 3 },
   content: { width: '100%', maxWidth: 1100, alignSelf: 'center', padding: 24, gap: 18, paddingBottom: 60 },
   hero: { gap: 10, marginBottom: 8 }, title: { fontSize: 25, fontWeight: '800', color: '#3D3028' },
   body: { color: '#62574E', lineHeight: 22 }, muted: { color: '#8B8078', fontSize: 12, lineHeight: 19 },

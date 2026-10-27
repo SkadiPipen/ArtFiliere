@@ -36,6 +36,7 @@ class User(models.Model):
     )
     profile_image = models.TextField(blank=True, default='')
     cover_image = models.TextField(blank=True, default='')
+    bio = models.TextField(blank=True, null=True, default=None, max_length=2000)
     is_banned = models.BooleanField(default=False)
     suspended_until = models.DateTimeField(null=True, blank=True)
 

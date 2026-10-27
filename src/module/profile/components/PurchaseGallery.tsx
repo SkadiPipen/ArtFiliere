@@ -1,7 +1,8 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { Image, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { purchaseRequest } from '@/services/purchases';
 import MyPurchases from '../MyPurchases';
 
@@ -30,7 +31,7 @@ export default function PurchaseGallery() {
     {!items.length && !error && <Text>Your paid artworks will appear here.</Text>}
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
       {items.map(item => <TouchableOpacity key={item.id} style={{ width: 150, gap: 6 }} onPress={() => setOpen(true)}>
-        {!!item.image && <Image source={{ uri: item.image }} style={{ width: 150, height: 150, borderRadius: 10 }} resizeMode="cover" />}
+        {!!item.image && <ProductImage source={{ uri: item.image }} style={{ width: 150, height: 150, borderRadius: 10 }} resizeMode="cover" />}
         <Text numberOfLines={2}>{item.title}</Text>
       </TouchableOpacity>)}
     </View>

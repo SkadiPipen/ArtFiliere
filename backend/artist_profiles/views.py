@@ -17,9 +17,10 @@ from artworks.serializers import ArtworkSerializer
 class ArtistProfileView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, artist_id):
+    def get(self, request, artist_id=None, username=None):
         try:
-            artist = User.objects.get(id=artist_id, role=User.Role.ARTIST)
+            lookup = {'username': username} if username is not None else {'id': artist_id}
+            artist = User.objects.get(**lookup, role=User.Role.ARTIST)
         except User.DoesNotExist:
             return Response({"error": "Artist not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -30,7 +31,7 @@ class ArtistProfileView(APIView):
                 "id": artist.id,
                 "name": f"{artist.first_name} {artist.last_name}".strip() or artist.username,
                 "username": artist.username,
-                "bio": getattr(application, "bio", "") or "",
+                "bio": artist.bio if artist.bio is not None else (getattr(application, "bio", "") or ""),
                 "profile_image": artist.profile_image,
                 "cover_image": artist.cover_image,
                 "is_accepting_commissions": artist.is_accepting_commissions,
@@ -73,7 +74,7 @@ class ArtistDirectoryView(APIView):
                 "id": artist.id,
                 "name": f"{artist.first_name} {artist.last_name}".strip() or artist.username,
                 "username": artist.username,
-                "bio": application.bio if application else "",
+                "bio": artist.bio if artist.bio is not None else ((application.bio or "") if application else ""),
                 "average_rating": rating,
                 "rating_count": stats.get('rating_count', 0),
                 "completed_commissions": artist.completed_commissions,

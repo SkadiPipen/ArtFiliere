@@ -1,14 +1,14 @@
 import { Text, TextInput } from '@/components/Typography';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { AuthContext } from '@/context/AuthContext';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import TicketActions from '@/module/moderation/TicketActions';
-import { ArrowLeft, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, RefreshCw, RotateCcw, ShieldCheck, Inbox, UserCheck, ArrowRightLeft, ChevronDown, ChevronUp, ChevronRight, SlidersHorizontal } from 'lucide-react-native';
 
 type Concern = { id: string; label: string; category: string; reference: string };
 type FAQ = { id: string; question: string; answer: string; concern: string };
@@ -34,9 +34,9 @@ async function request<T>(path: string, method = 'GET', body?: object): Promise<
   }
   return data;
 }
-function Button({ children, onPress, disabled = false, primary = false }: { children: React.ReactNode; onPress: () => void; disabled?: boolean; primary?: boolean }) {
+function Button({ children, onPress, disabled = false, primary = false, compact = false }: { children: React.ReactNode; onPress: () => void; disabled?: boolean; primary?: boolean; compact?: boolean }) {
   const [hovered, setHovered] = useState(false);
-  return <Pressable accessibilityRole="button" disabled={disabled} onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)} onPress={onPress} style={({ pressed }) => [s.button, (primary || (!disabled && (hovered || pressed))) && s.primary, disabled && s.disabled]}>{({ pressed }) => <Text style={[s.buttonText, (primary || (!disabled && (hovered || pressed))) && s.white]}>{children}</Text>}</Pressable>;
+  return <Pressable accessibilityRole="button" disabled={disabled} onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)} onPress={onPress} style={({ pressed }) => [s.button, compact && s.compactButton, (primary || (!disabled && (hovered || pressed))) && s.primary, disabled && s.disabled]}>{({ pressed }) => <Text style={[s.buttonText, compact && { fontSize: 12 }, (primary || (!disabled && (hovered || pressed))) && s.white]}>{children}</Text>}</Pressable>;
 }
 function AccountAvatar({ account }: { account: AccountSuggestion }) {
   const [failed, setFailed] = useState(false);
@@ -51,6 +51,8 @@ function Bubble({ children, mine = false }: { children: React.ReactNode; mine?: 
 
 export default function SupportScreen({ moderator = false, initialPaymentId, initialArtworkId, onClose, embedded = false }: { moderator?: boolean; initialPaymentId?: number; initialArtworkId?: number; onClose?: () => void; embedded?: boolean }) {
   const { user, loading: authLoading } = useContext(AuthContext);
+  const { width } = useWindowDimensions();
+  const [caseActionsExpanded, setCaseActionsExpanded] = useState(false);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [mode, setMode] = useState<'new' | 'tickets'>(moderator ? 'tickets' : 'new');
   const [category, setCategory] = useState('');
@@ -74,6 +76,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
   const [tickets, setTickets] = useState<Page<Ticket>>({ results: [], next_offset: null });
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [queue, setQueue] = useState<'waiting' | 'mine' | 'transfers'>('waiting');
   const [agents, setAgents] = useState<{ id: number; username: string }[]>([]);
   const [transferTarget, setTransferTarget] = useState<number | null>(null);
@@ -109,7 +112,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
     if (user) loadCatalog();
   }, [user?.uid, authLoading]);
   const loadTickets = async (offset = 0) => {
-    const page = await request<Page<Ticket>>(`tickets/?moderator=${moderator ? 1 : 0}&queue=${queue}&status=${statusFilter}&offset=${offset}`);
+    const page = await request<Page<Ticket>>(`tickets/?moderator=${moderator ? 1 : 0}&queue=${queue}&status=${assignments && queue === 'waiting' ? '' : statusFilter}&offset=${offset}`);
     setTickets(old => ({ ...page, results: offset ? [...old.results, ...page.results] : page.results }));
   };
   useEffect(() => { if (catalog && mode === 'tickets') run(() => loadTickets()); }, [catalog, mode, statusFilter, queue]);
@@ -201,10 +204,18 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
   return <SafeAreaView style={s.page} edges={embedded ? [] : undefined}><KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <View style={s.header}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={close} style={s.iconButton}><ArrowLeft size={23} color="#62493E" /></TouchableOpacity><View style={{ flex: 1 }}><Text style={s.brand}>ArtFiliere</Text><Text style={s.muted}>{moderator ? `${catalog?.department_label || 'Moderator'} reports` : 'Support & account safety'}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh customer support" disabled={busy} style={[s.iconButton, busy && s.disabled]} onPress={() => { if (selected) run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))); else if (mode === 'tickets' && catalog) run(() => loadTickets()); else loadCatalog(); }}><RefreshCw size={22} color="#984E43" /></TouchableOpacity></View>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-      <View style={s.hero}><ShieldCheck size={34} color="#B65B50" /><Text accessibilityRole="header" style={s.heroTitle}>{moderator ? 'Review concerns and reply to members' : 'Customer support'}</Text><Text style={s.heroCopy}>{moderator ? 'Review concerns and reply to members' : 'Guided help and report tracking'}</Text></View>
+      {!selected && <View style={s.hero}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><ShieldCheck size={30} color="#BC5555" /><Text accessibilityRole="header" style={[s.heroTitle, { flex: 1 }]}>{moderator ? (selected ? 'Report Details' : 'Concern Queues') : 'Customer Support'}</Text></View><Text style={s.heroCopy}>{moderator ? 'Choose a queue, review the concern, and reply to the member.' : 'Guided help and report tracking'}</Text></View>}
       {!catalog ? <><Text>{authLoading ? 'Checking your session...' : user ? 'Connecting to customer support...' : 'Sign in to view help and your reports.'}</Text>{!authLoading && <Button disabled={busy} onPress={loadCatalog}>Retry connection</Button>}{!authLoading && !user && <Button onPress={() => router.push('/login')}>Sign in</Button>}</> : moderator && !catalog.is_moderator ? <Text>Moderator access is required.</Text> : <>
-        <View style={s.row}>{!moderator && <Button disabled={busy} primary={mode === 'new'} onPress={() => { setMode('new'); setSelected(null); }}>New report / FAQs</Button>}<Button disabled={busy} primary={mode === 'tickets'} onPress={() => { setMode('tickets'); setSelected(null); run(() => loadTickets()); }}>{assignments ? 'Concern queues' : moderator ? 'Department reports' : 'My reports'}</Button></View>
-        {assignments && <View style={s.row}>{(['waiting', 'mine', 'transfers'] as const).map(value => <Button key={value} disabled={busy} primary={queue === value} onPress={() => { setQueue(value); setSelected(null); setStatusFilter(''); }}>{value === 'waiting' ? 'Waiting' : value === 'mine' ? 'My concerns' : 'Incoming transfers'}</Button>)}</View>}
+        {!moderator && <View style={s.row}><Button disabled={busy} primary={mode === 'new'} onPress={() => { setMode('new'); setSelected(null); }}>New Report / FAQs</Button><Button disabled={busy} primary={mode === 'tickets'} onPress={() => { setMode('tickets'); setSelected(null); run(() => loadTickets()); }}>My Reports</Button></View>}
+        {assignments && mode === 'tickets' && !selected && <View style={s.queuePanel}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={s.queueTabs}>
+            {(['waiting', 'mine', 'transfers'] as const).map(value => {
+              const Icon = value === 'waiting' ? Inbox : value === 'mine' ? UserCheck : ArrowRightLeft;
+              return <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: queue === value }} disabled={busy} onPress={() => { setQueue(value); setSelected(null); setStatusFilter(''); setStatusMenuOpen(false); }} style={[s.queueTab, queue === value && s.queueTabActive, busy && s.disabled]}><Icon size={18} color={queue === value ? '#FFFFFF' : '#A84B46'} /><Text style={[s.queueTabText, queue === value && s.white]}>{value === 'waiting' ? 'Waiting' : value === 'mine' ? 'Assigned to Me' : 'Transfers'}</Text></Pressable>;
+            })}
+          </ScrollView>
+          <Text style={s.muted}>{queue === 'waiting' ? 'Unassigned concerns ready for a moderator to accept.' : queue === 'mine' ? 'Concerns you accepted and are responsible for handling.' : 'Concerns another moderator has requested to transfer to you. Accept or decline each transfer.'}</Text>
+        </View>}
         {mode === 'new' ? <>
           <View style={s.introduction}><Text style={s.bubbleText}>Welcome to ArtFiliere support. Choose a topic below. This guided chat can answer common questions or send a report to our support team.</Text></View>
           {!category && catalog.concerns.some(c => c.id === 'rejected_artwork') && <Button disabled={busy} onPress={() => { const item = catalog.concerns.find(c => c.id === 'rejected_artwork'); if (item) chooseConcern(item); }}>Appeal a rejected artwork</Button>}
@@ -248,12 +259,48 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
             </>)}
           </View>}
         </> : selected ? <>
-          <View style={s.row}><Button disabled={busy} onPress={() => { setSelected(null); setReply(''); run(() => loadTickets()); }}>Back to reports</Button><Button disabled={busy} onPress={() => run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`)))}>Refresh replies</Button></View>
-          <Text style={s.title}>{selected.number}</Text><Text style={s.bold}>{selected.label}</Text><Text>Assigned to: {selected.department_label}</Text><Text>Status: {catalog.statuses[selected.status]}</Text><Text style={s.muted}>Submitted {new Date(selected.created_at).toLocaleString()}{moderator ? ` by ${selected.requester}` : ''}</Text>
-          {selected.reference && <Text>{selected.reference.label}: {selected.reference.title}</Text>}
+          <View style={s.caseNavigation}>
+            <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setSelected(null); setReply(''); setCaseActionsExpanded(false); run(() => loadTickets()); }} style={s.caseBack}><ArrowLeft size={18} color="#A84B46" /><Text style={s.filterLabel}>Back to Reports</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Refresh report details and replies" disabled={busy} onPress={() => run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`)))} style={s.queueRefresh}><RefreshCw size={18} color="#A84B46" /></Pressable>
+          </View>
+          <View style={s.caseSummary}>
+            <View style={s.ticketTop}><Text style={s.ticketNumber}>{selected.number}</Text><View style={[s.ticketStatus, ['resolved', 'closed'].includes(selected.status) && s.ticketStatusDone]}><Text style={[s.ticketStatusText, ['resolved', 'closed'].includes(selected.status) && { color: '#477452' }]}>{catalog.statuses[selected.status]}</Text></View></View>
+            <Text style={s.caseTitle}>{selected.label}</Text>
+            <View style={s.caseMeta}><Text style={s.muted}>From {selected.requester}</Text><Text style={s.muted}>{selected.department_label}</Text><Text style={s.muted}>{new Date(selected.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</Text></View>
+            {selected.reference && <Text style={s.caseReference}>{selected.reference.label}: {selected.reference.title}</Text>}
+          </View>
+          <View style={[s.caseLayout, { flexDirection: width >= 1000 ? 'row' : 'column' }]}>
+            <View style={[s.caseMain, width < 1000 && { width: '100%', flex: undefined }]}>
+              <View style={s.detailPanel}><Text style={s.panelTitle}>Reported Concern</Text>
+          <Text style={s.detailCopy}>{selected.details}</Text>{!!selected.evidence && <Text>Original work evidence: {selected.evidence}</Text>}{!!selected.image_data && <Image source={{ uri: selected.image_data }} style={s.photo} resizeMode="contain" />}
+
+              </View>
+              <View style={s.detailPanel}>
+                <Text style={s.panelTitle}>Conversation</Text>
+                {!selected.replies?.length && <Text style={s.muted}>{moderator && !selected.can_handle ? 'Accept this concern to start replying to the member.' : 'No replies yet.'}</Text>}
+                {selected.replies?.map(r => <View key={r.id} style={{ gap: 5 }}><Text style={s.muted}>{r.sender} / {new Date(r.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</Text><Bubble mine={moderator ? r.is_staff : !r.is_staff}>{r.message}</Bubble></View>)}
+          {(!moderator || selected.can_handle) && <><TextInput accessibilityLabel="Reply to report" style={[s.input, s.multiline, { minHeight: 80 }]} multiline maxLength={4000} value={reply} onChangeText={setReply} placeholder="Write a reply" />
+          <Button compact primary disabled={busy || !reply.trim()} onPress={() => run(async () => { setSelected(await request<Ticket>(`tickets/${selected.id}/`, 'POST', { message: reply })); setReply(''); })}>Send reply</Button></>}
+          {!moderator && ['resolved', 'closed'].includes(selected.status) && <Text style={s.muted}>Replying reopens this report if you still need help.</Text>}
+
+              </View>
+            </View>
+            <View style={[s.caseSide, { width: width >= 1000 ? 320 : '100%' }]}>
+          {assignments && <View style={s.detailPanel}><Text style={s.panelTitle}>Case Handling</Text>
+            <Text style={s.bold}>Handled by: {selected.assigned_to || 'Waiting for a moderator'}</Text>
+            {!selected.assigned_to_id && !['resolved', 'closed'].includes(selected.status) && <Button compact primary disabled={busy} onPress={() => assignmentAction('claim')}>Accept concern</Button>}
+            {!!selected.transfer_to_id && <Text>Transfer pending confirmation from {selected.transfer_to}. The current moderator remains responsible until acceptance.</Text>}
+            {selected.transfer_to_id === catalog.user_id && <View style={s.row}><Button compact primary disabled={busy} onPress={() => assignmentAction('accept_transfer')}>Confirm and accept transfer</Button><Button compact disabled={busy} onPress={() => assignmentAction('decline_transfer')}>Decline transfer</Button></View>}
+            {selected.can_handle && (selected.transfer_to_id ? <Button compact disabled={busy} onPress={() => assignmentAction('cancel_transfer')}>Cancel transfer</Button> : !['resolved', 'closed'].includes(selected.status) && <>
+              <Text>Transfer to another customer service moderator:</Text>
+              <View style={s.options}>{agents.map(agent => <Button compact key={agent.id} disabled={busy} primary={transferTarget === agent.id} onPress={() => setTransferTarget(agent.id)}>{agent.username}</Button>)}</View>
+              {!agents.length && <Text>No other available customer service moderators.</Text>}
+              {transferTarget !== null && <Button compact disabled={busy} onPress={() => assignmentAction('transfer', transferTarget)}>Request transfer ? recipient must confirm</Button>}
+            </>)}
+          </View>}
           {!!selected.reported_username && <View style={s.card}>
             <Text style={s.bold}>Reported account: @{selected.reported_username}</Text>
-            {assignments && selected.reported_user && <Button disabled={busy} onPress={() => run(async () => setReportedProfile(await request<ReportedProfile>(`tickets/${selected.id}/reported-profile/`)))}>View reported person's profile</Button>}
+            {assignments && selected.reported_user && <Button compact disabled={busy} onPress={() => run(async () => setReportedProfile(await request<ReportedProfile>(`tickets/${selected.id}/reported-profile/`)))}>View reported person's profile</Button>}
             {reportedProfile && <>
               <Text style={s.title}>{reportedProfile.name}</Text>
               <Text>@{reportedProfile.username} - {reportedProfile.role}</Text>
@@ -265,33 +312,33 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
                 {!!artwork.image_data && <Image source={{ uri: artwork.image_data }} style={s.thumb} />}
                 <Text style={s.flex}>{artwork.title}</Text>
               </View>)}
-              <Button onPress={() => setReportedProfile(null)}>Close profile</Button>
+              <Button compact onPress={() => setReportedProfile(null)}>Close profile</Button>
             </>}
           </View>}
-          <Bubble mine={!moderator}>{selected.details}</Bubble>{!!selected.evidence && <Text>Original work evidence: {selected.evidence}</Text>}{!!selected.image_data && <Image source={{ uri: selected.image_data }} style={s.photo} resizeMode="contain" />}
-          {!selected.replies?.length && <Bubble>Your report is saved. A support team member can reply here after reviewing it.</Bubble>}
-          {selected.replies?.map(r => <View key={r.id}><Text style={s.muted}>{r.sender} · {new Date(r.created_at).toLocaleString()}</Text><Bubble mine={moderator ? r.is_staff : !r.is_staff}>{r.message}</Bubble></View>)}
-          {assignments && <View style={s.card}>
-            <Text style={s.bold}>Handled by: {selected.assigned_to || 'Waiting for a moderator'}</Text>
-            {!selected.assigned_to_id && !['resolved', 'closed'].includes(selected.status) && <Button primary disabled={busy} onPress={() => assignmentAction('claim')}>Accept concern</Button>}
-            {!!selected.transfer_to_id && <Text>Transfer pending confirmation from {selected.transfer_to}. The current moderator remains responsible until acceptance.</Text>}
-            {selected.transfer_to_id === catalog.user_id && <View style={s.row}><Button primary disabled={busy} onPress={() => assignmentAction('accept_transfer')}>Confirm and accept transfer</Button><Button disabled={busy} onPress={() => assignmentAction('decline_transfer')}>Decline transfer</Button></View>}
-            {selected.can_handle && (selected.transfer_to_id ? <Button disabled={busy} onPress={() => assignmentAction('cancel_transfer')}>Cancel transfer</Button> : !['resolved', 'closed'].includes(selected.status) && <>
-              <Text>Transfer to another customer service moderator:</Text>
-              <View style={s.options}>{agents.map(agent => <Button key={agent.id} disabled={busy} primary={transferTarget === agent.id} onPress={() => setTransferTarget(agent.id)}>{agent.username}</Button>)}</View>
-              {!agents.length && <Text>No other available customer service moderators.</Text>}
-              {transferTarget !== null && <Button disabled={busy} onPress={() => assignmentAction('transfer', transferTarget)}>Request transfer ? recipient must confirm</Button>}
-            </>)}
-          </View>}
-          {(!moderator || selected.can_handle) && <><TextInput accessibilityLabel="Reply to report" style={[s.input, s.multiline]} multiline maxLength={4000} value={reply} onChangeText={setReply} placeholder="Write a reply" />
-          <Button primary disabled={busy || !reply.trim()} onPress={() => run(async () => { setSelected(await request<Ticket>(`tickets/${selected.id}/`, 'POST', { message: reply })); setReply(''); })}>Send reply</Button></>}
-          {!moderator && ['resolved', 'closed'].includes(selected.status) && <Text style={s.muted}>Replying reopens this report if you still need help.</Text>}
-          {moderator && selected.can_handle && <TicketActions ticket={selected} role={catalog.role} onUpdated={async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))} />}
-          {moderator && selected.can_handle && <><Text style={s.bold}>Update report status</Text><View style={s.options}>{Object.entries(catalog.statuses).map(([value, label]) => <Button key={value} disabled={busy || value === selected.status} onPress={() => run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`, 'PATCH', { status: value })))}>{label}</Button>)}</View></>}
+          {moderator && selected.can_handle && <View style={s.detailPanel}><Text style={s.panelTitle}>Case Status</Text><View style={s.row}>{Object.entries(catalog.statuses).map(([value, label]) => <Button compact key={value} disabled={busy || value === selected.status} onPress={() => run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`, 'PATCH', { status: value })))}>{label}</Button>)}</View></View>}
+
+              {moderator && selected.can_handle && <View style={s.detailPanel}>
+                <Pressable accessibilityRole="button" accessibilityState={{ expanded: caseActionsExpanded }} onPress={() => setCaseActionsExpanded(value => !value)} style={s.caseActionsToggle}><Text style={s.panelTitle}>Additional Case Actions</Text>{caseActionsExpanded ? <ChevronUp size={18} color="#A84B46" /> : <ChevronDown size={18} color="#A84B46" />}</Pressable>
+                {caseActionsExpanded && <TicketActions ticket={selected} role={catalog.role} onUpdated={async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))} />}
+              </View>}
+            </View>
+          </View>
         </> : <>
-          <View style={s.row}><Button disabled={busy} onPress={() => run(() => loadTickets())}>Refresh reports</Button><Button disabled={busy} primary={!statusFilter} onPress={() => setStatusFilter('')}>All statuses</Button>{Object.entries(catalog.statuses).map(([key, label]) => <Button key={key} disabled={busy} primary={statusFilter === key} onPress={() => setStatusFilter(key)}>{label}</Button>)}</View>
-          {!busy && !tickets.results.length && <Text>No reports in this view yet.</Text>}
-          {tickets.results.map(t => <TouchableOpacity accessibilityRole="button" disabled={busy} style={s.card} key={t.id} onPress={() => run(async () => { setSelected(await request<Ticket>(`tickets/${t.id}/`)); setReply(''); })}><Text style={s.bold}>{t.number} · {t.label}</Text><Text>{catalog.statuses[t.status]}{moderator ? ` · ${t.requester}` : ''}</Text>{t.reference && <Text style={s.muted}>{t.reference.label}: {t.reference.title}</Text>}<Text style={s.muted}>{new Date(t.created_at).toLocaleString()}</Text></TouchableOpacity>)}
+          <View style={s.reportToolbar}>
+            <View style={s.reportToolbarTop}>
+              <View style={{ flex: 1, gap: 3 }}><Text style={s.listHeading}>Reports</Text><Text style={s.muted}>{tickets.results.length} loaded{statusFilter ? ` / ${catalog.statuses[statusFilter]}` : ''}</Text></View>
+              {(!assignments || queue !== 'waiting') && <Pressable accessibilityRole="button" accessibilityLabel="Filter reports by status" accessibilityState={{ expanded: statusMenuOpen }} disabled={busy} onPress={() => setStatusMenuOpen(value => !value)} style={s.filterToggle}><SlidersHorizontal size={16} color="#A84B46" /><Text style={s.filterLabel}>{statusFilter ? catalog.statuses[statusFilter] : 'All Statuses'}</Text>{statusMenuOpen ? <ChevronUp size={16} color="#A84B46" /> : <ChevronDown size={16} color="#A84B46" />}</Pressable>}
+              <Pressable accessibilityRole="button" accessibilityLabel="Refresh reports" disabled={busy} onPress={() => run(() => loadTickets())} style={[s.queueRefresh, busy && s.disabled]}><RefreshCw size={18} color="#A84B46" /></Pressable>
+            </View>
+            {(!assignments || queue !== 'waiting') && statusMenuOpen && <View style={s.statusOptions}>{[['', 'All Statuses'], ...Object.entries(catalog.statuses)].map(([key, label]) => <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: statusFilter === key }} disabled={busy} onPress={() => { setStatusFilter(key); setStatusMenuOpen(false); }} style={[s.statusOption, statusFilter === key && s.statusOptionActive]}><Text style={[s.filterLabel, statusFilter === key && s.white]}>{label}</Text></Pressable>)}</View>}
+          </View>
+          {!busy && !tickets.results.length && <View style={s.queueEmpty}><Inbox size={30} color="#C49A90" /><Text style={s.listHeading}>No Reports Here</Text><Text style={s.muted}>{statusFilter ? 'Try another status filter to see more concerns.' : 'Reports will appear here when they enter this queue.'}</Text></View>}
+          {tickets.results.map(t => <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Open ${t.number}: ${t.label}`} disabled={busy} style={s.ticketCard} key={t.id} onPress={() => run(async () => { setSelected(await request<Ticket>(`tickets/${t.id}/`)); setReply(''); })}>
+            <View style={s.ticketTop}><Text style={s.ticketNumber}>{t.number}</Text><View style={[s.ticketStatus, ['resolved', 'closed'].includes(t.status) && s.ticketStatusDone]}><Text style={[s.ticketStatusText, ['resolved', 'closed'].includes(t.status) && { color: '#477452' }]}>{catalog.statuses[t.status]}</Text></View></View>
+            <View style={s.ticketSubjectRow}><Text style={s.ticketSubject}>{t.label}</Text><ChevronRight size={20} color="#A84B46" /></View>
+            {t.reference && <Text style={s.muted} numberOfLines={2}>{t.reference.label}: {t.reference.title}</Text>}
+            <View style={s.ticketMeta}>{moderator && <Text style={s.muted}>From {t.requester}</Text>}<Text style={s.muted}>{new Date(t.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</Text></View>
+          </TouchableOpacity>)}
           {tickets.next_offset !== null && <Button disabled={busy} onPress={() => run(() => loadTickets(tickets.next_offset!))}>More reports</Button>}
         </>}
       </>}
@@ -302,11 +349,26 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
 }
 
 const s = StyleSheet.create({
+  compactButton: { alignSelf: 'flex-start', minHeight: 40, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 8 },
+  caseNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, caseBack: { flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 40 },
+  caseSummary: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 12, padding: 18, gap: 10 }, caseTitle: { fontSize: 22, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#3A2D2A' }, caseMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, caseReference: { fontSize: 12, lineHeight: 18, color: '#A84B46', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#EFE1DC' },
+  caseLayout: { alignItems: 'flex-start', gap: 16 }, caseMain: { flex: 1, minWidth: 0, gap: 14 }, caseSide: { flexShrink: 0, gap: 14 },
+  detailPanel: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 12, padding: 16, gap: 12 }, panelTitle: { fontSize: 15, fontWeight: '700', color: '#5A3D37' }, detailCopy: { color: '#453731', fontSize: 14, lineHeight: 21 }, caseActionsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  queuePanel: { gap: 12, padding: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 14 },
+  queueTabs: { gap: 8 }, queueTab: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, backgroundColor: '#F5E8E3' },
+  queueTabActive: { backgroundColor: '#BC5555' }, queueTabText: { fontSize: 13, fontWeight: '700', color: '#A84B46' },
+  reportToolbar: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 12, padding: 14, gap: 12 }, reportToolbarTop: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
+  listHeading: { fontSize: 16, fontWeight: '700', color: '#5A3D37' }, filterToggle: { flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 40, paddingHorizontal: 12, borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 8 }, filterLabel: { color: '#A84B46', fontSize: 12, fontWeight: '600' },
+  queueRefresh: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#F5E8E3' }, statusOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#EFE1DC' }, statusOption: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, backgroundColor: '#F5E8E3' }, statusOptionActive: { backgroundColor: '#BC5555' },
+  queueEmpty: { padding: 28, gap: 10, alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 12 },
+  ticketCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 12, padding: 18, gap: 10 }, ticketTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  ticketNumber: { color: '#A84B46', fontSize: 12, fontWeight: '700' }, ticketStatus: { backgroundColor: '#F5E8E3', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5 }, ticketStatusDone: { backgroundColor: '#EDF4EE' }, ticketStatusText: { fontSize: 11, fontWeight: '700', color: '#A84B46' },
+  ticketSubjectRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, ticketSubject: { flex: 1, fontSize: 16, fontWeight: '700', color: '#3A2D2A' }, ticketMeta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, borderTopWidth: 1, borderTopColor: '#F1E8E2', paddingTop: 10 },
   page: { flex: 1, backgroundColor: '#FAF7F3' }, header: { padding: 18, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#E8DAD2', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  brand: { fontSize: 23, fontWeight: '800', color: '#B54848', marginBottom: 4 },
+  brand: { fontSize: 23, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#B54848', marginBottom: 4 },
   iconButton: { padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   hero: { gap: 16, paddingVertical: 12, marginBottom: 8 },
-  heroTitle: { fontSize: 29, lineHeight: 37, fontWeight: '800', color: '#3E322B' },
+  heroTitle: { fontSize: 26, lineHeight: 34, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#3E322B' },
   heroCopy: { fontSize: 16, lineHeight: 24, color: '#74665D' },
   restartButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#52687C', borderRadius: 10, paddingVertical: 13, paddingHorizontal: 18, minHeight: 46 },
   restartText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
@@ -314,7 +376,7 @@ const s = StyleSheet.create({
   concernCard: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3D7D0', borderRadius: 16, padding: 18, gap: 16 },
   concernHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 14, borderBottomWidth: 1, borderBottomColor: '#EEE4DD', paddingBottom: 16 },
   concernTitle: { fontSize: 21, lineHeight: 28, fontWeight: '700', color: '#603C36' },
-  title: { fontSize: 21, fontWeight: '700', color: '#603C36' }, content: { padding: 20, paddingBottom: 60, gap: 14, maxWidth: 850, width: '100%', alignSelf: 'center' },
+  title: { fontSize: 21, fontWeight: '700', color: '#603C36' }, content: { padding: 22, paddingTop: 28, paddingBottom: 60, gap: 14, maxWidth: 1200, width: '100%', alignSelf: 'center' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }, flex: { flex: 1, minWidth: 150 }, options: { gap: 8 },
   button: { borderWidth: 1, borderColor: '#E2D2C8', borderRadius: 11, paddingVertical: 14, paddingHorizontal: 18, backgroundColor: '#fff' }, buttonText: { color: '#82443D', fontWeight: '600' }, primary: { backgroundColor: '#B65B50', borderColor: '#B65B50' }, white: { color: '#fff' }, disabled: { opacity: 0.45 },
   bubble: { padding: 16, borderRadius: 14, backgroundColor: '#F1E8DF', maxWidth: '94%', alignSelf: 'flex-start' }, mine: { alignSelf: 'flex-end', backgroundColor: '#F9DDCF' }, bubbleText: { color: '#453731', lineHeight: 22 },

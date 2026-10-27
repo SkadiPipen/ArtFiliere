@@ -56,7 +56,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
       }
     });
   };
-  
+
   const openFiles = async () => {
     setFilesOpen(true); setFilesLoading(true); setFilesError('');
     try { setContracts((await contractRequest()).contracts); }
@@ -99,23 +99,23 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
   const openNotifications = async () => {
     setNotificationOpen(true);
     setNotificationsLoading(true);
-    try { 
-      await loadNotifications(); 
-    } catch { 
-      Alert.alert('Notifications', 'Unable to load notifications right now.'); 
-    } finally { 
-      setNotificationsLoading(false); 
+    try {
+      await loadNotifications();
+    } catch {
+      Alert.alert('Notifications', 'Unable to load notifications right now.');
+    } finally {
+      setNotificationsLoading(false);
     }
   };
 
   const markRead = async (notification: Notification) => {
-    if (notification.is_read) 
+    if (notification.is_read)
       return;
     setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, is_read: true } : item));
     setUnreadCount((count) => Math.max(0, count - 1));
     try {
       const user = auth.currentUser;
-      if (!user) 
+      if (!user)
         return;
       const token = await user.getIdToken();
       await fetch(`${API_URL}/api/users/notifications/`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ notification_id: notification.id }) });
@@ -123,28 +123,25 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
   };
 
   const markAllRead = async () => {
-    if (!unreadCount) 
+    if (!unreadCount)
       return;
     setNotifications((items) => items.map((item) => ({ ...item, is_read: true })));
     setUnreadCount(0);
     try {
       const user = auth.currentUser;
-      if (!user) 
+      if (!user)
         return;
       const token = await user.getIdToken();
       await fetch(`${API_URL}/api/users/notifications/`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
-    } catch { 
-      loadNotifications().catch(() => undefined); 
+    } catch {
+      loadNotifications().catch(() => undefined);
     }
   };
 
   const visibleNotifications = useMemo(() => notificationFilter === 'all' ? notifications : notifications.filter((item) => !item.is_read), [notificationFilter, notifications]);
 
-  return (
-    <View style={[styles.header, isDesktop && styles.desktopHeader, webDesktop && styles.fullWidthHeader]}>
-      <View style={[styles.innerContainer, isDesktop && styles.desktopInnerContainer, webDesktop && styles.fullWidthInnerContainer]}>
-        <View style={[styles.topRow, webDesktop && styles.desktopRowSpacing]}>
-          <View style={styles.searchSectionWrapper}>
+  const searchSection = (
+          <View style={[styles.searchSectionWrapper, !isDesktop && styles.mobileSearchWrapper]}>
           {webDesktop && (
             <View
               style={styles.browseDropdownContainer}
@@ -231,7 +228,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
             </View>
           )}
 
-            <View style={[styles.searchBox, webDesktop && styles.desktopSearchBox]}>
+            <View style={[styles.searchBox, !isDesktop && styles.mobileSearchBox, webDesktop && styles.desktopSearchBox]}>
               <TextInput
                 style={styles.input}
                 placeholder="Search Artwork..."
@@ -242,39 +239,48 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
                   setLocalSearchQuery(query);
                   onSearchChange?.(query);
                 }}
-                {...(webDesktop ? { accessibilityLabel: 'Search artwork by title, artist or tag' } : {})}
+                accessibilityLabel="Search artwork by title, artist or tag"
               />
               <Search size={18} color="#555" />
             </View>
           </View>
+  );
 
-          <View style={styles.headerIcons}>
-            <TouchableOpacity accessibilityLabel="Your licenses and agreements" onPress={webDesktop ? openFiles : () => Alert.alert('Files', 'Opening Files...')}>
+  return (
+    <View style={[styles.header, isDesktop && styles.desktopHeader, webDesktop && styles.fullWidthHeader]}>
+      <View style={[styles.innerContainer, isDesktop && styles.desktopInnerContainer, webDesktop && styles.fullWidthInnerContainer]}>
+        <View style={[styles.topRow, !isDesktop && styles.mobileTopRow, webDesktop && styles.desktopRowSpacing]}>
+          {!isDesktop && <Text style={styles.mobileBrand}>ArtFiliere</Text>}
+          {isDesktop && searchSection}
+
+          <View style={[styles.headerIcons, !isDesktop && styles.mobileHeaderIcons]}>
+            <TouchableOpacity accessibilityLabel="Your licenses and agreements" onPress={openFiles} style={!isDesktop ? styles.mobileIcon : undefined}>
               <Folder color="#fff" size={22} />
             </TouchableOpacity>
 
-            {!webDesktop && 
+            {!webDesktop && isDesktop &&
             <TouchableOpacity onPress={() => router.push('/(home)/cart')} style={styles.notificationButton}>
               <ShoppingCart color="#fff" size={22} style={{ marginHorizontal: 12 }} />
               {cartCount > 0 && <View style={styles.notificationBadge}><Text style={styles.notificationBadgeText}>{cartCount > 9 ? '9+' : cartCount}</Text></View>}
             </TouchableOpacity>}
 
-            <TouchableOpacity onPress={openNotifications} style={styles.notificationButton}>
-              <Bell color="#fff" size={22} style={{ marginHorizontal: 12 }} />
+            <TouchableOpacity accessibilityLabel="Notifications" onPress={openNotifications} style={[styles.notificationButton, !isDesktop && styles.mobileIcon]}>
+              <Bell color="#fff" size={22} style={{ marginHorizontal: isDesktop ? 12 : 0 }} />
               {unreadCount > 0 && <View style={styles.notificationBadge}><Text style={styles.notificationBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text></View>}
             </TouchableOpacity>
 
-            {!webDesktop && 
-            <TouchableOpacity onPress={() => router.push('/(home)/settings')}>
+            {!webDesktop &&
+            <TouchableOpacity accessibilityLabel="Settings" style={!isDesktop ? styles.mobileIcon : undefined} onPress={() => router.push('/(home)/settings')}>
               <Settings color="#fff" size={22} />
             </TouchableOpacity>}
           </View>
+          {!isDesktop && searchSection}
         </View>
 
         <View style={[styles.categoryRow, isDesktop && styles.desktopCategoryRow, webDesktop && styles.desktopRowSpacing]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 10 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1, minWidth: 0 }} contentContainerStyle={{ paddingRight: 10 }}>
             {CATEGORIES.map((cat, i) => (
-              <TouchableOpacity key={i} onPress={() => onSelectCategory(cat)}>
+              <TouchableOpacity key={i} accessibilityRole="button" accessibilityState={{ selected: activeCategory === cat }} style={!isDesktop ? styles.mobileCategory : undefined} onPress={() => onSelectCategory(cat)}>
                 <Text
                   style={[
                     styles.catText,
@@ -288,11 +294,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
             ))}
           </ScrollView>
 
-          {!webDesktop && <>
-          <View style={styles.verticalDivider} />
-          <TouchableOpacity onPress={() => Alert.alert('Filter', 'Opening advanced filters...')}>
-            <Menu color="#fff" size={22} />
-          </TouchableOpacity></>}
+
         </View>
       </View>
 
@@ -305,11 +307,11 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
                 <Text style={styles.markReadText}>Close</Text>
               </TouchableOpacity>
             </View>
-            {filesLoading ? 
+            {filesLoading ?
             <ActivityIndicator color="#C15656" /> : <ScrollView showsVerticalScrollIndicator={false}>
               {!!filesError && <Text accessibilityRole="alert" style={styles.notificationEmptyText}>{filesError}</Text>}
               {!filesError && !contracts.length && <Text style={styles.notificationEmptyText}>No agreements yet.</Text>}
-              {contracts.map(contract => 
+              {contracts.map(contract =>
               <TouchableOpacity key={contract.id} style={styles.notificationItem} onPress={() => { setFilesOpen(false); setSelectedContract(contract.id); }}>
                 <View style={styles.notificationCopy}>
                   <Text style={styles.notificationItemTitle}>{contract.title}</Text>
@@ -339,7 +341,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
                 </TouchableOpacity>
             </View>
             <View style={styles.notificationTabs}>
-              {(['all', 'unread'] as const).map((tab) => 
+              {(['all', 'unread'] as const).map((tab) =>
               <TouchableOpacity key={tab} onPress={() => setNotificationFilter(tab)} style={[styles.notificationTab, notificationFilter === tab && styles.notificationTabActive]}>
                 <Text style={[styles.notificationTabText, notificationFilter === tab && styles.notificationTabTextActive]}>{tab === 'all' ? 'All' : `Unread${unreadCount ? ` (${unreadCount})` : ''}`}</Text>
               </TouchableOpacity>)}
@@ -347,11 +349,11 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
 
             <Text style={styles.notificationSectionLabel}>{notificationFilter === 'all' ? 'Earlier' : 'Unread notifications'}</Text>
 
-            {notificationsLoading ? 
+            {notificationsLoading ?
             <View style={styles.notificationLoading}>
               <ActivityIndicator color="#C15656" />
               </View> : <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.notificationList}>
-              {visibleNotifications.length ? visibleNotifications.map((item) => 
+              {visibleNotifications.length ? visibleNotifications.map((item) =>
               <TouchableOpacity key={item.id} onPress={() => { markRead(item); if (item.negotiation_partner) { setNotificationOpen(false); setNotificationChat(item.negotiation_partner); } }} style={[styles.notificationItem, !item.is_read && styles.notificationItemUnread]}>
                 <View style={[styles.notificationIcon, item.title.toLowerCase().includes('approved') ? styles.notificationIconApproved : styles.notificationIconRejected]}>
                   <Bell size={18} color="#FFFFFF" />
@@ -361,7 +363,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
                   <Text style={styles.notificationItemMessage}>{item.message}</Text>
                   {item.negotiation_partner && <Text style={{ color: '#A34A40', fontSize: 11, fontWeight: '700', marginTop: 5 }}>Open negotiation chat</Text>}
                 </View>
-                {!item.is_read && 
+                {!item.is_read &&
                 <View style={styles.notificationUnreadDot} />}
               </TouchableOpacity>) : <View style={styles.notificationEmpty}>
                 <Bell size={30} color="#D7C7C0" />
@@ -380,6 +382,13 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
 
 
 const styles = StyleSheet.create({
+  mobileTopRow: { flexWrap: 'wrap', gap: 8 },
+  mobileBrand: { flex: 1, color: '#FFFFFF', fontSize: 21, fontFamily: 'LoraSemiBold', fontWeight: '600' },
+  mobileSearchWrapper: { flexBasis: '100%', width: '100%', flexGrow: 1, minWidth: 0 },
+  mobileSearchBox: { height: 44, borderRadius: 22, minWidth: 0 },
+  mobileHeaderIcons: { marginLeft: 0, gap: 2, flexShrink: 0 },
+  mobileIcon: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
+  mobileCategory: { minHeight: 44, justifyContent: 'center' },
   header: { backgroundColor: '#C15656', width: '100%', alignItems: 'center', paddingVertical: 12, zIndex: 1000 },
   desktopHeader: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E9DDD6', paddingTop: 0, zIndex: 1000 },
   innerContainer: { width: '100%', maxWidth: 1200, paddingHorizontal: 15, zIndex: 1000 },
@@ -406,6 +415,7 @@ const styles = StyleSheet.create({
   searchBox: { flex: 1, backgroundColor: '#fff', borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: 38, borderWidth: 0 },
   input: {
     flex: 1,
+    minWidth: 0,
     fontSize: 14,
     color: '#000',
     paddingVertical: 0,

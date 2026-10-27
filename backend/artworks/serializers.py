@@ -8,10 +8,27 @@ class ArtworkSerializer(serializers.ModelSerializer):
     categories = serializers.SerializerMethodField()
     category_labels = serializers.SerializerMethodField()
     artist_name = serializers.SerializerMethodField()
+    artist_username = serializers.CharField(source='artist.username', read_only=True)
     similarity_matches = serializers.SerializerMethodField()
     is_sold = serializers.SerializerMethodField()
     auction_request = serializers.SerializerMethodField()
     provenance = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+
+    def review_summary(self, artwork):
+        if not hasattr(artwork, '_review_summary'):
+            from django.db.models import Avg, Count
+            from fulfillment.models import PurchaseReview
+            artwork._review_summary = PurchaseReview.objects.filter(payment__artwork=artwork, payment__status='paid').aggregate(average=Avg('artwork_rating'), count=Count('id'))
+        return artwork._review_summary
+
+    def get_average_rating(self, artwork):
+        value = self.review_summary(artwork)['average']
+        return round(float(value), 1) if value is not None else None
+
+    def get_review_count(self, artwork):
+        return self.review_summary(artwork)['count']
 
     class Meta:
         model = Artwork
@@ -19,6 +36,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "id",
             "artist_id",
             "artist_name",
+            "artist_username",
             "title",
             "description",
             "category",
@@ -45,6 +63,8 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "material_cost",
             "auction_request",
             "provenance",
+            "average_rating",
+            "review_count",
         ]
         extra_kwargs = {
             'sale_type': {'required': False},
@@ -104,9 +124,11 @@ class ArtworkSerializer(serializers.ModelSerializer):
             if hasattr(artwork, 'auction_listings') and artwork.auction_listings.filter(status='SETTLED').exists():
                 return True
             paid_sales = artwork.payment_sessions.filter(status='paid')
-            return artwork.art_type == 'physical' and paid_sales.exists() or paid_sales.filter(
-                agreement__exclusivity__in=['exclusive', 'sole']
-            ).exists()
+            from .availability import blocks_public_listing
+            return (artwork.art_type == 'physical' and paid_sales.exists()) or any(
+                blocks_public_listing(payment.agreement)
+                for payment in paid_sales.filter(agreement__exclusivity__in=['exclusive', 'sole']).select_related('agreement')
+            )
         except Exception:
             return False
 

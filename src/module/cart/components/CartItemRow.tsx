@@ -1,7 +1,8 @@
+import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { CartItem } from '@/module/cart/types';
 import { ChevronDown, Handshake } from 'lucide-react-native';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {
   item: CartItem;
@@ -45,9 +46,9 @@ export default function CartItemRow({
           onPress={() => onToggleSelect(item.id)}
         />
 
-        <Image 
-          source={{ uri: item.image || 'https://via.placeholder.com/200' }} 
-          style={styles.artImage} 
+        <ProductImage
+          source={{ uri: item.image || 'https://via.placeholder.com/200' }}
+          style={styles.artImage}
           defaultSource={{ uri: 'https://via.placeholder.com/200' }}
           resizeMode="cover"
         />

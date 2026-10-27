@@ -68,6 +68,7 @@ class PurchaseReview(models.Model):
     comment = models.TextField(blank=True, max_length=2000)
     artist_comment = models.TextField(blank=True, max_length=2000)
     artwork_comment = models.TextField(blank=True, max_length=2000)
+    images = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         constraints = [

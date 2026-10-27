@@ -1,9 +1,14 @@
+import ProductImage from '@/components/ProductImage';
+import ArtistShareCard from './components/ArtistShareCard';
+import ProfileCover from '@/components/ProfileCover';
+import { ChatModal } from '@/module/chat-negotiations/chatModal';
+import { chatService } from '@/module/chat-negotiations/chats';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, MessageCircle, Paintbrush, X } from "lucide-react-native";
+import { ArrowLeft, MessageCircle, Paintbrush, Share2, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Dimensions, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,14 +19,34 @@ const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === "web" || width > 768;
 
 export default function ArtistProfileScreen() {
-  const { artistId } = useLocalSearchParams<{ artistId: string }>();
+  const { artistId: routeArtistId, username } = useLocalSearchParams<{ artistId?: string; username?: string }>();
   const router = useRouter();
   const { width: pageWidth } = useWindowDimensions();
   const [showFullPortfolio, setShowFullPortfolio] = useState(false);
 
   const [artist, setArtist] = useState<any>(null);
+  const artistId = String(artist?.id || routeArtistId || '');
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
+  const [chatArtist, setChatArtist] = useState<any>(null);
+  const [openingChat, setOpeningChat] = useState(false);
+  const [messageError, setMessageError] = useState('');
+  const [showShare, setShowShare] = useState(false);
+  const openArtistChat = async () => {
+    if (openingChat) return;
+    setOpeningChat(true); setMessageError('');
+    try {
+      await auth.authStateReady();
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw Error('Please sign in to message this artist.');
+      const users = await chatService.fetchUsers(currentUser.uid);
+      const recipient = users.find(user => user.displayName === artist.username);
+      if (!recipient) throw Error('This artist is unavailable for chat, or this is your own profile.');
+      setChatArtist({ ...recipient, firebase_uid: recipient.id, displayName: artist.name || recipient.displayName, username: artist.username, photoURL: artist.profile_image || '' });
+    } catch (error: any) { setMessageError(error.message || 'Unable to open this conversation.'); }
+    finally { setOpeningChat(false); }
+  };
+
 
   // Commission Modal States
   const [modalVisible, setModalVisible] = useState(false);
@@ -39,8 +64,9 @@ export default function ArtistProfileScreen() {
     setLoading(true); setArtist(null); setProfileError('');
     (async () => {
       try {
-        if (!/^\d+$/.test(artistId || '')) throw Error('This artist profile link is missing a valid artist ID.');
-        const response = await fetch(`${API_URL}/api/users/artists/${artistId}/`);
+        if (!username && !/^\d+$/.test(routeArtistId || '')) throw Error('This artist profile link is invalid.');
+        const path = username ? `by-username/${encodeURIComponent(username)}` : routeArtistId;
+        const response = await fetch(`${API_URL}/api/users/artists/${path}/`);
         const data = await readApiResponse(response);
         if (active) setArtist(data);
       } catch (error: any) {
@@ -50,7 +76,7 @@ export default function ArtistProfileScreen() {
       }
     })();
     return () => { active = false; };
-  }, [artistId]);
+  }, [routeArtistId, username]);
 
   const handleCreateCommission = async () => {
     if (!title.trim()) {
@@ -112,7 +138,7 @@ export default function ArtistProfileScreen() {
   if (loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator color="#E67E22" size="large" />
+        <ActivityIndicator color="#A84B46" size="large" />
       </View>
     );
   }
@@ -121,7 +147,7 @@ export default function ArtistProfileScreen() {
     return (
       <View style={s.center}>
         <Text accessibilityRole="alert" style={{ color: "#666", textAlign: 'center', padding: 16 }}>{profileError || 'Artist not found.'}</Text>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/artists')}><Text style={{ color: '#C15656', padding: 12 }}>Back to artists</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/artists')}><Text style={{ color: '#BC5555', padding: 12 }}>Back to artists</Text></TouchableOpacity>
       </View>
     );
   }
@@ -141,11 +167,12 @@ export default function ArtistProfileScreen() {
 
   return (
     <SafeAreaView style={s.page}>
+      {chatArtist && <ChatModal visible currentUser={auth.currentUser} initialArtist={chatArtist} onClose={() => setChatArtist(null)} />}
+      {showShare && <ArtistShareCard artist={artist} avatarUri={avatarUri} onClose={() => setShowShare(false)} />}
       {/* 1. Header Navigation Bar */}
       <View style={s.topNav}>
-        <TouchableOpacity style={s.navLeft} onPress={handleBack}>
-          <ArrowLeft color="#fff" size={24} />
-          <Text style={s.navTitle}>{artist.name || artist.username}</Text>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from artist profile" style={s.navLeft} onPress={handleBack}>
+          <ArrowLeft color="#62493E" size={24} />
         </TouchableOpacity>
 
         <View style={s.navRight}>
@@ -165,28 +192,20 @@ export default function ArtistProfileScreen() {
               <Paintbrush color="#fff" size={15} />
               <Text style={s.commissionBtnText}>Request Commission</Text>
             </TouchableOpacity>
-          ) : (
-            <View style={s.closedCommission}>
-              <Text style={s.closedCommissionText}>Commissions closed</Text>
-            </View>
-          )}
+          ) : null}
 
           {/* Message Button */}
           <TouchableOpacity
-            style={s.messageBtn}
-            onPress={() =>
-              router.push({
-                pathname: "/messages",
-                params: {
-                  artistId: String(artist.id),
-                  artistName: artist.name,
-                },
-              })
-            }
+            style={[s.messageBtn, openingChat && { opacity: 0.5 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Message artist in chats"
+            disabled={openingChat}
+            onPress={() => { void openArtistChat(); }}
           >
-            <MessageCircle color="#fff" size={16} />
-            <Text style={s.messageText}>Message</Text>
+            <MessageCircle color="#A84B46" size={16} />
+            <Text style={s.messageText}>{openingChat ? 'Opening...' : 'Message'}</Text>
           </TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Share artist profile" accessibilityState={{ expanded: showShare }} onPress={() => setShowShare(true)} style={s.shareButton}><Share2 size={18} color="#A84B46" /></TouchableOpacity>
         </View>
       </View>
 
@@ -194,28 +213,29 @@ export default function ArtistProfileScreen() {
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
+        {!!messageError && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 16 }}>{messageError}</Text>}
         {/* 2. Artist Profile Hero Card (Identical to Artist POV Header) */}
         <View style={s.heroCard}>
-          <View style={s.artistBadgePill}>
-            <Text style={s.artistBadgeText}>Artist</Text>
-          </View>
-
+          <ProfileCover uri={artist.cover_image} />
           <View style={s.heroMain}>
             <Image source={{ uri: avatarUri }} style={s.avatar} />
 
             <View style={s.heroDetails}>
+              <View style={s.artistTags}>
+                <View style={s.artistBadgePill}><Text style={s.artistBadgeText}>Artist</Text></View>
+                <View style={[s.commissionStatus, artist.is_accepting_commissions && s.commissionStatusOpen]}>
+                  <Text style={[s.commissionStatusText, artist.is_accepting_commissions && s.commissionStatusTextOpen]}>{artist.is_accepting_commissions ? 'Commissions Open' : 'Commissions Closed'}</Text>
+                </View>
+              </View>
               <Text style={s.artistNameText}>
                 {artist.name || artist.username}
               </Text>
+              <Text style={s.handleText}>@{artist.username}</Text>
+              {!!artist.bio?.trim() && <Text style={s.bioText}>{artist.bio}</Text>}
               <Text style={s.statsText}>
                 {artist.reviews_count ?? 25} Reviews •{" "}
                 {artist.followers_count ?? 19} Followers •{" "}
                 {artist.following_count ?? 3} Following
-              </Text>
-              <Text style={s.handleText}>@{artist.username}</Text>
-              <Text style={s.bioText}>
-                {artist.bio ||
-                  "Passionate digital & physical painter on ArtFiliere."}
               </Text>
             </View>
           </View>
@@ -241,7 +261,7 @@ export default function ArtistProfileScreen() {
               {showFullPortfolio ? 'Complete portfolio' : 'Latest Portfolio Works'}
             </Text>
             <TouchableOpacity onPress={() => setShowFullPortfolio(!showFullPortfolio)}>
-              <Text style={{ color: '#C15656', fontWeight: '700', marginBottom: 16 }}>
+              <Text style={{ color: '#BC5555', fontWeight: '700', marginBottom: 16 }}>
                 {showFullPortfolio ? 'Show latest 4 works' : 'View complete portfolio'}
               </Text>
             </TouchableOpacity>
@@ -251,7 +271,7 @@ export default function ArtistProfileScreen() {
             ) : (
               <View style={s.grid}>
                 {[...(artist.portfolio || artist.artworks)]
-                  
+
                   .slice(0, showFullPortfolio ? (artist.portfolio || artist.artworks).length : 4)
                   .map((item: any) => (
                     <TouchableOpacity
@@ -278,7 +298,7 @@ export default function ArtistProfileScreen() {
                         })
                       }
                     >
-                      {!!getImageUri(item) && <Image
+                      {!!getImageUri(item) && <ProductImage
                         source={{ uri: getImageUri(item) }}
                         style={s.image}
                         resizeMode="cover"
@@ -297,8 +317,8 @@ export default function ArtistProfileScreen() {
             )}
           </View>
 
-          {/* Calendar Column */}
-          <View
+          {/* Public schedule is shown only while commissions are open. */}
+          {artist.is_accepting_commissions && <View
             style={{
               width: pageWidth >= 1000 ? 320 : '100%',
               maxWidth: 360,
@@ -306,7 +326,7 @@ export default function ArtistProfileScreen() {
             }}
           >
             <AvailabilityCalendar artistId={artistId} />
-          </View>
+          </View>}
         </View>
       </ScrollView>
 
@@ -314,7 +334,7 @@ export default function ArtistProfileScreen() {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 24 }}>
           <TouchableOpacity accessibilityRole="button" onPress={() => setPortfolioPreview(null)}><Text style={{ color: 'white', textAlign: 'right', padding: 16 }}>Close</Text></TouchableOpacity>
           <Text style={{ color: 'white', fontSize: 20 }}>{portfolioPreview?.title}</Text>
-          {!!portfolioPreview?.image_data && <Image source={{ uri: portfolioPreview.image_data }} resizeMode="contain" style={{ width: '100%', height: '70%' }} />}
+          {!!portfolioPreview?.image_data && <ProductImage source={{ uri: portfolioPreview.image_data }} resizeMode="contain" style={{ width: '100%', height: '70%' }} />}
           <Text style={{ color: 'white' }}>Completed commission · Portfolio preview</Text>
         </View>
       </Modal>
@@ -397,32 +417,37 @@ export default function ArtistProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FAF6EF" },
+  page: { flex: 1, backgroundColor: "#FAF7F3" },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FAF6EF",
+    backgroundColor: "#FAF7F3",
   },
 
   // Top Nav
   topNav: {
-    backgroundColor: "#E67E22",
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#EFE1DC",
+    paddingVertical: 12,
+    gap: 12,
+    flexWrap: "wrap",
     minHeight: 65,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  navLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
-  navTitle: { color: "#fff", fontSize: 18, fontWeight: "800" },
+  navLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 180 },
+  navTitle: { color: "#3A2D2A", fontSize: 18, fontFamily: "LoraSemiBold", fontWeight: "600" },
   navRight: { flexDirection: "row", alignItems: "center", gap: 8 },
 
   commissionBtn: {
     flexDirection: "row",
     gap: 6,
     alignItems: "center",
-    backgroundColor: "#27AE60",
+    backgroundColor: "#BC5555",
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 18,
@@ -433,33 +458,37 @@ const s = StyleSheet.create({
   },
   commissionBtnText: { color: "#fff", fontSize: 12, fontWeight: "800" },
   closedCommission: {
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "#F5E8E3",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
+    borderColor: "#E5DAD3",
     borderRadius: 18,
     paddingHorizontal: 11,
     paddingVertical: 7,
   },
-  closedCommissionText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  closedCommissionText: { color: "#786862", fontSize: 11, fontWeight: "700" },
   messageBtn: {
     flexDirection: "row",
     gap: 5,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.25)",
+    backgroundColor: "#F5E8E3",
     paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 18,
   },
-  messageText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  shareButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: '#F5E8E3' },
+  messageText: { color: "#A84B46", fontSize: 12, fontWeight: "700" },
 
   content: { paddingBottom: 30 },
 
   // Hero Card matching POV 2
   heroCard: {
-    backgroundColor: "#E67E22",
+    backgroundColor: "#FFFFFF",
+    minHeight: 240,
+    justifyContent: 'center',
+    overflow: 'hidden',
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 24,
+    paddingTop: 32,
+    paddingBottom: 32,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
   },
@@ -469,37 +498,47 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 4,
     borderRadius: 16,
-    marginBottom: 14,
   },
-  artistBadgeText: { color: "#E67E22", fontSize: 12, fontWeight: "800" },
+  artistTags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 },
+  commissionStatus: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, backgroundColor: '#EBDAD4' },
+  commissionStatusOpen: { backgroundColor: '#EDF4EE' },
+  commissionStatusText: { color: '#786862', fontSize: 12, fontWeight: '600' },
+  commissionStatusTextOpen: { color: '#477452' },
+  artistBadgeText: { color: "#A84B46", fontSize: 12, fontWeight: "800" },
   heroMain: {
     flexDirection: "row",
     alignItems: "center",
+    width: '100%',
+    maxWidth: 1200,
+    alignSelf: 'center',
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    flexShrink: 0,
+    zIndex: 2,
     borderWidth: 3.5,
     borderColor: "#FFFFFF",
-    marginRight: 16,
+    marginRight: -24,
     backgroundColor: "#FFF",
   },
-  heroDetails: { flex: 1 },
+  heroDetails: { flexShrink: 1, flexGrow: 0, minWidth: 0, maxWidth: 620, paddingVertical: 14, paddingLeft: 38, paddingRight: 18, borderRadius: 14, backgroundColor: 'rgba(235,235,235,0.88)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.65)' },
   artistNameText: {
-    color: "#FFFFFF",
-    fontSize: 21,
-    fontWeight: "800",
+    color: "#3A2D2A",
+    fontSize: 23,
+    fontFamily: "LoraSemiBold",
+    fontWeight: "600",
     marginBottom: 2,
   },
   statsText: {
-    color: "rgba(255,255,255,0.92)",
+    color: "#786862",
     fontSize: 12,
     fontWeight: "600",
-    marginBottom: 4,
+    marginTop: 6,
   },
-  handleText: { color: "#FFEAA7", fontSize: 12, fontWeight: "700" },
-  bioText: { color: "#FFFFFF", fontSize: 12, marginTop: 3, lineHeight: 16 },
+  handleText: { color: "#A84B46", fontSize: 12, fontWeight: "700" },
+  bioText: { color: "#5A4944", fontSize: 12, marginTop: 3, lineHeight: 16 },
 
   // Gallery Showcase
   worksContainer: {
@@ -507,9 +546,10 @@ const s = StyleSheet.create({
     width: "100%",
   },
   sectionHeading: {
-    color: "#2B2320",
-    fontWeight: "800",
-    fontSize: 18,
+    color: "#3A2D2A",
+    fontFamily: "LoraSemiBold",
+    fontWeight: "600",
+    fontSize: 20,
     marginBottom: 8,
     marginTop: 0,
   },
@@ -525,7 +565,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#EFE3D5",
+    borderColor: "#EFE1DC",
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -534,7 +574,7 @@ const s = StyleSheet.create({
   image: { width: "100%", height: 150 },
   cardMeta: { padding: 9 },
   title: { color: "#3A2D2A", fontSize: 13, fontWeight: "800" },
-  price: { color: "#C15656", fontSize: 13, fontWeight: "800", marginTop: 4 },
+  price: { color: "#BC5555", fontSize: 13, fontWeight: "800", marginTop: 4 },
 
   // Modal styles
   modalOverlay: {
@@ -557,7 +597,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  modalHeading: { fontSize: 18, fontWeight: "800", color: "#2C3E50" },
+  modalHeading: { fontSize: 20, fontFamily: "LoraSemiBold", fontWeight: "600", color: "#3A2D2A" },
   fieldLabel: {
     fontSize: 12,
     fontWeight: "700",
@@ -582,9 +622,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  pillActive: { borderColor: "#E67E22", backgroundColor: "#FEF5EC" },
+  pillActive: { borderColor: "#A84B46", backgroundColor: "#F5E8E3" },
   pillText: { fontSize: 11, color: "#666", fontWeight: "600" },
-  pillTextActive: { color: "#E67E22", fontWeight: "800" },
+  pillTextActive: { color: "#A84B46", fontWeight: "800" },
   modalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -593,7 +633,7 @@ const s = StyleSheet.create({
   },
   cancelBtn: { paddingVertical: 9, paddingHorizontal: 14 },
   submitBtn: {
-    backgroundColor: "#27AE60",
+    backgroundColor: "#BC5555",
     paddingVertical: 9,
     paddingHorizontal: 18,
     borderRadius: 8,
