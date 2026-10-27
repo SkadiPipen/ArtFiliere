@@ -1,11 +1,14 @@
+import { auth } from '@/firebase/config';
+import { signOut } from 'firebase/auth';
 import { Text } from '@/components/Typography';
-import { Link, usePathname, type Href } from 'expo-router';
+import { Link, usePathname, useRouter, type Href } from 'expo-router';
 import {
   Clock,
   Compass,
   Flag,
   Home,
   Plus,
+  LogOut,
   Settings,
   ShoppingCart,
   User,
@@ -105,6 +108,15 @@ export default function WebSidebar() {
   // Keep sidebar contents fixed while CSS resizes the space reserved beside the page.
   const compact = false;
   const pathname = usePathname();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
+  const logout = async () => {
+    setLoggingOut(true); setLogoutError('');
+    try { await signOut(auth); router.replace('/login'); }
+    catch { setLogoutError('Unable to log out. Please try again.'); }
+    finally { setLoggingOut(false); }
+  };
   const { user, readOnly } = useContext(AuthContext);
   const { cartItems } = useCart();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -271,6 +283,11 @@ export default function WebSidebar() {
               </Pressable>
             </Link>
           )}
+          {user && <Pressable accessibilityRole="button" accessibilityLabel="Log out" disabled={loggingOut} onPress={() => { void logout(); }} style={({ pressed }) => [styles.logout, pressed && { backgroundColor: '#EBDAD4' }, loggingOut && { opacity: 0.5 }]}>
+            <LogOut size={19} color="#B65B50" />
+            {!compact && <Text {...webLabel} style={styles.logoutLabel}>{loggingOut ? 'Logging out...' : 'Log Out'}</Text>}
+          </Pressable>}
+          {!!logoutError && <Text accessibilityRole="alert" style={{ color: '#B65B50', fontSize: 12, marginTop: 8 }}>{logoutError}</Text>}
         </ScrollView>
 
         {/* Footer */}
@@ -434,6 +451,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
   },
+  logout: { minHeight: 46, marginTop: 10, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5E8E3', borderWidth: 1, borderColor: '#B65B50', borderRadius: 12, paddingHorizontal: 16 },
+  logoutLabel: { color: '#B65B50', fontSize: 13, fontWeight: '700' },
   createLabel: {
     color: '#fff',
     fontSize: 13,
