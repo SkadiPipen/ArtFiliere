@@ -9,6 +9,9 @@ import type {
 } from "@/module/auth/sign-up/types";
 
 type CreateAccountProps = {
+  onGoogleSignUp: () => void;
+  googleLinked?: boolean;
+  busy?: boolean;
   formData: SignUpFormData;
   updateField: UpdateSignUpField;
 };
@@ -16,6 +19,9 @@ type CreateAccountProps = {
 export default function CreateAccount({
   formData,
   updateField,
+  onGoogleSignUp,
+  googleLinked = false,
+  busy = false,
 }: CreateAccountProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -39,8 +45,10 @@ export default function CreateAccount({
         onChangeText={(text) => updateField("email", text)}
         autoCapitalize="none"
         keyboardType="email-address"
+        editable={!googleLinked && !busy}
       />
 
+      {!googleLinked && <>
       <View style={{ position: "relative", justifyContent: "center" }}>
         <TextInput
           style={inputStyle}
@@ -82,6 +90,7 @@ export default function CreateAccount({
           />
         </Pressable>
       </View>
+      </>}
 
       <View
         style={{
@@ -114,9 +123,8 @@ export default function CreateAccount({
           alignItems: "center",
           marginBottom: 14,
         }}
-        onPress={() => {
-          // TODO: wire signInWithPopup(GoogleAuthProvider) from @/services/auth
-        }}
+        disabled={busy}
+        onPress={onGoogleSignUp}
       >
         <Ionicons
           name="logo-google"
@@ -125,10 +133,11 @@ export default function CreateAccount({
           style={{ marginRight: 8 }}
         />
         <Text style={{ color: COLORS.textDark, fontWeight: "600" }}>
-          Sign Up with Google
+          {busy ? 'Connecting…' : googleLinked ? 'Change Google account' : 'Sign Up with Google'}
         </Text>
       </Pressable>
 
+      {googleLinked && <Text style={{ color: COLORS.textMuted, marginBottom: 12 }}>Google account connected. No password is needed.</Text>}
       <Text
         style={{ fontSize: 11, color: COLORS.textMuted, textAlign: "center" }}
       >

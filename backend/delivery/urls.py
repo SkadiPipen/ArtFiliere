@@ -1,8 +1,10 @@
 from django.urls import path
 from . import views
+from fulfillment.chat import RiderChatView
 from fulfillment.riders import RiderOrdersView, RiderProfileView, RiderProofView, RiderLocationView, RiderResolveLocationView
 
 urlpatterns = [
+    path('verified/orders/<int:order_id>/chat/', RiderChatView.as_view()),
     path('verified/orders/pending/', RiderOrdersView.as_view(), {'scope': 'pending'}),
     path('verified/orders/assigned/', RiderOrdersView.as_view(), {'scope': 'assigned'}),
     path('verified/orders/active/', RiderOrdersView.as_view(), {'scope': 'active'}),

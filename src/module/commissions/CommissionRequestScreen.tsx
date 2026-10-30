@@ -44,6 +44,7 @@ export default function CommissionRequestScreen() {
     Dimensions.get("window").width,
   );
   const isDesktop = windowWidth > 860;
+  const mobileStageLayout = Platform.OS !== 'web' || !isDesktop;
 
   React.useEffect(() => {
     const sub = Dimensions.addEventListener("change", ({ window }) => {
@@ -280,8 +281,18 @@ export default function CommissionRequestScreen() {
       <Text style={s.headingRedSmall}>COMMISSION PROPOSAL</Text>
       <Text>One consolidated revision request/comment per stage. Full upfront funding after both signatures.</Text>
       <Text>Stage percentages (must total 100)</Text>
-      <View style={{ flexDirection: 'row', gap: 12 }}>{milestonePercentages.map((value, index) => <TextInput key={index} value={value} keyboardType="number-pad" accessibilityLabel={`Stage ${index + 1} percentage`} style={s.budgetInput}
-        onChangeText={next => setMilestonePercentages(values => values.map((v, i) => i === index ? next : v))} />)}</View>
+      <View style={{ flexDirection: mobileStageLayout ? 'column' : 'row', gap: 12 }}>
+        {milestonePercentages.map((value, index) => mobileStageLayout ? (
+          <View key={index} style={{ width: '100%', minWidth: 0, gap: 6 }}>
+            <Text>Stage {index + 1} (%)</Text>
+            <TextInput value={value} keyboardType="number-pad" accessibilityLabel={`Stage ${index + 1} percentage`} style={[s.budgetInput, s.mobileStagePercentage]}
+              onChangeText={next => setMilestonePercentages(values => values.map((v, i) => i === index ? next : v))} />
+          </View>
+        ) : (
+          <TextInput key={index} value={value} keyboardType="number-pad" accessibilityLabel={`Stage ${index + 1} percentage`} style={s.budgetInput}
+            onChangeText={next => setMilestonePercentages(values => values.map((v, i) => i === index ? next : v))} />
+        ))}
+      </View>
       {String(draft.art_type).toLowerCase() === 'physical' && <CommissionDeliveryDetails artistId={String(rawArtistId)} onQuote={setDeliveryQuote} floorUnit={floorUnit} onFloorUnit={setFloorUnit} instruction={deliveryInstruction} onInstruction={setDeliveryInstruction} />}
       <NegotiationForm commissionMode commissionShippingFee={deliveryQuote ? Number(deliveryQuote.fee) : undefined} artwork={{ id: 'commission', title: draft.title, art_type: draft.art_type.toLowerCase(), base_price: Number(draft.proposed_budget) }}
         buyerId={auth.currentUser?.uid || ''} buyerName={auth.currentUser?.displayName || ''} artistId={String(rawArtistId)} artistName={params.artistName || 'Artist'} chatId="commission"
@@ -720,6 +731,11 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   generatedTagText: { color: "#795C1D", fontSize: 10, fontWeight: "700" },
+  mobileStagePercentage: {
+    minWidth: 0,
+    width: '100%',
+    alignSelf: 'stretch',
+  },
   budgetInput: {
     borderWidth: 1,
     borderColor: "#B84A4A",

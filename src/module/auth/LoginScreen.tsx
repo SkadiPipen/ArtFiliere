@@ -10,11 +10,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const [password, setPassword] = useState('');
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
   async function handleLogin() {
+    if (busy) return;
+    setBusy(true); setError('');
     try {
       // Login to Firebase
       const user = await loginUser(email, password);
@@ -39,12 +43,12 @@ export default function HomeScreen() {
       const accessError = platformAccessError(String(data.role).toLowerCase(), Platform.OS);
       if (accessError) { await logOut(); throw new Error(accessError); }
 
-      alert('Login Successfully!');
+
 
       router.replace(data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'customer_support' ? '/moderator-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : (['rider', 'driver'].includes(data.role?.toLowerCase())) ? '/rider/(tabs)' as any : '/(home)');
     } catch (error: any) {
-      alert(error.message);
-    }
+      if (!['auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(error.code)) setError(error.message || 'Unable to sign in.');
+    } finally { setBusy(false); }
   }
 
   return (
@@ -103,6 +107,7 @@ export default function HomeScreen() {
             Login
           </Text>
 
+          {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318', marginBottom: 14 }}>{error}</Text>}
           <TextInput
             style={{
               borderWidth: 1,
@@ -150,10 +155,11 @@ export default function HomeScreen() {
               alignItems: 'center',
               marginBottom: 16,
             })}
-            onPress={handleLogin}
+            disabled={busy}
+            onPress={() => handleLogin()}
           >
             <Text style={{ color: COLORS.white, fontWeight: '700', fontSize: 16 }}>
-              Log In
+              {busy ? 'Please wait…' : 'Log In'}
             </Text>
           </Pressable>
 

@@ -326,20 +326,20 @@ export default function AuctionPostView() {
       <View style={styles.bgGlowTop} />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, !isDesktop && styles.mobileScrollContent]}
         showsVerticalScrollIndicator={false}
       >
         {/* TOP HEADER BAR */}
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, !isDesktop && styles.mobileTopBar]}>
           <TouchableOpacity
-            style={styles.navArrowBtn}
+            style={[styles.navArrowBtn, !isDesktop && styles.mobileNavArrow]}
             onPress={handleBack}
             activeOpacity={0.7}
           >
             <Ionicons name="chevron-back" size={26} color="#844038" />
           </TouchableOpacity>
 
-          <View style={styles.topCenterContainer}>
+          <View style={[styles.topCenterContainer, !isDesktop && styles.mobileTopCenter]}>
             <Text style={styles.endsOnText}>
               Ends on: {formatEndDate(auction.end_time)}
             </Text>
@@ -356,14 +356,14 @@ export default function AuctionPostView() {
             </View>
           </View>
 
-          <View style={{ width: 32 }} />
+          <View style={{ width: isDesktop ? 32 : 0 }} />
         </View>
 
         {/* MAIN 3-PANEL ROW */}
-        <View style={[styles.layoutRow, !isDesktop && styles.layoutColumn]}>
+        <View style={isDesktop ? styles.layoutRow : styles.layoutColumn}>
           {/* LEFT PANEL: TOP BIDDER CARD */}
-          <View style={[styles.leftColumn, !isDesktop && styles.columnFull]}>
-            <View style={styles.topBiddersCard}>
+          <View style={isDesktop ? styles.leftColumn : styles.columnFull}>
+            <View style={[styles.topBiddersCard, !isDesktop && { minHeight: 0 }]}>
               <Text style={styles.topBiddersTitle}>Top Bidder</Text>
               <View style={styles.biddersList}>
                 {auction.top_bidders && auction.top_bidders.length > 0 ? (
@@ -397,7 +397,7 @@ export default function AuctionPostView() {
           </View>
 
           {/* CENTER PANEL: ARTWORK IMAGE & CURRENT BID PRICE */}
-          <View style={[styles.centerColumn, !isDesktop && styles.columnFull]}>
+          <View style={isDesktop ? styles.centerColumn : [styles.columnFull, { alignItems: 'center' }]}>
             <View style={styles.imageCanvasWrapper}>
               {imageUnavailable ? (
                 <View style={[styles.imageFallback, { height: isDesktop ? 440 : 260 }]}>
@@ -418,7 +418,7 @@ export default function AuctionPostView() {
           </View>
 
           {/* RIGHT PANEL: ART DETAILS, TAGS & ACTION CONTROLS */}
-          <View style={[styles.rightColumn, !isDesktop && styles.columnFull]}>
+          <View style={isDesktop ? styles.rightColumn : [styles.columnFull, { gap: 6 }]}>
             <View style={styles.metaHeader}>
               <Text style={styles.artTitleText}>
                 {auction.title} <Text style={styles.byLabel}>by </Text>
@@ -444,7 +444,7 @@ export default function AuctionPostView() {
             </Text>
 
             {/* Materials */}
-            <View style={styles.specRow}>
+            <View style={[styles.specRow, !isDesktop && { flexWrap: 'wrap' }]}>
               <Text style={styles.specLabel}>Materials used: </Text>
               <Text style={styles.specValue}>
                 {auction.materials || "Mixed Media"}
@@ -452,7 +452,7 @@ export default function AuctionPostView() {
             </View>
 
             {/* Type */}
-            <View style={styles.specRow}>
+            <View style={[styles.specRow, !isDesktop && { flexWrap: 'wrap' }]}>
               <Text style={styles.specLabel}>Type: </Text>
               <Text style={styles.specValue}>
                 {auction.is_physical ? "Physical Piece" : "Digital Asset"}
@@ -523,7 +523,7 @@ export default function AuctionPostView() {
                           color="#FFF"
                           style={{ marginRight: 6 }}
                         />
-                        <Text style={styles.settleBtnText}>
+                        <Text style={[styles.settleBtnText, !isDesktop && { flexShrink: 1, textAlign: 'center' }]}>
                           {isArtist
                             ? "Review Terms & Chat"
                             : "Proceed to Contract & Checkout"}
@@ -537,7 +537,7 @@ export default function AuctionPostView() {
                   <Text style={styles.pastBidLabel}>
                     Past bid: ₱ {auction.past_bid?.toLocaleString() || "0"}
                   </Text>
-                  <View style={styles.buttonActionRow}>
+                  <View style={[styles.buttonActionRow, !isDesktop && { flexWrap: 'wrap' }]}>
                     <TouchableOpacity
                       style={styles.rebidBtn}
                       onPress={() => setBidModal(true)}
@@ -651,6 +651,10 @@ export default function AuctionPostView() {
 }
 
 const styles = StyleSheet.create({
+  mobileScrollContent: { justifyContent: 'flex-start', paddingHorizontal: 16, paddingBottom: 40 },
+  mobileTopBar: { flexWrap: 'wrap', gap: 12, marginBottom: 20 },
+  mobileNavArrow: { top: 0, marginLeft: 0 },
+  mobileTopCenter: { top: 0, right: 0, flex: 1, minWidth: 0, flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 },
   imageFallback: { width: "100%", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#EFE6D8" },
   imageFallbackText: { color: "#806D63", fontWeight: "700" },
   termsModal: { width: "92%", maxWidth: 650, maxHeight: "86%", backgroundColor: "#FFFDF8", borderRadius: 15, padding: 16 },
@@ -753,6 +757,12 @@ const styles = StyleSheet.create({
     maxWidth: 1180,
   },
   layoutColumn: {
+    top: 0,
+    left: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    minWidth: 0,
     flexDirection: "column",
     alignItems: "center",
     width: "100%",
@@ -773,9 +783,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   columnFull: {
+    minWidth: 0,
     width: "100%",
     maxWidth: 420,
-    flex: undefined,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
   },
 
   // LEFT PANEL (TOP BIDDERS)

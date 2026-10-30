@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 
 from users.models import Address, User, RoyaltyApplication
 from users.royalty_validation import validate_permit
+from users.image_validation import validate_image
+from django.utils import timezone
 from artist_applications.models import ArtistApplication
 from .services import verify_token, account_access, AccountRestricted, TokenVerificationUnavailable, TokenRejected
 
@@ -99,7 +101,11 @@ def register(request):
             status=400
         )
 
-    if not parse_date(date_of_birth):
+    try:
+        birth_date = parse_date(date_of_birth) if isinstance(date_of_birth, str) else None
+    except ValueError:
+        birth_date = None
+    if not birth_date or birth_date > timezone.localdate():
         return Response({"error": "Enter your date of birth in YYYY-MM-DD format."}, status=400)
 
     # Address Validation
@@ -127,6 +133,11 @@ def register(request):
         except ValueError as error:
             return Response({'error': str(error)}, status=400)
 
+    try:
+        profile_image = validate_image(data['profile_image']) if data.get('profile_image') else ''
+    except ValueError as error:
+        return Response({'error': str(error)}, status=400)
+
     # Database Creation
     try:
         with transaction.atomic():
@@ -134,6 +145,7 @@ def register(request):
                 firebase_uid=firebase_uid,
                 email=email,
                 username=username,
+                profile_image=profile_image,
                 first_name=first_name,
                 middle_name=data.get("middle_name", ""),
                 last_name=last_name,

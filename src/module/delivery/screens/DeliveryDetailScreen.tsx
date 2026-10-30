@@ -72,7 +72,7 @@ export default function DeliveryDetailScreen() {
         setResolvingAddress(true); setAddressError('');
         try {
             const updated = await resolveDeliveryLocationApi(delivery.id, side);
-            setDelivery(previous => previous && updated && previous.id === updated.id ? { ...previous, artist: updated.artist, buyer: updated.buyer, location_errors: updated.location_errors } : previous);
+            setDelivery(previous => previous && updated && previous.id === updated.id ? { ...previous, artist: updated.artist, buyer: updated.buyer, location_errors: updated.location_errors, location_precision: updated.location_precision, location_notices: updated.location_notices } : previous);
         } catch (error: any) { setAddressError(error.message || 'Address lookup failed. Try again.'); }
         finally { setResolvingAddress(false); }
     }, [delivery?.id, delivery?.step, resolvingAddress]);
@@ -333,6 +333,7 @@ export default function DeliveryDetailScreen() {
                 </TouchableOpacity>
 
                 {!!gpsError && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 12 }}>{gpsError}</Text>}
+                {!!delivery.location_notices?.[isPickup ? 'pickup' : 'delivery'] && <Text accessibilityRole="alert" style={{ color: '#795500', padding: 12 }}>{delivery.location_notices[isPickup ? 'pickup' : 'delivery']}</Text>}
                 {!!delivery.location_errors?.[isPickup ? 'pickup' : 'delivery'] && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 12 }}>{delivery.location_errors[isPickup ? 'pickup' : 'delivery']}</Text>}
                 {!!addressError && <Text accessibilityRole="alert" style={{ color: '#B91C1C', padding: 12 }}>{addressError}</Text>}
                 {!destinationCoords && <TouchableOpacity disabled={resolvingAddress} onPress={resolveCurrentAddress} style={{ padding: 12 }}>
@@ -354,8 +355,8 @@ export default function DeliveryDetailScreen() {
                         targetLng={destinationCoords?.longitude ?? null}
                         targetLabel={
                             isPickup
-                                ? (delivery.artist?.name || 'Artist Pickup Location')
-                                : (delivery.buyer?.name || 'Buyer Delivery Destination')
+                                ? `${delivery.artist?.name || 'Artist Pickup Location'}${['street', 'landmark'].includes(delivery.location_precision?.pickup || '') ? ' (Approximate)' : ''}`
+                                : `${delivery.buyer?.name || 'Buyer Delivery Destination'}${['street', 'landmark'].includes(delivery.location_precision?.delivery || '') ? ' (Approximate)' : ''}`
                         }
                         isPickupStep={isPickup}
                         onRouteUnavailable={() => setRouteETA(null)}

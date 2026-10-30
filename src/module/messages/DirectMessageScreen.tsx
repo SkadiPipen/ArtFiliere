@@ -28,6 +28,8 @@ type M = {
   agreement: A | null;
 };
 type C = {
+  delivery_order_id?: number | null;
+  read_only?: boolean;
   id: number;
   current_user_id: number;
   artwork_id: number | null;
@@ -44,14 +46,15 @@ const explain: Record<string, string> = {
   one_time: "The listed price is the complete payment.",
   royalty: "Artist receives an agreed percentage from future sales.",
 };
-export default function DirectMessageScreen() {
-  const q = useLocalSearchParams<{
+export default function DirectMessageScreen({ conversationId, title, onBack }: { conversationId?: number; title?: string; onBack?: () => void } = {}) {
+  const routeParams = useLocalSearchParams<{
       artistId: string;
       artistName: string;
       artworkId: string;
       conversationId: string;
     }>(),
     router = useRouter();
+  const q = { ...routeParams, ...(conversationId ? { conversationId: String(conversationId), artistName: title || 'Driver' } : {}) };
   const [chat, setChat] = useState<C | null>(null),
     [body, setBody] = useState(""),
     [loading, setLoading] = useState(true),
@@ -112,6 +115,21 @@ export default function DirectMessageScreen() {
   useEffect(() => {
     if (q.artistId || q.conversationId) load();
   }, [q.artistId, q.conversationId]);
+  useEffect(() => {
+    if (!chat?.id) return;
+    let active = true;
+    const id = chat.id;
+    const timer = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/users/conversations/${id}/`, { headers: await h() });
+        if (response.ok) {
+          const result = await response.json();
+          if (active) setChat(current => current?.id === id ? result : current);
+        }
+      } catch { /* Keep the current conversation visible during a connection interruption. */ }
+    }, 4000);
+    return () => { active = false; clearInterval(timer); };
+  }, [chat?.id]);
   const send = async () => {
     if (!body || !chat) return;
     autoScroll.scrollToLatest();
@@ -120,6 +138,7 @@ export default function DirectMessageScreen() {
         { method: "POST", headers: await h(), body: JSON.stringify({ body }) },
       ),
       d = await r.json();
+    if (!r.ok) { Alert.alert('Messages', d.error || 'Message could not be sent.'); return; }
     setChat({ ...chat, messages: [...chat.messages, d] });
     setBody("");
   };
@@ -166,13 +185,13 @@ export default function DirectMessageScreen() {
   return (
     <SafeAreaView style={s.page}>
       <View style={s.head}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/messages-inbox')}>
+        <TouchableOpacity onPress={() => onBack ? onBack() : router.canGoBack() ? router.back() : router.replace('/messages-inbox')}>
           <ArrowLeft color="#C15656" />
         </TouchableOpacity>
         <Text style={s.name}>{q.artistName || "Conversation"}</Text>
-        <TouchableOpacity onPress={() => setForm(true)} style={s.doc}>
+        {!chat?.delivery_order_id && <TouchableOpacity onPress={() => setForm(true)} style={s.doc}>
           <FileText color="#fff" />
-        </TouchableOpacity>
+        </TouchableOpacity>}
       </View>
       <FlatList
         ref={autoScroll.ref}
@@ -212,7 +231,7 @@ export default function DirectMessageScreen() {
           placeholder="Write a message..."
           style={s.input}
         />
-        <TouchableOpacity onPress={send} style={s.send}>
+        <TouchableOpacity disabled={chat?.read_only} onPress={send} style={[s.send, chat?.read_only && { opacity: 0.4 }]}>
           <Send size={18} color="#fff" />
         </TouchableOpacity>
       </View>

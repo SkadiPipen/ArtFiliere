@@ -202,6 +202,10 @@ export async function fetchActiveDeliveryApi(): Promise<ActiveDelivery | null> {
   return tagVerified(platform);
 }
 
+export async function openDeliveryChat(orderId: string | number, contact: 'buyer' | 'artist') {
+  return verifiedRequest(`orders/${verifiedId(orderId)}/chat/`, { contact });
+}
+
 export async function fetchDeliveryDetailsApi(orderId: string | number): Promise<ActiveDelivery | null> {
   if (isVerified(orderId)) return tagVerified(await verifiedRequest(`orders/${verifiedId(orderId)}/`));
   const response = await fetch(`${API_URL}/api/delivery/orders/${encodeURIComponent(String(orderId))}/`);

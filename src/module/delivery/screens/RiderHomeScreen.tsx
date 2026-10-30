@@ -1,6 +1,7 @@
 import { Text } from '@/components/Typography';
 import { checkedDriverPosition } from '@/services/driverLocation';
 import DeliveryMap from '@/module/delivery/components/DeliveryMap';
+import DeliveryChatButton from '@/module/delivery/components/DeliveryChatButton';
 import { ActiveDelivery } from '@/module/delivery/types/delivery';
 import { fetchActiveDeliveryApi, updateRiderLocationApi, fetchRiderProfile, setRiderClockApi } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ export default function HomeScreen() {
   // Time Clock State
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [clockLoading, setClockLoading] = useState(true);
+  const [clockError, setClockError] = useState('');
   const [stats, setStats] = useState({ today: 0, active: 0 });
   const [startTime, setStartTime] = useState<string | null>(null);
   const [endTime, setEndTime] = useState<string | null>(null);
@@ -101,18 +103,18 @@ export default function HomeScreen() {
 
   const handleClockIn = async () => {
     if (clockLoading) return;
-    setClockLoading(true);
+    setClockLoading(true); setClockError('');
     try { applyProfile(await setRiderClockApi(true)); }
-    catch (e: any) { Alert.alert('Unable to clock in', e.message); }
+    catch (e: any) { setClockError(e.message || 'Unable to clock in. Please retry.'); }
     finally { setClockLoading(false); }
   };
 
   const handleClockOut = () => {
     const doClockOut = async () => {
       if (clockLoading) return;
-      setClockLoading(true);
+      setClockLoading(true); setClockError('');
       try { applyProfile(await setRiderClockApi(false)); }
-      catch (e: any) { Alert.alert('Unable to clock out', e.message); }
+      catch (e: any) { setClockError(e.message || 'Unable to clock out. Please retry.'); void loadActiveDelivery(); void fetchRiderProfile().then(applyProfile).catch(() => undefined); }
       finally { setClockLoading(false); }
     };
 
@@ -138,23 +140,12 @@ export default function HomeScreen() {
     if (!delivery) return null;
     const isPickup = ['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step);
 
-    if (isPickup && delivery.artist?.latitude && delivery.artist?.longitude) {
+    const side = isPickup ? 'pickup' : 'delivery';
+    const destination = isPickup ? delivery.artist : delivery.buyer;
+    if (destination?.latitude != null && destination?.longitude != null) {
       return {
-        coords: {
-          latitude: Number(delivery.artist.latitude),
-          longitude: Number(delivery.artist.longitude),
-        },
-        title: `Pickup: ${delivery.artist.name || 'Artist Studio'}`
-      };
-    }
-
-    if (delivery.buyer?.latitude && delivery.buyer?.longitude) {
-      return {
-        coords: {
-          latitude: Number(delivery.buyer.latitude),
-          longitude: Number(delivery.buyer.longitude),
-        },
-        title: `Drop-off: ${delivery.buyer.name || 'Customer Address'}`
+        coords: { latitude: Number(destination.latitude), longitude: Number(destination.longitude) },
+        title: `${isPickup ? 'Pickup' : 'Drop-off'}: ${destination.name || 'Destination'}${['street', 'landmark'].includes(delivery.location_precision?.[side] || '') ? ' (Approximate location)' : ''}`,
       };
     }
 
@@ -171,7 +162,7 @@ export default function HomeScreen() {
       if (!active) return;
       try {
         const point = checkedDriverPosition(coords, true);
-        setDriverLocation(point); setAddressName(point.accuracy <= 200 ? 'Your live GPS location' : `Approximate device location (±${Math.round(point.accuracy)} m). Enable precise location for routing.`);
+        setDriverLocation(point); setAddressName(point.accuracy <= 200 ? 'Your live GPS location' : `Approximate device location (Ã‚Â±${Math.round(point.accuracy)} m). Enable precise location for routing.`);
         if (point.accuracy > 200) setRouteStats(null);
         if (isClockedIn && point.accuracy <= 200) void updateRiderLocationApi(1, point.latitude, point.longitude).catch(error => { if (active) setAddressName(error.message); });
       } catch (error: any) { setDriverLocation(null); setRouteStats(null); setAddressName(error.message); }
@@ -208,6 +199,7 @@ export default function HomeScreen() {
   };
 
   const target = getDestination();
+  const hasActiveDelivery = !!delivery && delivery.step !== 'DELIVERED' || stats.active > 0;
   
   return (
     <View style={styles.container}>
@@ -270,14 +262,16 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.clockButton, { flex: 1, backgroundColor: !isClockedIn ? '#D5D8DC' : '#C0392B' }]}
+              style={[styles.clockButton, { flex: 1, backgroundColor: !isClockedIn || hasActiveDelivery ? '#D5D8DC' : '#C0392B' }]}
               onPress={handleClockOut}
-              disabled={clockLoading || !isClockedIn}
+              disabled={clockLoading || loadingDelivery || !isClockedIn || hasActiveDelivery}
               activeOpacity={0.8}
             >
               <Text style={styles.clockButtonText}>Clock Out</Text>
             </TouchableOpacity>
           </View>
+          {isClockedIn && hasActiveDelivery && <Text style={{ marginTop: 12, color: '#844038', lineHeight: 20 }}>Complete your active delivery before clocking out. Open Delivery Details below to continue.</Text>}
+          {!!clockError && <Text accessibilityRole="alert" style={{ marginTop: 12, color: '#B42318' }}>{clockError}</Text>}
         </View>
 
         {/* Metrics */}
@@ -317,13 +311,13 @@ export default function HomeScreen() {
             style={styles.activeBannerCard}
             onPress={() => router.push({ pathname: '/delivery-details', params: { id: String(delivery.id) }, } as any )}
           >
-            <View style={styles.activeBannerHeader}>
-              <View style={styles.row}>
+            <View style={[styles.activeBannerHeader, { flexWrap: 'wrap', gap: 8 }]}>
+              <View style={[styles.row, { flexShrink: 1, minWidth: 0 }]}>
                 <Ionicons name="bicycle" size={22} color="#BC5454" style={{ marginRight: 8 }}/>
-                <Text style={styles.activeBannerTitle}>Order #{delivery.id} in Progress</Text>
+                <Text style={[styles.activeBannerTitle, { flexShrink: 1 }]}>Order #{String(delivery.id).replace('verified-', '')} in progress</Text>
               </View>
-              <View style={styles.activeStatusBadge}>
-                <Text style={styles.activeStatusBadgeText}>{delivery.step}</Text>
+              <View style={[styles.activeStatusBadge, { maxWidth: '100%', flexShrink: 1 }]}>
+                <Text style={[styles.activeStatusBadgeText, { flexShrink: 1 }]}>{delivery.step.toLowerCase().replace(/_/g, ' ').replace(/^./, letter => letter.toUpperCase())}</Text>
               </View>
             </View>
 
@@ -372,6 +366,7 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+      <DeliveryChatButton delivery={delivery} />
 
       {/* Map Modal */}
       <Modal visible={showMap} animationType="slide" transparent={true} onRequestClose={closeMapModal}>
@@ -400,6 +395,7 @@ export default function HomeScreen() {
           )}
 
           {/* Reusable Map with lines and pins */}
+          {!!delivery?.location_notices?.[['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step) ? 'pickup' : 'delivery'] && <Text style={{ color: '#795500', padding: 12 }}>{delivery.location_notices[['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step) ? 'pickup' : 'delivery']}</Text>}
           <DeliveryMap
             driverLocation={driverLocation}
             destinationLocation={driverLocation?.accuracy && driverLocation.accuracy > 200 ? null : target?.coords || null}

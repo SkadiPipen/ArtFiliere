@@ -11,6 +11,8 @@ export interface ActiveDelivery {
     id: string | number;
     paymentMethod: string;
     location_errors?: Record<string, string>;
+    location_precision?: Record<string, string | null>;
+    location_notices?: Record<string, string>;
     step: DeliveryStep;
     artist: {
         name: string;

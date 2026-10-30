@@ -40,6 +40,7 @@ export interface ChatListItem {
   selling?: boolean;
   commission?: boolean;
   commissionId?: number;
+  deliveryConversationId?: number;
   lastMessage: string;
   lastMessageTime: string;
   participantData: {
@@ -66,10 +67,12 @@ interface ChatListProps {
   onChatSelect: (chatId: string, otherUser: any) => void;
   onCommissionSelect?: (commissionId: number) => void;
   initialArtworkFilter?: 'all' | 'commission';
+  initialTab?: 'artists' | 'drivers';
+  onDriverSelect?: (conversationId: number, name: string) => void;
 }
 
 // II. Main Component
-export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initialArtworkFilter = 'all' }: ChatListProps) {
+export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initialArtworkFilter = 'all', initialTab = 'artists', onDriverSelect }: ChatListProps) {
   // II.1. State: List of chats to display
   const [proposalError, setProposalError] = useState('');
   const [chatError, setChatError] = useState('');
@@ -112,8 +115,36 @@ export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initia
     loadProfile().catch((() => {}));
     return () => { active = false; };
   }, [currentUser?.uid, initialArtworkFilter]);
-  const [activeTab, setActiveTab] = useState<'artists' | 'drivers' | 'support'>('artists');
+  const [activeTab, setActiveTab] = useState<'artists' | 'drivers' | 'support'>(initialTab);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [deliveryChats, setDeliveryChats] = useState<ChatListItem[]>([]);
+  const [deliveryLoading, setDeliveryLoading] = useState(true);
+  const [deliveryError, setDeliveryError] = useState('');
+  useEffect(() => {
+    let active = true, pending = false;
+    setDeliveryChats([]); setDeliveryLoading(true); setDeliveryError('');
+    const load = async () => {
+      if (pending || !currentUser?.uid) return;
+      pending = true;
+      try {
+        const rows = await purchaseRequest('users/conversations/');
+        if (active) {
+          setDeliveryChats(rows.filter((row: any) => row.delivery_order_id && ['driver', 'rider'].includes(row.other_user?.role)).map((row: any) => ({
+            id: `delivery-${row.id}`, deliveryConversationId: row.id, participants: [], participantData: {},
+            lastMessage: `Order #${row.delivery_order_id}: ${row.last_message || 'No messages yet'}`,
+            lastMessageTime: row.updated_at,
+            otherUser: { id: String(row.other_user.id), displayName: row.other_user.name, fullName: row.other_user.name, photoURL: '', role: 'driver', user_type: 'driver' },
+          })));
+          setDeliveryError('');
+        }
+      } catch (e: any) { if (active) setDeliveryError(e.message || 'Driver chats could not load.'); }
+      finally { pending = false; if (active) setDeliveryLoading(false); }
+    };
+    if (currentUser?.uid) void load(); else setDeliveryLoading(false);
+    const timer = setInterval(load, 5000);
+    return () => { active = false; clearInterval(timer); };
+  }, [currentUser?.uid]);
+
   const [contractChats, setContractChats] = useState<ChatListItem[]>([]);
   useEffect(() => {
     let active = true;
@@ -272,7 +303,7 @@ export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initia
     return (
       <TouchableOpacity
         style={styles.chatItem}
-        onPress={() => item.commissionId ? onCommissionSelect?.(item.commissionId) : onChatSelect(item.id, item.otherUser)}
+        onPress={() => item.deliveryConversationId ? onDriverSelect?.(item.deliveryConversationId, displayName) : item.commissionId ? onCommissionSelect?.(item.commissionId) : onChatSelect(item.id, item.otherUser)}
       >
         {/* II.6.1. Avatar Container with unread badge */}
         <View style={styles.avatarContainer}>
@@ -310,12 +341,13 @@ export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initia
     );
   };
 
-  const merged = [...chats.map(chat => ({ ...chat, buying: contractChats.find(c => c.id === chat.id)?.buying, selling: contractChats.find(c => c.id === chat.id)?.selling, proposalUnread: contractChats.find(c => c.id === chat.id)?.proposalUnread || 0 })), ...contractChats.filter(c => !chats.some(chat => chat.id === c.id)), ...commissionChats]
+  const merged = [...chats.map(chat => ({ ...chat, buying: contractChats.find(c => c.id === chat.id)?.buying, selling: contractChats.find(c => c.id === chat.id)?.selling, proposalUnread: contractChats.find(c => c.id === chat.id)?.proposalUnread || 0 })), ...contractChats.filter(c => !chats.some(chat => chat.id === c.id)), ...commissionChats, ...deliveryChats]
     .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
   const category = (chat: ChatListItem) => {
+    if (chat.deliveryConversationId) return 'drivers';
     if (chat.commission) return 'artists';
     const role = (userMap[chat.otherUser?.id || '']?.role || chat.otherUser?.role || '').toLowerCase();
-    if (role === 'driver') return 'drivers';
+    if (['driver', 'rider'].includes(role)) return 'drivers';
     if (role === 'customer_support') return 'support';
     return 'artists';
   };
@@ -328,6 +360,7 @@ export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initia
   const visible = merged.filter(chat => category(chat) === activeTab && (activeTab !== 'artists' || artworkFilter === 'all' || !!chat[artworkFilter]));
   if (supportOpen) return <SupportScreen key={currentUser?.uid} embedded onClose={() => setSupportOpen(false)} />;
   return <View style={{ flex: 1 }}>
+    {activeTab === 'drivers' && !!deliveryError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{deliveryError}</Text>}
     {!!proposalError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{proposalError}</Text>}
     {!!chatError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{chatError}</Text>}
     {!!commissionError && <Text accessibilityRole="alert" style={{ padding: 12, color: '#B00020' }}>{commissionError}</Text>}
@@ -353,7 +386,7 @@ export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initia
         <Text style={styles.supportButtonText}>Contact customer support / My reports</Text>
       </TouchableOpacity>
     </View>}
-    {(activeTab === 'artists' && artworkFilter === 'commission' ? commissionLoading : loading && !commissionChats.length) ? <View style={styles.centered}><ActivityIndicator size="large" color="#C15656" /></View> :
+    {(activeTab === 'drivers' ? deliveryLoading : activeTab === 'artists' && artworkFilter === 'commission' ? commissionLoading : loading && !commissionChats.length) ? <View style={styles.centered}><ActivityIndicator size="large" color="#C15656" /></View> :
       <FlatList data={visible} keyExtractor={item => item.id} renderItem={renderChatItem} contentContainerStyle={visible.length ? styles.listContent : { flexGrow: 1 }}
         ListEmptyComponent={<View style={styles.centered}><Ionicons name="chatbubble-outline" size={48} color="#C7C7CC" /><Text style={styles.emptyText}>No {activeTab === 'artists' ? artworkFilter === 'commission' ? 'commission' : 'artwork' : activeTab === 'drivers' ? 'driver' : 'customer support'} conversations yet</Text></View>} />}
   </View>;
