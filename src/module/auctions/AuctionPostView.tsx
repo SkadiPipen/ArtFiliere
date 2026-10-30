@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import AgreementDocument from "@/module/messages/components/AgreementDocument";
@@ -268,11 +269,7 @@ export default function AuctionPostView() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/auction-dashboard" as any);
-    }
+    goBackOr("/auction-dashboard");
   };
 
   const handleArtistClick = () => {

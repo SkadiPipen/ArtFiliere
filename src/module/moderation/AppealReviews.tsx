@@ -1,4 +1,5 @@
 import { Text, TextInput } from '@/components/Typography';
+import { markAdminQueueRead } from '@/services/adminNotifications';
 import { useEffect, useState } from 'react';
 import { Linking, View } from 'react-native';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
@@ -10,7 +11,7 @@ export default function AppealReviews({ admin = false }: { admin?: boolean }) {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const load = async () => setRows(await purchaseRequest('moderation/appeals/'));
+  const load = async () => { const result: Appeal[] = await purchaseRequest('moderation/appeals/'); setRows(result); if (admin) void markAdminQueueRead('appeal', result.map(row => row.id)); };
   const run = async (work: () => Promise<void>) => { setBusy(true); setError(''); try { await work(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
   useEffect(() => { run(load); }, []);
   return <View style={s.card}><Text style={s.heading}>Suspension & ban appeals</Text><Text style={s.text}>{admin ? 'Appeals arrive directly here. Review the explanation and evidence, then approve or deny reinstatement with a reason.' : 'Appeals go directly to admin. You may provide an optional recommendation to help an investigation; admin can decide without waiting for it.'}</Text><Action label="Refresh appeals" disabled={busy} onPress={() => run(load)} />{!!error && <Text style={s.error}>{error}</Text>}{!rows.length && <Text>{busy ? 'Loading appeals…' : 'No appeals yet.'}</Text>}

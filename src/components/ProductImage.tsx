@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { Image, StyleSheet, View, type ImageProps, type ImageStyle, type ViewStyle } from 'react-native';
+import { Image, Platform, StyleSheet, View, type ImageProps, type ImageStyle, type ViewStyle } from 'react-native';
 import Svg, { Defs, Pattern, Rect, Text as SvgText } from 'react-native-svg';
 
 /** Watermarks displayed artwork previews. The source file and download remain unchanged. */
@@ -17,8 +17,8 @@ export default function ProductImage({ style, onLayout, resizeMode = 'cover', ..
     onLayout?.(event);
   }}>
     <Image {...imageProps} resizeMode={resizeMode} style={[StyleSheet.absoluteFill, { borderRadius: flat.borderRadius } as ImageStyle]} />
-    {size.width > 0 && size.height > 0 && <View pointerEvents="none" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
-      <Svg width="100%" height="100%" accessible={false}>
+    {size.width > 0 && size.height > 0 && <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
+      <Svg width="100%" height="100%" {...(Platform.OS === 'web' ? { 'aria-hidden': true, focusable: false } : { accessible: false })}>
         <Defs><Pattern id={patternId} width={tileWidth} height={tileHeight} patternUnits="userSpaceOnUse" patternTransform="rotate(-28)">
           <SvgText x={4} y={fontSize * 1.7} fontSize={fontSize} fontWeight="700" letterSpacing={1.5} fill="rgba(255,255,255,0.38)" stroke="rgba(40,24,24,0.24)" strokeWidth={0.5}>ARTFILIER</SvgText>
         </Pattern></Defs>

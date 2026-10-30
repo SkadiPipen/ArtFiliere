@@ -1,4 +1,5 @@
 import { Text, TextInput } from '@/components/Typography';
+import { markAdminQueueRead } from '@/services/adminNotifications';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
 import { auth } from '@/firebase/config';
@@ -44,7 +45,7 @@ function ReviewCard({ report, refresh }: { report: Report; refresh: () => Promis
 }
 export default function RoyaltyReportReviews() {
   const [rows, setRows] = useState<Report[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState('');
-  const load = useCallback(async () => { try { setRows(await request()); setError(''); } catch (e: any) { setError(e.message); } finally { setLoading(false); } }, []);
+  const load = useCallback(async () => { try { const result: Report[] = await request(); setRows(result); void markAdminQueueRead('royalty_report', result.map(row => row.id)); setError(''); } catch (e: any) { setError(e.message); } finally { setLoading(false); } }, []);
   useEffect(() => { void load(); }, [load]);
   return <View style={{ gap: 14 }}><Text style={{ fontSize: 23, fontWeight: '700', color: '#70482F' }}>Royalty report verification</Text><Text>Buyer payments stay held until you verify the report and release them.</Text><Pressable onPress={load}><Text style={{ color: '#A33F45', fontWeight: '700' }}>Refresh royalty reviews</Text></Pressable>{loading && <ActivityIndicator />}{!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}{!loading && !error && !rows.length && <Text>No royalty reports awaiting review.</Text>}{rows.map(report => <ReviewCard key={report.id} report={report} refresh={load} />)}</View>;
 }

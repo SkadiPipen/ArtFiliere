@@ -176,6 +176,10 @@ export default function UserProfile() {
 
         <View style={styles.contentBody}>
           <WalletCard />
+          <TouchableOpacity onPress={() => router.push('/reseller-verification' as any)} style={{ padding: 16, marginTop: 14, backgroundColor: '#EAF5EF', borderRadius: 12 }}>
+            <Text style={{ color: '#286C58', fontWeight: '700' }}>Reseller verification</Text>
+            <Text style={{ color: '#625550', marginTop: 5 }}>Submit seller documents in advance. No purchase or artist application needed.</Text>
+          </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/report-management')} style={{ padding: 16, marginVertical: 12, backgroundColor: '#F6E8E1', borderRadius: 12 }}>
               <Text style={{ color: '#A74646', fontWeight: '700' }}>Reports, disputes & transaction requests</Text>
             </TouchableOpacity>

@@ -150,6 +150,8 @@ class ProvenanceTests(TestCase):
         with self.assertRaises(OwnershipConflict): check_checkout(other)
 
     def test_authorized_resale_continues_identity_and_creator_history(self):
+        from users.models import ResellerApplication
+        ResellerApplication.objects.create(user=self.buyer, status='approved', tin_number='123456789', bir_certificate='reviewed-test-certificate', bir_certificate_name='bir.png')
         self.confirm(self.record.events.get(kind='registration'))
         self.confirm(queue_payment(self.payment_for()))
         request = self.factory.post('/', {'price':'120'}, format='json')
@@ -170,6 +172,8 @@ class ProvenanceTests(TestCase):
         self.assertNotIn('private agreement', str(data))
 
     def test_unauthorized_resale_and_unpermitted_resale_rejected(self):
+        from users.models import ResellerApplication
+        ResellerApplication.objects.create(user=self.buyer, status='approved', tin_number='123456789', bir_certificate='reviewed-test-certificate', bir_certificate_name='bir.png')
         with patch('authentication.views.AuthenticatedAPIView.get_request_user', return_value=self.next_buyer):
             response = ProvenanceResaleView.as_view()(self.factory.post('/', {'price':'120'}, format='json'), artwork_id=self.art.pk)
         self.assertEqual(response.status_code, 403)

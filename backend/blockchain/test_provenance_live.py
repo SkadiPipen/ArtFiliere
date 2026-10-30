@@ -33,6 +33,10 @@ class LocalOwnershipIntegration(TestCase):
         self.assertEqual(self.record.current_owner_id, self.artist.pk)
         reconcile(item)
         self.assertEqual(self.record.current_owner_id, self.buyer.pk)
+        # Resales also require seller-document approval, independent of ownership.
+        from users.models import ResellerApplication
+        ResellerApplication.objects.create(user=self.buyer, status='approved',
+            tin_number='123456789', bir_certificate='test-document', bir_certificate_name='test.png')
         # A subsequent listing is a new offer for the SAME artwork, not a new registration.
         listing = Artwork.objects.create(artist=self.buyer, title='X resale', image_data=self.art.image_data, price=120, status='approved')
         ProvenanceListing.objects.create(artwork=listing, record=self.record)

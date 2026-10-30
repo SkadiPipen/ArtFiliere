@@ -3,6 +3,7 @@ import { COLORS } from '@/constants/colors';
 import API_URL from '@/services/api';
 import { loginUser, logOut } from '@/services/auth';
 import { platformAccessError } from '@/services/platformAccess';
+import { staffDashboardForRole } from '@/services/roleRoutes';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
@@ -41,7 +42,7 @@ export default function HomeScreen() {
 
       alert('Login Successfully!');
 
-      router.replace(data.role === 'platform_admin' ? '/admin-dashboard' : data.role === 'customer_support' ? '/moderator-dashboard' : data.role === 'hr' ? '/hr-dashboard' : data.role === 'creative_moderator' ? '/creative-dashboard' : (['rider', 'driver'].includes(data.role?.toLowerCase())) ? '/rider/(tabs)' as any : '/(home)');
+      router.replace((staffDashboardForRole(data.role) || '/(home)') as any);
     } catch (error: any) {
       alert(error.message);
     }

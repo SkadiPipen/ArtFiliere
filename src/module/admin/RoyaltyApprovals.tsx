@@ -1,4 +1,5 @@
 import { Text, TextInput } from '@/components/Typography';
+import { markAdminQueueRead } from '@/services/adminNotifications';
 import { AuthContext } from '@/context/AuthContext';
 import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, View } from 'react-native';
@@ -24,7 +25,7 @@ export default function RoyaltyApprovals() {
   }
   async function load() {
     setError(''); setLoading(true);
-    try { setItems(await request()); } catch (e: any) { setError(e.message); } finally { setLoading(false); }
+    try { const rows: Application[] = await request(); setItems(rows); void markAdminQueueRead('royalty', rows.map(row => row.id)); } catch (e: any) { setError(e.message); } finally { setLoading(false); }
   }
   useEffect(() => { if (!authLoading && user) load(); else if (!authLoading) { setLoading(false); setError('Please sign in to review applications.'); } }, [authLoading, user?.uid]);
   async function review(item: Application, action: 'approve' | 'reject') {

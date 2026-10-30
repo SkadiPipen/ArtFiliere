@@ -551,6 +551,8 @@ class LifecycleTests(TestCase):
         self.assertEqual(c.ledger.filter(kind='PROVIDER_REFUND').count(), 1)
 
     def test_resale_transfers_asset_and_royalty_is_allocated_once(self):
+        from users.models import ResellerApplication
+        ResellerApplication.objects.create(user=self.buyer, status='approved', tin_number='123456789', bir_certificate='reviewed-test-certificate', bir_certificate_name='bir.png')
         from artworks.models import Artwork
         from wallets.models import PaymentSession, WalletAccount
         from .models import CommissionResale

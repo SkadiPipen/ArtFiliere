@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
@@ -190,7 +191,7 @@ export default function RoyaltyReports() {
   const load = useCallback(async () => { try { setData(await request()); setError(''); } catch (e: any) { setError(e.message); } }, []);
   useEffect(() => { const unsubscribe = auth.onAuthStateChanged(user => { if (user) load(); else setError('Please sign in to view royalty reports.'); }); return unsubscribe; }, [load]);
   return <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
-    <TransactionHeader title="Royalty Reports & Payments" onBack={() => router.canGoBack() ? router.back() : router.replace('/(home)/settings')} onRefresh={() => { void load(); }} />
+    <TransactionHeader title="Royalty Reports & Payments" onBack={() => goBackOr('/(home)/settings')} onRefresh={() => { void load(); }} />
     <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28, gap: 16, width: '100%', maxWidth: 850, alignSelf: 'center' }}>
     <TransactionTitle title="Royalty Reports & Payments" />
     <Text>Submit evidence after each reporting period closes. Your report deadline is seven days before payment is due. For admin-reviewed reports, pay through checkout; verified funds are held until an administrator verifies the report and releases them to the artist wallet.</Text>

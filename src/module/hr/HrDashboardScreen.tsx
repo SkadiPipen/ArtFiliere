@@ -276,6 +276,7 @@ export default function HrDashboardScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.content, !isWide && styles.contentCompact]}>
           <View style={styles.navBar}>
+            <TouchableOpacity onPress={() => router.push('/reseller-approvals' as any)}><Text style={styles.navText}>Reseller applications</Text></TouchableOpacity>
             <Text style={styles.activeNav}>Artist Registration</Text>
             <TouchableOpacity onPress={loadLogs} disabled={logsLoading}>
               <Text style={styles.navText}>

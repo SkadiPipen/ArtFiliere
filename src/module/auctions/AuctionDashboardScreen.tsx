@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import API_URL from '@/services/api';
@@ -125,11 +126,7 @@ export default function AuctionDashboardScreen() {
             <TouchableOpacity
             style={styles.backBtn}
             onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(home)' as any);
-              }
+              goBackOr('/(home)');
             }}
           >
             <Ionicons name="arrow-back" size={22} color="#FFF" />

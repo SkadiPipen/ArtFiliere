@@ -204,6 +204,7 @@ def me(request):
             'read_only': account_access(user)['read_only'],
             'is_accepting_commissions': user.is_accepting_commissions,
             'royalty_enabled': user.royalty_enabled,
+            'reseller_verified': user.reseller_verified,
             'default_hourly_rate': str(artist_application.hourly_rate) if artist_application else None,
             'bio': user.bio if user.bio is not None else ((artist_application.bio or '') if artist_application else ''),
             'profile_image': getattr(user, 'profile_image', None),

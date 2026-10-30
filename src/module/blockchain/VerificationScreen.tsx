@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import API_URL from '@/services/api';
@@ -5,8 +6,9 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import ProvenancePanel from './ProvenancePanel';
 
-type Result = { verified: boolean; record_type?: string; message: string };
+type Result = { verified: boolean; record_type?: string; message: string; artwork_id?: number };
 
 export default function VerificationScreen() {
   const [code, setCode] = useState('');
@@ -23,7 +25,7 @@ export default function VerificationScreen() {
     try {
       const response = await fetch(`${API_URL}/api/blockchain/verify/?code=${encodeURIComponent(value)}`);
       const data = await response.json();
-      setResult({ verified: Boolean(data.verified), record_type: data.record_type, message: data.message || 'Unable to verify this record.' });
+      setResult({ verified: Boolean(data.verified), record_type: data.record_type, artwork_id: data.artwork_id, message: data.message || 'Unable to verify this record.' });
     } catch {
       setResult({ verified: false, message: 'Verification is unavailable. Make sure ArtFiliere and the local blockchain are running.' });
     } finally {
@@ -33,7 +35,7 @@ export default function VerificationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TransactionHeader title="Verify an ArtFiliere Record" onBack={() => router.canGoBack() ? router.back() : router.replace('/(home)')} />
+      <TransactionHeader title="Verify an ArtFiliere Record" onBack={() => goBackOr('/(home)/profile')} />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28 }}><View style={styles.card}>
         <TransactionTitle title="Verify an ArtFiliere Record" />
         <Text style={styles.body}>Enter the verification code shown on a finalized agreement or completed sale receipt.</Text>
@@ -45,6 +47,7 @@ export default function VerificationScreen() {
           <Text style={styles.resultTitle}>{result.verified ? '✓ Blockchain record confirmed' : 'Not verified'}</Text>
           <Text style={styles.resultBody}>{result.message}</Text>
           <Text style={styles.resultBody}>A blockchain record does not automatically prove authorship, transfer copyright, or prevent external copying. The signed sale terms define the ownership entitlement.</Text>
+          {result.verified && !!result.artwork_id && <ProvenancePanel artworkId={result.artwork_id} />}
         </View>}
       </View></ScrollView>
     </SafeAreaView>

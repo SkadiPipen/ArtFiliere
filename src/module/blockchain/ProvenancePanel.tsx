@@ -3,11 +3,15 @@ import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
 import * as DocumentPicker from 'expo-document-picker';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import RightsSummary from './RightsSummary';
 
 export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: number | string; recordId?: string }) {
   const [open, setOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -53,54 +57,64 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
   };
   if (!artworkId && !recordId) return null;
   return <>
-    <TouchableOpacity accessibilityRole="button" onPress={() => setOpen(true)}><Text style={s.link}>View provenance & ownership history</Text></TouchableOpacity>
+    <TouchableOpacity accessibilityRole="button" onPress={() => setOpen(true)}><Text style={s.link}>View creator & ownership history</Text></TouchableOpacity>
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
       <View style={s.overlay}><View style={s.card}>
-        <View style={s.heading}><Text style={s.title}>Artwork provenance</Text><TouchableOpacity onPress={() => setOpen(false)}><Text style={s.link}>Close</Text></TouchableOpacity></View>
+        <View style={s.heading}><Text style={s.title}>Creator & artwork history</Text><TouchableOpacity onPress={() => setOpen(false)}><Text style={s.link}>Close</Text></TouchableOpacity></View>
         <ScrollView contentContainerStyle={s.content}>
           {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
           {!!message && <Text style={s.message}>{message}</Text>}
           {data && <>
-            <Text selectable style={s.id}>Artwork ID: {data.artwork_id}</Text>
             <Text style={s.label}>Created by @{data.created_by.username}</Text>
-            <Text>Creator attribution: {data.creator_verification === 'reviewed' ? 'Reviewed by platform moderation' : 'Claimed — registration does not verify authorship'}</Text>
+            <Text style={s.id}>Creator information recorded by the platform.</Text>
+            <Text>Creation date: {data.creation_date ? new Date(data.creation_date).toLocaleDateString() : 'Not provided'}</Text>
+            {data.first_listed_at && <Text>First listed on: {new Date(data.first_listed_at).toLocaleDateString()}</Text>}
             {data.claimed_creator.id !== data.created_by.id && <Text>Original attribution claim: @{data.claimed_creator.username}</Text>}
-            <Text style={s.label}>Currently owned by {data.current_owner ? `@${data.current_owner.username}` : 'Awaiting confirmed registration'}</Text>
             {data.disputed && <Text style={s.error}>Attribution under review. New ownership transfers are on hold.</Text>}
             {!data.disputed && data.attribution_review_pending && <Text>An attribution review has been requested. A submitted claim alone does not change ownership or creator verification.</Text>}
+            {data.can_admin && <TouchableOpacity onPress={() => setShowDetails(value => !value)}><Text style={s.link}>{showDetails ? 'Hide administrative proof details' : 'Administrative proof details'}</Text></TouchableOpacity>}
+            {data.can_admin && showDetails && <>
+            <Text>Registration: {data.registered_at ? 'Recorded on blockchain' : 'Awaiting confirmation'}</Text>
+            <Text selectable style={s.id}>Artwork ID: {data.artwork_id}</Text>
             <Text style={s.disclaimer}>{data.disclaimer}</Text>
             <Text selectable style={s.id}>Original file SHA-256: {data.file_hash}</Text>
+            <Text>Compare an original file with the registered file fingerprint. Edited, resized, or watermarked copies may not match.</Text>
             {button('Verify an original file', () => run(checkFile, 'File integrity matches the registered original. This does not prove authorship.'))}
             {data.can_download_original && button('Download registered original', () => run(() => downloadProtectedFile(`${path}/original/`, data.original_filename), 'Original file downloaded. Its SHA-256 matches the registration.'))}
-            {data.rights && <View style={s.section}>
-              <Text style={s.label}>Current purchase entitlement</Text>
-              <Text>{data.rights.license_type} · {data.rights.exclusivity}</Text>
-              <Text>Resale: {data.rights.allow_resale ? 'Permitted under the original terms' : 'Not permitted'}</Text>
-              <Text>Territory: {data.rights.scope?.territory_details || data.rights.scope?.territory || 'See signed agreement'}</Text>
-              <Text>Permitted uses: {data.rights.scope?.uses?.join(', ') || 'See signed agreement'}</Text>
-              <Text>Duration: {data.rights.scope?.duration_months || data.rights.duration_months || 'As agreed'} months</Text>
-              {!!data.rights.expires_at && <Text>Original license expires: {new Date(data.rights.expires_at).toLocaleString()}. Resale does not restart the license period.</Text>}
-              <Text>The signed agreement defines all restrictions. Copyright is not automatically assigned.</Text>
-            </View>}
-            <Text style={s.label}>Continuous history</Text>
+            </>}
+            {data.entitlements?.length > 0 && <>
+              <Text style={s.label}>Ownership & license history</Text>
+              <Text style={s.id}>A license holder has permission to use the artwork; this does not always mean copyright ownership. Private buyers use holder references.</Text>
+              {data.entitlements.map((entry: any) => <RightsSummary key={entry.key} entry={entry} />)}
+              <Text style={s.id}>Full signed agreements are private. Review the rights offered in the current listing before purchasing.</Text>
+            </>}
+            {!data.entitlements?.length && <Text>No purchases or rights transfers recorded yet.</Text>}
+            {data.can_admin && showDetails && <>
+            <Text style={s.label}>Administrative transaction history</Text>
             {data.history.map((entry: any) => <View key={entry.id} style={s.section}>
-              <Text style={s.label}>{entry.kind === 'review' ? 'Attribution review' : entry.kind} · {entry.status}</Text>
-              {entry.kind === 'transfer' && <Text>@{entry.previous_owner?.username} → @{entry.new_owner?.username}</Text>}
+              <Text style={s.label}>{entry.kind === 'review' ? 'Attribution review' : entry.kind === 'transfer' ? 'Recorded entitlement transfer' : 'Artwork registration'} · {entry.status}</Text>
+              {entry.kind === 'transfer' && <Text>{entry.previous_owner?.label} → {entry.new_owner?.label}</Text>}
               {entry.reason === 'approved_refund' && <Text>Ownership return after an approved refund</Text>}
-              <Text>{entry.timestamp ? new Date(entry.timestamp).toLocaleString() : entry.status === 'failed' ? 'Transaction failed — ownership has not changed. Contact support.' : 'Awaiting blockchain confirmation — ownership has not changed'}</Text>
+              <Text>{entry.timestamp ? new Date(entry.timestamp).toLocaleString() : entry.status === 'failed' ? 'Blockchain confirmation failed. Contact support.' : entry.kind === 'registration' ? 'Registration is waiting for blockchain confirmation.' : 'Transfer is waiting for blockchain confirmation; the recorded holder has not changed.'}</Text>
+              {showDetails && <>
               {entry.transaction_reference ? <Text selectable style={s.id}>Transaction: {entry.transaction_reference}</Text> : <Text>Transaction queued</Text>}
               {!!entry.block_number && <Text>Block {entry.block_number} · Chain {entry.chain_id}</Text>}
+              </>}
               {!!entry.review_note && <Text>{entry.review_note}</Text>}
-              {entry.previous_attempts?.map((attempt: any) => <Text key={attempt.transaction_hash} selectable style={s.id}>Previous failed transaction: {attempt.transaction_hash}</Text>)}
+              {showDetails && entry.previous_attempts?.map((attempt: any) => <Text key={attempt.transaction_hash} selectable style={s.id}>Previous failed transaction: {attempt.transaction_hash}</Text>)}
               {data.can_admin && entry.retry_allowed && button('Review and retry failed transaction', () => run(() => purchaseRequest(`${path}/reconcile/`, 'POST', { event_id: entry.id }), 'Transaction queued again after checking its prior failure.'))}
             </View>)}
+            </>}
             {data.can_resell && !recordId && <View style={s.section}>
               <Text style={s.label}>List an authorized resale</Text>
               <Text>The same artwork ID, creator credit, and license restrictions will be retained. The listing requires moderation.</Text>
-              <TextInput value={price} onChangeText={setPrice} placeholder="Resale price (PHP)" keyboardType="decimal-pad" style={s.input} />
-              {button('Submit resale listing', () => run(() => purchaseRequest(`${path}/resale/`, 'POST', { price }), 'Resale listing submitted for moderation.'))}
+              {data.seller_verified ? <>
+                <TextInput value={price} onChangeText={setPrice} placeholder="Resale price (PHP)" keyboardType="decimal-pad" style={s.input} />
+                {button('Submit resale listing', () => run(() => purchaseRequest(`${path}/resale/`, 'POST', { price }), 'Resale listing submitted for moderation.'))}
+              </> : button('Complete reseller verification', () => { setOpen(false); router.push('/reseller-verification' as any); })}
             </View>}
-            {auth.currentUser && <View style={s.section}>
+            {auth.currentUser && <TouchableOpacity onPress={() => setShowReview(value => !value)}><Text style={s.link}>{showReview ? 'Hide correction request' : 'Report incorrect creator information'}</Text></TouchableOpacity>}
+            {auth.currentUser && showReview && <View style={s.section}>
               <Text style={s.label}>Request attribution review</Text>
               <TextInput style={s.input} multiline value={reason} onChangeText={setReason} maxLength={4000} placeholder="Explain the claim or correction" />
               <TextInput style={s.input} value={creator} onChangeText={setCreator} placeholder="Correct creator account ID (optional)" keyboardType="number-pad" />

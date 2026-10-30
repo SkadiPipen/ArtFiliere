@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import { AuthContext } from '@/context/AuthContext';
@@ -588,11 +589,7 @@ export default function CommissionsScreen() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(home)" as any);
-    }
+    goBackOr('/(home)/profile');
   };
 
   const renderCard = ({ item }: { item: any }) => {

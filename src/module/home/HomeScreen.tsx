@@ -1,4 +1,5 @@
 import { Text } from '@/components/Typography';
+import { staffDashboardForRole } from '@/services/roleRoutes';
 import UnreadMessageBadge from "@/module/chat-negotiations/UnreadMessageBadge";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -62,13 +63,8 @@ export default function Dashboard() {
         });
         if (!response.ok || cancelled) return;
         const profile = await response.json();
-        if (profile.role === "customer_support")
-          router.replace("/customer-service-dashboard");
-        if (profile.role === "creative_moderator")
-          router.replace("/creative-dashboard");
-        if (profile.role === "platform_admin")
-          router.replace("/admin-dashboard");
-        if (profile.role === "hr") router.replace("/hr-dashboard");
+        const destination = staffDashboardForRole(profile.role);
+        if (destination && !cancelled) router.replace(destination as any);
       } catch {
         // Browse mode remains available if the profile check is temporarily unavailable.
       }

@@ -1,5 +1,6 @@
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import ProfileCover from '@/components/ProfileCover';
+import ResellerBadge from '@/components/ResellerBadge';
 import { pickProfileImage } from '@/services/profileImages';
 import API_URL from '@/services/api';
 import { auth } from '@/firebase/config';
@@ -150,6 +151,7 @@ export default function ProfileHeader({
               </View>
 
               {!!profileData?.username && <Text style={styles.username}>@{profileData.username}</Text>}
+              <ResellerBadge verified={profileData?.reseller_verified} />
               {profileData?.bio?.trim() ? <Text style={styles.bio}>{profileData.bio}</Text> : normalizedRole === 'artist' ? <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/(home)/edit-profile')}><Text style={[styles.bio, { color: '#A84B46' }]}>Add artist bio</Text></TouchableOpacity> : null}
               {mobile ? <View style={styles.mobileStats}>
                 <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>25</Text><Text style={styles.mobileStatLabel}>Reviews</Text></View>

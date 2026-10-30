@@ -28,6 +28,8 @@ class CommissionResaleView(AuthenticatedAPIView):
         asset = CommissionAsset.objects.select_for_update().filter(pk=asset_id).first()
         if not asset: raise NotFound('Asset not found.')
         if not user or asset.owner_id != user.pk: raise PermissionDenied('Only the current asset owner may list it.')
+        from users.resellers import require_seller
+        require_seller(user)
         if not asset.license_terms.get('allow_resale'): raise Conflict('This commission license does not permit resale.')
         if not license_active(asset): raise Conflict('The original license has expired.')
         if asset.license_terms.get('exclusivity') == 'exclusive':

@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import ContractPanel from '@/module/chat-negotiations/ContractPanel';
@@ -341,7 +342,7 @@ export default function CartScreen() {
       )}
       <View style={styles.topAppBar}>
         <View style={styles.headerInner}>
-          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}>
+          <TouchableOpacity onPress={() => goBackOr('/(home)')}>
             <ArrowLeft color="#C15656" size={24} />
           </TouchableOpacity>
           <Text style={styles.appBarTitle}>Cart</Text>

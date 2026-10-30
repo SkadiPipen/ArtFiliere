@@ -4,6 +4,9 @@ Set-Location $projectRoot
 $toolDir = Join-Path $projectRoot 'tools/foundry'
 $anvil = Join-Path $toolDir 'anvil.exe'
 $forge = Join-Path $toolDir 'forge.exe'
+$python = Join-Path $projectRoot 'backend/venv/Scripts/python.exe'
+if (-not (Test-Path $python)) { $python = Join-Path $projectRoot 'venv/Scripts/python.exe' }
+if (-not (Test-Path $python)) { throw 'Install the backend virtual environment before starting blockchain services.' }
 if (-not (Test-Path $anvil) -or -not (Test-Path $forge)) {
     New-Item -ItemType Directory -Force $toolDir | Out-Null
     $baseUrl = 'https://github.com/foundry-rs/foundry/releases/download/v1.8.4/foundry_v1.8.4_win32_amd64'
@@ -35,8 +38,8 @@ if (-not (Test-LocalRpc)) {
 }
 & $forge build
 if ($LASTEXITCODE -ne 0) { throw 'Contract compilation failed.' }
-& "$projectRoot/venv/Scripts/python.exe" "$PSScriptRoot/local-blockchain.py"
+& $python "$PSScriptRoot/local-blockchain.py"
 if ($LASTEXITCODE -ne 0) { throw 'Local blockchain setup or verification failed.' }
-& "$projectRoot/venv/Scripts/python.exe" "$PSScriptRoot/configure-provenance.py"
+& $python "$PSScriptRoot/configure-provenance.py"
 if ($LASTEXITCODE -ne 0) { throw 'Ownership registry setup failed.' }
 & "$PSScriptRoot/start-provenance-worker.ps1"

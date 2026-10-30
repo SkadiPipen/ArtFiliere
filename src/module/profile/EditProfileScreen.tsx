@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProfileCover from '@/components/ProfileCover';
 import { pickProfileImage } from '@/services/profileImages';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
@@ -127,11 +128,7 @@ export default function EditProfile() {
   };
 
   const handleGoBack = () => {
-    if (router.canGoBack()) {
-        router.back();
-    } else {
-        router.replace('/(home)/profile');
-    }
+    goBackOr('/(home)/profile');
     };
 
   const handleSave = async () => {

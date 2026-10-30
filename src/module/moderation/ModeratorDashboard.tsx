@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { auth } from '@/firebase/config';
 import { AuthContext } from '@/context/AuthContext';
 import { purchaseRequest } from '@/services/purchases';
+import { markAdminQueueRead } from '@/services/adminNotifications';
 import SupportScreen from '@/module/support/SupportScreen';
 import { Action, styles as s } from './ui';
 import AppealReviews from './AppealReviews';
@@ -88,7 +89,15 @@ type AccountAction = { id: number; source: 'report' | 'ticket'; report_id?: numb
 export function AccountActions({ approvals = false }: { approvals?: boolean }) {
   const [rows, setRows] = useState<AccountAction[]>([]); const [next, setNext] = useState<number | null>(null); const [notes, setNotes] = useState<Record<string, string>>({});
   const work = useWork();
-  const load = async (offset = 0) => { const data = await purchaseRequest(`moderation/account-actions/?offset=${offset}`); setRows(old => offset ? [...old, ...data.results] : data.results); setNext(data.next_offset); };
+  const load = async (offset = 0) => {
+    const data = await purchaseRequest(`moderation/account-actions/?offset=${offset}`);
+    setRows(old => offset ? [...old, ...data.results] : data.results);
+    setNext(data.next_offset);
+    if (approvals) {
+      void markAdminQueueRead('account', data.results.filter((row: AccountAction) => row.source === 'report').map((row: AccountAction) => row.id));
+      void markAdminQueueRead('account_support', data.results.filter((row: AccountAction) => row.source === 'ticket').map((row: AccountAction) => row.id));
+    }
+  };
   useEffect(() => { work.run(() => load()); }, []);
   return <View style={s.card}><Text style={s.heading}>{approvals ? 'Account action approvals' : 'Account action requests'}</Text><Text style={s.text}>{approvals ? 'Review requests submitted by Customer Support. Only approval changes account access.' : 'Submit a restriction request from a report after choosing the reported account. Track admin decisions here.'}</Text><Action label="Refresh requests" disabled={work.busy} onPress={() => work.run(() => load())} /><Feedback {...work} />
     {!work.busy && !rows.length && <Text>No account action requests.</Text>}

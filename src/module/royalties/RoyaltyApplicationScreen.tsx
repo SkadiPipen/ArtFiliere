@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, View } from 'react-native';
@@ -49,7 +50,7 @@ export default function RoyaltyApplicationScreen({ onClose, onAccessChange }: { 
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
   return <SafeAreaView style={{ flex: 1, backgroundColor: '#fffaf5' }}><ScrollView contentContainerStyle={{ padding: 24, gap: 18, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
-    <Pressable onPress={() => onClose ? onClose() : router.canGoBack() ? router.back() : router.replace('/(home)/settings')}><Text style={{ color: '#C15656' }}>Back</Text></Pressable>
+    <Pressable onPress={() => onClose ? onClose() : goBackOr('/(home)/settings')}><Text style={{ color: '#C15656' }}>Back</Text></Pressable>
     <Text style={{ fontSize: 24, fontWeight: '700' }}>Royalty access</Text>
     {authLoading || busy ? <ActivityIndicator /> : !user ? <Pressable onPress={() => router.replace('/login')}><Text>Sign in to manage royalty access</Text></Pressable> : null}
     {!!success && <Text accessibilityRole="alert" style={{ color: '#286647' }}>{success}</Text>}

@@ -60,6 +60,10 @@ class User(models.Model):
         from django.utils import timezone
         return RoyaltyApplication.objects.filter(user=self, status='approved', permit_expires_on__gte=timezone.localdate()).exists()
 
+    @property
+    def reseller_verified(self):
+        return not self.access_restricted and ResellerApplication.objects.filter(user=self, status='approved').exists()
+
     royalty_proof = models.FileField(
         upload_to="royalty_proofs/",
         blank=True,
@@ -113,6 +117,31 @@ class RoyaltyApplication(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='royalty_reviews')
     review_note = models.CharField(max_length=1000, blank=True, default='')
+
+
+class ResellerApplication(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reseller_applications')
+    tin_number = models.CharField(max_length=12)
+    bir_certificate = models.TextField()
+    bir_certificate_name = models.CharField(max_length=180)
+    sworn_declaration = models.TextField(blank=True)
+    sworn_declaration_name = models.CharField(max_length=180, blank=True)
+    status = models.CharField(max_length=12, default='pending', choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected'), ('revoked', 'Revoked')])
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True)
+    reviewed_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name='+')
+    review_note = models.CharField(max_length=1000, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['user'], condition=models.Q(status__in=['pending', 'approved']), name='one_active_reseller_application')]
+
+
+class ResellerReview(models.Model):
+    application = models.ForeignKey(ResellerApplication, on_delete=models.PROTECT, related_name='reviews')
+    actor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='+')
+    action = models.CharField(max_length=12)
+    note = models.CharField(max_length=1000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Address(models.Model):

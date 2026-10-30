@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import CategoryPicker from '@/module/artwork/components/CategoryPicker';
@@ -91,9 +92,7 @@ export default function MyPortfolioScreen() {
       <View style={s.header}>
         <TouchableOpacity
           onPress={() =>
-            router.canGoBack()
-              ? router.back()
-              : router.replace("/(home)/profile")
+            goBackOr("/(home)/profile")
           }
           style={s.back}
         >

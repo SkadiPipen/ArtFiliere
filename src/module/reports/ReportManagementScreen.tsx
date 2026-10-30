@@ -1,6 +1,8 @@
+import { goBackToWorkspace } from '@/services/navigation';
 import { TransactionTitle } from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
+import { markAdminQueueRead } from '@/services/adminNotifications';
 import * as DocumentPicker from 'expo-document-picker';
 import { auth } from '@/firebase/config';
 import { signOut } from 'firebase/auth';
@@ -50,11 +52,19 @@ export default function ReportManagementScreen() {
   const [review, setReview] = useState<Review | null>(null);
   const [formError, setFormError] = useState('');
   const load = useCallback(async () => {
-    try { setData(await purchaseRequest('management/')); setError(''); }
+    try {
+      const result: Dashboard = await purchaseRequest('management/');
+      setData(result); setError('');
+    }
     catch (e: any) { setError(e.message || 'Unable to load reports.'); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (data?.role === 'platform_admin' && tab === 'requests') {
+      void markAdminQueueRead('transaction', data.requests.map(row => row.id));
+    }
+  }, [data, tab]);
   useEffect(() => {
     let cancelled = false;
     setUserMatches([]); setSearchError('');
@@ -123,7 +133,7 @@ export default function ReportManagementScreen() {
   if (loading) return <SafeAreaView style={s.page}><ActivityIndicator style={{ marginTop: 80 }} color="#B65B50" /></SafeAreaView>;
   return <SafeAreaView style={s.page}>
     <View style={s.header}>
-      <TouchableOpacity accessibilityLabel="Back" onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}><ArrowLeft size={22} color="#62493E" /></TouchableOpacity>
+      <TouchableOpacity accessibilityLabel="Back" onPress={() => void goBackToWorkspace()}><ArrowLeft size={22} color="#62493E" /></TouchableOpacity>
       <View style={{ flex: 1 }}><Text style={s.brand}>ArtFiliere</Text><Text style={s.subhead}>{data?.role === 'customer_support' ? 'Customer service moderator' : 'Support & account safety'}</Text></View>
       <TouchableOpacity accessibilityLabel="Refresh reports" onPress={load}><RefreshCw size={20} color="#8C4C43" /></TouchableOpacity>
       {data?.role === 'customer_support' && <TouchableOpacity onPress={() => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }}><Text style={{ color: '#8C4C43', fontWeight: '700' }}>Log out</Text></TouchableOpacity>}

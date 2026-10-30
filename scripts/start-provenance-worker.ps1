@@ -8,7 +8,9 @@ if (Test-Path $pidPath) {
     $existing = Get-CimInstance Win32_Process -Filter "ProcessId = $workerId" -ErrorAction SilentlyContinue
     if ($existing -and $existing.CommandLine -like '*process_provenance*') { Write-Output 'Provenance worker already running.'; exit 0 }
 }
-$python = Join-Path $projectRoot 'venv/Scripts/python.exe'
+$python = Join-Path $projectRoot 'backend/venv/Scripts/python.exe'
+if (-not (Test-Path $python)) { $python = Join-Path $projectRoot 'venv/Scripts/python.exe' }
+if (-not (Test-Path $python)) { throw 'The backend Python virtual environment was not found.' }
 $worker = Start-Process $python -ArgumentList @('manage.py', 'process_provenance', '--watch') -WorkingDirectory (Join-Path $projectRoot 'backend') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $stateDir 'provenance-worker.log') -RedirectStandardError (Join-Path $stateDir 'provenance-worker-error.log')
 $worker.Id | Set-Content $pidPath
 Write-Output "Provenance worker started (PID $($worker.Id))."

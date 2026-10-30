@@ -6,6 +6,15 @@ from artworks.models import Artwork
 from commissions.models import CommissionRequest
 
 
+class AdminRequestRead(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_request_reads')
+    request_key = models.CharField(max_length=160)
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['user', 'request_key'], name='unique_admin_request_read')]
+
+
 class UserNotification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     agreement = models.ForeignKey('messaging.Agreement', on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications')

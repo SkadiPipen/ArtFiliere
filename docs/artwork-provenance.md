@@ -31,12 +31,20 @@ From the project root:
 
 ```powershell
 cd backend
-..\venv\Scripts\python.exe manage.py migrate
+.\venv\Scripts\python.exe manage.py migrate
 cd ..
 npm run blockchain:start
 ```
 
 This preserves `.local/blockchain/state.json`, checks the original registry, deploys/configures the additional ownership contract if missing, and starts a hidden provenance worker. Restart Django after initial configuration. Keep the local chain state; deleting or resetting it destroys local transaction history.
+
+The launcher uses `backend/venv` when present, with the older root `venv` as a
+fallback. Run `npm run blockchain:start` whenever starting a local session; it
+reuses the running node and worker rather than deploying a new contract for each
+approval. Moderator approval queues provenance registration. The worker sends
+the transaction and confirms it from its receipt, normally on its next few
+five-second passes. A node or worker outage leaves it pending until service
+returns; approval alone is never presented as blockchain confirmation.
 
 Backend settings: existing `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID`, `BLOCKCHAIN_PRIVATE_KEY`, plus `BLOCKCHAIN_PROVENANCE_ADDRESS` and `BLOCKCHAIN_PROVENANCE_CONFIRMATIONS` (local default 1; other networks default 3). Production deployments require an appropriately controlled operator key and a continuously supervised worker:
 
@@ -51,7 +59,7 @@ If restarting the worker after code changes, stop its existing process first. Th
 ```powershell
 tools\foundry\forge.exe test
 cd backend
-..\venv\Scripts\python.exe manage.py test blockchain.test_provenance --noinput
+.\venv\Scripts\python.exe manage.py test blockchain.test_provenance --noinput
 ```
 
 The opt-in `blockchain.test_provenance_live` test uses `RUN_LOCAL_PROVENANCE_TESTS=1`, checks chain ID 31337, and writes random test artwork identities to the local chain. It tests A → B → C with real signed transactions and a single continuous history. It never resets the chain. Test database records are removed normally; their local-chain test entries remain.

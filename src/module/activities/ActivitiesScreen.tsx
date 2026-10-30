@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
@@ -69,7 +70,7 @@ export default function ActivitiesScreen() {
 
   return <SafeAreaView style={styles.page} edges={['top', 'left', 'right']}>
     <View style={styles.header}>
-      <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}>
+      <TouchableOpacity onPress={() => goBackOr('/(home)')}>
         <ArrowLeft color="#C15656" size={24} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Activities</Text>

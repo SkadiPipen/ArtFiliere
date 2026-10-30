@@ -199,7 +199,9 @@ def serialize(c, user):
     asset = CommissionAsset.objects.filter(commission=c).first()
     provenance = getattr(asset, 'provenance_origin', None) if asset else None
     asset_owner = (provenance.current_owner.username if provenance and provenance.registered_at else 'Awaiting blockchain confirmation') if asset and asset.license_terms.get('exclusivity') == 'exclusive' else asset.owner.username if asset else ''
+    from users.resellers import seller_compliant
     return {'id': c.pk, 'title': c.title, 'status': c.status, 'is_artist': user.pk == c.artist_id,
+        'seller_verified': seller_compliant(user),
         'artist': c.artist.username, 'buyer': c.buyer.username, 'artist_id': c.artist_id, 'buyer_id': c.buyer_id,
         'buyer_royalty_enabled': c.buyer.royalty_enabled,
         'art_type': c.art_type, 'deadline': c.deadline, 'description': c.description, 'subject': c.subject, 'style': c.style,

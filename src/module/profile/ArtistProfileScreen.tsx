@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import ArtistShareCard from './components/ArtistShareCard';
 import ProfileCover from '@/components/ProfileCover';
@@ -5,6 +6,7 @@ import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import { chatService } from '@/module/chat-negotiations/chats';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import { Text, TextInput } from '@/components/Typography';
+import ResellerBadge from '@/components/ResellerBadge';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -147,7 +149,7 @@ export default function ArtistProfileScreen() {
     return (
       <View style={s.center}>
         <Text accessibilityRole="alert" style={{ color: "#666", textAlign: 'center', padding: 16 }}>{profileError || 'Artist not found.'}</Text>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/artists')}><Text style={{ color: '#BC5555', padding: 12 }}>Back to artists</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => goBackOr('/artists')}><Text style={{ color: '#BC5555', padding: 12 }}>Back to artists</Text></TouchableOpacity>
       </View>
     );
   }
@@ -158,11 +160,7 @@ export default function ArtistProfileScreen() {
     "https://api.dicebear.com/7.x/identicon/png?seed=artist&backgroundColor=ffffff";
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(home)");
-    }
+    goBackOr('/artists');
   };
 
   return (
@@ -222,15 +220,16 @@ export default function ArtistProfileScreen() {
 
             <View style={s.heroDetails}>
               <View style={s.artistTags}>
-                <View style={s.artistBadgePill}><Text style={s.artistBadgeText}>Artist</Text></View>
-                <View style={[s.commissionStatus, artist.is_accepting_commissions && s.commissionStatusOpen]}>
+                <View style={s.artistBadgePill}><Text style={s.artistBadgeText}>{artist.role === 'artist' ? 'Artist' : 'Seller'}</Text></View>
+                {artist.role === 'artist' && <View style={[s.commissionStatus, artist.is_accepting_commissions && s.commissionStatusOpen]}>
                   <Text style={[s.commissionStatusText, artist.is_accepting_commissions && s.commissionStatusTextOpen]}>{artist.is_accepting_commissions ? 'Commissions Open' : 'Commissions Closed'}</Text>
-                </View>
+                </View>}
               </View>
               <Text style={s.artistNameText}>
                 {artist.name || artist.username}
               </Text>
               <Text style={s.handleText}>@{artist.username}</Text>
+              <ResellerBadge verified={artist.reseller_verified} />
               {!!artist.bio?.trim() && <Text style={s.bioText}>{artist.bio}</Text>}
               <Text style={s.statsText}>
                 {artist.reviews_count ?? 25} Reviews •{" "}
@@ -258,21 +257,21 @@ export default function ArtistProfileScreen() {
           {/* Portfolio Column */}
           <View style={[s.worksContainer, { flex: pageWidth >= 1000 ? 1 : undefined }]}>
             <Text style={s.sectionHeading}>
-              {showFullPortfolio ? 'Complete portfolio' : 'Latest Portfolio Works'}
+              {artist.role === 'artist' ? (showFullPortfolio ? 'Complete portfolio' : 'Latest Portfolio Works') : 'Resale listings'}
             </Text>
             <TouchableOpacity onPress={() => setShowFullPortfolio(!showFullPortfolio)}>
               <Text style={{ color: '#BC5555', fontWeight: '700', marginBottom: 16 }}>
-                {showFullPortfolio ? 'Show latest 4 works' : 'View complete portfolio'}
+                {showFullPortfolio ? 'Show latest 4 works' : artist.role === 'artist' ? 'View complete portfolio' : 'View all resale listings'}
               </Text>
             </TouchableOpacity>
 
-            {!(artist.portfolio || artist.artworks) || (artist.portfolio || artist.artworks).length === 0 ? (
+            {!(artist.role === 'artist' ? artist.portfolio || artist.artworks : artist.artworks)?.length ? (
               <Text style={s.noArtText}>No artworks published yet.</Text>
             ) : (
               <View style={s.grid}>
-                {[...(artist.portfolio || artist.artworks)]
+                {[...(artist.role === 'artist' ? artist.portfolio || artist.artworks : artist.artworks)]
 
-                  .slice(0, showFullPortfolio ? (artist.portfolio || artist.artworks).length : 4)
+                  .slice(0, showFullPortfolio ? undefined : 4)
                   .map((item: any) => (
                     <TouchableOpacity
                       key={item.id}

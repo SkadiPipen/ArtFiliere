@@ -1,4 +1,5 @@
 import { Text, TextInput } from '@/components/Typography';
+import { markAdminQueueRead } from '@/services/adminNotifications';
 import { useEffect, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { commissionApi } from './CommissionDetailScreen';
@@ -11,7 +12,7 @@ export default function CommissionReviews() {
   const [payoutIds, setPayoutIds] = useState<Record<number, string>>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const load = async () => { try { setRows(await commissionApi('reviews/')); } catch (e: any) { setError(e.message); } };
+  const load = async () => { try { const result = await commissionApi('reviews/'); setRows(result); void markAdminQueueRead('commission', result.map((row: any) => row.id)); } catch (e: any) { setError(e.message); } };
   useEffect(() => { void load(); }, []);
   const decide = async (row: any, action: string, milestone_id?: number, refund_id?: number) => {
     setBusy(true); setError('');

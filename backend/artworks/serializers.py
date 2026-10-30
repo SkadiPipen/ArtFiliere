@@ -9,12 +9,16 @@ class ArtworkSerializer(serializers.ModelSerializer):
     category_labels = serializers.SerializerMethodField()
     artist_name = serializers.SerializerMethodField()
     artist_username = serializers.CharField(source='artist.username', read_only=True)
+    seller_reseller_verified = serializers.SerializerMethodField()
     similarity_matches = serializers.SerializerMethodField()
     is_sold = serializers.SerializerMethodField()
     auction_request = serializers.SerializerMethodField()
     provenance = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
+
+    def get_seller_reseller_verified(self, artwork):
+        return artwork.artist.reseller_verified
 
     def review_summary(self, artwork):
         if not hasattr(artwork, '_review_summary'):
@@ -37,6 +41,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "artist_id",
             "artist_name",
             "artist_username",
+            "seller_reseller_verified",
             "title",
             "description",
             "category",
@@ -94,7 +99,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
         record = link.record
         return {'artwork_id': str(record.pk), 'created_by': record.credited_creator.username,
                 'creator_account_id': record.credited_creator_id,
-                'current_owner': record.current_owner.username if record.registered_at else None,
+                'current_owner': None,  # Buyer identities are available only through privacy-safe provenance summaries.
                 'creator_verified': record.creator_verified, 'disputed': record.disputed}
 
     def get_similarity_matches(self, artwork):

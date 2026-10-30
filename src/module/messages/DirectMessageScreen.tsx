@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import useChatAutoScroll from '@/hooks/useChatAutoScroll';
 import { Text, TextInput } from '@/components/Typography';
 import InfoAccordion from '@/module/chat-negotiations/InfoAccordion';
@@ -166,7 +167,7 @@ export default function DirectMessageScreen() {
   return (
     <SafeAreaView style={s.page}>
       <View style={s.head}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/messages-inbox')}>
+        <TouchableOpacity onPress={() => goBackOr('/messages-inbox')}>
           <ArrowLeft color="#C15656" />
         </TouchableOpacity>
         <Text style={s.name}>{q.artistName || "Conversation"}</Text>

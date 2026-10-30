@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import { useRouter } from "expo-router";
@@ -65,7 +66,7 @@ export default function SettingsScreen() {
         <View style={styles.headerInner}>
           <TouchableOpacity
             style={styles.headerBtn}
-            onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}
+            onPress={() => goBackOr('/(home)/profile')}
           >
             <ArrowLeft color="#fff" size={22} />
           </TouchableOpacity>

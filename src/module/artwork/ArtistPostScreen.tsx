@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import CategoryPicker from './components/CategoryPicker';
@@ -440,11 +441,7 @@ export default function ArtistPostScreen() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(home)" as any);
-    }
+    goBackOr('/(home)/profile');
   };
 
   return (

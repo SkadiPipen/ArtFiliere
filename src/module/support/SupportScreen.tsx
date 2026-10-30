@@ -1,3 +1,4 @@
+import { goBackToWorkspace } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { AuthContext } from '@/context/AuthContext';
@@ -180,7 +181,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
     const ticket = await request<Ticket>('tickets/', 'POST', { concern: concern!.id, reference_id: reference?.id ?? null, details, evidence, image_data: photo, reported_username: reportedUsername });
     setSelected(ticket); setReply(''); setMode('tickets'); reset(); await loadTickets();
   });
-  const close = onClose || (() => router.canGoBack() ? router.back() : router.replace('/(home)'));
+  const close = onClose || (() => void goBackToWorkspace());
   const accountReport = !!concern && ['suspicious', 'harassment'].includes(concern.id);
   useEffect(() => {
     let active = true;

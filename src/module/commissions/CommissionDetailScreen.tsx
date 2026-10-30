@@ -487,6 +487,7 @@ export default function CommissionDetailScreen() {
                       <Text selectable style={styles.hashText}>Blockchain: {data.asset.proof_status} {data.asset.transaction_hash}</Text>
                       {!data.is_artist && data.asset.license.allow_resale && (
                         <View style={{ gap: 8 }}>
+                          {!data.seller_verified ? <TouchableOpacity onPress={() => router.push('/reseller-verification' as any)}><Text style={{ color: '#A74646' }}>Complete reseller verification before listing this purchase</Text></TouchableOpacity> : <>
                           <TextInput style={styles.input} value={resalePrice} onChangeText={setResalePrice} placeholder="Resale listing price PHP" placeholderTextColor="#9D8D85" />
                           <Button
                             text="List deliverable for resale"
@@ -499,6 +500,7 @@ export default function CommissionDetailScreen() {
                               }
                             }}
                           />
+                          </>}
                         </View>
                       )}
                     </View>

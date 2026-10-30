@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
 import CommissionDeliveryDetails from './CommissionDeliveryDetails';
 import { auth } from "@/firebase/config";
@@ -268,11 +269,7 @@ export default function CommissionRequestScreen() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(home)" as any);
-    }
+    goBackOr('/artists');
   };
 
   if (draft) return <SafeAreaView style={s.page}>

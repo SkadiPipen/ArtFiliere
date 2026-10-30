@@ -1,4 +1,6 @@
+import { goBackToWorkspace } from '@/services/navigation';
 import { Text } from '@/components/Typography';
+import { markAdminQueueRead } from '@/services/adminNotifications';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
@@ -9,10 +11,10 @@ import ProvenancePanel from './ProvenancePanel';
 export default function AttributionReviewsScreen() {
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
-  const load = async () => { try { await auth.authStateReady(); setData(await purchaseRequest('blockchain/attribution-reviews/')); setError(''); } catch (e: any) { setError(e.message); } };
+  const load = async () => { try { await auth.authStateReady(); const result = await purchaseRequest('blockchain/attribution-reviews/'); setData(result); void markAdminQueueRead('attribution', result.reviews.map((row: any) => row.id)); void markAdminQueueRead('blockchain', result.failed_transactions.map((row: any) => row.id)); setError(''); } catch (e: any) { setError(e.message); } };
   useEffect(() => { void load(); }, []);
   return <ScrollView style={{ flex: 1, backgroundColor: '#FFFCF8' }} contentContainerStyle={{ padding: 24, gap: 16 }}>
-    <TouchableOpacity onPress={() => router.back()}><Text>‹ Back</Text></TouchableOpacity>
+    <TouchableOpacity onPress={() => void goBackToWorkspace()}><Text>‹ Back</Text></TouchableOpacity>
     <Text style={{ fontSize: 24, fontWeight: '800' }}>Attribution & ownership reviews</Text>
     <Text>Review supporting evidence independently. Confirmed corrections append to the original claim and do not erase it.</Text>
     {!!error && <Text style={{ color: '#AD3535' }}>{error}</Text>}

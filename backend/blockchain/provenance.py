@@ -152,6 +152,10 @@ def queue_refund(payment):
 def check_checkout(agreement):
     """Called while holding the artwork lock, before creating a provider checkout."""
     from wallets.models import PaymentSession
+    link = ProvenanceListing.objects.filter(artwork=agreement.artwork).select_related('record').first()
+    if getattr(agreement.artwork, 'commission_resale', None) or (link and link.record.original_artwork_id != agreement.artwork_id):
+        from users.resellers import require_seller
+        require_seller(agreement.artist)
     listing_sales = PaymentSession.objects.filter(artwork=agreement.artwork, is_simulated=False, status__in=['pending', 'paid']).exclude(agreement=agreement)
     if (agreement.artwork.art_type == 'physical' and listing_sales.exists()) or listing_sales.filter(agreement__exclusivity__in=['exclusive', 'sole']).exists():
         raise OwnershipConflict('This listing is sold or reserved by another purchase.')

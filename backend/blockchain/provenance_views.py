@@ -9,6 +9,7 @@ from artworks.models import Artwork
 from users.models import User
 from .models import ProvenanceArtwork, ProvenanceEvent, ProvenanceListing, ProvenanceReview
 from .provenance import ensure_artwork, event, public_record, OwnershipConflict
+from .presentation import enrich
 
 
 def get_record(artwork_id):
@@ -31,11 +32,15 @@ class ProvenanceView(AuthenticatedAPIView):
         user = self.get_request_user(request)
         data['can_review'] = bool(user and user.role in ('platform_admin', 'creative_moderator'))
         data['can_admin'] = bool(user and user.role == 'platform_admin')
+        from users.resellers import seller_compliant
+        data['seller_verified'] = seller_compliant(user)
         data['can_resell'] = bool(user and record.current_owner_id == user.pk and data['rights'] and data['rights'].get('allow_resale') and not record.disputed and not record.events.filter(kind='transfer').exclude(status='confirmed').exists())
         data['commission_asset_id'] = record.commission_asset_id
         data['can_download_original'] = bool(user and record.registered_at and record.current_owner_id == user.pk)
         data['original_filename'] = record.commission_asset.submission.filename if record.commission_asset_id else f'artwork-{record.pk}.' + {'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/webp': 'webp'}.get(record.original_artwork.image_data.split(';', 1)[0].removeprefix('data:'), 'png')
-        return Response(data)
+        response = Response(enrich(record, data, user))
+        response['Cache-Control'] = 'private, no-store'
+        return response
 
     def post(self, request, artwork_id):
         import uuid
@@ -45,7 +50,8 @@ class ProvenanceView(AuthenticatedAPIView):
         artwork = Artwork.objects.filter(pk=artwork_id, status='approved').first()
         if not user or not artwork or artwork.artist_id != user.pk:
             raise PermissionDenied('Only the approved listing owner can request registration.')
-        return Response(public_record(ensure_artwork(artwork)), status=202)
+        record = ensure_artwork(artwork)
+        return Response(enrich(record, public_record(record), user), status=202)
 
 
 class FileIntegrityView(AuthenticatedAPIView):
@@ -108,6 +114,8 @@ class ProvenanceResaleView(AuthenticatedAPIView):
         record = ProvenanceArtwork.objects.select_for_update().get(pk=get_record(artwork_id).pk)
         if not user or record.current_owner_id != user.pk or not record.registered_at:
             raise PermissionDenied('Only the confirmed current owner may list a resale.')
+        from users.resellers import require_seller
+        require_seller(user)
         latest = record.events.filter(kind='transfer', status='confirmed').order_by('-created_at').first()
         if not latest or not latest.payload.get('rights', {}).get('allow_resale') or record.disputed:
             raise OwnershipConflict('The confirmed purchase terms do not authorize resale.')
