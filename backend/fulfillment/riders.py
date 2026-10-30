@@ -50,6 +50,7 @@ def serialize(order, detail=False):
               'fee': str(order.fee), 'delivery_fee': str(order.fee), 'artwork_title': title,
               'created_at': order.created_at.isoformat(), 'delivered_at': order.delivered_at,
               'location_errors': quote.get('location_errors', {}),
+              'location_precision': quote.get('location_precision', {}), 'location_notices': quote.get('location_notices', {}),
               'timeline': order.timeline, 'commission_id': c.pk if c else None, 'payment_id': order.payment_id,
               'artist': {'name': artist.username, 'phone': artist.contact_number, 'address': order.pickup_address,
                          'latitude': pickup_point[1] if len(pickup_point) == 2 else None, 'longitude': pickup_point[0] if len(pickup_point) == 2 else None},
@@ -227,17 +228,5 @@ class RiderResolveLocationView(RiderView):
         if side not in ('pickup', 'delivery'):
             return Response({'error': 'Choose pickup or delivery.'}, status=400)
         from commissions.shipping import verified_locations
-        from .routing import geocode_address
-        details = dict(verified_locations(order))
-        errors = dict(details.get('location_errors') or {})
-        if not details.get(f'{side}_coordinates'):
-            try:
-                details[f'{side}_coordinates'] = geocode_address(getattr(order, f'{side}_address'))
-                errors.pop(side, None)
-            except ValueError as error:
-                errors[side] = str(error)
-            details['location_errors'] = errors
-            # Update location metadata only; signed addresses and delivery fees stay locked.
-            order.route_details = details
-            order.save(update_fields=['route_details'])
+        verified_locations(order, force_side=side)
         return Response(serialize(order, True))

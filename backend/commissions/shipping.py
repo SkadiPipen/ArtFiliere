@@ -12,14 +12,15 @@ def tracking_reference(order):
 def request_pickup(c):
     existing = DeliveryOrder.objects.filter(commission=c).first()
     if existing: return existing
-    from fulfillment.routing import geocode_address, pinned_coordinates
+    from fulfillment.routing import geocode_address
     from rest_framework.exceptions import ValidationError
     details = dict(c.locked_terms.get('delivery_details') or {})
     try:
         for party in ('pickup', 'delivery'):
-            details[f'{party}_coordinates'] = pinned_coordinates(details.get(f'{party}_snapshot')) or geocode_address(c.locked_terms[f'{party}_address'])
+            details[f'{party}_coordinates'] = geocode_address(c.locked_terms[f'{party}_address'])
     except ValueError as error: raise ValidationError(str(error))
-    details['location_validation_version'] = 2
+    details['location_validation_version'] = 3
+    details['geocoded_addresses'] = {party: c.locked_terms[f'{party}_address'] for party in ('pickup', 'delivery')}
     details['delivery_floor_unit'] = c.locked_terms.get('delivery_floor_unit', '')
     details['delivery_instruction'] = c.locked_terms.get('delivery_instruction', '')
     order, created = DeliveryOrder.objects.get_or_create(commission=c, defaults={
@@ -37,32 +38,48 @@ def request_pickup(c):
     return order
 
 
-def verified_locations(order):
-    """Recheck old geocodes once; sync owner-provided pins only for the same agreed address."""
-    from fulfillment.routing import geocode_address, pinned_coordinates
-    from fulfillment.addresses import FIELDS
-    details = dict(order.route_details or (order.payment.agreement.delivery_details if order.payment_id and order.payment.agreement_id else {}) or {})
+def verified_locations(order, force_side=None):
+    """Bind coordinates to the immutable order address, never a mutable profile pin."""
+    from fulfillment.routing import geocode_address
+    from django.core.cache import cache
+    import hashlib
+    details = dict(order.route_details or {})
     errors = dict(details.get('location_errors') or {})
-    changed = False
-    source = order.commission if order.commission_id else order.payment
-    for party, owner in (('pickup', source.artist), ('delivery', source.buyer)):
-        snapshot = details.get(f'{party}_snapshot') or {}
-        address = owner.addresses.filter(pk=snapshot.get('id')).first() if snapshot.get('id') else None
-        point = None
-        if address and all(getattr(address, field).strip().casefold() == str(snapshot.get(field, '')).strip().casefold() for field in FIELDS):
-            point = pinned_coordinates({'latitude': address.latitude, 'longitude': address.longitude})
-        if point is not None:
-            if details.get(f'{party}_coordinates') != point or party in errors:
-                details[f'{party}_coordinates'] = point; errors.pop(party, None); changed = True
-        elif details.get('location_validation_version') != 2:
+    addresses = dict(details.get('geocoded_addresses') or {})
+    precision = dict(details.get('location_precision') or {})
+    providers = dict(details.get('location_providers') or {})
+    notices = dict(details.get('location_notices') or {})
+    changed = details.get('location_validation_version') != 7
+    for party in ('pickup', 'delivery'):
+        text = getattr(order, f'{party}_address')
+        valid = details.get('location_validation_version') == 7 and addresses.get(party) == text and details.get(f'{party}_coordinates') and party not in errors
+        if valid and party != force_side:
+            continue
+        key = 'order-geocode-v7:' + hashlib.sha256(text.encode()).hexdigest()
+        if party == force_side:
+            cache.delete(key)
+        result = cache.get(key)
+        if result is None:
             try:
-                details[f'{party}_coordinates'] = geocode_address(getattr(order, f'{party}_address')); errors.pop(party, None)
+                match = geocode_address(text, include_metadata=True)
+                result = {'point': match['coordinates'], 'precision': match['precision'], 'notice': match['notice'], 'provider': match.get('provider', '')}
             except ValueError as error:
-                details[f'{party}_coordinates'] = None; errors[party] = str(error)
-            changed = True
-    if changed or details.get('location_validation_version') != 2:
-        details['location_validation_version'] = 2
-        details['location_errors'] = errors
+                result = {'error': str(error)}
+            cache.set(key, result, 60 if 'error' in result else 3600)
+        details[f'{party}_coordinates'] = result.get('point')
+        precision[party] = result.get('precision')
+        providers[party] = result.get('provider', '')
+        notices[party] = result.get('notice', '')
+        if notices[party]:
+            notices[party] += ' Confirm the entrance with the artist using delivery chat.' if party == 'pickup' else ' Confirm the entrance with the buyer using delivery chat.'
+        if 'error' in result:
+            errors[party] = result['error']
+        else:
+            errors.pop(party, None)
+        addresses[party] = text
+        changed = True
+    if changed:
+        details.update(location_validation_version=7, location_errors=errors, geocoded_addresses=addresses, location_precision=precision, location_notices=notices, location_providers=providers)
         order.route_details = details
         order.save(update_fields=['route_details'])
     return details

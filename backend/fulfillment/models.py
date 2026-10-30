@@ -3,6 +3,15 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
+class DeliveryChat(models.Model):
+    order = models.ForeignKey('DeliveryOrder', on_delete=models.PROTECT, related_name='chats')
+    contact = models.CharField(max_length=6, choices=[('buyer', 'Buyer'), ('artist', 'Artist')])
+    conversation = models.OneToOneField('messaging.Conversation', on_delete=models.PROTECT, related_name='delivery_chat')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['order', 'contact'], name='unique_delivery_chat_contact')]
+
+
 class CertificateOfAuthenticity(models.Model):
     payment = models.OneToOneField('wallets.PaymentSession', null=True, blank=True, on_delete=models.PROTECT, related_name='certificate')
     commission = models.OneToOneField('commissions.CommissionRequest', null=True, blank=True, on_delete=models.PROTECT, related_name='certificate')

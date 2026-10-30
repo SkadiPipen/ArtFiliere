@@ -1,4 +1,5 @@
 import { Text, TextInput } from '@/components/Typography';
+import AddressBook from '@/components/AddressBook';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
@@ -77,7 +78,7 @@ export default function AccountSettingsPanel({ section }: { section: 'account' |
       <Field label="Contact number" value={profile.contact_number} onChange={value => update('contact_number', value)} />
       <Field label="Member since" value={new Date(profile.created_at).toLocaleDateString()} />
       {registration && <><Field label="Default hourly rate" value={`PHP ${registration.hourly_rate}`} /><Field label="Artist bio" value={registration.bio || ''} /><Field label="Accepting commissions" value={profile.is_accepting_commissions ? 'Yes' : 'No'} /></>}
-      {!!profile.addresses.length && <View style={s.section}><Text style={s.subtitle}>Saved addresses</Text>{profile.addresses.map((address, index) => <View key={index} style={s.record}><Text style={s.label}>{String(address.label)}{address.is_default ? ' (default)' : ''}</Text><Text style={s.copy}>{['street', 'barangay', 'city', 'province', 'region', 'postal_code'].map(key => address[key]).filter(Boolean).join(', ')}</Text></View>)}</View>}
+      {['buyer', 'artist'].includes(profile.role) && <AddressBook showLocationFields={false} />}
       <Button label={busy ? 'Saving...' : 'Save account changes'} disabled={busy} onPress={save} />
     </> : <>
       <Field label="First name" value={profile.first_name} onChange={value => update('first_name', value)} />

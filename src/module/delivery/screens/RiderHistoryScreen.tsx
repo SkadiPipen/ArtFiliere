@@ -1,9 +1,22 @@
 import { Text, TextInput } from '@/components/Typography';
-import { fetchDeliveryHistory } from '@/services/deliveryApi';
+import { fetchDeliveryDetailsApi, fetchDeliveryHistory } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Modal,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 interface HistoryOrder {
   id: number | string;
@@ -32,12 +45,32 @@ interface HistoryOrder {
 }
 
 export default function RiderHistoryScreen() {
+  const { height: screenHeight } = useWindowDimensions();
   const [orders, setOrders] = useState<HistoryOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'Daily' | 'Weekly' | 'Monthly' | 'All Time'>('All Time');
   const [selectedOrder, setSelectedOrder] = useState<HistoryOrder | null>(null);
+  const [proofKind, setProofKind] = useState<'pickup' | 'delivery' | null>(null);
+  const [proofUri, setProofUri] = useState<string | null>(null);
+  const [proofLoading, setProofLoading] = useState(false);
+  const [proofError, setProofError] = useState('');
+  useEffect(() => { setProofKind(null); setProofUri(null); setProofError(''); }, [selectedOrder?.id]);
+  useEffect(() => {
+    if (!selectedOrder || !proofKind) return;
+    let active = true;
+    setProofLoading(true); setProofUri(null); setProofError('');
+    void fetchDeliveryDetailsApi(selectedOrder.id).then(detail => {
+      if (!active) return;
+      const uri = proofKind === 'pickup' ? detail?.artistPhotoUri : detail?.buyerPhotoUri;
+      if (uri) setProofUri(uri);
+      else setProofError(`No ${proofKind} photo evidence was saved for this order.`);
+    }).catch(error => { if (active) setProofError(error.message || 'Unable to load photo evidence.'); })
+      .finally(() => { if (active) setProofLoading(false); });
+    return () => { active = false; };
+  }, [selectedOrder?.id, proofKind]);
+
 
   const loadHistory = async (isManualRefresh = false) => {
     if (!isManualRefresh) setLoading(true);
@@ -73,8 +106,8 @@ export default function RiderHistoryScreen() {
             earnings: earningsNumber,
             deliveredAt: timeStr,
             rawDate: validDate,
-            artistName: item?.artist_name || 'ArtFiliere Partner Studio',
-            pickupAddress: item?.pickup_address || 'Artist Pickup Location',
+            artistName: item?.artist?.name || item?.artist_name || 'Artist',
+            pickupAddress: item?.pickupAddress || item?.pickup_address || item?.artist?.address || 'Artist Pickup Location',
             artworkTitle: item?.artwork_title || `Artwork Order #${safeId}`,
             timeline: {
               assigned: 'Completed',
@@ -189,7 +222,7 @@ export default function RiderHistoryScreen() {
       <View style={styles.summaryCard}>
         <View>
           <Text style={styles.summaryLabel}>Total Earnings</Text>
-          <Text style={styles.summaryValue}>₱{totalEarnings}</Text>
+          <Text style={styles.summaryValue}>{totalEarnings}</Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={styles.summaryLabel}>Deliveries</Text>
@@ -220,7 +253,7 @@ export default function RiderHistoryScreen() {
                   <Text style={styles.customerName}>{item.customerName}</Text>
                 </View>
                 <View style={styles.priceRow}>
-                  <Text style={styles.earningsAmount}>₱{Number(item.earnings || 0).toFixed(2)}</Text>
+                  <Text style={styles.earningsAmount}>Php{Number(item.earnings || 0).toFixed(2)}</Text>
                   <Ionicons name="chevron-forward" size={18} color="#BDC3C7" />
                 </View>
               </View>
@@ -247,7 +280,7 @@ export default function RiderHistoryScreen() {
       )}
 
       {/* Details & Timeline Modal */}
-      <Modal visible={!!selectedOrder} animationType="slide" transparent>
+      <Modal visible={!!selectedOrder} animationType="slide" transparent onRequestClose={() => proofKind ? setProofKind(null) : setSelectedOrder(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Modal Header */}
@@ -261,7 +294,13 @@ export default function RiderHistoryScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScroll}>
+            {proofKind ? <View style={{ padding: 18, gap: 14, flexShrink: 1 }}>
+              <Text style={styles.timelineTitle}>{proofKind === 'pickup' ? 'Artist pickup photo evidence' : 'Buyer delivery photo evidence'}</Text>
+              {proofLoading && <ActivityIndicator color="#BC5454" accessibilityLabel="Loading photo evidence" />}
+              {!!proofError && <Text accessibilityRole="alert" style={{ color: '#B42318' }}>{proofError}</Text>}
+              {!!proofUri && <Image source={{ uri: proofUri }} accessibilityLabel={`${proofKind} photo evidence`} resizeMode="contain" style={{ width: '100%', height: Math.min(320, screenHeight * 0.4) }} onError={() => { setProofUri(null); setProofError('The saved photo could not be displayed.'); }} />}
+              <TouchableOpacity accessibilityRole="button" onPress={() => setProofKind(null)} style={styles.closeBottomBtn}><Text style={styles.closeBottomBtnText}>Back to delivery timeline</Text></TouchableOpacity>
+            </View> : <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScroll}>
               {/* Customer & Earnings Section */}
               <View style={styles.detailSection}>
                 <View style={styles.detailRowBetween}>
@@ -271,7 +310,7 @@ export default function RiderHistoryScreen() {
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.detailFieldLabel}>Earnings</Text>
-                    <Text style={styles.detailEarnings}>₱{Number(selectedOrder?.earnings || 0).toFixed(2)}</Text>
+                    <Text style={styles.detailEarnings}>Php{Number(selectedOrder?.earnings || 0).toFixed(2)}</Text>
                   </View>
                 </View>
                 <View style={[styles.addressRow, { marginTop: 8 }]}>
@@ -332,9 +371,9 @@ export default function RiderHistoryScreen() {
                   <View style={styles.timelineContent}>
                     <Text style={styles.timelineTitle}>Picked up from Artist</Text>
                     <Text style={styles.timelineTime}>{selectedOrder?.timeline?.pickedUp}</Text>
-                    <TouchableOpacity style={styles.photoButton}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="View pickup photo evidence" onPress={() => setProofKind('pickup')} style={styles.photoButton}>
                       <Ionicons name="camera" size={14} color="#FFF" />
-                      <Text style={styles.photoButtonText}>View Photo Evidence (1)</Text>
+                      <Text style={styles.photoButtonText}>View Photo Evidence</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -363,9 +402,9 @@ export default function RiderHistoryScreen() {
                     <Text style={styles.timelineTitle}>Delivered Successfully</Text>
                     <Text style={styles.timelineTime}>{selectedOrder?.timeline?.delivered}</Text>
                     <Text style={styles.timelineDesc}>Package received and confirmed.</Text>
-                    <TouchableOpacity style={[styles.photoButton, { marginTop: 6 }]}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="View delivery photo evidence" onPress={() => setProofKind('delivery')} style={[styles.photoButton, { marginTop: 6 }]}>
                       <Ionicons name="camera" size={14} color="#FFF" />
-                      <Text style={styles.photoButtonText}>View Photo Evidence (1)</Text>
+                      <Text style={styles.photoButtonText}>View Photo Evidence</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -386,7 +425,7 @@ export default function RiderHistoryScreen() {
               <TouchableOpacity style={styles.closeBottomBtn} onPress={() => setSelectedOrder(null)}>
                 <Text style={styles.closeBottomBtnText}>Close</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </ScrollView>}
           </View>
         </View>
       </Modal>

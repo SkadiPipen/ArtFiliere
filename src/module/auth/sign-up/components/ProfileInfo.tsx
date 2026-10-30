@@ -1,6 +1,6 @@
 import { Text, TextInput } from '@/components/Typography';
+import CalendarDateField from '@/components/CalendarDateField';
 import { View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/colors";
 import type {
   SignUpFormData,
@@ -42,21 +42,8 @@ export default function ProfileInfo({
         onChangeText={(text) => updateField("lastName", text)}
       />
 
-      <View style={{ position: "relative", justifyContent: "center" }}>
-        <TextInput
-          style={inputStyle}
-          placeholder="Date of Birth (YYYY-MM-DD)"
-          placeholderTextColor={COLORS.textMuted}
-          value={formData.dateOfBirth}
-          onChangeText={(text) => updateField("dateOfBirth", text)}
-        />
-        {/* TODO: swap this text input for @react-native-community/datetimepicker */}
-        <Ionicons
-          name="calendar-outline"
-          size={18}
-          color={COLORS.textMuted}
-          style={{ position: "absolute", right: 14 }}
-        />
+      <View style={{ marginBottom: 14, gap: 6 }}>
+        <CalendarDateField appearance="signup" label="Date of Birth" value={formData.dateOfBirth} onChange={value => updateField('dateOfBirth', value)} maximumDate={new Date()} />
       </View>
 
       <View

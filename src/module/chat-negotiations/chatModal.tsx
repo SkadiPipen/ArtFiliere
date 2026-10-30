@@ -6,6 +6,7 @@ import { Text } from '@/components/Typography';
 // ========================================
 
 import ContractPanel from './ContractPanel';
+import DirectMessageScreen from '@/module/messages/DirectMessageScreen';
 import CommissionChat from '@/module/commissions/CommissionChat';
 import { X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -34,12 +35,14 @@ export function ChatModal({
   initialCommissionId,
 }: ChatModalProps) {
   const [showContracts, setShowContracts] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<{ id: number; name: string } | null>(null);
+  const [driverTab, setDriverTab] = useState(false);
   //II.1. State: show chat list if null, chat box if there's a selected chat
   const [selectedChat, setSelectedChat] = useState<{ id: string; user: any } | null>(null);
   const [selectedCommission, setSelectedCommission] = useState<number | null>(null);
   const [commissionFilter, setCommissionFilter] = useState(false);
   useEffect(() => {
-    setSelectedChat(null); setSelectedCommission(null); setShowContracts(false);
+    setSelectedChat(null); setSelectedCommission(null); setShowContracts(false); setSelectedDriver(null); setDriverTab(false);
   }, [currentUser?.uid]);
   useEffect(() => {
     if (visible && initialCommissionId) {
@@ -88,6 +91,7 @@ export function ChatModal({
 
   //II.3. Handle chat selection from ChatList
   const handleChatSelect = (chatId: string, otherUser: any) => {
+    setSelectedDriver(null); setDriverTab(false);
     setSelectedCommission(null);
     setSelectedChat({ id: chatId, user: otherUser });
   };
@@ -101,7 +105,7 @@ export function ChatModal({
   const handleCloseModal = () => {
     setSelectedChat(null);
     setSelectedCommission(null);
-    setCommissionFilter(false);
+    setCommissionFilter(false); setSelectedDriver(null); setDriverTab(false);
     onClose();
   };
 
@@ -117,7 +121,7 @@ export function ChatModal({
       <SafeAreaView style={styles.modalContainer}>
         <TouchableOpacity onPress={() => setShowContracts(true)} style={{ padding: 14 }}><Text style={{ color: "#C15656", fontWeight: "700" }}>Contracts ? review and accept proposals</Text></TouchableOpacity>
         {showContracts && <ContractPanel onClose={() => setShowContracts(false)} />}
-        {selectedCommission !== null ? <CommissionChat key={selectedCommission} id={selectedCommission} onBack={() => { setSelectedCommission(null); setCommissionFilter(true); }} /> : selectedChat ? (
+        {selectedDriver ? <DirectMessageScreen key={selectedDriver.id} conversationId={selectedDriver.id} title={selectedDriver.name} onBack={() => { setSelectedDriver(null); setDriverTab(true); }} /> : selectedCommission !== null ? <CommissionChat key={selectedCommission} id={selectedCommission} onBack={() => { setSelectedCommission(null); setCommissionFilter(true); }} /> : selectedChat ? (
           <ChatWindow
             user={selectedChat.user}
             currentUser={currentUser}
@@ -135,6 +139,8 @@ export function ChatModal({
             </View>
             <ChatList
               currentUser={currentUser}
+              initialTab={driverTab ? 'drivers' : 'artists'}
+              onDriverSelect={(id, name) => { setSelectedDriver({ id, name }); setDriverTab(true); }}
               onChatSelect={handleChatSelect}
               onCommissionSelect={id => { setSelectedChat(null); setSelectedCommission(id); setCommissionFilter(true); }}
               initialArtworkFilter={commissionFilter ? 'commission' : 'all'}

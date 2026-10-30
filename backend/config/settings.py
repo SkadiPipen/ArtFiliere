@@ -177,6 +177,8 @@ ENABLE_SIMULATED_CHECKOUT = os.getenv("ENABLE_SIMULATED_CHECKOUT", "false").lowe
 # Server-only OpenRouteService key; never expose this through Expo.
 # Accept the existing backend environment name as well as the shorter alias.
 ORS_API_KEY = (os.getenv('ORS_API_KEY', '').strip() or os.getenv('OPENROUTESERVICE_API_KEY', '').strip())
+# Optional secondary geocoder; keep this key on the backend only.
+GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '').strip()
 DELIVERY_BASE_FARE = '50.00'
 DELIVERY_PER_KM = '15.00'
 

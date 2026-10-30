@@ -8,7 +8,7 @@ const fields = ['label', 'street', 'barangay', 'city', 'province', 'region', 'po
 const empty = { label: 'Home', street: '', barangay: '', city: '', province: '', region: '', postal_code: '', is_default: false };
 export type SavedAddress = typeof empty & { id: number; formatted: string; latitude?: number | null; longitude?: number | null };
 
-export default function AddressBook({ onChanged }: { onChanged?: () => void }) {
+export default function AddressBook({ onChanged, showLocationFields = true }: { onChanged?: () => void; showLocationFields?: boolean }) {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [form, setForm] = useState<typeof empty | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
@@ -36,7 +36,7 @@ export default function AddressBook({ onChanged }: { onChanged?: () => void }) {
     if (hasPin && (!pinLat.trim() || !pinLng.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude!) > 85 || Math.abs(longitude!) > 180)) {
       setError('Enter both valid latitude and longitude coordinates.'); return;
     }
-    void change(editing ? `addresses/${editing}/` : 'addresses/', editing ? 'PATCH' : 'POST', { ...form, latitude, longitude });
+    void change(editing ? `addresses/${editing}/` : 'addresses/', editing ? 'PATCH' : 'POST', { ...form, ...(showLocationFields ? { latitude, longitude } : {}) });
   };
   const useGps = async () => {
     setLocating(true); setError('');
@@ -46,7 +46,8 @@ export default function AddressBook({ onChanged }: { onChanged?: () => void }) {
   };
   return <View style={styles.container}>
     <Text style={styles.title}>Saved addresses</Text>
-    <Text>Your default address is used for new deliveries. You can choose another when proposing a contract.</Text>
+    <Text>Your default address is used for new deliveries. You can choose another when proposing a contract. Changes do not alter addresses already agreed on existing orders.</Text>
+    {!addresses.length && <Text>No saved addresses yet. Add your delivery or pickup address below.</Text>}
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     {addresses.map(address => <View key={address.id} style={styles.card}>
       <Text style={styles.title}>{address.label}{address.is_default ? ' (Default)' : ''}</Text>
@@ -69,11 +70,13 @@ export default function AddressBook({ onChanged }: { onChanged?: () => void }) {
         <Text>{field === 'label' ? 'Label (Home, Work, Studio...)' : field.replace('_', ' ')}</Text>
         <TextInput accessibilityLabel={field.replace('_', ' ')} editable={!busy} style={styles.input} value={form[field]} maxLength={field === 'label' ? 50 : field === 'postal_code' ? 10 : field === 'street' ? 255 : 150} onChangeText={value => { setForm({ ...form, [field]: value }); if (field !== 'label') { setPinLat(''); setPinLng(''); } }} />
       </View>)}
+      {showLocationFields && <>
       <Text style={styles.title}>Exact delivery location (optional)</Text>
       <Text>Use a precise location pin if your street cannot be found. Only use your current GPS when you are at this saved address.</Text>
       <TextInput accessibilityLabel="Address latitude" placeholder="Latitude" keyboardType="numbers-and-punctuation" value={pinLat} onChangeText={setPinLat} style={styles.input} editable={!busy && !locating} />
       <TextInput accessibilityLabel="Address longitude" placeholder="Longitude" keyboardType="numbers-and-punctuation" value={pinLng} onChangeText={setPinLng} style={styles.input} editable={!busy && !locating} />
       <TouchableOpacity accessibilityRole="button" disabled={busy || locating} onPress={() => void useGps()}><Text style={styles.link}>{locating ? 'Locating…' : 'Use my current GPS for this address'}</Text></TouchableOpacity>
+      </>}
       <View style={styles.row}><Text>Default address</Text><Switch disabled={busy} value={form.is_default} onValueChange={value => setForm({ ...form, is_default: value })} /></View>
       <View style={styles.row}>
         <TouchableOpacity disabled={busy || locating} onPress={saveAddress}><Text style={styles.link}>Save address</Text></TouchableOpacity>

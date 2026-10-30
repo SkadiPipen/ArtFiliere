@@ -159,3 +159,23 @@ reference for support reconciliation instead of blindly creating another session
 Validation on 2026-09-22: the configured development key reached Xendit but
 Create Session returned 403 REQUEST_FORBIDDEN_ERROR (insufficient permissions).
 A completed hosted sandbox payment still requires a permitted key and manual test.
+
+
+### Secondary automatic address lookup
+
+OpenRouteService is the primary geocoder. After both full-address and shorter
+street/city queries fail, the backend can use Geoapify as a secondary source.
+Set `GEOAPIFY_API_KEY` in `backend/.env` and restart Django. Obtain a key from
+https://myprojects.geoapify.com/; API documentation:
+https://apidocs.geoapify.com/docs/geocoding/forward-geocoding/ .
+Never put this key in Expo public variables. Without this key, primary lookup
+continues to work but the second provider is unavailable.
+
+Both providers use the same country, city, province, street and address checks.
+City-only points and different buildings are rejected. Matched streets without a
+verified building number are explicitly marked approximate. Drivers should use
+delivery chat for entrance directions. Pickup routing never falls through to the
+buyer's destination if the artist pin is unavailable. Failed requests produce a
+visible lookup error, not guessed coordinates. Geoapify responses are cached for
+24 hours (empty responses for five minutes); order location results are persisted
+against the agreed address. Version 5 rechecks older order pins on load.

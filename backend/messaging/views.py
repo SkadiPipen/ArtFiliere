@@ -75,14 +75,22 @@ class ConversationView(AuthenticatedAPIView):
                 return Response({"error": "Conversation not found."}, status=404)
             if not getattr(user, 'view_only', False):
                 ConversationParticipant.objects.filter(conversation=conversation, user=user).update(last_read_at=timezone.now())
-            return Response({"id": conversation.id, "status": conversation.status, "current_user_id": user.id, "artwork_id": conversation.artwork_id, "messages": [serialize_message(message) for message in conversation.messages.select_related("sender", "agreement").all()]})
-        conversations = Conversation.objects.filter(participants__user=user).prefetch_related("participants__user", "messages").distinct().order_by("-updated_at")
+            from fulfillment.models import DeliveryChat
+            delivery_chat = DeliveryChat.objects.select_related('order').filter(conversation=conversation).first()
+            return Response({"id": conversation.id, "status": conversation.status, "current_user_id": user.id, "artwork_id": conversation.artwork_id,
+                             "delivery_order_id": delivery_chat.order_id if delivery_chat else None,
+                             "read_only": bool(delivery_chat and (delivery_chat.order.status in ('pending', 'delivered') or not conversation.participants.filter(user_id=delivery_chat.order.driver_id).exists())),
+                             "messages": [serialize_message(message) for message in conversation.messages.select_related("sender", "agreement").all()]})
+        conversations = Conversation.objects.filter(participants__user=user).select_related('delivery_chat__order').prefetch_related("participants__user", "messages").distinct().order_by("-updated_at")
         payload = []
         for item in conversations:
             other = next((participant.user for participant in item.participants.all() if participant.user_id != user.id), None)
             last_message = item.messages.order_by("-created_at").first()
+            delivery_chat = getattr(item, "delivery_chat", None)
             payload.append({
                 "id": item.id, "status": item.status, "artwork_id": item.artwork_id,
+                "delivery_order_id": delivery_chat.order_id if delivery_chat else None,
+                "delivery_status": delivery_chat.order.status if delivery_chat else None,
                 "updated_at": item.updated_at.isoformat(),
                 "other_user": {"id": other.id, "name": other.username, "role": other.role} if other else None,
                 "last_message": last_message.body if last_message else "No messages yet.",
@@ -115,6 +123,10 @@ class ConversationMessageView(AuthenticatedAPIView):
         user = self.get_request_user(request)
         if not ConversationParticipant.objects.filter(conversation_id=conversation_id, user=user).exists():
             return Response({"error": "Conversation not found."}, status=404)
+        from fulfillment.models import DeliveryChat
+        delivery_chat = DeliveryChat.objects.select_related('order').filter(conversation_id=conversation_id).first()
+        if delivery_chat and (delivery_chat.order.status in ('pending', 'delivered') or not ConversationParticipant.objects.filter(conversation_id=conversation_id, user_id=delivery_chat.order.driver_id).exists()):
+            return Response({'error': 'This delivery chat is now read-only.'}, status=409)
         body = (request.data.get("body") or "").strip()
         if not body:
             return Response({"error": "Message cannot be empty."}, status=400)

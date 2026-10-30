@@ -1,4 +1,5 @@
 export type SignUpFormData = {
+  profileImage: string;
   username: string;
   email: string;
   password: string;
@@ -21,6 +22,7 @@ export type SignUpFormData = {
 };
 
 export const INITIAL_SIGN_UP_FORM_DATA: SignUpFormData = {
+  profileImage: "",
   username: "",
   email: "",
   password: "",
@@ -53,6 +55,7 @@ export type UpdateSignUpField = <K extends keyof SignUpFormData>(
 // postal_code, barangay, street).
 export function toDjangoPayload(formData: SignUpFormData) {
   return {
+    ...(formData.profileImage ? { profile_image: formData.profileImage } : {}),
     username: formData.username,
     email: formData.email,
     first_name: formData.firstName,
