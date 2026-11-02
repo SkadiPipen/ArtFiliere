@@ -7,7 +7,7 @@ import { auth } from '@/firebase/config';
 import { useEffect, useState } from 'react';
 import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
-import { Bell, Camera, Edit3, FileText, Folder, Settings } from "lucide-react-native";
+import { Bell, Camera, Edit3, FileText, Folder, Settings, Paintbrush, ArrowRight } from "lucide-react-native";
 import { Alert, Image, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -175,10 +175,14 @@ export default function ProfileHeader({
           </View>
             {normalizedRole === "buyer" && (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Register as an artist"
                 style={styles.registerArtistBtn}
                 onPress={() => router.push("/artist-registration")}
               >
-                <Text style={styles.registerText}>Register as ARTIST</Text>
+                <Paintbrush size={16} color="#A24F41" />
+                <Text style={styles.registerText}>Become an artist</Text>
+                <ArrowRight size={15} color="#A24F41" />
               </TouchableOpacity>
             )}
         </View>
@@ -290,11 +294,14 @@ const styles = StyleSheet.create({
   registerArtistBtn: {
     alignSelf: 'flex-start',
     marginTop: 12,
-    backgroundColor: "#2ECC71",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
-    elevation: 2,
+    backgroundColor: "#FFF5EC",
+    borderWidth: 1,
+    borderColor: '#DCB7A8',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 14,
   },
-  registerText: { color: "#fff", fontWeight: "bold", fontSize: 11 },
+  registerText: { color: "#A24F41", fontWeight: "600", fontSize: 13 },
 });

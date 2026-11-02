@@ -55,7 +55,7 @@ export default function BottomNavBar() {
             if (isArtist) {
               router.push('/artist-post'); 
             } else { 
-              router.push('/auction-dashboard');
+              router.push('/(home)/auction-dashboard');
             }
           }}>
           <View style={styles.auctionCircle}>

@@ -35,7 +35,18 @@ export default function HomeScreen() {
         },
       });
 
-      const data = await response.json();
+      const body = await response.text();
+      let data;
+      try {
+        data = JSON.parse(body);
+      } catch {
+        throw new Error(
+          `Login server returned an unexpected response (HTTP ${response.status}). ` +
+          (response.status >= 500
+            ? 'Check the Django terminal for the server traceback.'
+            : 'Check the API address and that Django is running.'),
+        );
+      }
 
       if (!response.ok) {
         if (data.code === 'account_restricted') { router.replace('/account-appeal' as any); return; }

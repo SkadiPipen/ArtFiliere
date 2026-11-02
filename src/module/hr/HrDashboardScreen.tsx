@@ -1,7 +1,12 @@
+import { staffWorkspaceStyles as workspace } from '@/components/staffWorkspaceStyles';
+import ResellerApprovals from '@/module/admin/ResellerApprovals';
 import { Text, TextInput } from '@/components/Typography';
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
+  Users,
+  Store,
+  History,
   CheckCircle2,
   ClipboardList,
   FileText,
@@ -67,7 +72,15 @@ const statusStyle = (status: ApplicationStatus) => {
 
 export default function HrDashboardScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 768;
+  const desktop = width >= 900;
+  const isWide = width >= 1100;
+  const [section, setSection] = useState<'artists' | 'resellers' | 'logs'>('artists');
+  const navigation = [
+    { id: 'artists', label: 'Artist registration', icon: ClipboardList },
+    { id: 'resellers', label: 'Reseller applications', icon: Store },
+    { id: 'logs', label: 'Activity logs', icon: History },
+  ] as const;
+  const current = navigation.find(item => item.id === section)!;
   const [applications, setApplications] = useState<ArtistApplication[]>([]);
   const [filter, setFilter] = useState<"all" | ApplicationStatus>("all");
   const [selectedApplication, setSelectedApplication] =
@@ -259,32 +272,21 @@ export default function HrDashboardScreen() {
   };
 
   return (
-    <View style={styles.page}>
-      <View style={styles.header}>
-        <View style={styles.headerInner}>
-          <View>
-            <Text style={styles.brand}>ArtFiliere</Text>
-            <Text style={styles.roleLabel}>HR PORTAL</Text>
-          </View>
-          <TouchableOpacity style={styles.accountButton} onPress={handleLogout}>
-            <LogOut size={15} color="#5A4039" />
-            <Text style={styles.accountButtonText}>Log out</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={[workspace.page, { flexDirection: desktop ? 'row' : 'column' }]}>
+      <View style={[workspace.sidebar, !desktop && { width: '100%', borderRightWidth: 0, borderBottomWidth: 1 }]}>
+        <View style={workspace.brandRow}><Image source={require('../../../assets/images/logo.png')} style={workspace.logo} resizeMode="contain" /><View><Text style={workspace.brand}>ArtFiliere</Text><Text style={workspace.role}>HR MODERATOR</Text></View></View>
+        <ScrollView horizontal={!desktop} style={{ flex: desktop ? 1 : undefined }} contentContainerStyle={[workspace.navigation, !desktop && { flexDirection: 'row' }]}>
+          {navigation.map(({ id, label, icon: Icon }) => <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: section === id }} onPress={() => { setSection(id); if (id === 'logs') void loadLogs(); }} style={[workspace.navItem, section === id && workspace.navActive]}><Icon size={20} color={section === id ? '#A74646' : '#81756D'} /><Text style={[workspace.navLabel, section === id && { color: '#A74646', fontWeight: '700' }]}>{label}</Text></Pressable>)}
+        </ScrollView>
+        <Pressable accessibilityRole="button" onPress={handleLogout} style={workspace.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>Log out</Text></Pressable>
       </View>
-
+      <View style={workspace.main}>
+      <View style={workspace.topbar}><Users size={22} color="#B65B50" /><Text style={workspace.workspace}>HR moderation workspace</Text><Text style={workspace.muted}>{current.label}</Text></View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.content, !isWide && styles.contentCompact]}>
-          <View style={styles.navBar}>
-            <TouchableOpacity onPress={() => router.push('/reseller-approvals' as any)}><Text style={styles.navText}>Reseller applications</Text></TouchableOpacity>
-            <Text style={styles.activeNav}>Artist Registration</Text>
-            <TouchableOpacity onPress={loadLogs} disabled={logsLoading}>
-              <Text style={styles.navText}>
-                {logsLoading ? "Loading logs..." : "Activity Logs"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
+        <View style={[styles.content, !desktop && styles.contentCompact]}>
+          {section === 'resellers' && <ResellerApprovals workspace />}
+          {section === 'logs' && <View style={workspace.hero}><View style={workspace.titleRow}><History size={30} color="#B65B50" /><Text style={workspace.title}>Activity Logs</Text></View><Text style={workspace.intro}>Track artist registration decisions and their review history.</Text></View>}
+          {section === 'artists' && <>
           <Text style={styles.pageTitle}>Artist Registration Requests</Text>
           <Text style={styles.pageSubtitle}>
             Review submitted documents and approve artists when their
@@ -395,15 +397,16 @@ export default function HrDashboardScreen() {
             )}
           </View>
 
-          {showLogs && (
+          </>}
+          {section === 'logs' && (
             <View style={styles.logPanel}>
               <View style={styles.logPanelHeader}>
                 <Text style={styles.panelTitle}>Activity logs</Text>
-                <TouchableOpacity onPress={() => setShowLogs(false)}>
-                  <Text style={styles.closeLogText}>Close</Text>
+                <TouchableOpacity onPress={() => void loadLogs()} disabled={logsLoading}>
+                  <Text style={styles.closeLogText}>{logsLoading ? "Loading..." : "Refresh logs"}</Text>
                 </TouchableOpacity>
               </View>
-              {logs.length === 0 ? (
+              {logsLoading ? <ActivityIndicator color="#B65B50" style={{ padding: 28 }} /> : logs.length === 0 ? (
                 <Text style={styles.emptyText}>
                   No activity has been logged yet.
                 </Text>
@@ -429,6 +432,7 @@ export default function HrDashboardScreen() {
           )}
         </View>
       </ScrollView>
+      </View>
 
       <Modal
         visible={!!selectedApplication}
@@ -725,15 +729,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   accountButtonText: { color: "#5A4039", fontSize: 12, fontWeight: "800" },
-  scrollContent: { flexGrow: 1, backgroundColor: "#FFFDF5" },
+  scrollContent: { flexGrow: 1, backgroundColor: "#FAF7F3" },
   content: {
     width: "100%",
-    maxWidth: 1120,
+    maxWidth: 1360,
     alignSelf: "center",
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    padding: 28,
+    paddingBottom: 60,
   },
-  contentCompact: { paddingHorizontal: 14 },
+  contentCompact: { paddingHorizontal: 20 },
   navBar: {
     minHeight: 48,
     flexDirection: "row",
@@ -752,15 +756,16 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   pageTitle: {
-    color: "#322B29",
-    fontSize: 24,
-    fontWeight: "800",
-    marginTop: 26,
+    color: "#3A2D2A",
+    fontSize: 29,
+    fontFamily: "LoraSemiBold",
+    marginTop: 0,
   },
   pageSubtitle: {
     color: "#746865",
-    fontSize: 13,
-    marginTop: 5,
+    fontSize: 14,
+    lineHeight: 23,
+    marginTop: 12,
     marginBottom: 20,
   },
   summaryRow: { flexDirection: "row", gap: 14, marginBottom: 22 },
@@ -772,17 +777,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     backgroundColor: "#FFFFFF",
-    borderRadius: 9,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
-    padding: 15,
+    borderColor: "#E5DAD3",
+    padding: 20,
     shadowColor: "#4F403B",
-    shadowOpacity: 0.08,
+    shadowOpacity: 0,
     shadowRadius: 5,
-    elevation: 2,
+    elevation: 0,
   },
   summaryIcon: {
-    backgroundColor: "#FFF3E5",
+    backgroundColor: "#F5E8E3",
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -798,9 +803,9 @@ const styles = StyleSheet.create({
   },
   panel: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
+    borderColor: "#E5DAD3",
     overflow: "hidden",
   },
   panelHeader: {
@@ -831,9 +836,9 @@ const styles = StyleSheet.create({
   logPanel: {
     marginTop: 22,
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
+    borderColor: "#E5DAD3",
     overflow: "hidden",
   },
   logPanelHeader: {
@@ -868,7 +873,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F0E8E2",
     paddingHorizontal: 16,
   },
-  tableHeader: { minHeight: 38, backgroundColor: "#FFF5D8" },
+  tableHeader: { minHeight: 38, backgroundColor: "#F5E8E3" },
   cell: { color: "#4B403C", fontSize: 12 },
   headerCell: { color: "#58463E", fontSize: 11, fontWeight: "800" },
   artistCell: { width: 155, fontWeight: "700" },

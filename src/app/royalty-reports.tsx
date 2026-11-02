@@ -1,5 +1,5 @@
 import { goBackOr } from '@/services/navigation';
-import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
+import TransactionHeader from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, FileText, Clock, CreditCard } from 'lucide-react-native';
@@ -193,9 +193,7 @@ export default function RoyaltyReports() {
   return <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
     <TransactionHeader title="Royalty Reports & Payments" onBack={() => goBackOr('/(home)/settings')} onRefresh={() => { void load(); }} />
     <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28, gap: 16, width: '100%', maxWidth: 850, alignSelf: 'center' }}>
-    <TransactionTitle title="Royalty Reports & Payments" />
     <Text>Submit evidence after each reporting period closes. Your report deadline is seven days before payment is due. For admin-reviewed reports, pay through checkout; verified funds are held until an administrator verifies the report and releases them to the artist wallet.</Text>
-    <Pressable onPress={load}><Text style={link}>Refresh reports</Text></Pressable>
     {!!error && <Text accessibilityRole="alert" style={{ color: '#A00020' }}>{error}</Text>}
     {!data && !error && <ActivityIndicator />}
     {data && !data.agreements.length && <Text>No accepted royalty agreements yet.</Text>}

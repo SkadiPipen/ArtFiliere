@@ -15,6 +15,8 @@ export default function CartCategory({ activeFilter, onSelectFilter }: Props) {
       {filters.map((filter) => (
         <TouchableOpacity
           key={filter}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeFilter === filter }}
           style={[
             styles.filter,
             activeFilter === filter
@@ -42,20 +44,21 @@ export default function CartCategory({ activeFilter, onSelectFilter }: Props) {
 const styles = StyleSheet.create({
   filterTabsContainer: {
     flexDirection: "row",
-    paddingHorizontal: 15,
-    marginVertical: 12,
-    justifyContent: "space-around",
+    paddingHorizontal: 20,
+    marginVertical: 20,
+    gap: 10, flexWrap: 'wrap',
   },
   filter: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    flex: 1, minWidth: 110, minHeight: 48, borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  filterActive: { backgroundColor: "#C15656" },
-  filterInactive: { backgroundColor: "#FDF5E6" },
+  filterActive: { backgroundColor: "#FFF0E4", borderColor: '#E68A50' },
+  filterInactive: { backgroundColor: "#FFFFFF", borderColor: '#E5DAD3' },
   filterText: { fontWeight: "600", fontSize: 13 },
-  filterTextActive: { color: "#fff" },
-  filterTextInactive: { color: "#C15656" },
+  filterTextActive: { color: "#70482F" },
+  filterTextInactive: { color: "#70482F" },
 });

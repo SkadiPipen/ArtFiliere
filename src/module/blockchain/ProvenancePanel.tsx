@@ -1,3 +1,4 @@
+import { useAdminRefresh } from '@/module/admin/AdminRefresh';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
@@ -33,6 +34,7 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
       if (result.can_review) setReviews(await purchaseRequest(`${path}/attribution-reviews/`));
     } catch (e: any) { setError(e.message); }
   };
+  const adminWorkspace = useAdminRefresh(async () => { if (open) await load(); });
   useEffect(() => {
     if (!open) return;
     void load();
@@ -131,7 +133,7 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
               </View>)}
             </View>}
           </>}
-          {busy ? <ActivityIndicator /> : button('Refresh history', () => void load())}
+          {busy ? <ActivityIndicator /> : !adminWorkspace && button('Refresh history', () => void load())}
         </ScrollView>
       </View></View>
     </Modal>

@@ -175,7 +175,7 @@ export default function UserProfile() {
         />
 
         <View style={styles.contentBody}>
-          <WalletCard />
+          {profileData?.role?.toLowerCase() === 'artist' && <WalletCard />}
           <TouchableOpacity onPress={() => router.push('/reseller-verification' as any)} style={{ padding: 16, marginTop: 14, backgroundColor: '#EAF5EF', borderRadius: 12 }}>
             <Text style={{ color: '#286C58', fontWeight: '700' }}>Reseller verification</Text>
             <Text style={{ color: '#625550', marginTop: 5 }}>Submit seller documents in advance. No purchase or artist application needed.</Text>

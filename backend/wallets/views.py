@@ -1,4 +1,5 @@
 import hmac
+import logging
 import os
 import uuid
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
@@ -158,25 +159,31 @@ class AgreementCheckoutView(AuthenticatedAPIView):
         from blockchain.provenance import reserve_checkout
         reserve_checkout(session)
         try:
+            from .checkout_customer import checkout_customer
             payload = {
                 "reference_id": session.reference_id, "session_type": "PAY", "mode": "PAYMENT_LINK",
                 "amount": float(gross), "currency": "PHP", "country": "PH",
                 "description": f"ArtFiliere agreement payment: {agreement.artwork.title}",
                 "capture_method": "AUTOMATIC", "allow_save_payment_method": "DISABLED",
-                "customer": {"reference_id": uuid.uuid4().hex, "type": "INDIVIDUAL",
-                             "individual_detail": {"given_names": buyer.first_name or buyer.username,
-                                                   "surname": buyer.last_name}},
+                "customer": checkout_customer(buyer),
             }
             if settings.XENDIT_RETURN_URL:
                 payload['success_return_url'] = settings.XENDIT_RETURN_URL
                 payload['cancel_return_url'] = settings.XENDIT_RETURN_URL
             response = requests.post("https://api.xendit.co/sessions", auth=(settings.XENDIT_SECRET_KEY, ""), timeout=20, json=payload)
-            result = response.json()
             if not response.ok:
+                from .checkout_errors import checkout_error
+                try:
+                    rejected = response.json()
+                except ValueError:
+                    rejected = None
+                code, message = checkout_error(response.status_code, rejected)
+                logging.getLogger(__name__).warning('Xendit checkout rejected: status=%s code=%s reference=%s', response.status_code, code, session.reference_id)
                 if response.status_code < 500:
                     session.status = PaymentSession.Status.EXPIRED
                     session.save(update_fields=['status'])
-                raise RuntimeError('Xendit rejected the API key permissions. Enable payment/session permissions for the development secret key.' if response.status_code in (401, 403) else 'Xendit could not create checkout. Check the account payment settings.')
+                raise RuntimeError(message)
+            result = response.json()
             if not isinstance(result, dict) or not result.get('payment_session_id') or not str(result.get('payment_link_url', '')).startswith('https://'):
                 raise RuntimeError('Xendit did not return a valid checkout link.')
         except (requests.RequestException, ValueError, RuntimeError) as error:

@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
 from decimal import Decimal
 from .models import AuctionListing, Bid
 from authentication.views import AuthenticatedAPIView
@@ -125,7 +125,7 @@ class AuctionDashboardView(APIView):
 
         published_auctions = AuctionListing.objects.filter(
             status__in=['ACTIVE', 'SCHEDULED', 'ENDED', 'SETTLED', 'PAYMENT_PENDING', 'BACKUP_OFFER', 'FORFEITED']
-        ).select_related('artwork', 'artist')
+        ).select_related('artwork', 'artist').annotate(dashboard_bid_count=Count('bids'))
 
         close_to_deadline = published_auctions.filter(status='ACTIVE', end_time__gt=now).order_by('end_time')[:10]
 
@@ -141,6 +141,10 @@ class AuctionDashboardView(APIView):
                 "artwork_id": a.artwork.id if a.artwork else None,
                 "title": a.artwork.title if a.artwork else "Artwork",
                 "artist_name": artist_name,
+                "category": a.artwork.category if a.artwork else '',
+                "categories": a.artwork.categories if a.artwork else [],
+                "description": a.artwork.description if a.artwork else '',
+                "bid_count": a.dashboard_bid_count,
                 "current_bid": float(a.current_bid or a.starting_bid or 0),
                 "is_physical": bool(a.is_physical or "PHYSICAL" in str(getattr(a.artwork, 'art_type', '')).upper()),
                 "image_data": get_artwork_image(a.artwork),

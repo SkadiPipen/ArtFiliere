@@ -4,8 +4,10 @@ from .routing import DeliveryQuoteView
 from django.urls import path
 from .views import DeliveryRoutesView, PurchasesView, PurchaseDownloadView, PurchaseReviewView, DriverOrdersView
 from .views import PurchaseCertificateView, RoyaltyLicenseDownloadView
+from .fingerprint_lookup import FingerprintLookupView
 
 urlpatterns = [
+    path('support/artwork-code/', FingerprintLookupView.as_view()),
     path('addresses/', AddressesView.as_view()),
     path('addresses/<int:address_id>/', AddressesView.as_view()),
     path('delivery/quote/<int:artwork_id>/', DeliveryQuoteView.as_view()),

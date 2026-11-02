@@ -1,3 +1,5 @@
+import { adminType, adminSurfaces } from './adminDesign';
+import { useAdminRefresh } from './AdminRefresh';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -44,6 +46,7 @@ export default function AgreementTemplateManager() {
       setLoading(false);
     }
   };
+  const adminWorkspace = useAdminRefresh(load);
   useEffect(() => {
     load();
   }, []);
@@ -86,9 +89,9 @@ export default function AgreementTemplateManager() {
     }
   };
   return (
-    <View style={s.panel}>
+    <View style={{ gap: 24 }}>
       <View style={s.top}>
-        <View>
+        <View style={{ flex: 1, minWidth: 200 }}>
           <Text style={s.title}>Agreement templates</Text>
           <Text style={s.lead}>
             Edit the wording users see before accepting an agreement.
@@ -99,6 +102,7 @@ export default function AgreementTemplateManager() {
           <Text style={s.white}>New template</Text>
         </TouchableOpacity>
       </View>
+      <View style={s.panel}>
       {loading ? (
         <ActivityIndicator color="#C15656" style={{ padding: 20 }} />
       ) : (
@@ -121,6 +125,7 @@ export default function AgreementTemplateManager() {
           </View>
         ))
       )}
+      </View>
       <Modal
         visible={show}
         transparent
@@ -182,31 +187,33 @@ export default function AgreementTemplateManager() {
 const s = StyleSheet.create({
   panel: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
-    marginTop: 22,
+    borderColor: "#E5DAD3",
+    marginTop: 0,
     overflow: "hidden",
   },
   top: {
-    padding: 17,
-    borderBottomWidth: 1,
-    borderColor: "#EEE4DA",
+    flexWrap: "wrap",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 8,
+    gap: 16,
   },
-  title: { fontSize: 16, fontWeight: "800", color: "#433633" },
-  lead: { fontSize: 11, color: "#7C6A64", marginTop: 3 },
+  title: { ...adminType.pageTitle, },
+  lead: { ...adminType.muted, marginTop: 3 },
   new: {
+    ...adminSurfaces.button,
+    marginLeft: "auto",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
     backgroundColor: "#C15656",
-    borderRadius: 7,
-    padding: 9,
+    borderRadius: 12,
     flexDirection: "row",
     gap: 4,
   },
-  white: { color: "#fff", fontSize: 11, fontWeight: "800" },
+  white: { ...adminType.button,  color: "#fff", },
   row: {
     padding: 14,
     borderBottomWidth: 1,
@@ -214,15 +221,18 @@ const s = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
   },
-  name: { fontWeight: "800", fontSize: 13 },
-  preview: { fontSize: 11, color: "#7C6A64", marginTop: 3 },
-  state: { fontSize: 10, fontWeight: "800", marginTop: 5 },
+  name: { ...adminType.cardTitle, },
+  preview: { ...adminType.muted, marginTop: 3 },
+  state: { ...adminType.label,  marginTop: 5 },
   on: { color: "#5D8A63" },
   off: { color: "#A86868" },
   edit: {
-    padding: 7,
-    backgroundColor: "#FFF3E5",
-    borderRadius: 6,
+    ...adminSurfaces.button,
+    alignSelf: "center",
+    minHeight: 44,
+    padding: 12,
+    backgroundColor: "#F5E8E3",
+    borderRadius: 12,
     flexDirection: "row",
     gap: 4,
     alignItems: "center",
@@ -241,8 +251,8 @@ const s = StyleSheet.create({
     borderRadius: 14,
     padding: 20,
   },
-  modalTitle: { fontSize: 19, fontWeight: "800" },
-  help: { fontSize: 12, color: "#75655F", marginVertical: 10 },
+  modalTitle: { ...adminType.sectionTitle, },
+  help: { ...adminType.muted, marginVertical: 10 },
   field: {
     borderWidth: 1,
     borderColor: "#E6D7CF",
@@ -254,7 +264,7 @@ const s = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 10, marginVertical: 16 },
   tab: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#DDD4CF' },
   selectedTab: { backgroundColor: '#FFF0E9', borderColor: '#C15656' },
-  tabText: { color: '#704F46', fontWeight: '700' },
+  tabText: { ...adminType.button,  color: '#704F46', },
   documentEditor: { backgroundColor: '#FFFFFF', padding: 28, borderWidth: 1, borderColor: '#ECE7E2' },
   documentTitle: { fontSize: 28, fontWeight: '700', color: '#111111', marginBottom: 26 },
   body: { minHeight: 650, fontSize: 16, lineHeight: 29, color: '#171717', padding: 0 },
@@ -270,5 +280,5 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginTop: 16,
   },
-  save: { backgroundColor: "#C15656", borderRadius: 7, padding: 10 },
+  save: { ...adminSurfaces.button, backgroundColor: "#C15656" },
 });

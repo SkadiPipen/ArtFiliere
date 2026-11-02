@@ -1,3 +1,6 @@
+import { adminType, adminSurfaces } from './adminDesign';
+import { useAdminRefresh } from './AdminRefresh';
+import { adminWorkspaceStyles as staffWorkspaceStyles } from './adminDesign';
 import { Text, TextInput } from '@/components/Typography';
 import { markAdminQueueRead } from '@/services/adminNotifications';
 import ResellerBadge from '@/components/ResellerBadge';
@@ -10,7 +13,7 @@ import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, TouchableOpa
 
 type Application = { id: number; username: string; name: string; tin_number: string; status: string; reviewed_at?: string; verified: boolean; review_note: string; bir_certificate_name: string; sworn_declaration_name: string };
 
-export default function ResellerApprovals() {
+export default function ResellerApprovals({ workspace = false }: { workspace?: boolean }) {
   const [items, setItems] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -38,6 +41,7 @@ export default function ResellerApprovals() {
     catch (failure: any) { setError(failure.message); }
     finally { setLoading(false); }
   };
+  const adminWorkspace = useAdminRefresh(load);
   useEffect(() => { void load(); }, []);
   const review = async (item: Application, action: string) => {
     if (busy) return;
@@ -72,9 +76,9 @@ export default function ResellerApprovals() {
     finally { if (current === generation.current) setPreviewLoading(false); }
   };
   return <View style={{ gap: 16 }}>
-    <Text style={s.title}>Reseller document reviews</Text>
+    <Text style={workspace ? staffWorkspaceStyles.title : s.title}>Reseller document reviews</Text>
     <Text>Approve seller documents only—not authorship, ownership or permission to resell a specific artwork. Applicants do not need an existing purchase.</Text>
-    <TouchableOpacity disabled={loading || busy} onPress={load}><Text style={s.link}>Refresh applications</Text></TouchableOpacity>
+    {!adminWorkspace && <TouchableOpacity disabled={loading || busy} onPress={load}><Text style={s.link}>Refresh applications</Text></TouchableOpacity>}
     {loading && <ActivityIndicator color="#C15656" />}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#B00020' }}>{error}</Text>}
     {!loading && !items.length && <Text>No reseller applications yet.</Text>}
@@ -90,9 +94,9 @@ export default function ResellerApprovals() {
         <TextInput accessibilityLabel={'Review note for application ' + item.id} multiline maxLength={1000} placeholder="Review note; required for rejection or revocation" value={notes[item.id] || ''} onChangeText={value => setNotes(previous => ({ ...previous, [item.id]: value }))} style={s.input} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
           {item.status === 'pending' ? <>
-            <TouchableOpacity disabled={busy} onPress={() => review(item, 'approve')}><Text style={s.link}>Approve documents</Text></TouchableOpacity>
-            <TouchableOpacity disabled={busy} onPress={() => review(item, 'reject')}><Text style={{ color: '#B00020' }}>Reject</Text></TouchableOpacity>
-          </> : <TouchableOpacity disabled={busy} onPress={() => review(item, 'revoke')}><Text style={{ color: '#B00020' }}>Revoke reseller approval</Text></TouchableOpacity>}
+            <TouchableOpacity disabled={busy} style={[adminSurfaces.button, { backgroundColor: '#F5E8E3' }]} onPress={() => review(item, 'approve')}><Text style={s.link}>Approve documents</Text></TouchableOpacity>
+            <TouchableOpacity disabled={busy} style={[adminSurfaces.button, { backgroundColor: '#F5E8E3' }]} onPress={() => review(item, 'reject')}><Text style={{ color: '#B00020' }}>Reject</Text></TouchableOpacity>
+          </> : <TouchableOpacity disabled={busy} style={[adminSurfaces.button, { backgroundColor: '#F5E8E3' }]} onPress={() => review(item, 'revoke')}><Text style={{ color: '#B00020' }}>Revoke reseller approval</Text></TouchableOpacity>}
         </View>
       </>}
     </View>)}
@@ -116,10 +120,10 @@ export default function ResellerApprovals() {
 }
 
 const s = StyleSheet.create({
-  title: { color: '#C15656', fontSize: 24, fontWeight: '700' },
-  label: { color: '#58433C', fontSize: 17, fontWeight: '700' },
+  title: { ...adminType.pageTitle, },
+  label: { ...adminType.cardTitle, },
   card: { padding: 18, gap: 12, borderWidth: 1, borderColor: '#E8DCD4', borderRadius: 12, backgroundColor: '#FFF' },
-  link: { color: '#A74646', fontWeight: '700' },
+  link: { ...adminType.button,  color: '#A74646', },
   input: { padding: 12, borderWidth: 1, borderColor: '#D8C9C0', borderRadius: 8 },
   overlay: { flex: 1, backgroundColor: 'rgba(40,25,22,0.65)', padding: 20, alignItems: 'center', justifyContent: 'center' },
   previewCard: { backgroundColor: '#FFFDF6', width: '100%', maxWidth: 1200, height: '92%', borderRadius: 14, padding: 18, gap: 14 },

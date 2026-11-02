@@ -1,3 +1,5 @@
+import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
+import { useAdminRefresh } from '@/module/admin/AdminRefresh';
 import { Text, TextInput } from '@/components/Typography';
 import { markAdminQueueRead } from '@/services/adminNotifications';
 import { useEffect, useState } from 'react';
@@ -13,6 +15,7 @@ export default function CommissionReviews() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const load = async () => { try { const result = await commissionApi('reviews/'); setRows(result); void markAdminQueueRead('commission', result.map((row: any) => row.id)); } catch (e: any) { setError(e.message); } };
+  const adminWorkspace = useAdminRefresh(load);
   useEffect(() => { void load(); }, []);
   const decide = async (row: any, action: string, milestone_id?: number, refund_id?: number) => {
     setBusy(true); setError('');
@@ -23,7 +26,7 @@ export default function CommissionReviews() {
   const button = (label: string, onPress: () => void) => <TouchableOpacity disabled={busy} onPress={onPress} style={{ padding: 12, backgroundColor: '#F6E8E1', borderRadius: 8 }}><Text style={{ color: '#A74646', fontWeight: '700' }}>{label}</Text></TouchableOpacity>;
   return <View style={{ padding: 18, gap: 12, backgroundColor: '#FFFFFF', borderRadius: 14, marginVertical: 12 }}>
     <Text style={{ fontSize: 20, fontWeight: '700' }}>Commission disputes & payouts</Text>
-    {button('Refresh commission reviews', load)}
+    {!adminWorkspace && button('Refresh commission reviews', load)}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{error}</Text>}
     {!rows.length && <Text>No commission reviews pending.</Text>}
     {rows.map(row => <View key={row.id} style={{ padding: 16, borderWidth: 1, borderColor: '#E8DCD4', gap: 10 }}>

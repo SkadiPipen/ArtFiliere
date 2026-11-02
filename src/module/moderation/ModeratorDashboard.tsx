@@ -1,3 +1,5 @@
+import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
+import { useAdminRefresh } from '@/module/admin/AdminRefresh';
 import { Text, TextInput } from '@/components/Typography';
 import CommissionReviews from '@/module/commissions/CommissionReviews';
 import { useContext, useEffect, useRef, useState } from 'react';
@@ -40,6 +42,10 @@ export default function ModeratorDashboard() {
   const load = () => work.run(async () => setProfile(await purchaseRequest('support/catalog/')));
   useEffect(() => { setProfile(null); if (!loading && user) load(); }, [user?.uid, loading]);
   const role = profile?.role;
+  useEffect(() => {
+    if (role === 'customer_support') router.replace('/customer-service-dashboard');
+    if (role === 'creative_moderator') router.replace('/creative-dashboard?section=queues');
+  }, [role]);
   if (reports) return <SupportScreen moderator onClose={() => setReports(false)} />;
   return <SafeAreaView style={s.page}>
     <View style={[d.header, width < 600 && { paddingHorizontal: 16, gap: 8 }]}>
@@ -87,6 +93,7 @@ export default function ModeratorDashboard() {
 
 type AccountAction = { id: number; source: 'report' | 'ticket'; report_id?: number; target: string; requested_by: string; ticket_id: number; action: string; duration_days?: number; reason: string; status: string; review_note: string; revoked_at?: string; reversal_reason?: string };
 export function AccountActions({ approvals = false }: { approvals?: boolean }) {
+  const [statusFilter, setStatusFilter] = useState('pending');
   const [rows, setRows] = useState<AccountAction[]>([]); const [next, setNext] = useState<number | null>(null); const [notes, setNotes] = useState<Record<string, string>>({});
   const work = useWork();
   const load = async (offset = 0) => {
@@ -98,14 +105,18 @@ export function AccountActions({ approvals = false }: { approvals?: boolean }) {
       void markAdminQueueRead('account_support', data.results.filter((row: AccountAction) => row.source === 'ticket').map((row: AccountAction) => row.id));
     }
   };
+  const adminWorkspace = useAdminRefresh(() => work.run(() => load()));
   useEffect(() => { work.run(() => load()); }, []);
-  return <View style={s.card}><Text style={s.heading}>{approvals ? 'Account action approvals' : 'Account action requests'}</Text><Text style={s.text}>{approvals ? 'Review requests submitted by Customer Support. Only approval changes account access.' : 'Submit a restriction request from a report after choosing the reported account. Track admin decisions here.'}</Text><Action label="Refresh requests" disabled={work.busy} onPress={() => work.run(() => load())} /><Feedback {...work} />
+  const visibleRows = approvals ? rows.filter(row => statusFilter === 'all' || row.status === statusFilter) : rows;
+  return <View style={[s.card, adminWorkspace && adminSurfaces.card]}><Text style={[s.heading, adminWorkspace && adminType.sectionTitle]}>{approvals ? 'Account action approvals' : 'Account action requests'}</Text><Text style={[s.text, adminWorkspace && adminType.body]}>{approvals ? 'Review requests submitted by Customer Support. Only approval changes account access.' : 'Submit a restriction request from a report after choosing the reported account. Track admin decisions here.'}</Text>{!adminWorkspace && <Action label="Refresh requests" disabled={work.busy} onPress={() => work.run(() => load())} />}<Feedback {...work} />
     {!work.busy && !rows.length && <Text>No account action requests.</Text>}
-    {rows.map(row => <View key={`${row.source}-${row.id}`} style={s.card}><Text style={s.heading}>{row.target} Â· {row.action}{row.duration_days ? ` (${row.duration_days} days)` : ''}</Text><Text>{row.source === 'report' ? 'Report' : 'Ticket'} #{row.report_id || row.ticket_id} Â· Requested by {row.requested_by}</Text><Text>Status: {row.status}</Text><Text style={s.text}>{row.reason}</Text>{!!row.review_note && <Text>Admin decision: {row.review_note}</Text>}
-      {approvals && row.status === 'pending' && <><TextInput accessibilityLabel={`Decision note for request ${row.id}`} style={s.input} multiline value={notes[`${row.source}-${row.id}`] || ''} onChangeText={value => setNotes(old => ({ ...old, [`${row.source}-${row.id}`]: value }))} placeholder="Reason for your decision (5+ characters)" /><View style={s.row}>{['approved', 'rejected'].map(status => <Action key={status} label={status === 'approved' ? 'Approve account action' : 'Reject request'} disabled={work.busy || (notes[`${row.source}-${row.id}`] || '').trim().length < 5} onPress={() => work.run(async () => { await purchaseRequest(`moderation/account-actions/${row.id}/?source=${row.source}`, 'PATCH', { status, review_note: notes[`${row.source}-${row.id}`] }); await load(); })} />)}</View></>}
-      {!!row.revoked_at && <Text style={s.text}>Restriction lifted: {row.reversal_reason}</Text>}
+    {approvals && <View style={s.row}>{['pending', 'approved', 'rejected', 'all'].map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: statusFilter === value }} onPress={() => setStatusFilter(value)} style={[s.button, statusFilter !== value && { backgroundColor: '#FFFFFF', borderColor: '#E5DAD3' }]}><Text style={[s.buttonText, { textTransform: 'capitalize' }]}>{value} ({rows.filter(row => value === 'all' || row.status === value).length})</Text></Pressable>)}</View>}
+    {approvals && !!rows.length && !visibleRows.length && <Text style={[s.text, adminWorkspace && adminType.body]}>No loaded requests match this filter.</Text>}
+    {visibleRows.map(row => <View key={`${row.source}-${row.id}`} style={[s.card, adminWorkspace && adminSurfaces.card]}><Text style={[s.heading, adminWorkspace && adminType.sectionTitle]}>{row.target} Â· {row.action}{row.duration_days ? ` (${row.duration_days} days)` : ''}</Text><Text>{row.source === 'report' ? 'Report' : 'Ticket'} #{row.report_id || row.ticket_id} Â· Requested by {row.requested_by}</Text><Text>Status: {row.status}</Text><Text style={[s.text, adminWorkspace && adminType.body]}>{row.reason}</Text>{!!row.review_note && <Text>Admin decision: {row.review_note}</Text>}
+      {approvals && row.status === 'pending' && <><TextInput accessibilityLabel={`Decision note for request ${row.id}`} style={[s.input, adminWorkspace && adminSurfaces.input, adminWorkspace && adminType.input]} multiline value={notes[`${row.source}-${row.id}`] || ''} onChangeText={value => setNotes(old => ({ ...old, [`${row.source}-${row.id}`]: value }))} placeholder="Reason for your decision (5+ characters)" /><View style={s.row}>{['approved', 'rejected'].map(status => <Action key={status} label={status === 'approved' ? 'Approve account action' : 'Reject request'} disabled={work.busy || (notes[`${row.source}-${row.id}`] || '').trim().length < 5} onPress={() => work.run(async () => { await purchaseRequest(`moderation/account-actions/${row.id}/?source=${row.source}`, 'PATCH', { status, review_note: notes[`${row.source}-${row.id}`] }); await load(); })} />)}</View></>}
+      {!!row.revoked_at && <Text style={[s.text, adminWorkspace && adminType.body]}>Restriction lifted: {row.reversal_reason}</Text>}
       {approvals && row.status === 'approved' && !row.revoked_at && row.action !== 'restore' && <>
-        <TextInput accessibilityLabel={`Reason to lift ${row.source} restriction ${row.id}`} style={s.input} multiline value={notes[`${row.source}-${row.id}`] || ''} onChangeText={value => setNotes(old => ({ ...old, [`${row.source}-${row.id}`]: value }))} placeholder="Reason for lifting this restriction" />
+        <TextInput accessibilityLabel={`Reason to lift ${row.source} restriction ${row.id}`} style={[s.input, adminWorkspace && adminSurfaces.input, adminWorkspace && adminType.input]} multiline value={notes[`${row.source}-${row.id}`] || ''} onChangeText={value => setNotes(old => ({ ...old, [`${row.source}-${row.id}`]: value }))} placeholder="Reason for lifting this restriction" />
         <Action label="Lift restriction" disabled={work.busy || !(notes[`${row.source}-${row.id}`] || '').trim()} onPress={() => work.run(async () => { await purchaseRequest(`moderation/restrictions/${row.source}/${row.id}/reverse/`, 'POST', { reason: notes[`${row.source}-${row.id}`] }); await load(); })} />
       </>}
     </View>)}
@@ -113,7 +124,7 @@ export function AccountActions({ approvals = false }: { approvals?: boolean }) {
   </View>;
 }
 
-function ReturnRequests() {
+export function ReturnRequests() {
   const [rows, setRows] = useState<any[]>([]); const [notes, setNotes] = useState<Record<number, string>>({}); const work = useWork();
   const load = async () => setRows(await purchaseRequest('moderation/returns/'));
   useEffect(() => { work.run(load); }, []);

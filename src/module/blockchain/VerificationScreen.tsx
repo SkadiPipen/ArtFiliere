@@ -1,5 +1,5 @@
 import { goBackOr } from '@/services/navigation';
-import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
+import TransactionHeader from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { router } from 'expo-router';
@@ -37,7 +37,6 @@ export default function VerificationScreen() {
     <SafeAreaView style={styles.container}>
       <TransactionHeader title="Verify an ArtFiliere Record" onBack={() => goBackOr('/(home)/profile')} />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28 }}><View style={styles.card}>
-        <TransactionTitle title="Verify an ArtFiliere Record" />
         <Text style={styles.body}>Enter the verification code shown on a finalized agreement or completed sale receipt.</Text>
         <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" placeholder="Example: AF-AGR-7KQ9X2" style={styles.input} />
         <TouchableOpacity style={styles.button} onPress={verify} disabled={loading}>

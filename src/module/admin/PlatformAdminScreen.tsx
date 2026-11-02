@@ -1,3 +1,4 @@
+import { adminType } from './adminDesign';
 import { Text } from '@/components/Typography';
 import CommissionReviews from '@/module/commissions/CommissionReviews';
 import { auth } from "@/firebase/config";
@@ -62,9 +63,9 @@ export default function PlatformAdminScreen() {
   }, []);
   if (loading)
     return (
-      <View style={s.loading}>
+      <AdminPage activeTab="dashboard"><View style={s.loading}>
         <ActivityIndicator color="#C15656" size="large" />
-      </View>
+      </View></AdminPage>
     );
   return (
     <AdminPage activeTab="dashboard" onRefresh={load}>
@@ -84,7 +85,7 @@ export default function PlatformAdminScreen() {
         </View>
         <AdminOverview data={data?.analytics} />
         <CommissionReviews />
-        <TouchableOpacity onPress={() => router.push('/report-management')} style={{ padding: 16, backgroundColor: '#F6E8E1', borderRadius: 12, marginVertical: 14 }}>
+        <TouchableOpacity onPress={() => router.push('/admin-reports')} style={{ padding: 16, backgroundColor: '#F6E8E1', borderRadius: 12, marginVertical: 14 }}>
           <Text style={{ color: '#A74646', fontWeight: '700' }}>Reports, transaction requests & account approvals</Text>
         </TouchableOpacity>
 
@@ -112,7 +113,7 @@ function Metric({
   );
 }
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FFFDF5" },
+  page: { flex: 1, backgroundColor: "#FAF7F3" },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
     height: 86,
@@ -141,18 +142,18 @@ const s = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: "#fff",
   },
-  content: { maxWidth: 1100, width: "100%", alignSelf: "center", padding: 24 },
-  title: { fontSize: 25, fontWeight: "800", color: "#322B29" },
-  lead: { fontSize: 13, color: "#746865", marginTop: 5, marginBottom: 20 },
+  content: { maxWidth: 1360, width: "100%", alignSelf: "center", padding: 28 },
+  title: { ...adminType.pageTitle, },
+  lead: { ...adminType.body, marginTop: 5, marginBottom: 20 },
   metrics: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   metric: {
     minWidth: 230,
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
+    borderColor: "#E5DAD3",
     flexDirection: "row",
     gap: 11,
   },
@@ -160,22 +161,18 @@ const s = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#FFF3E5",
+    backgroundColor: "#F5E8E3",
     alignItems: "center",
     justifyContent: "center",
   },
-  metricLabel: { fontSize: 11, color: "#746865", fontWeight: "700" },
-  metricValue: {
-    fontSize: 20,
-    color: "#342B28",
-    fontWeight: "800",
-    marginTop: 3,
+  metricLabel: { ...adminType.label,  color: "#746865", },
+  metricValue: { ...adminType.metric, marginTop: 3,
   },
   panel: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
+    borderColor: "#E5DAD3",
     marginTop: 22,
     overflow: "hidden",
   },
@@ -195,13 +192,13 @@ const s = StyleSheet.create({
     gap: 12,
   },
   artwork: { fontSize: 14, fontWeight: "800", color: "#443633" },
-  meta: { fontSize: 11, color: "#7C6A64", marginTop: 4 },
+  meta: { ...adminType.muted, marginTop: 4 },
   status: { fontSize: 11, fontWeight: "800", textTransform: "capitalize" },
   paid: { color: "#5D8A63" },
   refunded: { color: "#C15656" },
   buttons: { flexDirection: "row", gap: 7, marginTop: 9 },
   release: { backgroundColor: "#5D8A63", padding: 8, borderRadius: 6 },
   refund: { backgroundColor: "#A86868", padding: 8, borderRadius: 6 },
-  buttonText: { color: "#fff", fontSize: 11, fontWeight: "800" },
+  buttonText: { ...adminType.button,  color: "#fff", },
   empty: { color: "#7C6A64", padding: 28, textAlign: "center" },
 });

@@ -46,9 +46,10 @@ def login(request):
             user.firebase_uid = firebase_uid
             user.save(update_fields=["firebase_uid"])
         else:
-            user, created = User.objects.get_or_create(
-                firebase_uid=firebase_uid,
-                defaults={"email": email}
+            return Response(
+                {"error": "No ArtFiliere profile is linked to this login. Complete sign-up, or ask an administrator to provision your staff account with this email address.",
+                 "code": "profile_required"},
+                status=409,
             )
 
     access = account_access(user)

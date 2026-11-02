@@ -246,7 +246,7 @@ export default function WebSidebar() {
           )}
           {renderItem('Home', '/(home)', Home, isHome)}
           {renderItem('Activities', '/(home)/activities', Clock, pathname === '/activities')}
-          {renderItem('Auctions', '/auction-dashboard', Compass, pathname === '/auction-dashboard')}
+          {renderItem('Auctions', '/(home)/auction-dashboard', Compass, pathname === '/auction-dashboard')}
 
           <View style={styles.divider} />
 

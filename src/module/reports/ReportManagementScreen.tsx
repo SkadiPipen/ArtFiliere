@@ -1,14 +1,17 @@
+import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
+import { useAdminRefresh } from '@/module/admin/AdminRefresh';
+import { staffWorkspaceStyles } from '@/components/staffWorkspaceStyles';
 import { goBackToWorkspace } from '@/services/navigation';
-import { TransactionTitle } from '@/components/TransactionHeader';
+import TransactionHeader from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
 import { markAdminQueueRead } from '@/services/adminNotifications';
 import * as DocumentPicker from 'expo-document-picker';
 import { auth } from '@/firebase/config';
 import { signOut } from 'firebase/auth';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Flag, RefreshCw, ShieldCheck } from 'lucide-react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { Redirect, useRouter } from 'expo-router';
+import { Flag, ShieldCheck } from 'lucide-react-native';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Linking, Platform, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,10 +25,10 @@ type Dashboard = { role: string; reports: Report[]; requests: Request[]; actions
 type Review = { title: string; path: string; field: string; value: string };
 const label = (value: string) => value.replace(/_/g, ' ');
 
-export default function ReportManagementScreen() {
+export default function ReportManagementScreen({ embedded = false, initialTab = 'reports', header }: { embedded?: boolean; initialTab?: 'reports' | 'requests' | 'actions' | 'finance'; header?: ReactNode }) {
   const router = useRouter();
   const [data, setData] = useState<Dashboard | null>(null);
-  const [tab, setTab] = useState('reports');
+  const [tab, setTab] = useState(initialTab);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -59,6 +62,7 @@ export default function ReportManagementScreen() {
     catch (e: any) { setError(e.message || 'Unable to load reports.'); }
     finally { setLoading(false); }
   }, []);
+  const adminWorkspace = useAdminRefresh(load);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     if (data?.role === 'platform_admin' && tab === 'requests') {
@@ -127,43 +131,44 @@ export default function ReportManagementScreen() {
     } catch (e: any) { setFormError(e.message || 'Unable to save.'); }
     finally { setBusy(false); }
   };
-  const button = (text: string, onPress: () => void, secondary = false) => <TouchableOpacity disabled={busy} onPress={onPress} style={[s.button, secondary && s.secondary]}><Text style={[s.buttonText, secondary && { color: '#8C4C43' }]}>{text}</Text></TouchableOpacity>;
+  const button = (text: string, onPress: () => void, secondary = false) => <TouchableOpacity disabled={busy} onPress={onPress} style={[s.button, adminWorkspace && adminSurfaces.button, secondary && s.secondary]}><Text style={[s.buttonText, adminWorkspace && adminType.button, secondary && { color: '#8C4C43' }]}>{text}</Text></TouchableOpacity>;
   const choice = (text: string, selected: boolean, onPress: () => void) => <TouchableOpacity key={text} disabled={busy} onPress={onPress} style={[s.choice, selected && s.chosen]}><Text style={[s.choiceText, selected && { color: '#A74646', fontWeight: '700' }]}>{text}</Text></TouchableOpacity>;
+  const filterTab = (text: string, value: string) => <TouchableOpacity key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value as typeof initialTab)} style={[s.filterTab, tab === value && s.filterTabActive]}><Text style={s.filterTabText}>{text}</Text></TouchableOpacity>;
   const status = (value: string) => <View style={s.status}><Text style={s.statusText}>{label(value)}</Text></View>;
-  if (loading) return <SafeAreaView style={s.page}><ActivityIndicator style={{ marginTop: 80 }} color="#B65B50" /></SafeAreaView>;
-  return <SafeAreaView style={s.page}>
-    <View style={s.header}>
-      <TouchableOpacity accessibilityLabel="Back" onPress={() => void goBackToWorkspace()}><ArrowLeft size={22} color="#62493E" /></TouchableOpacity>
-      <View style={{ flex: 1 }}><Text style={s.brand}>ArtFiliere</Text><Text style={s.subhead}>{data?.role === 'customer_support' ? 'Customer service moderator' : 'Support & account safety'}</Text></View>
-      <TouchableOpacity accessibilityLabel="Refresh reports" onPress={load}><RefreshCw size={20} color="#8C4C43" /></TouchableOpacity>
-      {data?.role === 'customer_support' && <TouchableOpacity onPress={() => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }}><Text style={{ color: '#8C4C43', fontWeight: '700' }}>Log out</Text></TouchableOpacity>}
-    </View>
-    <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-      <View style={s.hero}><TransactionTitle title="Reports, Disputes & Transactions" />
-        <Text style={s.body}>{admin ? 'Resolve disputes, authorize refunds or wallet credits, and approve or deny account actions.' : staff ? 'Resolve disputes, authorize refunds or wallet credits, and recommend account actions for Platform Admin approval.' : 'Report an incident, track a dispute, or manage your transaction requests.'}</Text></View>
+  if (admin && !embedded) return <Redirect href="/admin-reports" />;
+  if (loading) return <SafeAreaView edges={embedded ? [] : undefined} style={s.page}><ActivityIndicator style={{ marginTop: 80 }} color="#B65B50" /></SafeAreaView>;
+  return <SafeAreaView edges={embedded ? [] : undefined} style={s.page}>
+    {!embedded && <TransactionHeader title="Reports, Disputes & Transactions" onBack={() => void goBackToWorkspace()} onRefresh={() => { void load(); }} refreshing={busy} />}
+    <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} contentContainerStyle={embedded ? staffWorkspaceStyles.content : s.content} keyboardShouldPersistTaps="handled">
+      {header}
+      {embedded && !header && <View style={staffWorkspaceStyles.titleRow}><Text style={staffWorkspaceStyles.title}>{initialTab === 'reports' ? 'Report Reviews' : initialTab === 'requests' ? 'Transaction Requests' : initialTab === 'actions' ? 'Account Approvals' : 'Refunds & Wallet Credits'}</Text>{!adminWorkspace && <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void load()}><Text style={{ color: '#A74646' }}>Refresh</Text></TouchableOpacity>}</View>}
+      {!header && <View style={s.hero}>
+        <Text style={[s.body, adminWorkspace && adminType.body]}>{admin ? 'Resolve disputes, authorize refunds or wallet credits, and approve or deny account actions.' : staff ? 'Resolve disputes, authorize refunds or wallet credits, and recommend account actions for Platform Admin approval.' : 'Report an incident, track a dispute, or manage your transaction requests.'}</Text></View>}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {!!message && <Text style={s.success}>{message}</Text>}
       {!!data && <>
-        <View style={s.row}>
+        {!embedded && <View style={s.row}>
+          {staff && button('Artwork code lookup', () => router.push('/artwork-code-lookup' as any), true)}
+          {data?.role === 'customer_support' && button('Log out', () => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }, true)}
           {staff && button('Review restriction appeals', () => router.push((admin ? '/moderation-approvals' : '/moderator-dashboard') as any), true)}
           {!staff && button('File a report', () => open('report'))}
           {trader && button('Request cancellation or return', () => open('request'), true)}
-        </View>
-        <View style={s.row}>
-          {choice(`Reports (${data.reports.length})`, tab === 'reports', () => setTab('reports'))}
-          {(trader || staff) && choice(`Transaction requests (${data.requests.length})`, tab === 'requests', () => setTab('requests'))}
-          {staff && choice(`Account approvals (${data.actions.filter(a => a.status === 'pending').length})`, tab === 'actions', () => setTab('actions'))}
-          {(staff || trader) && choice(`Refunds & wallet credits (${data.financials?.length || 0})`, tab === 'finance', () => setTab('finance'))}
-        </View>
-        {tab === 'reports' && (data.reports.length ? data.reports.map(r => <View key={r.id} style={s.card}>
-          <View style={s.row}><Flag size={18} color="#B65B50" /><Text style={s.cardTitle}>#{r.id} · {r.title}</Text>{status(r.status)}</View>
-          <Text style={s.muted}>{label(r.category)} · Filed by {r.reporter}{r.payment_id ? ` · Transaction #${r.payment_id}` : ''}</Text>
-          {!!r.reported_user && <Text style={s.body}>Reported account: {r.reported_user}</Text>}
-          <Text style={s.body}>{r.description}</Text>
-          {!!r.evidence && !(r.links || []).length && <Text selectable style={s.body}>Evidence: {r.evidence}</Text>}
+        </View>}
+        {!embedded && <View style={s.filters}>
+          {filterTab(`Reports (${data.reports.length})`, 'reports')}
+          {(trader || staff) && filterTab(`Transaction requests (${data.requests.length})`, 'requests')}
+          {staff && filterTab(`Account approvals (${data.actions.filter(a => a.status === 'pending').length})`, 'actions')}
+          {(staff || trader) && filterTab(`Refunds & wallet credits (${data.financials?.length || 0})`, 'finance')}
+        </View>}
+        {tab === 'reports' && (data.reports.length ? data.reports.map(r => <View key={r.id} style={[s.card, adminWorkspace && adminSurfaces.card]}>
+          <View style={s.row}><Flag size={18} color="#B65B50" /><Text style={[s.cardTitle, adminWorkspace && adminType.cardTitle]}>#{r.id} · {r.title}</Text>{status(r.status)}</View>
+          <Text style={[s.muted, adminWorkspace && adminType.muted]}>{label(r.category)} · Filed by {r.reporter}{r.payment_id ? ` · Transaction #${r.payment_id}` : ''}</Text>
+          {!!r.reported_user && <Text style={[s.body, adminWorkspace && adminType.body]}>Reported account: {r.reported_user}</Text>}
+          <Text style={[s.body, adminWorkspace && adminType.body]}>{r.description}</Text>
+          {!!r.evidence && !(r.links || []).length && <Text selectable style={[s.body, adminWorkspace && adminType.body]}>Evidence: {r.evidence}</Text>}
           {(r.links || []).map((link, index) => <TouchableOpacity key={index} onPress={() => Linking.openURL(link).catch(() => setError('Unable to open link.'))}><Text style={{ color: '#A74646', textDecorationLine: 'underline' }}>{link}</Text></TouchableOpacity>)}
           {(r.attachments || []).map(file => <View key={file.id} style={s.row}>{button(`Download ${file.name} (${(file.size / 1024).toFixed(0)} KB)`, () => { downloadProtectedFile(`management/attachments/${file.id}/`, file.name).catch(e => setError(e.message)); }, true)}</View>)}
-          {!!r.resolution && <Text style={s.note}>Review: {r.resolution}</Text>}
+          {!!r.resolution && <Text style={[s.note, adminWorkspace && adminType.muted]}>Review: {r.resolution}</Text>}
           {staff && !['resolved', 'dismissed'].includes(r.status) && <View style={s.row}>
             {button('Review', () => decide('Mark report under review', `management/reports/${r.id}/`, 'status', 'under_review'), true)}
             {button('Resolve', () => decide('Resolve report', `management/reports/${r.id}/`, 'status', 'resolved'), true)}
@@ -175,13 +180,13 @@ export default function ReportManagementScreen() {
             {button('Authorize wallet credit', () => { setSelectedReport(r); setFinancialKind('wallet_credit'); setAmount(''); open('finance'); }, true)}
           </View>}
         </View>) : <Text style={s.empty}>No reports yet.</Text>)}
-        {tab === 'requests' && (data.requests.length ? data.requests.map(r => <View key={r.id} style={s.card}>
-          <View style={s.row}><Text style={s.cardTitle}>#{r.id} · {label(r.type)} · {r.artwork}</Text>{status(r.status)}</View>
-          <Text style={s.muted}>Transaction #{r.payment_id} · Requested by {r.requester} · Other party: {r.counterpart}</Text>
-          <Text style={s.body}>{r.reason}</Text>
-          {r.type === 'cancellation' && <Text style={s.note}>Other party: {label(r.counterpart_decision)}{r.counterpart_decision === 'accepted' && r.status === 'pending' ? ' · Awaiting admin review' : ''}</Text>}
-          {!!r.counterpart_note && <Text style={s.body}>Response: {r.counterpart_note}</Text>}
-          {!!r.admin_note && <Text style={s.body}>Admin review: {r.admin_note}</Text>}
+        {tab === 'requests' && (data.requests.length ? data.requests.map(r => <View key={r.id} style={[s.card, adminWorkspace && adminSurfaces.card]}>
+          <View style={s.row}><Text style={[s.cardTitle, adminWorkspace && adminType.cardTitle]}>#{r.id} · {label(r.type)} · {r.artwork}</Text>{status(r.status)}</View>
+          <Text style={[s.muted, adminWorkspace && adminType.muted]}>Transaction #{r.payment_id} · Requested by {r.requester} · Other party: {r.counterpart}</Text>
+          <Text style={[s.body, adminWorkspace && adminType.body]}>{r.reason}</Text>
+          {r.type === 'cancellation' && <Text style={[s.note, adminWorkspace && adminType.muted]}>Other party: {label(r.counterpart_decision)}{r.counterpart_decision === 'accepted' && r.status === 'pending' ? ' · Awaiting admin review' : ''}</Text>}
+          {!!r.counterpart_note && <Text style={[s.body, adminWorkspace && adminType.body]}>Response: {r.counterpart_note}</Text>}
+          {!!r.admin_note && <Text style={[s.body, adminWorkspace && adminType.body]}>Admin review: {r.admin_note}</Text>}
           {r.can_respond && <View style={s.row}>
             {button('Accept cancellation', () => decide('Accept cancellation', `transactions/requests/${r.id}/respond/`, 'decision', 'accepted'))}
             {button('Decline cancellation', () => decide('Decline cancellation', `transactions/requests/${r.id}/respond/`, 'decision', 'declined'), true)}
@@ -191,21 +196,21 @@ export default function ReportManagementScreen() {
             {button('Decline request', () => decide('Decline transaction request', `admin/requests/${r.id}/`, 'status', 'declined'), true)}
           </View>}
         </View>) : <Text style={s.empty}>No transaction requests yet.</Text>)}
-        {tab === 'actions' && (data.actions.length ? data.actions.map(a => <View key={a.id} style={s.card}>
-          <View style={s.row}><Text style={s.cardTitle}>#{a.id} · {a.action} · {a.target}</Text>{status(a.status)}</View>
-          <Text style={s.muted}>Report #{a.report_id} · Initiated by {a.initiated_by}{a.duration_days ? ` · ${a.duration_days} days` : ''}</Text>
-          <Text style={s.body}>{a.reason}</Text>{!!a.review_note && <Text style={s.note}>Decision: {a.review_note}</Text>}
+        {tab === 'actions' && (data.actions.length ? data.actions.map(a => <View key={a.id} style={[s.card, adminWorkspace && adminSurfaces.card]}>
+          <View style={s.row}><Text style={[s.cardTitle, adminWorkspace && adminType.cardTitle]}>#{a.id} · {a.action} · {a.target}</Text>{status(a.status)}</View>
+          <Text style={[s.muted, adminWorkspace && adminType.muted]}>Report #{a.report_id} · Initiated by {a.initiated_by}{a.duration_days ? ` · ${a.duration_days} days` : ''}</Text>
+          <Text style={[s.body, adminWorkspace && adminType.body]}>{a.reason}</Text>{!!a.review_note && <Text style={[s.note, adminWorkspace && adminType.muted]}>Decision: {a.review_note}</Text>}
           {admin && a.status === 'pending' && <View style={s.row}>
             {button('Approve', () => decide(`Approve ${a.action} for ${a.target}`, `management/account-actions/${a.id}/`, 'status', 'approved'))}
             {button('Decline', () => decide(`Decline ${a.action} request`, `management/account-actions/${a.id}/`, 'status', 'declined'), true)}
           </View>}
         </View>) : <Text style={s.empty}>No account action requests yet.</Text>)}
         {tab === 'finance' && <>
-          <Text style={s.note}>Authorizations record approval for processing. An authorized refund or wallet credit has not yet been paid or added to a wallet.</Text>
-          {(data.financials || []).length ? data.financials.map(f => <View key={f.id} style={s.card}>
-            <View style={s.row}><Text style={s.cardTitle}>#{f.id} · {label(f.kind)} · PHP {Number(f.amount).toFixed(2)}</Text>{status(f.status)}</View>
-            <Text style={s.muted}>Report #{f.report_id} · Transaction #{f.payment_id} · Recipient: {f.recipient}</Text>
-            <Text style={s.body}>{f.reason}</Text><Text style={s.muted}>Authorized by {f.authorized_by}</Text>
+          <Text style={[s.note, adminWorkspace && adminType.muted]}>Authorizations record approval for processing. An authorized refund or wallet credit has not yet been paid or added to a wallet.</Text>
+          {(data.financials || []).length ? data.financials.map(f => <View key={f.id} style={[s.card, adminWorkspace && adminSurfaces.card]}>
+            <View style={s.row}><Text style={[s.cardTitle, adminWorkspace && adminType.cardTitle]}>#{f.id} · {label(f.kind)} · PHP {Number(f.amount).toFixed(2)}</Text>{status(f.status)}</View>
+            <Text style={[s.muted, adminWorkspace && adminType.muted]}>Report #{f.report_id} · Transaction #{f.payment_id} · Recipient: {f.recipient}</Text>
+            <Text style={[s.body, adminWorkspace && adminType.body]}>{f.reason}</Text><Text style={[s.muted, adminWorkspace && adminType.muted]}>Authorized by {f.authorized_by}</Text>
           </View>) : <Text style={s.empty}>No financial authorizations yet.</Text>}
         </>}
       </>}
@@ -215,21 +220,21 @@ export default function ReportManagementScreen() {
         <Text style={s.title}>{composer === 'report' ? 'File incident / dispute report' : composer === 'request' ? 'Request cancellation or return' : composer === 'action' ? 'Initiate suspension / ban' : composer === 'finance' ? `Authorize ${label(financialKind)}` : review?.title}</Text>
         {composer === 'finance' && <>
           <Text>Report #{selectedReport?.id} · Transaction #{selectedReport?.payment_id}</Text>
-          <Text>Amount in PHP *</Text><TextInput accessibilityLabel="Authorization amount in PHP" editable={!busy} keyboardType="decimal-pad" style={s.input} value={amount} onChangeText={setAmount} />
-          <Text style={s.note}>Compensation goes to the transaction buyer. This records authorization for processing; it does not immediately refund payment or change the wallet balance.</Text>
+          <Text>Amount in PHP *</Text><TextInput accessibilityLabel="Authorization amount in PHP" editable={!busy} keyboardType="decimal-pad" style={[s.input, adminWorkspace && adminSurfaces.input, adminWorkspace && adminType.input]} value={amount} onChangeText={setAmount} />
+          <Text style={[s.note, adminWorkspace && adminType.muted]}>Compensation goes to the transaction buyer. This records authorization for processing; it does not immediately refund payment or change the wallet balance.</Text>
         </>}
         {composer === 'report' && <>
           <View style={s.row}>{choice('Incident', category === 'incident', () => setCategory('incident'))}{choice('Dispute', category === 'dispute', () => setCategory('dispute'))}</View>
-          <Text>Title *</Text><TextInput accessibilityLabel="Report title" editable={!busy} style={s.input} value={title} maxLength={150} onChangeText={setTitle} />
+          <Text>Title *</Text><TextInput accessibilityLabel="Report title" editable={!busy} style={[s.input, adminWorkspace && adminSurfaces.input, adminWorkspace && adminType.input]} value={title} maxLength={150} onChangeText={setTitle} />
           <Text>Reported account (optional)</Text>
-          <TextInput accessibilityLabel="Search reported username" placeholder="Type at least 3 characters of their username" editable={!busy} autoCapitalize="none" maxLength={150} style={s.input} value={userQuery} onChangeText={value => { setUserQuery(value); setTargetId(null); }} />
-          {targetId ? <View style={s.row}><Text style={s.body}>Selected: {userQuery}</Text>{button('Clear', () => { setTargetId(null); setUserQuery(''); }, true)}</View> : <>
-            {searchingUsers && <Text style={s.muted}>Searching…</Text>}
+          <TextInput accessibilityLabel="Search reported username" placeholder="Type at least 3 characters of their username" editable={!busy} autoCapitalize="none" maxLength={150} style={[s.input, adminWorkspace && adminSurfaces.input, adminWorkspace && adminType.input]} value={userQuery} onChangeText={value => { setUserQuery(value); setTargetId(null); }} />
+          {targetId ? <View style={s.row}><Text style={[s.body, adminWorkspace && adminType.body]}>Selected: {userQuery}</Text>{button('Clear', () => { setTargetId(null); setUserQuery(''); }, true)}</View> : <>
+            {searchingUsers && <Text style={[s.muted, adminWorkspace && adminType.muted]}>Searching…</Text>}
             {!!searchError && <Text style={s.error}>{searchError}</Text>}
-            {!searchingUsers && !searchError && userQuery.trim().length >= 3 && !userMatches.length && <Text style={s.muted}>No matching username. Check the spelling.</Text>}
+            {!searchingUsers && !searchError && userQuery.trim().length >= 3 && !userMatches.length && <Text style={[s.muted, adminWorkspace && adminType.muted]}>No matching username. Check the spelling.</Text>}
             <View style={s.row}>{userMatches.map(u => choice(`${u.username} (${label(u.role)})`, false, () => { setTargetId(u.id); setUserQuery(u.username); }))}</View>
           </>}
-          <Text style={s.muted}>Leave blank if the incident does not involve a specific account.</Text>
+          <Text style={[s.muted, adminWorkspace && adminType.muted]}>Leave blank if the incident does not involve a specific account.</Text>
         </>}
         {(composer === 'report' || composer === 'request') && <>
           <Text>Transaction {composer === 'report' ? '(optional)' : '*'}</Text>
@@ -240,22 +245,22 @@ export default function ReportManagementScreen() {
         </>}
         {composer === 'request' && <>
           <View style={s.row}>{choice('Cancellation', kind === 'cancellation', () => setKind('cancellation'))}{choice('Return', kind === 'return', () => setKind('return'))}</View>
-          <Text style={s.muted}>Returns apply to paid physical artwork. Cancellation acceptance goes to admin review; it does not automatically issue a refund.</Text>
+          <Text style={[s.muted, adminWorkspace && adminType.muted]}>Returns apply to paid physical artwork. Cancellation acceptance goes to admin review; it does not automatically issue a refund.</Text>
         </>}
         {composer === 'action' && <>
           <Text>Report #{selectedReport?.id} · Account: {selectedReport?.reported_user}</Text>
           <View style={s.row}>{choice('Suspension', action === 'suspension', () => setAction('suspension'))}{choice('Ban', action === 'ban', () => setAction('ban'))}</View>
-          {action === 'suspension' && <><Text>Duration in days (1–365) *</Text><TextInput accessibilityLabel="Suspension days" editable={!busy} keyboardType="number-pad" style={s.input} value={days} onChangeText={setDays} /></>}
-          <Text style={s.note}>The account remains active until Platform Admin approves this request.</Text>
+          {action === 'suspension' && <><Text>Duration in days (1–365) *</Text><TextInput accessibilityLabel="Suspension days" editable={!busy} keyboardType="number-pad" style={[s.input, adminWorkspace && adminSurfaces.input, adminWorkspace && adminType.input]} value={days} onChangeText={setDays} /></>}
+          <Text style={[s.note, adminWorkspace && adminType.muted]}>The account remains active until Platform Admin approves this request.</Text>
         </>}
         <Text>{composer === 'report' ? 'Describe what happened *' : composer === 'review' ? 'Decision notes' : 'Reason *'}</Text>
         <TextInput accessibilityLabel="Description or decision notes" editable={!busy} multiline style={[s.input, { minHeight: 100 }]} value={description} maxLength={composer === 'report' ? 5000 : 2000} onChangeText={setDescription} />
         {composer === 'report' && <>
           <Text>Evidence attachments (optional)</Text>
-          <Text style={s.muted}>Up to five JPG, PNG, WebP or PDF files, 5 MB each, and five links.</Text>
+          <Text style={[s.muted, adminWorkspace && adminType.muted]}>Up to five JPG, PNG, WebP or PDF files, 5 MB each, and five links.</Text>
           {button('Attach files', attachFiles, true)}
           {files.map((file, index) => <View key={index} style={s.row}><Text style={[s.body, { flex: 1 }]}>{file.name}</Text>{button('Remove', () => setFiles(files.filter((_, i) => i !== index)), true)}</View>)}
-          <TextInput editable={!busy} accessibilityLabel="Evidence link" placeholder="https://example.com/evidence" autoCapitalize="none" keyboardType="url" style={s.input} value={evidence} maxLength={2000} onChangeText={setEvidence} />
+          <TextInput editable={!busy} accessibilityLabel="Evidence link" placeholder="https://example.com/evidence" autoCapitalize="none" keyboardType="url" style={[s.input, adminWorkspace && adminSurfaces.input, adminWorkspace && adminType.input]} value={evidence} maxLength={2000} onChangeText={setEvidence} />
           {button('Add link', attachLink, true)}
           {links.map((link, index) => <View key={index} style={s.row}><Text style={[s.body, { flex: 1 }]}>{link}</Text>{button('Remove', () => setLinks(links.filter((_, i) => i !== index)), true)}</View>)}
         </>}
@@ -270,17 +275,21 @@ export default function ReportManagementScreen() {
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#FAF7F3' }, header: { padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE5DE' },
   brand: { fontSize: 23, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#A74646' }, subhead: { fontSize: 11, color: '#8B8078', marginTop: 3 },
-  content: { width: '100%', maxWidth: 1100, alignSelf: 'center', padding: 24, gap: 18, paddingBottom: 60 },
+  content: { width: '100%', maxWidth: 1280, alignSelf: 'center', padding: 20, gap: 16, paddingBottom: 60 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  filterTab: { flex: 1, minWidth: 160, minHeight: 48, padding: 14, borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 12, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' },
+  filterTabActive: { borderColor: '#E68A50', backgroundColor: '#FFF0E4' },
+  filterTabText: { color: '#70482F', fontWeight: '700', textAlign: 'center', fontSize: 13 },
   hero: { gap: 10, marginBottom: 8 }, title: { fontSize: 25, fontWeight: '800', color: '#3D3028' },
   body: { color: '#62574E', lineHeight: 22 }, muted: { color: '#8B8078', fontSize: 12, lineHeight: 19 },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
   card: { padding: 22, borderRadius: 16, borderWidth: 1, borderColor: '#EEE5DE', backgroundColor: '#fff', gap: 12 },
   cardTitle: { flex: 1, minWidth: 160, color: '#463A32', fontSize: 16, fontWeight: '700' },
   status: { backgroundColor: '#F6E8E1', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12 }, statusText: { color: '#9C5147', fontSize: 12, fontWeight: '600' },
-  button: { backgroundColor: '#B65B50', borderRadius: 9, paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' }, buttonText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  button: { backgroundColor: '#BC5555', borderRadius: 12, minHeight: 44, paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' }, buttonText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   secondary: { backgroundColor: '#F5E8E0' }, choice: { borderWidth: 1, borderColor: '#DED4CC', padding: 10, borderRadius: 9, backgroundColor: '#fff' }, chosen: { borderColor: '#B65B50', backgroundColor: '#FAEDE6' }, choiceText: { fontSize: 12, color: '#74675D' },
   note: { backgroundColor: '#FAF4EF', padding: 12, borderRadius: 8, color: '#74675D', lineHeight: 20 },
-  empty: { padding: 35, color: '#8B8078', textAlign: 'center' }, error: { color: '#B42318', backgroundColor: '#FFF0ED', padding: 12, borderRadius: 8 }, success: { color: '#39714B' },
+  empty: { padding: 48, color: '#81756D', textAlign: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2D6CD', borderRadius: 14 }, error: { color: '#B42318', backgroundColor: '#FFF0ED', padding: 12, borderRadius: 8 }, success: { color: '#39714B' },
   overlay: { flex: 1, backgroundColor: 'rgba(35,25,20,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   modal: { width: '100%', maxWidth: 640, maxHeight: '90%', backgroundColor: '#FFFCF9', borderRadius: 16, flexGrow: 0 },
   input: { borderWidth: 1, borderColor: '#D7CCC3', borderRadius: 8, padding: 12, color: '#3D3028', backgroundColor: '#fff', textAlignVertical: 'top' },

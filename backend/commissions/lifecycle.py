@@ -461,6 +461,12 @@ class SubmissionFileView(CommissionFlowView):
             for y in range(20, image.height, 100):
                 for x in range(10, image.width, 180): draw.text((x, y), 'ArtFiliere PREVIEW', fill=(200, 65, 65))
             out = BytesIO(); image.save(out, 'JPEG', quality=80); raw = out.getvalue(); mime = 'image/jpeg'
+        if not preview and user.pk == c.buyer_id and mime.startswith('image/'):
+            from fulfillment.watermarks import protected_image
+            from django.conf import settings
+            raw = protected_image(raw, source_key=f'commission:{c.pk}:submission:{s.pk}', buyer_id=c.buyer_id, artist_id=c.artist_id)
+            if getattr(settings, 'DOWNLOAD_WATERMARK_ENABLED', False):
+                mime = 'image/png'
         response = HttpResponse(raw, content_type=mime)
         response['Cache-Control'] = 'private, no-store'; response['X-Content-Type-Options'] = 'nosniff'
         response['Content-Disposition'] = f'attachment; filename="commission-{c.pk}-submission-{s.pk}"'

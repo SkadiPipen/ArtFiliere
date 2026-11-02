@@ -57,6 +57,7 @@ src/**/firebase*
 __pycache__/
 *.py[cod]
 tools/foundry/
+.local/foundry/
 
 # Local backups and verification exports
 /tmp/

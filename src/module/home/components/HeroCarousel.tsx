@@ -7,9 +7,30 @@ import { router } from 'expo-router';
 import API_URL from '@/services/api';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import { auctionCountdown } from './AuctionSection';
+import { Star } from 'lucide-react-native';
 
-type Slide = { id: string; kind: 'welcome' | 'popular' | 'artist' | 'auction'; badge: string; title: string; subtitle: string; artist_id?: number; ends_at?: string; artwork?: any };
+type Slide = { id: string; kind: 'welcome' | 'popular' | 'artist' | 'auction'; badge: string; title: string; subtitle: string; artist_id?: number; ends_at?: string; artwork?: any; sold_count?: number; rating?: number | null };
 const welcome: Slide = { id: 'welcome', kind: 'welcome', badge: 'A SPACE FOR ART', title: 'Welcome to ArtFiliere', subtitle: 'Discover original work. Meet artists. Bring your ideas to life.' };
+
+function PopularRating({ slide }: { slide: Slide }) {
+  // Retain compatibility with an already-running backend's subtitle response.
+  const legacyRating = slide.subtitle.match(/([\d.]+)\/5/);
+  const raw = slide.rating !== undefined ? slide.rating : legacyRating ? Number(legacyRating[1]) : null;
+  const rating = raw !== null && Number.isFinite(raw) ? Math.max(0, Math.min(5, raw)) : null;
+  const sold = slide.sold_count ?? Number(slide.subtitle.match(/^(\d+) sold/)?.[1] || 0);
+  return <View style={s.ratingRow}>
+    <Text style={s.subtitle}>{sold} sold ·</Text>
+    <View accessible accessibilityLabel={rating === null ? 'Not rated yet' : `${rating.toFixed(1)} out of 5 stars`} style={s.stars}>
+      {[0, 1, 2, 3, 4].map(index => <View key={index} style={{ width: 14, height: 14 }}>
+        <Star size={14} color="#CABDB2" fill="#E7DFD7" strokeWidth={1} />
+        <View style={{ position: 'absolute', left: 0, top: 0, width: 14 * Math.max(0, Math.min(1, (rating ?? 0) - index)), height: 14, overflow: 'hidden' }}>
+          <Star size={14} color="#BE852E" fill="#DCA348" strokeWidth={1} />
+        </View>
+      </View>)}
+    </View>
+    <Text style={s.subtitle}>{rating === null ? 'Not rated yet' : `${rating.toFixed(1)}/5`}</Text>
+  </View>;
+}
 
 export default function HeroCarousel({ onSelect }: { onSelect: (item: any, type: string) => void }) {
   const { width } = useWindowDimensions();
@@ -107,7 +128,7 @@ export default function HeroCarousel({ onSelect }: { onSelect: (item: any, type:
           <Text style={s.badge}>{item.badge}</Text>
           {item.kind === 'artist' && <Text style={s.artist} numberOfLines={1}>{item.subtitle}</Text>}
           <Text style={s.title} numberOfLines={2}>{item.title}</Text>
-          {item.kind !== 'artist' && <Text style={s.subtitle} numberOfLines={2}>{item.subtitle}</Text>}
+          {item.kind === 'popular' ? <PopularRating slide={item} /> : item.kind !== 'artist' && <Text style={s.subtitle} numberOfLines={2}>{item.subtitle}</Text>}
           {item.kind === 'auction' && <Text style={s.countdown}>{auctionCountdown(item.ends_at!, now)}</Text>}
           {item.kind !== 'welcome' && <Text style={s.action}>{item.kind === 'artist' ? 'Explore artist \u2192' : item.kind === 'auction' ? 'View auction \u2192' : 'View artwork \u2192'}</Text>}
         </View>
@@ -117,6 +138,8 @@ export default function HeroCarousel({ onSelect }: { onSelect: (item: any, type:
 }
 
 const s = StyleSheet.create({
+  ratingRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  stars: { flexDirection: 'row', gap: 2 },
   bottomFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 110 },
   caption: { position: 'absolute', left: 24, backgroundColor: 'rgba(255,255,255,0.92)', padding: 14, borderRadius: 12, gap: 4 },
   badge: { color: '#C15656', fontWeight: '700', fontSize: 10, letterSpacing: 1 },
