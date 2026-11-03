@@ -34,7 +34,13 @@ export default function HomeScreen() {
         },
       });
 
-      const data = await response.json();
+      const body = await response.text();
+      let data;
+      try { data = JSON.parse(body); }
+      catch {
+        throw new Error(`The login server returned an invalid response (HTTP ${response.status}). Check the Django server logs and API address.`);
+      }
+      if (!data || typeof data !== 'object') throw new Error('The login server returned an invalid response. Please try again.');
 
       if (!response.ok) {
         if (data.code === 'account_restricted') { router.replace('/account-appeal' as any); return; }

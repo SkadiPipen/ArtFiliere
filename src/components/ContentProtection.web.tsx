@@ -34,7 +34,7 @@ export default function ContentProtection() {
       blackout.style.display = 'none';
     };
     const isCaptureShortcut = (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase();
+      const key = typeof event.key === 'string' ? event.key.toLowerCase() : '';
       return event.key === 'PrintScreen' || event.code === 'PrintScreen'
         || (event.metaKey && event.shiftKey && ['3', '4', '5', 's'].includes(key));
     };

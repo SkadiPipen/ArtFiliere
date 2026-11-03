@@ -456,8 +456,8 @@ export default function ViewPostPage() {
                 onPress={() => {
                   if (artworkId) {
                     router.push({
-                      pathname: "/auction-dashboard",
-                      params: { id: String(artworkId) },
+                      pathname: "/auction-post",
+                      params: { id: String(artworkId), lookup: "artwork" },
                     } as any);
                   } else {
                     router.push("/auction-post" as any);

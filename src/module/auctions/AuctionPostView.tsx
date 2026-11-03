@@ -11,7 +11,8 @@ import { Watermark } from "../artwork/components/Watermark";
 
 export default function AuctionPostView() {
   const params = useLocalSearchParams();
-  const auctionId = params.id;
+  const auctionId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const lookup = params.lookup === 'artwork' ? '?lookup=artwork' : '';
   const router = useRouter();
 
   const [windowWidth, setWindowWidth] = useState(
@@ -75,9 +76,9 @@ export default function AuctionPostView() {
     }
 
     try {
-      let res = await fetch(`${API_URL}/api/auction/${auctionId}/`);
+      let res = await fetch(`${API_URL}/api/auction/${auctionId}/${lookup}`);
       if (res.status === 404) {
-        res = await fetch(`${API_URL}/api/auctions/${auctionId}/`);
+        res = await fetch(`${API_URL}/api/auctions/${auctionId}/${lookup}`);
       }
       if (res.ok) {
         const data = await res.json();
@@ -93,8 +94,11 @@ export default function AuctionPostView() {
   };
 
   useEffect(() => {
+    setAuction(null);
+    setLoading(true);
+    setTermsAccepted(false);
     loadDetails();
-  }, [auctionId]);
+  }, [auctionId, lookup]);
 
   const isExpired = auction?.end_time
     ? new Date(auction.end_time).getTime() <= now
@@ -174,13 +178,13 @@ export default function AuctionPostView() {
         Authorization: `Bearer ${token}`,
       };
 
-      let res = await fetch(`${API_URL}/api/auctions/${auctionId}/bid/`, {
+      let res = await fetch(`${API_URL}/api/auctions/${auction.id}/bid/`, {
         method: "POST",
         headers,
         body: JSON.stringify({ amount, terms_accepted: true }),
       });
       if (res.status === 404) {
-        res = await fetch(`${API_URL}/api/auction/${auctionId}/bid/`, {
+        res = await fetch(`${API_URL}/api/auction/${auction.id}/bid/`, {
           method: "POST",
           headers,
           body: JSON.stringify({ amount, terms_accepted: true }),
@@ -216,12 +220,12 @@ export default function AuctionPostView() {
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      let res = await fetch(`${API_URL}/api/auction/${auctionId}/settle/`, {
+      let res = await fetch(`${API_URL}/api/auction/${auction.id}/settle/`, {
         method: "POST",
         headers,
       });
       if (res.status === 404) {
-        res = await fetch(`${API_URL}/api/auctions/${auctionId}/settle/`, {
+        res = await fetch(`${API_URL}/api/auctions/${auction.id}/settle/`, {
           method: "POST",
           headers,
         });

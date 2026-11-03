@@ -46,10 +46,10 @@ def login(request):
             user.firebase_uid = firebase_uid
             user.save(update_fields=["firebase_uid"])
         else:
-            user, created = User.objects.get_or_create(
-                firebase_uid=firebase_uid,
-                defaults={"email": email}
-            )
+            return Response({
+                'error': 'Your Firebase account has no platform profile. Complete sign up or ask an administrator to provision your staff account.',
+                'code': 'profile_not_found',
+            }, status=404)
 
     access = account_access(user)
     if access['banned']:

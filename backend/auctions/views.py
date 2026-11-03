@@ -165,7 +165,7 @@ class AuctionDetailView(APIView):
         try:
             auction = AuctionListing.objects.select_related(
                 'artwork', 'artist', 'highest_bidder'
-            ).filter(Q(pk=pk) | Q(artwork_id=pk)).first()
+            ).filter(**({'artwork_id': pk} if request.query_params.get('lookup') == 'artwork' else {'pk': pk})).first()
 
             if not auction:
                 return Response({"error": "Auction not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -245,7 +245,7 @@ class PlaceBidView(AuthenticatedAPIView):
             return Response({"error": "Authentication required. Please log in."}, status=status.HTTP_401_UNAUTHORIZED)
         
         auction = AuctionListing.objects.select_for_update().filter(
-            Q(pk=pk) | Q(artwork_id=pk)
+            Q(pk=pk)
         ).first()
             
         if not auction:
@@ -313,7 +313,7 @@ class SettleAuctionView(AuthenticatedAPIView):
             return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
         
         auction = AuctionListing.objects.select_related('artwork', 'artist', 'highest_bidder').filter(
-            Q(pk=pk) | Q(artwork_id=pk)
+            Q(pk=pk)
         ).first()
 
         if not auction:
@@ -367,7 +367,7 @@ class ForfeitWinnerView(AuthenticatedAPIView):
 
     @transaction.atomic
     def post(self, request, pk):
-        auction = AuctionListing.objects.select_for_update().select_related('artwork', 'highest_bidder').filter(Q(pk=pk) | Q(artwork_id=pk)).first()
+        auction = AuctionListing.objects.select_for_update().select_related('artwork', 'highest_bidder').filter(pk=pk).first()
         if not auction:
             return Response({"error": "Auction not found."}, status=404)
         if auction.status != 'PAYMENT_PENDING' or not auction.payment_deadline or auction.payment_deadline > timezone.now():
@@ -383,7 +383,7 @@ class AcceptRunnerUpOfferView(AuthenticatedAPIView):
     @transaction.atomic
     def post(self, request, pk):
         user = self.get_request_user(request)
-        auction = AuctionListing.objects.select_for_update().select_related('artwork', 'artist', 'backup_bidder').filter(Q(pk=pk) | Q(artwork_id=pk)).first()
+        auction = AuctionListing.objects.select_for_update().select_related('artwork', 'artist', 'backup_bidder').filter(pk=pk).first()
         if not user or not auction:
             return Response({"error": "Offer not found."}, status=404)
         if auction.status != 'BACKUP_OFFER' or auction.backup_bidder_id != user.id or not auction.backup_offer_expires_at or auction.backup_offer_expires_at <= timezone.now():
