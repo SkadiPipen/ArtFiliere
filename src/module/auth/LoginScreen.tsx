@@ -75,7 +75,7 @@ export default function HomeScreen() {
           <View
             style={{
               flex: 1,
-              backgroundColor: COLORS.cream,
+              backgroundColor: '#F5E8E3',
               paddingHorizontal: 32,
               paddingTop: 24,
               justifyContent: 'center',
@@ -123,8 +123,8 @@ export default function HomeScreen() {
           <TextInput
             style={{
               borderWidth: 1,
-              borderColor: COLORS.border,
-              backgroundColor: COLORS.creamLight,
+              borderColor: '#E8D8D0',
+              backgroundColor: '#FAF7F3',
               borderRadius: 8,
               paddingHorizontal: 14,
               paddingVertical: 12,
@@ -143,8 +143,8 @@ export default function HomeScreen() {
           <TextInput
             style={{
               borderWidth: 1,
-              borderColor: COLORS.border,
-              backgroundColor: COLORS.creamLight,
+              borderColor: '#E8D8D0',
+              backgroundColor: '#FAF7F3',
               borderRadius: 8,
               paddingHorizontal: 14,
               paddingVertical: 12,
