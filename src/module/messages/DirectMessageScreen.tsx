@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import useChatAutoScroll from '@/hooks/useChatAutoScroll';
 import { Text, TextInput } from '@/components/Typography';
 import InfoAccordion from '@/module/chat-negotiations/InfoAccordion';

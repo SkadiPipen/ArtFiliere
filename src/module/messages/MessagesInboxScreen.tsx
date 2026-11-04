@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -44,7 +45,7 @@ export default function MessagesInboxScreen() {
   return (
     <SafeAreaView style={s.page}>
       <View style={s.head}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}>
+        <TouchableOpacity onPress={() => goBackOr('/(home)')}>
           <ArrowLeft color="#C15656" size={24} />
         </TouchableOpacity>
         <Text style={s.title}>Messages</Text>

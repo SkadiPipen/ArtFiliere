@@ -164,11 +164,76 @@ class LifecycleTests(TestCase):
         terms['royalty_percentage'] = '5'
         self.assertEqual(self.flow(self.artist, c, 'counter', version=1, terms=terms).status_code, 200)
 
+    def test_fixed_schedule_rejects_request_and_counter_tampering(self):
+        response = self.call(self.buyer, '/api/commissions/request/', {'artist_id': self.artist.pk, 'subject': 'Portrait', 'art_type': 'Digital', 'deadline': self.deadline, 'proposed_budget': '1000', 'proposal': {'price': '1100.00', 'deadline': self.deadline, 'milestones': [10, 10, 80]}})
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertFalse(CommissionRequest.objects.exists())
+        c = self.new()
+        for user in (self.artist, self.buyer):
+            for percentages in ([20, 30, 50], [30.0, 30.0, 40.0], ['30', '30', '40'], [30, 70]):
+                response = self.flow(user, c, 'counter', version=1, terms={'price': '1100', 'deadline': self.deadline, 'milestones': percentages})
+                self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(c.proposals.count(), 1)
+        self.assertEqual(c.proposals.get().status, 'PROPOSED')
+
+    def test_fixed_schedule_defaults_and_agreement_peso_amounts(self):
+        c = self.new()
+        result = self.flow(self.artist, c, 'counter', version=1, terms={'price': '1100.00', 'deadline': self.deadline})
+        self.assertEqual(result.status_code, 200, result.data)
+        self.assertEqual(result.data['proposal']['terms']['milestones'], [30, 30, 40])
+        result = self.flow(self.buyer, c, 'accept', version=2)
+        self.assertEqual(result.status_code, 200, result.data)
+        c.refresh_from_db()
+        self.assertEqual(list(c.milestones.order_by('milestone_number').values_list('percentage', 'amount')), [(30, Decimal('300')), (30, Decimal('300')), (40, Decimal('400'))])
+        text = c.agreement.document_snapshot
+        for phrase in ('30% of artist net production fee = PHP 300.00', '40% of artist net production fee = PHP 400.00', 'Platform fee included in total: PHP 100.00', 'One consolidated buyer revision request/comment per stage', 'original file unlocks after final approval'):
+            self.assertIn(phrase, text)
+        policy = self.call(self.buyer, '/api/commissions/policy/', method='get')
+        self.assertEqual(policy.data['milestone_percentages'], [30, 30, 40])
+
+    def test_fixed_schedule_allocates_delivery_separately_in_final_stage(self):
+        c = self.new(); c.art_type = 'Physical'; c.save()
+        delivery = {'fee': '129.50', 'pickup_address': 'Artist pickup', 'delivery_address': 'Buyer destination'}
+        with patch('commissions.delivery.verify_delivery', return_value=delivery):
+            response = self.flow(self.artist, c, 'counter', version=1, terms={'price': '1229.50', 'deadline': self.deadline, 'delivery_quote': 'quote'})
+            self.assertEqual(response.status_code, 200, response.data)
+            response = self.flow(self.buyer, c, 'accept', version=2)
+            self.assertEqual(response.status_code, 200, response.data)
+        c.refresh_from_db()
+        self.assertEqual(c.locked_terms['artist_total'], '1000.00')
+        self.assertEqual(c.locked_terms['milestone_schedule'][2]['artist_amount'], '400.00')
+        self.assertEqual(c.locked_terms['milestone_schedule'][2]['delivery_amount'], '129.50')
+        self.assertEqual(c.milestones.get(milestone_number=3).amount, Decimal('529.50'))
+        self.assertIn('Total stage release: PHP 529.50', c.agreement.document_snapshot)
+
+    def test_new_defaults_do_not_rewrite_historical_signed_schedule(self):
+        c = self.new()
+        proposal = c.proposals.get()
+        historical = {**proposal.terms, 'milestones': [20, 30, 50]}
+        # Build a historical contract under its original platform policy.
+        type(proposal).objects.filter(pk=proposal.pk).update(terms=historical)
+        with patch('commissions.lifecycle.PERCENTAGES', (20, 30, 50)), patch('commissions.lifecycle.MILESTONE_POLICY', 'Historical stage schedule: 20% / 30% / 50%.'):
+            response = self.flow(self.artist, c, 'accept', version=1)
+            self.assertEqual(response.status_code, 200, response.data)
+        c.refresh_from_db()
+        for user in (self.artist, self.buyer):
+            c.agreement.refresh_from_db()
+            document = signing_data(c.agreement, user)
+            response = self.call(user, f'/api/users/contracts/{c.agreement_id}/sign/', {'signature': user.username, 'consent': True, 'document_hash': document['document_hash'], 'signature_strokes': [[[0.1, 0.1], [0.2, 0.3], [0.4, 0.2]]]})
+            self.assertEqual(response.status_code, 200, response.data)
+        c.agreement.refresh_from_db(); original = c.agreement.document_snapshot
+        response = self.call(self.buyer, f'/api/commissions/flow/{c.pk}/', method='get')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['terms']['milestones'], [20, 30, 50])
+        c.agreement.refresh_from_db()
+        self.assertEqual(c.agreement.document_snapshot, original)
+        self.assertEqual(list(c.milestones.order_by('milestone_number').values_list('percentage', flat=True)), [20, 30, 50])
+
     def test_versioned_negotiation_and_signing_gate(self):
         c = self.new()
         self.assertEqual(c.status, 'NEGOTIATING')
         self.assertEqual(self.flow(self.buyer, c, 'accept', version=1).status_code, 403)
-        result = self.flow(self.artist, c, 'counter', version=1, terms={'price': '2200.00', 'deadline': self.deadline, 'milestones': [20, 30, 50]})
+        result = self.flow(self.artist, c, 'counter', version=1, terms={'price': '2200.00', 'deadline': self.deadline, 'milestones': [30, 30, 40]})
         self.assertEqual(result.status_code, 200, result.data)
         self.assertEqual(self.flow(self.buyer, c, 'accept', version=1).status_code, 409)
         self.assertEqual(self.flow(self.buyer, c, 'accept', version=2).status_code, 200)
@@ -551,6 +616,8 @@ class LifecycleTests(TestCase):
         self.assertEqual(c.ledger.filter(kind='PROVIDER_REFUND').count(), 1)
 
     def test_resale_transfers_asset_and_royalty_is_allocated_once(self):
+        from users.models import ResellerApplication
+        ResellerApplication.objects.create(user=self.buyer, status='approved', tin_number='123456789', bir_certificate='reviewed-test-certificate', bir_certificate_name='bir.png')
         from artworks.models import Artwork
         from wallets.models import PaymentSession, WalletAccount
         from .models import CommissionResale

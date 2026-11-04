@@ -48,8 +48,12 @@ class FeaturedArtworkView(APIView):
         if works:
             popular = max(works, key=rank)
             ranked = bool(art_sales.get(popular.pk) or art_reviews.get(popular.pk))
+            sold_count = art_sales.get(popular.pk, 0)
+            average = art_reviews.get(popular.pk, {}).get('average')
+            rating = f'★ {average:.1f}/5 rating' if average is not None else 'Not rated yet'
             slides.append(slide(popular, 'popular', 'MOST POPULAR' if ranked else 'DISCOVER',
-                                'Ranked by paid purchases, then verified artwork reviews.' if ranked else 'Discover original artwork from our community.'))
+                                f'{sold_count} sold · {rating}'))
+            slides[-1].update(sold_count=sold_count, rating=round(average, 2) if average is not None else None)
             artist_work = max(works, key=artist_rank)
             artist_work = max((w for w in works if w.artist_id == artist_work.artist_id), key=rank)
             ranked_artist = bool(artist_sales.get(artist_work.artist_id) or artist_reviews.get(artist_work.artist_id))

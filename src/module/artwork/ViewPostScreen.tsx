@@ -1,4 +1,6 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
+import ResellerBadge from '@/components/ResellerBadge';
 import { Text } from '@/components/Typography';
 import { useCart } from "@/context/CartContext";
 import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
@@ -281,11 +283,7 @@ export default function ViewPostPage() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(home)");
-    }
+    goBackOr("/(home)");
   };
 
   return (
@@ -362,6 +360,10 @@ export default function ViewPostPage() {
               </Text>
             </TouchableOpacity>
 
+            <TouchableOpacity onPress={() => router.push({ pathname: '/artist-profile', params: { artistId: resolvedArtistId } })}>
+              <Text style={{ color: '#625550', marginTop: 8 }}>Sold by {artistName} · View seller profile</Text>
+            </TouchableOpacity>
+            <ResellerBadge verified={artworkData?.seller_reseller_verified} />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
                 {isAuction ? "Auction" : isDigital ? "Digital" : "Physical"}
@@ -388,7 +390,7 @@ export default function ViewPostPage() {
             <ProvenancePanel artworkId={artworkId} />
             {!!artworkData?.provenance && <View style={{ gap: 4, marginVertical: 10 }}>
               <Text>Created by @{artworkData.provenance.created_by} · {artworkData.provenance.creator_verified ? 'Reviewed attribution' : 'Claimed attribution'}</Text>
-              <Text>Currently owned by {artworkData.provenance.current_owner ? `@${artworkData.provenance.current_owner}` : 'Awaiting blockchain confirmation'}</Text>
+              <Text>Open provenance to view the rights granted and holder history.</Text>
             </View>}
 
             <View style={styles.detailsSection}>

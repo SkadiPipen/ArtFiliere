@@ -2,6 +2,8 @@ import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import type { User } from 'firebase/auth';
 import { googleSignUp } from '@/services/googleSignUp';
+import { Ionicons } from '@expo/vector-icons';
+import { captureProfilePhoto } from '@/services/captureProfilePhoto';
 import { pickSettingsImage } from '@/module/settings/settingsApi';
 import { useRef, useState } from "react";
 import { View, Pressable, ScrollView, Image, ActivityIndicator } from "react-native";
@@ -20,6 +22,8 @@ import ProfileInfo from "@/module/auth/sign-up/components/ProfileInfo";
 import Address from "@/module/auth/sign-up/components/Address";
 import RoyaltyInfo from "@/module/auth/sign-up/components/RoyaltyInfo";
 import Success from "@/module/auth/sign-up/components/Success";
+
+import SignupMotion, { SignupBackdrop } from './sign-up/components/SignupMotion';
 
 const TOTAL_STEPS = 5;
 
@@ -146,6 +150,16 @@ export default function SignUp() {
     finally { setBusy(false); }
   }
 
+  async function takeProfilePhoto() {
+    if (busy) return;
+    setBusy(true); setError('');
+    try {
+      const image = await captureProfilePhoto();
+      if (image) updateField('profileImage', image);
+    } catch (e: any) { setError(e.message || 'Unable to take a profile photo.'); }
+    finally { setBusy(false); }
+  }
+
   async function handleCreateAccount(skipPhoto = false) {
     if (submitting.current || busy) return;
     for (const stage of [1, 2, 3, 4]) {
@@ -202,7 +216,8 @@ export default function SignUp() {
   const meta = STEP_META[step];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.cream }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.red }}>
+      <SignupBackdrop />
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -210,16 +225,7 @@ export default function SignUp() {
           padding: 20,
         }}
       >
-        <View
-          style={{
-            width: "100%",
-            maxWidth: 420,
-            alignSelf: "center",
-            backgroundColor: COLORS.white,
-            borderRadius: 16,
-            padding: 24,
-          }}
-        >
+        <SignupMotion step={step}>
           {!isSuccessStep && (
             <>
               <View
@@ -283,7 +289,7 @@ export default function SignUp() {
             </>
           )}
 
-          {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318', marginBottom: 14 }}>{error}</Text>}
+          {!!error && <Text accessibilityRole="alert" style={{ color: '#FFFFFF', backgroundColor: '#84302C', padding: 12, borderRadius: 8, marginBottom: 14 }}>{error}</Text>}
           {busy && <ActivityIndicator color={COLORS.red} />}
           {step === 1 && (
             <CreateAccount formData={formData} updateField={updateField} onGoogleSignUp={handleGoogleSignUp} googleLinked={!!googleUser} busy={busy} />
@@ -299,9 +305,11 @@ export default function SignUp() {
           )}
           {step === 5 && <View style={{ gap: 14, alignItems: 'center' }}>
             <Text style={{ color: COLORS.textMuted }}>You can add or change your photo later in Account Settings.</Text>
-            {!!formData.profileImage && <Image source={{ uri: formData.profileImage }} accessibilityLabel="Selected profile photo" style={{ width: 140, height: 140, borderRadius: 70 }} />}
+            <Pressable accessibilityRole="button" accessibilityLabel="Take profile photo with camera" disabled={busy} onPress={takeProfilePhoto} style={{ width: 124, height: 124, borderRadius: 62, borderWidth: 1.5, borderColor: COLORS.red, backgroundColor: '#FFF5F3', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', opacity: busy ? 0.6 : 1 }}>
+              {formData.profileImage ? <><Image source={{ uri: formData.profileImage }} accessibilityLabel="Selected profile photo" style={{ width: '100%', height: '100%' }} /><View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', paddingVertical: 6, backgroundColor: COLORS.red }}><Ionicons name="camera-outline" size={22} color={COLORS.white} /></View></> : <Ionicons name="camera-outline" size={40} color={COLORS.red} />}
+            </Pressable>
             <Pressable accessibilityRole="button" disabled={busy} onPress={chooseProfilePhoto}><Text style={{ color: COLORS.red, padding: 12, fontWeight: '700' }}>{formData.profileImage ? 'Choose another photo' : 'Upload profile photo'}</Text></Pressable>
-            {!!formData.profileImage && <Pressable disabled={busy} onPress={() => updateField('profileImage', '')}><Text>Remove photo</Text></Pressable>}
+            {!!formData.profileImage && <Pressable disabled={busy} onPress={() => updateField('profileImage', '')}><Text style={{ color: COLORS.red }}>Remove photo</Text></Pressable>}
             <Pressable accessibilityRole="button" disabled={busy} onPress={() => handleCreateAccount(true)}><Text style={{ color: COLORS.textMuted, padding: 12 }}>Skip and create account</Text></Pressable>
           </View>}
           {step === 6 && <Success /> }
@@ -339,7 +347,7 @@ export default function SignUp() {
               </Pressable>
             </View>
           )}
-        </View>
+        </SignupMotion>
       </ScrollView>
     </SafeAreaView>
   );

@@ -28,8 +28,9 @@ export default function Dropdown({
         onPress={() => !disabled && setOpen((prev) => !prev)}
         style={{
           borderWidth: 1,
-          borderColor: COLORS.border,
-          backgroundColor: disabled ? COLORS.border : COLORS.creamLight,
+          borderColor: COLORS.red,
+          backgroundColor: COLORS.white,
+          opacity: disabled ? 0.65 : 1,
           borderRadius: 8,
           paddingHorizontal: 14,
           paddingVertical: 12,
@@ -57,7 +58,7 @@ export default function Dropdown({
         <View
           style={{
             borderWidth: 1,
-            borderColor: COLORS.border,
+            borderColor: COLORS.red,
             borderRadius: 8,
             marginTop: 4,
             maxHeight: 160,

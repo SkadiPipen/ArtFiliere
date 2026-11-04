@@ -1,5 +1,5 @@
 import ProductImage from '@/components/ProductImage';
-import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
+import TransactionHeader from '@/components/TransactionHeader';
 import PurchaseRatingCard from './PurchaseRatingCard';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { Text, TextInput } from '@/components/Typography';
@@ -11,7 +11,7 @@ import SigningModal from '@/module/chat-negotiations/SigningModal';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
 import { downloadPurchase, downloadProtectedFile, downloadCertificate, downloadLicensePdf, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Purchase = {
@@ -30,8 +30,10 @@ type Purchase = {
 };
 
 export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () => void; filter?: 'all' | 'receive' | 'rate' | 'pay' }) {
+  const { width: screenWidth } = useWindowDimensions();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [kind, setKind] = useState<PurchaseKind>('all');
+  const [paymentStatus, setPaymentStatus] = useState<'all' | 'paid' | 'expired'>('all');
   const [expandedPurchase, setExpandedPurchase] = useState<number | string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -82,7 +84,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
     finally { setBusy(false); }
   };
 
-  const rows = filterPurchases(purchases, filter, kind);
+  const rows = filterPurchases(purchases, filter, kind).filter(p => paymentStatus === 'all' || (paymentStatus === 'paid' ? p.status === 'paid' || p.is_royalty_license && p.status === 'active' : p.status === 'expired'));
 
   const stars = (label: string, rating: number, change: (n: number) => void) => (
     <View style={s.gap}>
@@ -119,27 +121,20 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
         <SigningModal id={agreement} onClose={() => setAgreement(null)} onSigned={() => load(true)} />
       ) : null}
       <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
-      <TransactionHeader title="My Transactions" onBack={onClose} onRefresh={() => { void load(true); }} refreshing={loading || busy} />
-      <ScrollView contentContainerStyle={s.page}>
-        <TransactionTitle title={filter === 'rate' ? 'To Rate' : filter === 'pay' ? 'To Pay' : filter === 'receive' ? 'To Receive' : 'My Purchases'} />
-
-        <Text>
-          {filter === 'rate'
-            ? 'Paid purchases stay here until you submit your ratings. You can come back anytime.'
-            : 'Once payment is confirmed, your purchase appears here. Digital artworks are available as PNG downloads.'}
-        </Text>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ flexGrow: 0 }}>
+      <TransactionHeader title={filter === 'rate' ? 'To Rate' : filter === 'pay' ? 'To Pay' : filter === 'receive' ? 'To Receive' : 'My Purchases'} onBack={onClose} onRefresh={() => { void load(true); }} refreshing={loading || busy} />
+      <View style={s.filterBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterBarContent} style={{ flexGrow: 0 }}>
           {(['all', 'physical', 'digital', 'auction', 'commission'] as PurchaseKind[]).map(value => <TouchableOpacity key={value} accessibilityRole="button" accessibilityLabel={`Filter ${value} purchases`} accessibilityState={{ selected: kind === value }} onPress={() => { setKind(value); setReviewing(null); setExpandedPurchase(null); }} style={[s.filterChip, kind === value && s.filterChipActive]}>
             <Text style={[s.filterText, kind === value && s.filterTextActive]}>{value.charAt(0).toUpperCase() + value.slice(1)}</Text>
           </TouchableOpacity>)}
         </ScrollView>
-        <Text style={{ color: '#75655F' }}>Newest first · Physical/Digital filter by artwork format; Auction/Commission filter by purchase source.</Text>
-
-        <TouchableOpacity onPress={() => load(true)}>
-          <Text style={s.link}>Refresh payment status</Text>
-        </TouchableOpacity>
-
+      </View>
+      <ScrollView contentContainerStyle={s.page}>
+        <View style={s.statusFilters}>
+          {(['all', 'paid', 'expired'] as const).map(value => <TouchableOpacity key={value} accessibilityRole="tab" accessibilityLabel={`Show ${value} purchases`} accessibilityState={{ selected: paymentStatus === value }} onPress={() => { setPaymentStatus(value); setReviewing(null); setExpandedPurchase(null); }} style={[s.statusTab, paymentStatus === value && s.statusTabActive]}>
+            <Text style={s.statusTabText}>{value.charAt(0).toUpperCase() + value.slice(1)}</Text>
+          </TouchableOpacity>)}
+        </View>
         {loading ? <ActivityIndicator /> : null}
         {Boolean(error) ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
         {!loading && rows.length === 0 ? <Text>No purchases in this category yet.</Text> : null}
@@ -166,7 +161,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             </TouchableOpacity>
             {expandedPurchase === p.id && <View style={s.purchaseDetails}>
             {Boolean(p.image) ? (
-              <ProductImage source={{ uri: p.image }} style={{ width: '100%', height: 180 }} resizeMode="contain" />
+              <ProductImage source={{ uri: p.image }} style={{ width: '100%', height: screenWidth < 600 ? 280 : 380, backgroundColor: '#F5F1ED', borderRadius: 10 }} resizeMode="contain" />
             ) : null}
 
             {Boolean(p.is_simulated) ? (
@@ -332,14 +327,20 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
 }
 
 const s = StyleSheet.create({
-  page: { padding: 24, paddingTop: 28, gap: 16, maxWidth: 800, width: '100%', alignSelf: 'center' },
+  filterBar: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E8DAD2', paddingVertical: 12 },
+  filterBarContent: { paddingHorizontal: 24, gap: 8, alignItems: 'center' },
+  statusFilters: { flexDirection: 'row', gap: 10, width: '100%' },
+  statusTab: { flex: 1, minWidth: 0, minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 8, borderRadius: 12, borderWidth: 1, borderColor: '#E5DAD3', backgroundColor: '#FFFFFF' },
+  statusTabActive: { borderColor: '#E68A50', backgroundColor: '#FFF0E4' },
+  statusTabText: { color: '#70482F', fontWeight: '700', textAlign: 'center' },
+  page: { padding: 20, paddingTop: 20, gap: 16, maxWidth: 1280, width: '100%', alignSelf: 'center' },
   filterChip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, backgroundColor: '#F5EAE5', borderWidth: 1, borderColor: '#E3D7D0' },
   filterChipActive: { backgroundColor: '#C15656', borderColor: '#C15656' },
   filterText: { color: '#845951', fontWeight: '600' },
   filterTextActive: { color: '#FFF' },
   title: { fontSize: 20, fontWeight: '700', color: '#603c36' },
   row: { flexDirection: 'row', gap: 16, alignItems: 'center', justifyContent: 'space-between' },
-  card: { padding: 18, borderWidth: 1, borderColor: '#e3d7d0', borderRadius: 12, gap: 10 },
+  card: { padding: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2D6CD', borderRadius: 14, gap: 10, boxShadow: '0 3px 14px rgba(67, 43, 30, 0.06)' },
   purchaseSummary: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 84 },
   purchaseThumbnail: { width: 76, height: 76, borderRadius: 8, backgroundColor: '#F5E8E3' },
   thumbnailPlaceholder: { alignItems: 'center', justifyContent: 'center' },

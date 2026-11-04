@@ -12,6 +12,8 @@ export const appFonts = {
   NunitoSansBold: require('../../assets/fonts/NunitoSans_700Bold.ttf'),
 };
 
+export const TypographyDefaults = createContext<{ text?: TextStyle; input?: TextStyle }>({});
+
 const FontContext = createContext<string | undefined>(undefined);
 
 function fontFor(style: TextStyle, heading = false) {
@@ -24,18 +26,24 @@ function fontFor(style: TextStyle, heading = false) {
 // Use real font weights on every platform; explicit fonts (e.g. code) still win.
 export type Text = NativeText;
 export const Text = forwardRef<NativeText, TextProps>(function Text({ style, children, ...props }, ref) {
+  const defaults = useContext(TypographyDefaults);
   const inherited = useContext(FontContext);
-  const flat = StyleSheet.flatten(style) || {};
+  const explicit = StyleSheet.flatten(style) || {};
+  const scaledLineHeight: TextStyle | undefined = defaults.text && explicit.fontSize && !explicit.lineHeight ? { lineHeight: Math.round(explicit.fontSize * 1.4) } : undefined;
+  const resolvedStyle = [defaults.text, scaledLineHeight, style];
+  const flat = StyleSheet.flatten(resolvedStyle) || {};
   const heading = (flat.fontSize || 0) >= 20;
   const family = flat.fontFamily || (!flat.fontSize && !flat.fontWeight && inherited) || fontFor(flat, heading);
   const fontStyle: TextStyle = flat.fontFamily ? {} : { fontFamily: family, fontWeight: 'normal' };
   return <FontContext.Provider value={family}>
-    <NativeText ref={ref} {...props} style={[style, fontStyle]}>{children}</NativeText>
+    <NativeText ref={ref} {...props} style={[resolvedStyle, fontStyle]}>{children}</NativeText>
   </FontContext.Provider>;
 });
 
 export type TextInput = NativeTextInput;
 export const TextInput = forwardRef<NativeTextInput, TextInputProps>(function TextInput({ style, ...props }, ref) {
-  const flat = StyleSheet.flatten(style) || {};
-  return <NativeTextInput ref={ref} {...props} style={[style, !flat.fontFamily && { fontFamily: fontFor(flat), fontWeight: 'normal' }]} />;
+  const defaults = useContext(TypographyDefaults);
+  const resolvedStyle = [defaults.input, style];
+  const flat = StyleSheet.flatten(resolvedStyle) || {};
+  return <NativeTextInput ref={ref} {...props} style={[resolvedStyle, !flat.fontFamily && { fontFamily: fontFor(flat), fontWeight: 'normal' }]} />;
 });

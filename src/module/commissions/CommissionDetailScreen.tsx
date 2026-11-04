@@ -1,4 +1,7 @@
 import { Text, TextInput } from '@/components/Typography';
+import BuyerCommissionOverview, { BuyerAgreementSummary } from './BuyerCommissionOverview';
+import { buyerMilestoneLabels, commissionStatusLabel } from './buyerCommissionFlow';
+import FixedMilestoneSchedule, { COMMISSION_MILESTONE_PERCENTAGES } from './FixedMilestoneSchedule';
 import CommissionDeliveryPanel from './CommissionDeliveryPanel';
 import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import { auth } from '@/firebase/config';
@@ -79,6 +82,17 @@ export default function CommissionDetailScreen() {
   const [comments, setComments] = useState<Record<number, string>>({});
   const [revisionReplies, setRevisionReplies] = useState<Record<number, string>>({});
   const [reason, setReason] = useState('');
+  const [showProposalDetails, setShowProposalDetails] = useState(false);
+  const [helpExpanded, setHelpExpanded] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef({ proposal: 0, agreement: 0, milestones: 0, columns: 0, center: 0, right: 0 });
+  const milestoneY = useRef<Record<number, number>>({});
+  useEffect(() => { setShowProposalDetails(data?.status === 'NEGOTIATING'); }, [data?.status]);
+  const reviewMilestone = (milestoneId?: number) => {
+    if (milestoneId != null) setExpandedMilestones(previous => ({ ...previous, [milestoneId]: true }));
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: sectionY.current.milestones + sectionY.current.columns + sectionY.current.center + (milestoneId != null ? milestoneY.current[milestoneId] || 0 : 0) + 24, animated: true }));
+  };
+  const openHelp = () => { setHelpExpanded(true); requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true })); };
   const [preview, setPreview] = useState('');
   const [payout, setPayout] = useState<Record<string, string>>({ routing_type: 'WALLET', routing_value: 'PH_GCASH' });
   const [payoutInfo, setPayoutInfo] = useState<any>(null);
@@ -245,7 +259,7 @@ export default function CommissionDetailScreen() {
         </TouchableOpacity>
         {data && (
           <View style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>{data.status}</Text>
+            <Text style={styles.statusBadgeText}>{data.is_artist ? data.status : commissionStatusLabel(data.status)}</Text>
           </View>
         )}
       </View>
@@ -261,20 +275,25 @@ export default function CommissionDetailScreen() {
           <ActivityIndicator size="large" color="#C15656" />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.contentContainer}>
 
+            {!data.is_artist && <BuyerCommissionOverview data={data} busy={busy} paymentNotice={paymentNotice}
+              onFund={() => void action('fund')} onRefresh={() => void action('refresh_payment')} onReload={() => void load()}
+              onAgreement={() => setSigning(true)} onProposal={() => { setShowProposalDetails(true); scrollRef.current?.scrollTo({ y: sectionY.current.proposal + sectionY.current.agreement + 24, animated: true }); }}
+              onReview={reviewMilestone} onHelp={openHelp} />}
+
             {/* ROW 1: PORTRAIT COMMISSION (LEFT) & PROPOSAL VERSION (RIGHT) */}
-            <View style={[styles.topRowWrapper, isWebWide ? styles.rowLayout : styles.columnLayout]}>
+            <View onLayout={event => { sectionY.current.proposal = event.nativeEvent.layout.y; }} style={[styles.topRowWrapper, isWebWide ? styles.rowLayout : styles.columnLayout]}>
 
               {/* Left: Portrait Commission */}
               <View style={[styles.topColumn, isWebWide && styles.flexHalf]}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.colHeaderTitle}>Portrait commission</Text>
+                  <Text style={styles.colHeaderTitle}>{data.is_artist ? 'Portrait commission' : 'Commission request'}</Text>
                 </View>
                 <View style={styles.card}>
                   <Text style={styles.titleText}>{data.title}</Text>
-                  <Text style={styles.subtitleText}>{data.status} · {data.artist} / {data.buyer}</Text>
+                  <Text style={styles.subtitleText}>{data.is_artist ? `${data.status} · ${data.artist} / ${data.buyer}` : `${commissionStatusLabel(data.status)} · Artist: ${data.artist} / Buyer: ${data.buyer}`}</Text>
                   <Text style={styles.bodyText}>{data.description}</Text>
                   <Text style={styles.bodyMuted}>References below:</Text>
 
@@ -299,11 +318,12 @@ export default function CommissionDetailScreen() {
               </View>
 
               {/* Right: Proposal Version (Scrollable Box, Plain Background, Signed PDF Button inside) */}
-              <View style={[styles.topColumn, isWebWide && styles.flexHalf]}>
+              <View onLayout={event => { sectionY.current.agreement = event.nativeEvent.layout.y; }} style={[styles.topColumn, isWebWide && styles.flexHalf]}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.colHeaderTitle}>Proposal version</Text>
+                  <Text style={styles.colHeaderTitle}>{data.is_artist ? 'Proposal version' : 'Agreement'}</Text>
                 </View>
-                <View style={[styles.card, styles.scrollableProposalCard]}>
+                {!data.is_artist && <BuyerAgreementSummary data={data} expanded={showProposalDetails} onToggle={() => setShowProposalDetails(value => !value)} onAgreement={() => setSigning(true)} />}
+                {(data.is_artist || showProposalDetails) && <View style={[styles.card, styles.scrollableProposalCard]}>
                   <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={styles.proposalScrollContainer} contentContainerStyle={{ gap: 12 }}>
 
                     {data.proposal ? (
@@ -314,7 +334,7 @@ export default function CommissionDetailScreen() {
 
                         {/* Plain text styling without extra backgrounds */}
                         <View style={{ gap: 6 }}>
-                          {Object.entries(data.proposal.terms).filter(([key]) => !['compensation_terms', 'delivery_quote', 'delivery_details'].includes(key)).map(([key, value]) => (
+                          {Object.entries(data.proposal.terms).filter(([key]) => !['compensation_terms', 'delivery_quote', 'delivery_details', 'milestone_schedule'].includes(key)).map(([key, value]) => (
                             <Text key={key} style={styles.bodyText}>
                               <Text style={{ fontWeight: '700' }}>{key.replace(/_/g, ' ')}: </Text>
                               {Array.isArray(value) ? value.join(' / ') : String(value)}
@@ -322,6 +342,10 @@ export default function CommissionDetailScreen() {
                           ))}
                         </View>
 
+                        {Array.isArray(data.proposal.terms.milestone_schedule) && <View style={{ gap: 7 }}>
+                          <Text style={styles.boldText}>Stage release amounts · artist net basis</Text>
+                          {data.proposal.terms.milestone_schedule.map((stage: any) => <Text key={stage.stage} style={styles.bodyText}>Stage {stage.stage} · {stage.label}: {stage.percentage}% = PHP {stage.artist_amount}{Number(stage.delivery_amount) > 0 ? ` + PHP ${stage.delivery_amount} shipping` : ''}. Total release: PHP {stage.release_amount}.</Text>)}
+                        </View>}
                         {data.proposal.terms.delivery_details?.delivery_snapshot && <View style={{ gap: 6 }}>
                           <Text style={styles.boldText}>Delivery destination · artist confirmation</Text>
                           {['street', 'barangay', 'city', 'province', 'region', 'postal_code'].map(field => <Text key={field} style={styles.bodyText}>{field.replace('_', ' ')}: {data.proposal.terms.delivery_details.delivery_snapshot[field]}</Text>)}
@@ -341,7 +365,7 @@ export default function CommissionDetailScreen() {
                             )}
                             <Button
                               text="Negotiate / counter-offer"
-                              onPress={() => setCounter({ ...data.proposal.terms, ...(data.proposal.terms.license_type === 'personal' ? { compensation_type: 'one_time', compensation_terms: {} } : {}), milestones: data.proposal.terms.milestones.join(',') })}
+                              onPress={() => setCounter({ ...data.proposal.terms, ...(data.proposal.terms.license_type === 'personal' ? { compensation_type: 'one_time', compensation_terms: {} } : {}), milestones: [...COMMISSION_MILESTONE_PERCENTAGES] })}
                             />
 
                             {counter && (
@@ -360,8 +384,7 @@ export default function CommissionDetailScreen() {
                                   </>
                                 )}
 
-                                <Text style={styles.fieldLabel}>Milestone percentages, comma separated</Text>
-                                <TextInput style={styles.input} value={counter.milestones} onChangeText={milestones => setCounter({ ...counter, milestones })} />
+                                <FixedMilestoneSchedule deliveryType={data.art_type} />
 
                                 <AvailabilityCalendar artistId={data.artist_id} selectedDate={counter.deadline.slice(0, 10)} onSelect={date => setCounter({ ...counter, deadline: `${date}T17:00:00+08:00` })} />
 
@@ -381,7 +404,7 @@ export default function CommissionDetailScreen() {
                                 <Button
                                   text="Submit counter-offer"
                                   disabled={busy}
-                                  onPress={() => action('counter', { terms: { ...counter, milestones: counter.milestones.split(',').map(Number) } })}
+                                  onPress={() => action('counter', { terms: { ...counter, milestones: [...COMMISSION_MILESTONE_PERCENTAGES] } })}
                                 />
                               </View>
                             )}
@@ -402,17 +425,18 @@ export default function CommissionDetailScreen() {
                       />
                     </View>
                   )}
-                </View>
+                </View>}
               </View>
             </View>
 
             {/* ROW 2: MILESTONES & REVISIONS (BELOW PORTRAIT COMMISSION & PROPOSAL) */}
-            <View style={styles.bottomSectionWrapper}>
+            <View onLayout={event => { sectionY.current.milestones = event.nativeEvent.layout.y; }} style={styles.bottomSectionWrapper}>
               <View style={styles.sectionMainHeader}>
                 <Text style={styles.sectionMainTitle}>Milestones & Revision History</Text>
+                {!data.is_artist && <Text style={styles.helperText}>One consolidated revision request per stage. Work approval and payout confirmation are tracked separately.</Text>}
               </View>
 
-              <View style={[styles.bottomColumnsLayout, isWebWide ? styles.rowLayout : styles.columnLayout]}>
+              <View onLayout={event => { sectionY.current.columns = event.nativeEvent.layout.y; }} style={[styles.bottomColumnsLayout, isWebWide ? styles.rowLayout : styles.columnLayout]}>
 
                 {/* 1. LEFT COLUMN: Funding due & Verified funding with refresh icon button */}
                 <View style={[styles.milestonesLeftCol, isWebWide ? styles.colWidthLeft : styles.colFull]}>
@@ -435,9 +459,7 @@ export default function CommissionDetailScreen() {
 
                     {data.funding_due_at && <Text style={styles.bodyText}>Funding due: {new Date(data.funding_due_at).toLocaleString()}</Text>}
 
-                    {!data.is_artist && data.status === 'AWAITING_FUNDS' && (
-                      <Button text="Fund full commission" disabled={busy} onPress={() => action('fund')} />
-                    )}
+
 
                     <Text style={styles.bodyText}>
                       Verified funding: {data.funded_at ? new Date(data.funded_at).toLocaleString() : 'Awaiting payment confirmation'}
@@ -487,6 +509,7 @@ export default function CommissionDetailScreen() {
                       <Text selectable style={styles.hashText}>Blockchain: {data.asset.proof_status} {data.asset.transaction_hash}</Text>
                       {!data.is_artist && data.asset.license.allow_resale && (
                         <View style={{ gap: 8 }}>
+                          {!data.seller_verified ? <TouchableOpacity onPress={() => router.push('/reseller-verification' as any)}><Text style={{ color: '#A74646' }}>Complete reseller verification before listing this purchase</Text></TouchableOpacity> : <>
                           <TextInput style={styles.input} value={resalePrice} onChangeText={setResalePrice} placeholder="Resale listing price PHP" placeholderTextColor="#9D8D85" />
                           <Button
                             text="List deliverable for resale"
@@ -499,6 +522,7 @@ export default function CommissionDetailScreen() {
                               }
                             }}
                           />
+                          </>}
                         </View>
                       )}
                     </View>
@@ -506,11 +530,12 @@ export default function CommissionDetailScreen() {
                 </View>
 
                 {/* 2. CENTER COLUMN: Stages with collapsible overview (Stage:, %, Artist payout, Payout, Review due) */}
-                <View style={[styles.milestonesCenterCol, isWebWide ? styles.colWidthCenter : styles.colFull]}>
+                <View onLayout={event => { sectionY.current.center = event.nativeEvent.layout.y; }} style={[styles.milestonesCenterCol, isWebWide ? styles.colWidthCenter : styles.colFull]}>
                   {data.milestones.map((m: any) => {
                     const isExpanded = expandedMilestones[m.id];
+                    const buyerLabels = buyerMilestoneLabels(data, m);
                     return (
-                      <View key={m.id} style={styles.card}>
+                      <View key={m.id} onLayout={event => { milestoneY.current[m.id] = event.nativeEvent.layout.y; }} style={styles.card}>
                         {/* Collapsible Overview Header Bar */}
                         <TouchableOpacity
                           activeOpacity={0.7}
@@ -522,8 +547,15 @@ export default function CommissionDetailScreen() {
                               <Text style={styles.stageTitle}>Stage {m.number}: {m.label}</Text>
                               <Text style={styles.stageBadge}>{m.percentage}%</Text>
                             </View>
-                            <Text style={styles.overviewText}>Artist payout: PHP {m.amount} · {m.status}</Text>
-                            <Text style={styles.overviewText}>Payout: {m.payout_status} {m.payout_error}</Text>
+                            {data.is_artist ? <>
+                              <Text style={styles.overviewText}>Artist payout: PHP {m.amount} · {m.status}</Text>
+                              <Text style={styles.overviewText}>Payout: {m.payout_status} {m.payout_error}</Text>
+                            </> : <>
+                              <Text style={styles.overviewText}>Stage amount: PHP {m.amount}</Text>
+                              <Text style={styles.overviewText}>Work: {buyerLabels.work}</Text>
+                              <Text style={styles.overviewText}>Payment: {buyerLabels.payout}</Text>
+                              <Text style={styles.overviewText}>Revision: {buyerLabels.revision}</Text>
+                            </>}
                             {!!m.review_due_at && (
                               <Text style={styles.overviewText}>Review due: {new Date(m.review_due_at).toLocaleString()}</Text>
                             )}
@@ -575,22 +607,23 @@ export default function CommissionDetailScreen() {
                               />
                             )}
 
-                            {!data.is_artist && m.status === 'SUBMITTED' && !data.disputed && (
+                            {!data.is_artist && Boolean(data.funded_at) && data.status === `STAGE_${m.number}` && m.status === 'SUBMITTED' && !data.disputed && (
                               <View style={{ gap: 8 }}>
                                 {!m.revision_used && !m.delivery_ready_at && (
                                   <>
                                     <TextInput
                                       style={[styles.input, styles.multilineInput]}
                                       multiline
+                                      maxLength={2000}
                                       placeholder="One consolidated revision comment for this stage"
                                       placeholderTextColor="#9D8D85"
                                       value={comments[m.id] || ''}
                                       onChangeText={text => setComments({ ...comments, [m.id]: text })}
                                     />
-                                    <Button text="Request revision (1 per stage)" disabled={busy} onPress={() => action('revise', { milestone_id: m.id, comment: comments[m.id] })} />
+                                    <Button text="Request revision (1 per stage)" disabled={busy || !comments[m.id]?.trim()} onPress={() => action('revise', { milestone_id: m.id, comment: comments[m.id] })} />
                                   </>
                                 )}
-                                {!(m.number === 3 && data.art_type.toLowerCase() === 'physical') && <Button text="Approve milestone" disabled={busy} onPress={() => action('approve', { milestone_id: m.id })} />}
+                                {!(m.number === 3 && data.art_type.toLowerCase() === 'physical') && <Button text={m.number === 3 ? "Approve final artwork and unlock original" : "Approve stage and request payment release"} disabled={busy} onPress={() => action('approve', { milestone_id: m.id })} />}
                               </View>
                             )}
 
@@ -607,9 +640,9 @@ export default function CommissionDetailScreen() {
                 </View>
 
                 {/* 3. RIGHT COLUMN: Inspect Preview Header (Close preview Left, Submission Preview Center) & Dispute/Cancellation Box Below It */}
-                <View style={[styles.milestonesRightCol, isWebWide ? styles.colWidthRight : styles.colFull]}>
+                <View onLayout={event => { sectionY.current.right = event.nativeEvent.layout.y; }} style={[styles.milestonesRightCol, isWebWide ? styles.colWidthRight : styles.colFull]}>
                   {!!preview && (
-                    <View style={styles.card}>
+                    <View onLayout={event => { if (!data.is_artist && !isWebWide) scrollRef.current?.scrollTo({ y: sectionY.current.milestones + sectionY.current.columns + sectionY.current.right + event.nativeEvent.layout.y + 24, animated: true }); }} style={styles.card}>
                       <View style={styles.previewHeaderContainer}>
                         <TouchableOpacity
                           activeOpacity={0.7}
@@ -632,18 +665,26 @@ export default function CommissionDetailScreen() {
                   {/* File Dispute & Request Cancellation Box */}
                   {data.status !== 'CANCELLED' && (
                     <View style={styles.card}>
+                      {!data.is_artist && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: helpExpanded || Boolean(data.disputed) }} onPress={() => setHelpExpanded(value => !value)} style={{ paddingVertical: 8 }}>
+                        <Text style={styles.sectionHeading}>Need help? Dispute or cancel {helpExpanded || data.disputed ? '−' : '+'}</Text>
+                        <Text style={styles.helperText}>Report an issue or request a cancellation. These options do not approve work or release funds.</Text>
+                      </TouchableOpacity>}
+                      {(data.is_artist || helpExpanded || data.disputed) && <>
+                      {!!data.disputed && <Text style={styles.disputeText}>Dispute active. Customer Service is reviewing the commission; unreleased funds remain on hold.</Text>}
                       <TextInput
                         style={[styles.input, styles.multilineInput]}
                         multiline
+                        maxLength={4000}
                         placeholder="Explain dispute or cancellation request"
                         placeholderTextColor="#9D8D85"
                         value={reason}
                         onChangeText={setReason}
                       />
                       <View style={[styles.actionRow, {alignSelf: 'flex-end' }]}>
-                        <Button text="File dispute" disabled={busy} onPress={() => action('dispute', { reason })} />
-                        <Button text="Request cancellation" variant="secondary" disabled={busy} onPress={() => action('cancel_request', { reason })} />
+                        <Button text="File dispute" variant={data.is_artist ? 'primary' : 'secondary'} disabled={busy || (!data.is_artist && !reason.trim())} onPress={() => action('dispute', { reason })} />
+                        <Button text="Request cancellation" variant="secondary" disabled={busy || (!data.is_artist && !reason.trim())} onPress={() => action('cancel_request', { reason })} />
                       </View>
+                      </>}
                     </View>
                   )}
                 </View>

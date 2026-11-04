@@ -1,7 +1,11 @@
+import { useContext } from 'react';
+import { AdminRefreshContext } from '@/module/admin/AdminRefresh';
+import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
 import { Text } from '@/components/Typography';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 export function Action({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
-  return <TouchableOpacity accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.button, disabled && { opacity: 0.45 }]}><Text style={styles.buttonText}>{label}</Text></TouchableOpacity>;
+  const adminWorkspace = !!useContext(AdminRefreshContext);
+  return <TouchableOpacity accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.button, adminWorkspace && adminSurfaces.button, disabled && { opacity: 0.45 }]}><Text style={[styles.buttonText, adminWorkspace && adminType.button]}>{label}</Text></TouchableOpacity>;
 }
 export const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#FAF7F3' }, content: { padding: 22, paddingBottom: 70, width: '100%', maxWidth: 1000, alignSelf: 'center', gap: 16 },

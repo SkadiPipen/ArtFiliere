@@ -27,6 +27,7 @@ from .models import (CommissionRequest, CommissionMilestone, CommissionProposal,
                      CommissionPayoutProfile, CommissionLedger, CommissionAsset)
 from .availability import conflicts
 from .royalty_policy import POLICY as RESALE_POLICY, SUMMARY as RESALE_SUMMARY
+from .milestone_policy import PERCENTAGES, LABELS, SUMMARY as MILESTONE_POLICY
 
 
 class Conflict(APIException):
@@ -52,9 +53,9 @@ def normalized_terms(c, data, accepting=False):
     price = money(data.get('price', c.time_duration))
     if price <= 0:
         raise ValidationError('The agreed total must be positive.')
-    percentages = data.get('milestones', [30, 30, 40])
-    if not isinstance(percentages, list) or len(percentages) != 3 or any(type(v) is not int or v <= 0 for v in percentages) or sum(percentages) != 100:
-        raise ValidationError('The three milestone percentages must total 100.')
+    percentages = data.get('milestones', list(PERCENTAGES))
+    if not isinstance(percentages, list) or percentages != list(PERCENTAGES) or any(type(v) is not int for v in percentages):
+        raise ValidationError('Commission stages use the fixed platform schedule of 30%, 30%, and 40%. Neither buyer nor artist may change these percentages. Send a new proposal with the standard schedule.')
     license_type = data.get('license_type', 'personal')
     exclusivity = str(data.get('exclusivity', 'non_exclusive')).replace('-', '_')
     if license_type not in ('personal', 'commercial') or exclusivity not in ('non_exclusive', 'exclusive', 'sole'):
@@ -114,11 +115,16 @@ def normalized_terms(c, data, accepting=False):
     amounts[2] = net - amounts[0] - amounts[1]
     if any(amount <= 0 for amount in amounts):
         raise ValidationError('The total must fund a positive amount for every milestone.')
+    schedule = [{'stage': i + 1, 'label': LABELS[i], 'percentage': percentage, 'artist_amount': str(amounts[i]),
+                 'delivery_amount': str(delivery_fee if i == 2 else Decimal('0.00')),
+                 'release_amount': str(amounts[i] + (delivery_fee if i == 2 else Decimal('0.00')))}
+                for i, percentage in enumerate(percentages)]
     delivery_address = str(delivery.get('delivery_address', '')).strip()
     pickup_address = str(delivery.get('pickup_address', '')).strip()
     if len(delivery_address) > 500 or len(pickup_address) > 500:
         raise ValidationError('Delivery addresses must be at most 500 characters.')
     return {'price': str(price), 'deadline': deadline.isoformat(), 'milestones': percentages,
+            'milestone_policy': MILESTONE_POLICY, 'milestone_schedule': schedule,
             'license_type': license_type, 'exclusivity': exclusivity, 'duration_months': duration,
             'royalty_percentage': str(royalty), 'allow_resale': allow_resale,
             'compensation_type': category, 'compensation_terms': compensation,
@@ -199,7 +205,9 @@ def serialize(c, user):
     asset = CommissionAsset.objects.filter(commission=c).first()
     provenance = getattr(asset, 'provenance_origin', None) if asset else None
     asset_owner = (provenance.current_owner.username if provenance and provenance.registered_at else 'Awaiting blockchain confirmation') if asset and asset.license_terms.get('exclusivity') == 'exclusive' else asset.owner.username if asset else ''
+    from users.resellers import seller_compliant
     return {'id': c.pk, 'title': c.title, 'status': c.status, 'is_artist': user.pk == c.artist_id,
+        'seller_verified': seller_compliant(user),
         'artist': c.artist.username, 'buyer': c.buyer.username, 'artist_id': c.artist_id, 'buyer_id': c.buyer_id,
         'buyer_royalty_enabled': c.buyer.royalty_enabled,
         'art_type': c.art_type, 'deadline': c.deadline, 'description': c.description, 'subject': c.subject, 'style': c.style,
@@ -226,7 +234,13 @@ def accept_proposal(c, latest):
     ConversationParticipant.objects.bulk_create([ConversationParticipant(conversation=conv, user=c.buyer), ConversationParticipant(conversation=conv, user=c.artist)])
     document = '\n\n'.join(['ART LICENSING AND COMMISSION AGREEMENT', f'Artist: {c.artist.username}; Buyer: {c.buyer.username}',
         f'Subject: {c.subject}; Style: {c.style}; Deliverable: {c.art_type}\nInstructions: {c.description}',
-        *[f'{key.replace("_", " ").title()}: {value}' for key, value in terms.items() if key not in ('compensation_terms', 'delivery_quote', 'delivery_details')],
+        *[f'{key.replace("_", " ").title()}: {value}' for key, value in terms.items() if key not in ('compensation_terms', 'delivery_quote', 'delivery_details', 'milestones', 'milestone_schedule')],
+        'PAYMENT AND MILESTONE RELEASE SCHEDULE',
+        f'Total upfront funding: PHP {terms["price"]}. Artist net production fee: PHP {terms["artist_total"]}. Platform fee included in total: PHP {terms["platform_fee"]}. Delivery charge included in total: PHP {terms["delivery_fee"]}.',
+        'The percentages below apply to the artist net production fee, excluding platform fees and delivery charges. Stage 3 includes any remaining cent from rounding.',
+        *[f'Stage {stage["stage"]}: {stage["label"]} - {stage["percentage"]}% of artist net production fee = PHP {stage["artist_amount"]}. Separately allocated delivery charge: PHP {stage["delivery_amount"]}. Total stage release: PHP {stage["release_amount"]}.' for stage in terms['milestone_schedule']],
+        'The buyer funds 100% of the agreed total after both parties sign. Each stage is released only after buyer approval; provider-confirmed payout is tracked separately. Work starts only after payment verification.',
+        'Physical artwork: final release requires buyer confirmation of receipt and inspection. Digital artwork: the buyer reviews the final preview before approval; the original file unlocks after final approval. Any delivery charge is allocated with the final stage.',
         compensation_summary(terms['compensation_type'], terms['compensation_terms']) if terms['license_type'] == 'commercial' else 'Personal commission: one-time production fee without commercial-use royalties. Optional resale permission and resale royalties apply only as explicitly agreed above.',
         'One consolidated buyer revision request/comment per stage. A revision does not create another entitlement. Extra scope requires a separate agreement.',
         'Copyright remains with the original artist. The buyer receives the agreed personal or commercial license; ownership of this asset record does not transfer copyright.',
@@ -239,11 +253,8 @@ def accept_proposal(c, latest):
         compensation_type=terms['compensation_type'], compensation_terms=terms['compensation_terms'])
     c.agreement = a; c.locked_terms = terms; c.time_duration = terms['price']; c.deadline = terms['deadline']; c.platform_fee = terms['platform_fee']; c.status = 'SIGNING'; c.save()
     latest.status = 'ACCEPTED'; latest.save(update_fields=['status'])
-    net = money(terms['artist_total']); amounts = [(net * Decimal(p) / 100).quantize(Decimal('.01')) for p in terms['milestones']]
-    amounts[2] = net - amounts[0] - amounts[1]
-    amounts[2] += money(terms['delivery_fee'])
-    for index, percentage in enumerate(terms['milestones']):
-        CommissionMilestone.objects.create(commission_req=c, milestone_number=index + 1, percentage=percentage, amount=amounts[index], stage_label=['Sketch / Draft', 'WIP / Lineart', 'Final deliverable'][index])
+    for stage in terms['milestone_schedule']:
+        CommissionMilestone.objects.create(commission_req=c, milestone_number=stage['stage'], percentage=stage['percentage'], amount=stage['release_amount'], stage_label=stage['label'])
     for user in (c.buyer, c.artist): notify(c, user, 'Commission terms agreed', 'Review and sign the locked agreement before funding.')
 
 
@@ -459,6 +470,12 @@ class SubmissionFileView(CommissionFlowView):
             for y in range(20, image.height, 100):
                 for x in range(10, image.width, 180): draw.text((x, y), 'ArtFiliere PREVIEW', fill=(200, 65, 65))
             out = BytesIO(); image.save(out, 'JPEG', quality=80); raw = out.getvalue(); mime = 'image/jpeg'
+        if not preview and user.pk == c.buyer_id and mime.startswith('image/'):
+            from fulfillment.watermarks import protected_image
+            from django.conf import settings
+            raw = protected_image(raw, source_key=f'commission:{c.pk}:submission:{s.pk}', buyer_id=c.buyer_id, artist_id=c.artist_id)
+            if getattr(settings, 'DOWNLOAD_WATERMARK_ENABLED', False):
+                mime = 'image/png'
         response = HttpResponse(raw, content_type=mime)
         response['Cache-Control'] = 'private, no-store'; response['X-Content-Type-Options'] = 'nosniff'
         response['Content-Disposition'] = f'attachment; filename="commission-{c.pk}-submission-{s.pk}"'

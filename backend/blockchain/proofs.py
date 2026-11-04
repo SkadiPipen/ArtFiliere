@@ -4,7 +4,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from .models import BlockchainTransaction
-from .service import BlockchainError, record_license, record_sale, register_artwork, verify_artwork, verify_license, verify_sale
+from .service import BlockchainError, contract, record_license, record_sale, register_artwork, verify_artwork, verify_license, verify_sale
 from .utils import sha256_bytes, sha256_record
 
 
@@ -15,6 +15,31 @@ def _save_confirmed(item, result):
     item.confirmed_at = timezone.now()
     item.save(update_fields=["transaction_hash", "block_number", "status", "confirmed_at"])
     return item
+
+
+def _recover_receipt(artwork_id, operation, entity_type, entity_id, getter, event_name, event_key):
+    """Recover a previously mined receipt without attempting an immutable write again."""
+    try:
+        w3, registry = contract()
+        stored = getattr(registry.functions, getter)(entity_id).call()
+        if not stored[3]:
+            return None
+        logs = getattr(registry.events, event_name)().get_logs(
+            from_block=0, to_block='latest', argument_filters={event_key: entity_id})
+        if len(logs) != 1:
+            return None
+        log = logs[0]
+        receipt = w3.eth.get_transaction_receipt(log['transactionHash'])
+        if receipt.status != 1:
+            return None
+        item, _ = BlockchainTransaction.objects.get_or_create(operation=operation,
+            entity_type=entity_type, entity_id=entity_id, transaction_hash=log['transactionHash'].hex(),
+            defaults={'artwork_id': artwork_id, 'proof_hash': bytes(stored[0]).hex(),
+                      'network': settings.BLOCKCHAIN_NETWORK, 'status': 'confirmed',
+                      'block_number': log['blockNumber'], 'confirmed_at': timezone.now()})
+        return item
+    except (BlockchainError, ValueError):
+        return None
 
 
 def record_agreement_proof(agreement):
@@ -31,6 +56,10 @@ def record_agreement_proof(agreement):
                 return existing
         except BlockchainError:
             return existing
+    recovered = _recover_receipt(agreement.artwork_id, 'license_record', 'agreement', agreement.pk,
+                                 'getLicense', 'LicenseRecorded', 'agreementId')
+    if recovered:
+        return recovered
     document = agreement.document_snapshot or agreement.terms_snapshot
     proof_hash = sha256_bytes(document.encode("utf-8"))
     item = BlockchainTransaction.objects.create(
@@ -94,9 +123,16 @@ def record_sale_proof(payment):
                 return existing
         except BlockchainError:
             return existing
+    recovered = _recover_receipt(payment.artwork_id, 'sale_record', 'payment', payment.pk,
+                                 'getSale', 'ArtworkSold', 'paymentId')
+    if recovered:
+        return recovered
     proof_hash = sha256_record({
         "payment_id": payment.id,
+        "buyer_id": payment.buyer_id,
+        "artist_id": payment.artist_id,
         "agreement_id": payment.agreement_id,
+        "license_document_hash": sha256_bytes((payment.agreement.document_snapshot or payment.agreement.terms_snapshot).encode('utf-8')) if payment.agreement else None,
         "artwork_id": payment.artwork_id,
         "gross_amount": str(payment.gross_amount),
         "currency": "PHP",

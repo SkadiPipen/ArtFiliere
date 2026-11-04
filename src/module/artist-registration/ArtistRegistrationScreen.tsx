@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
@@ -126,10 +127,8 @@ export default function RegisterArtistScreen() {
             onPress={() => {
               if (step === 2) {
                 setStep(1);
-              } else if (router.canGoBack()) {
-                router.back();
               } else {
-                router.replace("/(home)");
+                goBackOr('/(home)/profile');
               }
             }}
           >

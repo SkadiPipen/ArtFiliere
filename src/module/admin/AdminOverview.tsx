@@ -1,3 +1,4 @@
+import { adminType } from './adminDesign';
 import { Text } from '@/components/Typography';
 import { StyleSheet, View } from 'react-native';
 
@@ -54,10 +55,10 @@ export default function AdminOverview({ data }: { data?: AdminAnalytics }) {
   </View>;
 }
 const s = StyleSheet.create({
-  section: { gap: 12, marginVertical: 20 }, heading: { fontSize: 21, fontWeight: '800', color: '#322B29', marginTop: 10 },
-  note: { fontSize: 12, lineHeight: 19, color: '#746865' }, grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { flexGrow: 1, flexBasis: 210, padding: 17, borderWidth: 1, borderColor: '#E3D8CC', backgroundColor: '#FFF', borderRadius: 12 },
-  label: { fontSize: 12, color: '#746865', fontWeight: '600' }, number: { fontSize: 28, color: '#C15656', fontWeight: '800', marginTop: 8 },
-  amount: { fontSize: 21, color: '#342B28', fontWeight: '800', marginTop: 8 }, revenueAmount: { fontSize: 28, color: '#342B28', fontWeight: '800', marginTop: 10 },
-  fee: { fontSize: 12, color: '#746865', marginTop: 8 },
+  section: { gap: 12, marginVertical: 20 }, heading: { ...adminType.sectionTitle, marginTop: 10 },
+  note: { ...adminType.muted, }, grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  card: { flexGrow: 1, flexBasis: 210, padding: 17, borderWidth: 1, borderColor: '#E5DAD3', backgroundColor: '#FFF', borderRadius: 12 },
+  label: { ...adminType.label,  color: '#746865', }, number: { ...adminType.metric, marginTop: 8 },
+  amount: { ...adminType.metric, marginTop: 8 }, revenueAmount: { ...adminType.metric, marginTop: 10 },
+  fee: { ...adminType.muted, marginTop: 8 },
 });

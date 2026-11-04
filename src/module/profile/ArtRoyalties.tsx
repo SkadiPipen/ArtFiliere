@@ -1,10 +1,9 @@
-import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
+import TransactionHeader from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { RefreshCw } from 'lucide-react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
@@ -32,15 +31,13 @@ export default function ArtRoyalties({ onClose }: { onClose: () => void }) {
   const visible = licenses.filter(item => item.license_status === tab);
   return <Modal visible animationType="slide" onRequestClose={onClose}><SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F4' }}>
     <TransactionHeader title="Art Royalties" onBack={onClose} onRefresh={() => { void load(); }} refreshing={loading} />
-    <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28, gap: 16, maxWidth: 850, width: '100%', alignSelf: 'center' }}>
-      <TransactionTitle title="Art Royalties" />
+    <ScrollView contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
       <Text style={{ color: '#81756D', lineHeight: 20 }}>Your royalty-bearing artwork and commission licenses, as buyer or artist.</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>{(['active', 'expired'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value)} style={{ flex: 1, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: tab === value ? '#E68A50' : '#E5DAD3', backgroundColor: tab === value ? '#FFF0E4' : '#FFFFFF' }}><Text style={{ textAlign: 'center', fontWeight: '700', color: '#70482F' }}>{value === 'active' ? 'Active' : 'Expired'} ({licenses.filter(item => item.license_status === value).length})</Text></Pressable>)}</View>
       <Text style={{ color: '#81756D', fontSize: 12, lineHeight: 19 }}>{tab === 'active' ? 'Includes accepted agreements awaiting signatures or final commission delivery. Each card shows its current status.' : 'Expiry ends the agreed term; outstanding reporting and payment obligations may remain due.'}</Text>
-      <Pressable accessibilityRole="button" disabled={loading} onPress={load} style={{ flexDirection: 'row', gap: 8, paddingVertical: 8 }}><RefreshCw size={16} color="#A33F45" /><Text style={{ color: '#A33F45', fontWeight: '600' }}>Refresh licenses</Text></Pressable>
       {loading && <ActivityIndicator color="#C15656" />}
       {!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}
-      {!loading && !error && !visible.length && <Text style={{ color: '#81756D', padding: 20 }}>No {tab} royalty licenses yet.</Text>}
+      {!loading && !error && !visible.length && <View style={s.empty}><Text style={{ color: '#81756D', textAlign: 'center' }}>No {tab} royalty licenses yet.</Text></View>}
       {visible.map(item => <View key={item.id} style={s.card}>
         <View style={s.heading}>
           <View style={s.identity}><Text style={s.title}>{item.title}</Text><Text style={s.meta}>Agreement #{item.id} / {item.is_buyer ? 'You pay royalties' : 'You receive royalties'}</Text></View>
@@ -67,6 +64,7 @@ export default function ArtRoyalties({ onClose }: { onClose: () => void }) {
 }
 
 const s = StyleSheet.create({
+  empty: { padding: 32, minHeight: 140, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2D6CD', borderRadius: 14 },
   card: { borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 12, padding: 16, backgroundColor: '#FFFFFF', gap: 12 },
   heading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   identity: { flex: 1, minWidth: 180, gap: 4 }, title: { fontSize: 18, fontWeight: '700', color: '#70482F' },

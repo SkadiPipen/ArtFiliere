@@ -122,11 +122,11 @@ export default function RoyaltyInfo({
             style={{
               borderWidth: 1,
               borderStyle: "dashed",
-              borderColor: COLORS.border,
+              borderColor: COLORS.red,
               borderRadius: 8,
               paddingVertical: 28,
               alignItems: "center",
-              backgroundColor: COLORS.creamLight,
+              backgroundColor: COLORS.white,
             }}
           >
             <Ionicons
@@ -144,7 +144,7 @@ export default function RoyaltyInfo({
             <View
               style={{
                 borderWidth: 1,
-                borderColor: COLORS.border,
+                borderColor: COLORS.red,
                 borderRadius: 6,
                 paddingHorizontal: 14,
                 paddingVertical: 6,
@@ -166,7 +166,7 @@ export default function RoyaltyInfo({
           {!!formData.businessPermitImage && <Image source={{ uri: formData.businessPermitImage }} resizeMode="contain" accessibilityLabel="Selected business permit" style={{ width: '100%', height: 180, marginTop: 12 }} />}
           {!!error && <Text accessibilityRole="alert" style={{ color: COLORS.red }}>{error}</Text>}
           <Text style={{ marginTop: 14, marginBottom: 8, color: COLORS.textDark }}>Permit expiration date (required)</Text>
-          <CalendarDateField label="Business permit expiration date" value={formData.permitExpiresOn} onChange={value => updateField('permitExpiresOn', value)} minimumDate={new Date(new Date().setHours(0, 0, 0, 0))} />
+          <CalendarDateField appearance="signup" label="Business permit expiration date" value={formData.permitExpiresOn} onChange={value => updateField('permitExpiresOn', value)} minimumDate={new Date(new Date().setHours(0, 0, 0, 0))} />
         </View>
       )}
     </View>

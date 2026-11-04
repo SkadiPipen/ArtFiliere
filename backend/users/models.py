@@ -1,6 +1,41 @@
 from django.db import models
 
 
+class ModeratorApplication(models.Model):
+    user = models.ForeignKey('User', on_delete=models.PROTECT, related_name='moderator_applications', null=True, blank=True)
+    email = models.EmailField(default='')
+    requested_role = models.CharField(max_length=30, choices=[('creative_moderator', 'Creative moderator'), ('customer_support', 'Customer service moderator'), ('driver', 'Driver')])
+    application_details = models.JSONField(default=dict, blank=True)
+    education = models.CharField(max_length=250)
+    motivation = models.TextField(max_length=3000)
+    profile_snapshot = models.JSONField(default=dict)
+    documents = models.JSONField(default=list)
+    status = models.CharField(max_length=20, default='pending', choices=[('pending', 'Pending review'), ('under_review', 'Under review'), ('sent_to_admin', 'Sent to admin'), ('approved', 'Approved'), ('rejected', 'Rejected')])
+    assigned_to = models.ForeignKey('User', on_delete=models.PROTECT, null=True, blank=True, related_name='assigned_moderator_applications')
+    submitted_by = models.ForeignKey('User', on_delete=models.PROTECT, related_name='submitted_moderator_applications')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    version = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['-submitted_at']
+        constraints = [
+            models.UniqueConstraint(fields=['user'], condition=models.Q(status__in=['pending', 'under_review', 'sent_to_admin', 'approved']), name='one_open_moderator_application'),
+            models.UniqueConstraint(fields=['email'], condition=models.Q(status__in=['pending', 'under_review', 'sent_to_admin', 'approved']) & ~models.Q(email=''), name='one_open_moderator_email'),
+        ]
+
+
+class ModeratorApplicationReview(models.Model):
+    application = models.ForeignKey(ModeratorApplication, on_delete=models.PROTECT, related_name='reviews')
+    actor = models.ForeignKey('User', on_delete=models.PROTECT)
+    action = models.CharField(max_length=30)
+    note = models.TextField(blank=True, max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+
+
 class User(models.Model):
     firebase_uid = models.CharField(
         max_length=128,
@@ -38,12 +73,13 @@ class User(models.Model):
     cover_image = models.TextField(blank=True, default='')
     bio = models.TextField(blank=True, null=True, default=None, max_length=2000)
     is_banned = models.BooleanField(default=False)
+    driver_deactivated = models.BooleanField(default=False)
     suspended_until = models.DateTimeField(null=True, blank=True)
 
     @property
     def access_restricted(self):
         from django.utils import timezone
-        return self.is_banned or bool(self.suspended_until and self.suspended_until > timezone.now())
+        return self.is_banned or self.driver_deactivated or bool(self.suspended_until and self.suspended_until > timezone.now())
 
     class RoyaltyStatus(models.TextChoices):
         YES = "yes", "Yes"
@@ -59,6 +95,10 @@ class User(models.Model):
     def royalty_enabled(self):
         from django.utils import timezone
         return RoyaltyApplication.objects.filter(user=self, status='approved', permit_expires_on__gte=timezone.localdate()).exists()
+
+    @property
+    def reseller_verified(self):
+        return not self.access_restricted and ResellerApplication.objects.filter(user=self, status='approved').exists()
 
     royalty_proof = models.FileField(
         upload_to="royalty_proofs/",
@@ -113,6 +153,31 @@ class RoyaltyApplication(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='royalty_reviews')
     review_note = models.CharField(max_length=1000, blank=True, default='')
+
+
+class ResellerApplication(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reseller_applications')
+    tin_number = models.CharField(max_length=12)
+    bir_certificate = models.TextField()
+    bir_certificate_name = models.CharField(max_length=180)
+    sworn_declaration = models.TextField(blank=True)
+    sworn_declaration_name = models.CharField(max_length=180, blank=True)
+    status = models.CharField(max_length=12, default='pending', choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected'), ('revoked', 'Revoked')])
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True)
+    reviewed_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name='+')
+    review_note = models.CharField(max_length=1000, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['user'], condition=models.Q(status__in=['pending', 'approved']), name='one_active_reseller_application')]
+
+
+class ResellerReview(models.Model):
+    application = models.ForeignKey(ResellerApplication, on_delete=models.PROTECT, related_name='reviews')
+    actor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='+')
+    action = models.CharField(max_length=12)
+    note = models.CharField(max_length=1000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Address(models.Model):

@@ -1,4 +1,5 @@
 import base64
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
@@ -158,8 +159,8 @@ class PurchasesView(AuthenticatedAPIView):
                 'royalty_reminder': reminder(c.agreement),
                 'checkout_url': None, 'download_block': blocked, 'can_download': bool(complete and digital and (submission or image) and not blocked),
                 'download_path': f'commissions/flow/{c.pk}/files/{submission.pk}/' if complete and digital and submission else None,
-                'download_filename': submission.filename if submission else None,
-                'download_mime': submission.content_type if submission else None,
+                'download_filename': (f'commission-{c.pk}-submission-{submission.pk}.png' if settings.DOWNLOAD_WATERMARK_ENABLED and submission.content_type.startswith('image/') else submission.filename) if submission else None,
+                'download_mime': ('image/png' if settings.DOWNLOAD_WATERMARK_ENABLED and submission.content_type.startswith('image/') else submission.content_type) if submission else None,
                 'can_rate': bool(complete and not review),
                 'certificate_code': certificate.code if certificate else None,
                 'certificate_path': f'commissions/{c.pk}/coa/' if certificate else None,
@@ -205,6 +206,8 @@ class PurchaseDownloadView(AuthenticatedAPIView):
             payload = bytes(payment.artwork_png) if payment.artwork_png else png_bytes(payment.artwork)
         except ValueError as error:
             return Response({'error': str(error)}, status=409)
+        from .watermarks import protected_image
+        payload = protected_image(payload, source_key=f'payment:{payment.pk}', buyer_id=payment.buyer_id, artist_id=payment.artist_id)
         response = HttpResponse(payload, content_type='image/png')
         response['Content-Disposition'] = f'attachment; filename="artwork-{payment.artwork_id}.png"'
         response['Cache-Control'] = 'private, no-store'
@@ -231,6 +234,8 @@ class RoyaltyLicenseDownloadView(AuthenticatedAPIView):
             payload = png_bytes(license.artwork)
         except ValueError as error:
             return Response({'error': str(error)}, status=409)
+        from .watermarks import protected_image
+        payload = protected_image(payload, source_key=f'agreement:{license.pk}', buyer_id=license.buyer_id, artist_id=license.artwork.artist_id)
         response = HttpResponse(payload, content_type='image/png')
         response['Content-Disposition'] = f'attachment; filename="artwork-{license.artwork_id}.png"'
         response['Cache-Control'] = 'private, no-store'

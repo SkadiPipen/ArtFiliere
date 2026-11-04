@@ -1,7 +1,7 @@
-import TransactionHeader, { TransactionTitle } from '@/components/TransactionHeader';
+import TransactionHeader from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '@/firebase/config';
 import { Contract, contractRequest } from './contracts';
@@ -30,15 +30,24 @@ export default function OngoingNegotiations({ onClose }: { onClose: () => void }
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
       {selected ? <ChatWindow currentUser={auth.currentUser} user={{ id: buying ? selected.artist_uid : selected.buyer_uid, displayName: buying ? selected.artist : selected.buyer, role: buying ? 'artist' : 'buyer', email: '', photoURL: '' }} onClose={() => setSelected(null)} /> : <>
         <TransactionHeader title="Ongoing Negotiations" onBack={onClose} onRefresh={() => { setLoading(true); setRevision(value => value + 1); }} refreshing={loading} />
-        <View style={{ paddingHorizontal: 24, paddingTop: 28, paddingBottom: 16, width: '100%', maxWidth: 800, alignSelf: 'center' }}><TransactionTitle title="Ongoing Negotiations" /></View>
-        {!!error && <Text accessibilityRole="alert" style={{ padding: 16, color: '#b00020' }}>{error}</Text>}
-        {loading ? <ActivityIndicator /> : <FlatList data={rows} keyExtractor={item => String(item.id)} contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 16, width: '100%', maxWidth: 800, alignSelf: 'center' }} ListEmptyComponent={<Text>{error ? 'Unable to load negotiations.' : 'No ongoing negotiations.'}</Text>} renderItem={({ item }) => <TouchableOpacity accessibilityRole="button" onPress={() => setSelected(item)} style={{ padding: 16, borderWidth: 1, borderColor: '#E8D8D0', borderRadius: 10, marginBottom: 10 }}>
+        <FlatList data={loading ? [] : rows} keyExtractor={item => String(item.id)} style={{ flex: 1 }} contentContainerStyle={s.content}
+          ListHeaderComponent={error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
+          ListEmptyComponent={loading ? <ActivityIndicator style={{ marginTop: 24 }} color="#BC5555" /> : <View style={s.empty}><Text style={s.emptyTitle}>{error ? 'Unable to load negotiations.' : 'No ongoing negotiations.'}</Text></View>}
+          renderItem={({ item }) => <TouchableOpacity accessibilityRole="button" onPress={() => setSelected(item)} style={s.card}>
           <Text style={{ fontWeight: '700', fontSize: 16 }}>{item.title}</Text>
           <Text>{item.buyer} / {item.artist}</Text>
           <Text>PHP {item.price} - Awaiting agreement</Text>
           <Text style={{ color: '#C15656', marginTop: 8 }}>View negotiation</Text>
-        </TouchableOpacity>} />}
+        </TouchableOpacity>} />
       </>}
     </SafeAreaView>
   </Modal>;
 }
+
+const s = StyleSheet.create({
+  content: { padding: 20, gap: 16, width: '100%', maxWidth: 1280, alignSelf: 'center' },
+  card: { padding: 20, gap: 6, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2D6CD', borderRadius: 14 },
+  empty: { padding: 32, minHeight: 140, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2D6CD', borderRadius: 14 },
+  emptyTitle: { color: '#786862', textAlign: 'center', fontSize: 16 },
+  error: { color: '#b00020' },
+});

@@ -1,4 +1,6 @@
+import { goBackOr } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
+import FixedMilestoneSchedule, { COMMISSION_MILESTONE_PERCENTAGES } from './FixedMilestoneSchedule';
 import CommissionDeliveryDetails from './CommissionDeliveryDetails';
 import { auth } from "@/firebase/config";
 import NegotiationForm from '@/module/chat-negotiations/negotiationForm';
@@ -44,7 +46,6 @@ export default function CommissionRequestScreen() {
     Dimensions.get("window").width,
   );
   const isDesktop = windowWidth > 860;
-  const mobileStageLayout = Platform.OS !== 'web' || !isDesktop;
 
   React.useEffect(() => {
     const sub = Dimensions.addEventListener("change", ({ window }) => {
@@ -167,7 +168,6 @@ export default function CommissionRequestScreen() {
   };
 
   const [draft, setDraft] = useState<any>(null);
-  const [milestonePercentages, setMilestonePercentages] = useState(['30', '30', '40']);
   const [deliveryQuote, setDeliveryQuote] = useState<any>(null);
   const [floorUnit, setFloorUnit] = useState('');
   const [deliveryInstruction, setDeliveryInstruction] = useState('');
@@ -187,7 +187,7 @@ export default function CommissionRequestScreen() {
         allow_resale: proposal.allowResale === true,
         compensation_type: proposal.compensationCategory || 'one_time', compensation_terms: proposal.compensationTerms || {}, delivery_fee: deliveryFee || '0', note: proposal.note || '',
         delivery_quote: physical ? deliveryQuote.token : '', delivery_floor_unit: floorUnit, delivery_instruction: deliveryInstruction,
-        milestones: milestonePercentages.map(Number), deadline: draft.deadline,
+        milestones: [...COMMISSION_MILESTONE_PERCENTAGES], deadline: draft.deadline,
       } }),
     });
     const data = await response.json();
@@ -269,30 +269,13 @@ export default function CommissionRequestScreen() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(home)" as any);
-    }
+    goBackOr('/artists');
   };
 
   if (draft) return <SafeAreaView style={s.page}>
     <ScrollView contentContainerStyle={{ padding: 20, maxWidth: 1000, width: '100%', alignSelf: 'center', gap: 12 }}>
       <Text style={s.headingRedSmall}>COMMISSION PROPOSAL</Text>
-      <Text>One consolidated revision request/comment per stage. Full upfront funding after both signatures.</Text>
-      <Text>Stage percentages (must total 100)</Text>
-      <View style={{ flexDirection: mobileStageLayout ? 'column' : 'row', gap: 12 }}>
-        {milestonePercentages.map((value, index) => mobileStageLayout ? (
-          <View key={index} style={{ width: '100%', minWidth: 0, gap: 6 }}>
-            <Text>Stage {index + 1} (%)</Text>
-            <TextInput value={value} keyboardType="number-pad" accessibilityLabel={`Stage ${index + 1} percentage`} style={[s.budgetInput, s.mobileStagePercentage]}
-              onChangeText={next => setMilestonePercentages(values => values.map((v, i) => i === index ? next : v))} />
-          </View>
-        ) : (
-          <TextInput key={index} value={value} keyboardType="number-pad" accessibilityLabel={`Stage ${index + 1} percentage`} style={s.budgetInput}
-            onChangeText={next => setMilestonePercentages(values => values.map((v, i) => i === index ? next : v))} />
-        ))}
-      </View>
+      <FixedMilestoneSchedule deliveryType={draft.art_type} />
       {String(draft.art_type).toLowerCase() === 'physical' && <CommissionDeliveryDetails artistId={String(rawArtistId)} onQuote={setDeliveryQuote} floorUnit={floorUnit} onFloorUnit={setFloorUnit} instruction={deliveryInstruction} onInstruction={setDeliveryInstruction} />}
       <NegotiationForm commissionMode commissionShippingFee={deliveryQuote ? Number(deliveryQuote.fee) : undefined} artwork={{ id: 'commission', title: draft.title, art_type: draft.art_type.toLowerCase(), base_price: Number(draft.proposed_budget) }}
         buyerId={auth.currentUser?.uid || ''} buyerName={auth.currentUser?.displayName || ''} artistId={String(rawArtistId)} artistName={params.artistName || 'Artist'} chatId="commission"
@@ -307,14 +290,14 @@ export default function CommissionRequestScreen() {
       </TouchableOpacity>
 
       <ScrollView
-        contentContainerStyle={s.content}
+        contentContainerStyle={[s.content, !isDesktop && { paddingBottom: 56 }]}
         showsVerticalScrollIndicator={false}
       >
         <View
           style={[s.formRow, isDesktop ? s.formRowDesktop : s.formRowMobile]}
         >
           {/* LEFT COLUMN: FOR REFERENCE */}
-          <View style={s.column}>
+          <View style={[s.column, !isDesktop && { flex: 0, flexGrow: 0, flexShrink: 0, flexBasis: 'auto' }]}>
             <Text style={s.headingRed}>FOR REFERENCE</Text>
             <View style={s.redDivider} />
 
@@ -377,7 +360,7 @@ export default function CommissionRequestScreen() {
           </View>
 
           {/* RIGHT COLUMN: ART COMMISSION DETAILS */}
-          <View style={s.column}>
+          <View style={[s.column, !isDesktop && { flex: 0, flexGrow: 0, flexShrink: 0, flexBasis: 'auto' }]}>
             <Text style={s.headingRed}>ART COMMISSION DETAILS</Text>
 
             <View style={s.fieldRow}>
@@ -545,7 +528,7 @@ const s = StyleSheet.create({
   content: { padding: 24, maxWidth: 1100, alignSelf: "center", width: "100%" },
   formRow: { gap: 36 },
   formRowDesktop: { flexDirection: "row", alignItems: "flex-start" },
-  formRowMobile: { flexDirection: "column" },
+  formRowMobile: { flexDirection: "column", gap: 20 },
   column: { flex: 1, width: "100%" },
 
   headingRed: {
@@ -731,11 +714,6 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   generatedTagText: { color: "#795C1D", fontSize: 10, fontWeight: "700" },
-  mobileStagePercentage: {
-    minWidth: 0,
-    width: '100%',
-    alignSelf: 'stretch',
-  },
   budgetInput: {
     borderWidth: 1,
     borderColor: "#B84A4A",

@@ -20,7 +20,7 @@ class ArtistProfileView(APIView):
     def get(self, request, artist_id=None, username=None):
         try:
             lookup = {'username': username} if username is not None else {'id': artist_id}
-            artist = User.objects.get(**lookup, role=User.Role.ARTIST)
+            artist = User.objects.filter(**lookup).filter(Q(role=User.Role.ARTIST) | Q(reseller_applications__status__in=['approved', 'revoked'])).distinct().get()
         except User.DoesNotExist:
             return Response({"error": "Artist not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -31,12 +31,14 @@ class ArtistProfileView(APIView):
                 "id": artist.id,
                 "name": f"{artist.first_name} {artist.last_name}".strip() or artist.username,
                 "username": artist.username,
+                "role": artist.role,
+                "reseller_verified": artist.reseller_verified,
                 "bio": artist.bio if artist.bio is not None else (getattr(application, "bio", "") or ""),
                 "profile_image": artist.profile_image,
                 "cover_image": artist.cover_image,
-                "is_accepting_commissions": artist.is_accepting_commissions,
+                "is_accepting_commissions": artist.role == User.Role.ARTIST and artist.is_accepting_commissions,
                 "artworks": ArtworkSerializer(artworks, many=True).data,
-                "portfolio": artist_portfolio(artist),
+                "portfolio": artist_portfolio(artist) if artist.role == User.Role.ARTIST else [],
             }
         )
 

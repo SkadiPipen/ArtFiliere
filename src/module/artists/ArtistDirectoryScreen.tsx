@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import API_URL from "@/services/api";
 import { useRouter } from "expo-router";
@@ -60,7 +61,7 @@ export default function ArtistDirectoryScreen() {
         <TouchableOpacity
           style={styles.back}
           onPress={() =>
-            router.canGoBack() ? router.back() : router.replace("/(home)")
+            goBackOr("/(home)")
           }
         >
           <ArrowLeft color="#C15656" size={22} />

@@ -13,7 +13,7 @@ export default function CommissionDeliveryPanel({ data, milestone, busy, onActio
   const delivery = data.delivery;
   const ready = !!milestone.delivery_ready_at;
   const submitted = milestone.status === 'SUBMITTED';
-  const enabled = submitted && !data.disputed;
+  const enabled = submitted && !data.disputed && (data.is_artist || Boolean(data.funded_at));
   const reference = delivery?.tracking_reference || data.courier_tracking;
   const hasReference = Boolean(reference);
   const received = Boolean(data.delivered_at);
@@ -24,7 +24,7 @@ export default function CommissionDeliveryPanel({ data, milestone, busy, onActio
   return <View style={{ gap: 12, borderTopWidth: 1, borderColor: '#E2D5CE', paddingTop: 16 }}>
     <Text style={{ fontWeight: '800', fontSize: 18, color: '#B84A4A' }}>Physical delivery</Text>
     <Text>Final payment stays locked until the buyer confirms receipt, inspects the artwork and approves the final milestone.</Text>
-    {!submitted && !approved && <Text>Submit the final artwork preview before arranging delivery.</Text>}
+    {!submitted && !approved && <Text>{isArtist ? 'Submit the final artwork preview before arranging delivery.' : 'The artist must submit the final artwork preview before you can approve it for delivery.'}</Text>}
     {enabled && !ready && !hasReference && (isArtist ? <Text>Waiting for the buyer to approve the final preview as ready for delivery.</Text> : button('Approve artwork as ready for delivery', 'ready_delivery'))}
     {ready && <Text>Ready for delivery approved: {new Date(milestone.delivery_ready_at).toLocaleString()}</Text>}
     {!!hasReference && <Text selectable style={{ fontWeight: '700' }}>Tracking: {reference}</Text>}
@@ -45,7 +45,7 @@ export default function CommissionDeliveryPanel({ data, milestone, busy, onActio
     </>}
     {enabled && !isArtist && !received && canReceive && button('Confirm receipt — I received the artwork', 'receive')}
     {received && <Text>Buyer confirmed receipt: {new Date(data.delivered_at).toLocaleString()}</Text>}
-    {enabled && !isArtist && received && button('Approve inspected artwork and release final payment', 'approve')}
+    {enabled && !isArtist && received && button('Approve inspected artwork and request final payout', 'approve')}
     {approved && <Text>Final artwork approved. Delivery and commission complete.</Text>}
     {Boolean(data.disputed) && <Text>Delivery actions are on hold while Customer Service reviews the dispute.</Text>}
   </View>;

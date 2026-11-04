@@ -75,8 +75,8 @@ export default function ProfileInfo({
 
 const inputStyle = {
   borderWidth: 1,
-  borderColor: COLORS.border,
-  backgroundColor: COLORS.creamLight,
+  borderColor: COLORS.red,
+  backgroundColor: COLORS.white,
   borderRadius: 8,
   paddingHorizontal: 14,
   paddingVertical: 12,

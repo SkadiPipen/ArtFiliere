@@ -1,3 +1,4 @@
+import { goBackToWorkspace } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { AuthContext } from '@/context/AuthContext';
@@ -180,7 +181,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
     const ticket = await request<Ticket>('tickets/', 'POST', { concern: concern!.id, reference_id: reference?.id ?? null, details, evidence, image_data: photo, reported_username: reportedUsername });
     setSelected(ticket); setReply(''); setMode('tickets'); reset(); await loadTickets();
   });
-  const close = onClose || (() => router.canGoBack() ? router.back() : router.replace('/(home)'));
+  const close = onClose || (() => void goBackToWorkspace());
   const accountReport = !!concern && ['suspicious', 'harassment'].includes(concern.id);
   useEffect(() => {
     let active = true;
@@ -202,9 +203,9 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
   }, [reportedUsername, accountReport, chosenAccount, mode, review, user?.uid]);
   const ready = concern && (concern.reference === 'none' || reference);
   return <SafeAreaView style={s.page} edges={embedded ? [] : undefined}><KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <View style={s.header}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={close} style={s.iconButton}><ArrowLeft size={23} color="#62493E" /></TouchableOpacity><View style={{ flex: 1 }}><Text style={s.brand}>ArtFiliere</Text><Text style={s.muted}>{moderator ? `${catalog?.department_label || 'Moderator'} reports` : 'Support & account safety'}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh customer support" disabled={busy} style={[s.iconButton, busy && s.disabled]} onPress={() => { if (selected) run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))); else if (mode === 'tickets' && catalog) run(() => loadTickets()); else loadCatalog(); }}><RefreshCw size={22} color="#984E43" /></TouchableOpacity></View>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-      {!selected && <View style={s.hero}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><ShieldCheck size={30} color="#BC5555" /><Text accessibilityRole="header" style={[s.heroTitle, { flex: 1 }]}>{moderator ? (selected ? 'Report Details' : 'Concern Queues') : 'Customer Support'}</Text></View><Text style={s.heroCopy}>{moderator ? 'Choose a queue, review the concern, and reply to the member.' : 'Guided help and report tracking'}</Text></View>}
+    {!embedded && <View style={s.header}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={close} style={s.iconButton}><ArrowLeft size={23} color="#62493E" /></TouchableOpacity><View style={{ flex: 1 }}><Text style={s.brand}>ArtFiliere</Text><Text style={s.muted}>{moderator ? `${catalog?.department_label || 'Moderator'} reports` : 'Support & account safety'}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh customer support" disabled={busy} style={[s.iconButton, busy && s.disabled]} onPress={() => { if (selected) run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))); else if (mode === 'tickets' && catalog) run(() => loadTickets()); else loadCatalog(); }}><RefreshCw size={22} color="#984E43" /></TouchableOpacity></View>}
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.content, embedded && s.workspaceContent]}>
+      {!selected && <View style={[s.hero, embedded && s.workspaceHero]}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><ShieldCheck size={30} color="#BC5555" /><Text accessibilityRole="header" style={[s.heroTitle, embedded && s.workspaceHeroTitle, { flex: 1 }]}>{moderator ? (selected ? 'Report Details' : 'Concern Queues') : 'Customer Support'}</Text></View><Text style={[s.heroCopy, embedded && s.workspaceHeroCopy]}>{moderator ? 'Choose a queue, review the concern, and reply to the member.' : 'Guided help and report tracking'}</Text></View>}
       {!catalog ? <><Text>{authLoading ? 'Checking your session...' : user ? 'Connecting to customer support...' : 'Sign in to view help and your reports.'}</Text>{!authLoading && <Button disabled={busy} onPress={loadCatalog}>Retry connection</Button>}{!authLoading && !user && <Button onPress={() => router.push('/login')}>Sign in</Button>}</> : moderator && !catalog.is_moderator ? <Text>Moderator access is required.</Text> : <>
         {!moderator && <View style={s.row}><Button disabled={busy} primary={mode === 'new'} onPress={() => { setMode('new'); setSelected(null); }}>New Report / FAQs</Button><Button disabled={busy} primary={mode === 'tickets'} onPress={() => { setMode('tickets'); setSelected(null); run(() => loadTickets()); }}>My Reports</Button></View>}
         {assignments && mode === 'tickets' && !selected && <View style={s.queuePanel}>
@@ -349,6 +350,10 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
 }
 
 const s = StyleSheet.create({
+  workspaceContent: { padding: 28, paddingTop: 28, paddingBottom: 60, gap: 24, maxWidth: 1360 },
+  workspaceHero: { gap: 12, paddingVertical: 0, marginBottom: 0 },
+  workspaceHeroTitle: { fontSize: 29, lineHeight: 38, color: '#3A2D2A' },
+  workspaceHeroCopy: { fontSize: 14, lineHeight: 23, color: '#786862' },
   compactButton: { alignSelf: 'flex-start', minHeight: 40, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 8 },
   caseNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, caseBack: { flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 40 },
   caseSummary: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 12, padding: 18, gap: 10 }, caseTitle: { fontSize: 22, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#3A2D2A' }, caseMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, caseReference: { fontSize: 12, lineHeight: 18, color: '#A84B46', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#EFE1DC' },

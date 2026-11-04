@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import API_URL from '@/services/api';
@@ -40,11 +41,7 @@ export default function ProcessTrackScreen() {
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/commissions' as any);
-    }
+    goBackOr('/commissions');
   };
 
   if (loading) {

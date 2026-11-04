@@ -82,6 +82,8 @@ COMMISSION_HOLDING_ENABLED = os.getenv('COMMISSION_HOLDING_ENABLED', '').lower()
 COMMISSION_PAYOUTS_ENABLED = os.getenv('COMMISSION_PAYOUTS_ENABLED', '').lower() == 'true'
 COMMISSION_IPFS_API_URL = os.getenv('COMMISSION_IPFS_API_URL', '')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:8081')
+DOWNLOAD_WATERMARK_ENABLED = os.getenv('DOWNLOAD_WATERMARK_ENABLED', '').lower() == 'true'
+DOWNLOAD_VISIBLE_TAG_ENABLED = os.getenv('DOWNLOAD_VISIBLE_TAG_ENABLED', 'true').lower() == 'true'
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",

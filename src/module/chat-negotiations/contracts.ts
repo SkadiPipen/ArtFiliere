@@ -46,7 +46,15 @@ export async function readApiResponse(response: Response) {
         : 'The backend returned an HTML page instead of API data. Check the API address and restart Django.';
     throw new Error(`${hint} (HTTP ${response.status})`);
   }
-  if (!response.ok) throw new Error(data.error || data.detail || `Request failed (HTTP ${response.status}).`);
+  if (!response.ok) {
+    const messages = (value: unknown): string => {
+      if (typeof value === 'string') return value;
+      if (Array.isArray(value)) return value.map(messages).filter(Boolean).join(' ');
+      if (value && typeof value === 'object') return Object.entries(value).map(([field, detail]) => `${field}: ${messages(detail)}`).join(' ');
+      return '';
+    };
+    throw new Error(messages(data?.error || data?.detail || data) || `Request failed (HTTP ${response.status}).`);
+  }
   return data;
 }
 export async function contractRequest(path = '', method = 'GET', body?: object) {

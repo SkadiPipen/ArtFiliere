@@ -1,3 +1,3 @@
-import { useRouter } from 'expo-router';
+import { goBackOr } from '@/services/navigation';
 import MyPurchases from '@/module/profile/MyPurchases';
-export default function PurchasesPage() { const router = useRouter(); return <MyPurchases onClose={() => router.canGoBack() ? router.back() : router.replace('/profile')} />; }
+export default function PurchasesPage() { return <MyPurchases onClose={() => goBackOr('/(home)/profile')} />; }

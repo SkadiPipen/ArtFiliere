@@ -73,6 +73,7 @@ class CommissionDeliveryQuoteView(AuthenticatedAPIView):
 class CommissionPolicyView(AuthenticatedAPIView):
     def get(self, request):
         if not self.get_request_user(request): raise PermissionDenied('Sign in to view commission policy.')
+        from .milestone_policy import PERCENTAGES, SUMMARY as MILESTONE_POLICY
         from .royalty_policy import POLICY, SOURCE, BANDS, SUMMARY
-        return Response({'resale_calculation': POLICY, 'resale_source': SOURCE, 'resale_schedule': BANDS, 'resale_summary': SUMMARY, 'resale_royalty_percentage': getattr(settings, 'COMMISSION_RESALE_ROYALTY_PERCENTAGE', None),
+        return Response({'milestone_percentages': list(PERCENTAGES), 'milestone_policy': MILESTONE_POLICY, 'revision_limit_per_stage': 1, 'resale_calculation': POLICY, 'resale_source': SOURCE, 'resale_schedule': BANDS, 'resale_summary': SUMMARY, 'resale_royalty_percentage': getattr(settings, 'COMMISSION_RESALE_ROYALTY_PERCENTAGE', None),
                          'resale_basis': 'Future resale artwork selling price excluding VAT, before platform fees; graduated portions.'})

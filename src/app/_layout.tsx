@@ -2,6 +2,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { Stack } from "expo-router";
 import ContentProtection from "@/components/ContentProtection";
+import BackNavigationTracker from '@/components/BackNavigationTracker';
 import AccountRestrictionNotice from '@/components/AccountRestrictionNotice';
 import ReadOnlyRequestGuard from '@/components/ReadOnlyRequestGuard';
 import PaymentReturnMonitor from '@/components/PaymentReturnMonitor';
@@ -15,6 +16,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <CartProvider>
+        <BackNavigationTracker />
         <ContentProtection />
         <Stack screenOptions={{ headerShown: false }} />
         <AccountRestrictionNotice />

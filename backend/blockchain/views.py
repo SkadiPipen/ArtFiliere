@@ -90,7 +90,7 @@ class PublicVerificationView(APIView):
                 return Response({"verified": False, "record_type": "agreement", "message": "No finalized blockchain record was found for this code."})
             try:
                 valid, _ = verify_license(agreement.id, item.proof_hash)
-                return Response({"verified": valid, "record_type": "agreement", "verification_code": code, "message": "Agreement record is verified by ArtFiliere." if valid else "Agreement proof does not match the current blockchain record."})
+                return Response({"verified": valid, "record_type": "agreement", "verification_code": code, "artwork_id": agreement.artwork_id if valid else None, "message": "Agreement record is verified by ArtFiliere." if valid else "Agreement proof does not match the current blockchain record."})
             except BlockchainError as error:
                 return Response({"verified": False, "message": str(error)}, status=503)
         if code.startswith("AF-SALE-"):
@@ -100,7 +100,7 @@ class PublicVerificationView(APIView):
                 return Response({"verified": False, "record_type": "sale", "message": "No completed blockchain record was found for this code."})
             try:
                 valid, _ = verify_sale(payment.id, item.proof_hash)
-                return Response({"verified": valid, "record_type": "sale", "verification_code": code, "message": "Completed sale is verified by ArtFiliere." if valid else "Sale proof does not match the current blockchain record."})
+                return Response({"verified": valid, "record_type": "sale", "verification_code": code, "artwork_id": payment.artwork_id if valid else None, "message": "Completed sale is verified by ArtFiliere." if valid else "Sale proof does not match the current blockchain record."})
             except BlockchainError as error:
                 return Response({"verified": False, "message": str(error)}, status=503)
         return Response({"verified": False, "message": "Use an ArtFiliere agreement or sale verification code."}, status=400)

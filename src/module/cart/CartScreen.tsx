@@ -1,4 +1,6 @@
+import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
+import TransactionHeader from '@/components/TransactionHeader';
 import { auth } from '@/firebase/config';
 import ContractPanel from '@/module/chat-negotiations/ContractPanel';
 import { Contract, contractRequest, isAgreed, readApiResponse } from '@/module/chat-negotiations/contracts';
@@ -9,7 +11,7 @@ import API_URL from '@/services/api';
 import { purchaseRequest } from '@/services/purchases';
 import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentReturn';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MoreHorizontal } from 'lucide-react-native';
+import { ShoppingBag } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -339,17 +341,7 @@ export default function CartScreen() {
           onClose={() => { setContractArtwork(null); refreshContracts(); }} 
         />
       )}
-      <View style={styles.topAppBar}>
-        <View style={styles.headerInner}>
-          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}>
-            <ArrowLeft color="#C15656" size={24} />
-          </TouchableOpacity>
-          <Text style={styles.appBarTitle}>Cart</Text>
-          <TouchableOpacity>
-            <MoreHorizontal color="#000" size={24} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TransactionHeader title="Cart" onBack={() => goBackOr('/(home)')} />
 
       <View style={styles.centerContainer}>
         {cartLoading && <Text style={{ padding: 16 }}>Loading your saved cart...</Text>}
@@ -368,7 +360,10 @@ export default function CartScreen() {
 
         {filteredItems.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyStateNotice}>Your cart is empty</Text>
+            <View style={styles.emptyCard}>
+              <ShoppingBag size={36} color="#BC5555" />
+              <Text style={styles.emptyStateNotice}>{activeFilter === 'All' ? 'Your cart is empty' : `No ${activeFilter.toLowerCase()} items in your cart`}</Text>
+            </View>
           </View>
         ) : (
           <FlatList
@@ -422,7 +417,7 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#FAF7F3' },
   topAppBar: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -439,8 +434,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   appBarTitle: { fontSize: 22, fontWeight: 'bold', color: '#C15656' },
-  centerContainer: { flex: 1, width: '100%', maxWidth: 1100, alignSelf: 'center', position: 'relative' },
-  listContainer: { paddingHorizontal: 16, paddingBottom: 200 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 250 },
-  emptyStateNotice: { color: '#999', fontSize: 15 },
+  centerContainer: { flex: 1, width: '100%', maxWidth: 1280, alignSelf: 'center', position: 'relative' },
+  listContainer: { paddingHorizontal: 20, paddingBottom: 200 },
+  emptyContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 140 },
+  emptyCard: { minHeight: 220, padding: 32, gap: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2D6CD', backgroundColor: '#FFFFFF', borderRadius: 14 },
+  emptyStateNotice: { color: '#786862', fontSize: 18, fontFamily: 'LoraSemiBold', textAlign: 'center' },
 });

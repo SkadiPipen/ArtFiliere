@@ -3,6 +3,22 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
+class DownloadFingerprint(models.Model):
+    transaction_code = models.CharField(max_length=24, unique=True, null=True, blank=True, editable=False)
+    blockchain_proof = models.ForeignKey('blockchain.BlockchainTransaction', null=True, blank=True, on_delete=models.PROTECT)
+    license_snapshot = models.JSONField(default=dict, blank=True)
+    token = models.CharField(max_length=61, unique=True, editable=False)
+    source_key = models.CharField(max_length=150)
+    source_sha256 = models.CharField(max_length=64)
+    buyer = models.ForeignKey('users.User', on_delete=models.PROTECT, related_name='download_fingerprints')
+    artist = models.ForeignKey('users.User', on_delete=models.PROTECT, related_name='issued_fingerprints')
+    created_at = models.DateTimeField(auto_now_add=True)
+    issued_at = models.DateTimeField(null=True, editable=False)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['source_key', 'source_sha256'], name='unique_download_source_version')]
+
+
 class DeliveryChat(models.Model):
     order = models.ForeignKey('DeliveryOrder', on_delete=models.PROTECT, related_name='chats')
     contact = models.CharField(max_length=6, choices=[('buyer', 'Buyer'), ('artist', 'Artist')])

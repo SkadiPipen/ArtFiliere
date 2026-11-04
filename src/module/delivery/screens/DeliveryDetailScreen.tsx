@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { checkedDriverPosition, getDriverPosition } from '@/services/driverLocation';
 import { ArtistPickupCard } from '@/module/delivery/components/ArtistPickupCard';
@@ -38,11 +39,7 @@ export default function DeliveryDetailScreen() {
     const [buyerPhotoUri, setBuyerPhotoUri] = useState<string | null>(null);
 
     const safeGoBack = () => {
-        if (router.canGoBack()) {
-            router.back();
-        } else {
-            router.replace('/rider/(tabs)' as any);
-        }
+        goBackOr('/rider/(tabs)');
     };
 
     const effectiveOrderId = delivery?.id ?? (delivery as any)?.order_id ?? routeOrderId;

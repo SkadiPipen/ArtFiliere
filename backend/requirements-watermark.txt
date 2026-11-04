@@ -1,0 +1,2 @@
+# Visible tracking uses Pillow from the base requirements; no AI model is needed.
+-r requirements.txt

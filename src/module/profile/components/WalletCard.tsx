@@ -1,34 +1,39 @@
 import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useFocusEffect } from 'expo-router';
+import { useOpenArtistEarnings } from '../ArtistEarningsPanel';
+import { useCallback, useState } from "react";
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function WalletCard() {
+  const openEarnings = useOpenArtistEarnings();
   const [available, setAvailable] = useState("0.00");
   const [pending, setPending] = useState("0.00");
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const loadWallet = async () => {
+      setError('');
       try {
         const user = auth.currentUser;
         if (!user) return;
-        const response = await fetch(`${API_URL}/api/wallet/`, {
+        const response = await fetch(`${API_URL}/api/artist/earnings/?period=all`, {
           headers: { Authorization: `Bearer ${await user.getIdToken()}` },
         });
         if (!response.ok) throw new Error("Unable to load wallet.");
         const data = await response.json();
-        setAvailable(data.available_balance || "0.00");
-        setPending(data.pending_balance || "0.00");
+        setAvailable(data.summary.available || '0.00');
+        setPending(data.summary.pending || '0.00');
       } catch {
-        // A wallet is optional for buyers and unavailable while the API is offline.
+        setError("Earnings are unavailable. Open Details to retry.");
       } finally {
         setLoading(false);
       }
     };
     loadWallet();
-  }, []);
+  }, []));
 
   return (
     <View style={styles.walletCard}>
@@ -36,22 +41,18 @@ export default function WalletCard() {
       <View style={styles.walletRow}>
         {loading ? (
           <ActivityIndicator color="#fff" />
-        ) : (
-          <View>
-            <Text style={styles.currency}>
+        ) : error ? <Text style={styles.pending}>{error}</Text> : (
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text accessibilityLabel={`Available artist earnings, ${available} pesos`} style={styles.currency}>
               ₱ <Text style={styles.amount}>{available}</Text>
             </Text>
             <Text style={styles.pending}>₱ {pending} pending release</Text>
+            {!!error && <Text style={styles.pending}>{error}</Text>}
           </View>
         )}
         <TouchableOpacity
           style={styles.viewWalletBtn}
-          onPress={() =>
-            Alert.alert(
-              "Artist earnings",
-              `Available: ₱ ${available}\nPending: ₱ ${pending}\n\nPayouts will be enabled after Xendit artist verification.`,
-            )
-          }
+          onPress={openEarnings}
         >
           <Text style={styles.viewWalletText}>Details {">>"}</Text>
         </TouchableOpacity>
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
   walletCard: {
     backgroundColor: "#C15656",
     borderRadius: 16,
-    padding: 22,
+    padding: 20,
     marginTop: -30,
     width: "100%",
     elevation: 6,
@@ -79,17 +80,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
     marginTop: 8,
-    flexWrap: "wrap",
-    gap: 10,
+    flexWrap: "nowrap",
+    gap: 12,
   },
   currency: { color: "#fff", fontSize: 20, fontWeight: "500" },
-  amount: { fontSize: 32, fontWeight: "bold" },
+  amount: { fontSize: 30, fontWeight: "bold" },
   pending: { color: "#FFF5F5", fontSize: 11, marginTop: 3 },
   viewWalletBtn: {
     backgroundColor: "#fff",
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    flexShrink: 0,
   },
   viewWalletText: { color: "#C15656", fontSize: 12, fontWeight: "bold" },
 });

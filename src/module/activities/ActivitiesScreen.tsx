@@ -1,9 +1,11 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
+import TransactionHeader from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Clock3, Store, Truck } from 'lucide-react-native';
+import { Clock3, Store, Truck, Wallet } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -68,22 +70,16 @@ export default function ActivitiesScreen() {
   }, [load]);
 
   return <SafeAreaView style={styles.page} edges={['top', 'left', 'right']}>
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(home)')}>
-        <ArrowLeft color="#C15656" size={24} />
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>Activities</Text>
-      <View style={{ width: 24 }} />
-    </View>
+    <TransactionHeader title="Activities" onBack={() => goBackOr('/(home)')} onRefresh={() => { setLoading(true); void load(); }} refreshing={loading} />
 
     {/* Tabs */}
     <View style={styles.tabBar}>
-      <TouchableOpacity style={[styles.tabItem, tab === 'purchases' && styles.tabItemActive]} onPress={() => setTab('purchases')}>
+      <TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: tab === 'purchases' }} style={[styles.tabItem, tab === 'purchases' && styles.tabItemActive]} onPress={() => setTab('purchases')}>
         <Text style={[styles.tabText, tab === 'purchases' && styles.tabTextActive]}>
           Purchases & Deliveries
         </Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.tabItem, tab === 'posts' && styles.tabItemActive]} onPress={() => setTab('posts')}>
+      <TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: tab === 'posts' }} style={[styles.tabItem, tab === 'posts' && styles.tabItemActive]} onPress={() => setTab('posts')}>
         <Text style={[styles.tabText, tab === 'posts' && styles.tabTextActive]}>
           My Artwork Posts
         </Text>
@@ -102,10 +98,10 @@ export default function ActivitiesScreen() {
             activityLogs.map((log) => (
               <View key={log.id} style={styles.card}>
                 <View style={styles.iconContainer}>
-                  <Truck color="#C15656" size={22} />
+                  {log.action.startsWith('payment') || log.action.startsWith('checkout') ? <Wallet color="#BC5555" size={22} /> : <Truck color="#BC5555" size={22} />}
                 </View>
                 <View style={styles.copy}>
-                  <Text style={styles.artTitle}>{log.action.replace(/_/g, ' ').toUpperCase()}</Text>
+                  <Text style={[styles.artTitle, { textTransform: 'capitalize' }]}>{log.action.replace(/_/g, ' ')}</Text>
                   <Text style={styles.detail}>{log.description}</Text>
                   <Text style={styles.meta}>{new Date(log.created_at).toLocaleDateString()}</Text>
 
@@ -179,7 +175,7 @@ export default function ActivitiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FFFDF7' },
+  page: { flex: 1, backgroundColor: '#FAF7F3' },
   header: {
     height: 58,
     backgroundColor: '#FFFFFF',
@@ -197,27 +193,24 @@ const styles = StyleSheet.create({
   },
 tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderColor: '#E8DDD6',
+    width: '100%', maxWidth: 1280, alignSelf: 'center', padding: 20, paddingBottom: 0, gap: 10,
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14, paddingHorizontal: 8, minHeight: 48, justifyContent: 'center',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 12, backgroundColor: '#FFFFFF',
   },
   tabItemActive: {
-    borderBottomColor: '#C15656',
+    borderColor: '#E68A50', backgroundColor: '#FFF0E4',
   },
   tabText: {
-    color: '#8A7B74',
+    color: '#70482F', textAlign: 'center',
     fontSize: 13,
     fontWeight: '700',
   },
   tabTextActive: {
-    color: '#C15656',
+    color: '#70482F',
   },
   center: {
     flex: 1,
@@ -226,7 +219,7 @@ tabBar: {
   },
   content: {
     width: '100%',
-    maxWidth: 760,
+    maxWidth: 1280,
     alignSelf: 'center',
     padding: 20,
     paddingBottom: 110
@@ -251,18 +244,18 @@ tabBar: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E7DDD5',
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 14,
+    padding: 20,
     flexDirection: 'row',
     gap: 13,
-    marginBottom: 11,
+    marginBottom: 14,
     alignItems: 'flex-start',
   },
   iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 8,
-    backgroundColor: '#FBEBEB',
+    backgroundColor: '#FFF0E4',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -281,8 +274,8 @@ tabBar: {
   },
   artTitle: {
     color: '#3A2D2A',
-    fontWeight: '800',
-    fontSize: 15,
+    fontWeight: '600',
+    fontSize: 18, fontFamily: 'LoraSemiBold',
     flex: 1
   },
   status: {
@@ -300,13 +293,13 @@ tabBar: {
   },
   meta: {
     color: '#9B6A5C',
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 5
   },
   detail: {
     color: '#6E625C',
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 13,
+    lineHeight: 20,
     marginTop: 7
   },
   reason: {
@@ -318,8 +311,7 @@ tabBar: {
   },
   empty: {
     alignItems: 'center',
-    paddingTop: 95,
-    paddingHorizontal: 35
+    padding: 32, minHeight: 180, justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2D6CD', borderRadius: 14,
   },
   emptyTitle: {
     color: '#5D4B46',

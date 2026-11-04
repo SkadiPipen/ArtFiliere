@@ -51,7 +51,7 @@ type Artwork = {
 };
 const label = (value: string) => value.replace("_", " ");
 
-export default function CreativeDashboardScreen() {
+export default function CreativeDashboardScreen({ embedded = false }: { embedded?: boolean }) {
   const { artworkId } = useLocalSearchParams<{ artworkId?: string }>();
   const openedArtwork = useRef<string | undefined>(undefined);
   const [items, setItems] = useState<Artwork[]>([]);
@@ -188,7 +188,7 @@ export default function CreativeDashboardScreen() {
   };
   return (
     <View style={s.page}>
-      <View style={s.header}>
+      {!embedded && <View style={s.header}>
         <View>
           <Text style={s.brand}>ArtFiliere</Text>
           <Text style={s.subtitle}>CREATIVE MODERATOR PORTAL</Text>
@@ -203,17 +203,21 @@ export default function CreativeDashboardScreen() {
           <LogOut size={16} color="#5A4039" />
           <Text style={s.logoutText}>Log out</Text>
         </TouchableOpacity>
-      </View>
-      <ScrollView contentContainerStyle={s.content}>
-        <ArtistRecordReviews />
+      </View>}
+      <ScrollView contentContainerStyle={[s.content, embedded && { maxWidth: 1360, padding: 28, paddingBottom: 60 }]}>
+        {!embedded && <ArtistRecordReviews />}
         <Text style={s.title}>Artwork moderation</Text>
+        {!embedded && <>
         <TouchableOpacity onPress={() => router.push('/attribution-reviews' as any)}><Text style={{ color: '#B74F50', fontWeight: '700', paddingVertical: 12 }}>Attribution & ownership reviews</Text></TouchableOpacity>
+        </>}
         <Text style={s.lead}>
           Review pending work and reconsider declined artwork from artist appeals.
         </Text>
+        {!embedded && <>
         <TouchableOpacity accessibilityRole="button" style={[s.tab, { alignSelf: "flex-start", marginBottom: 16 }]} onPress={() => router.push("/moderator-dashboard")}>
           <Text style={s.tabText}>Artist appeals and reports</Text>
         </TouchableOpacity>
+        </>}
         <View style={s.tabs}>
           <TouchableOpacity
             style={[s.tab, activeTab === "pending" && s.tabActive]}
@@ -540,7 +544,7 @@ const s = StyleSheet.create({
   auctionDetails: { marginTop: 8, gap: 4 },
   gallery: { gap: 8, marginTop: 10 },
   galleryImage: { width: 110, height: 90, borderRadius: 8, backgroundColor: "#EEE" },
-  page: { flex: 1, backgroundColor: "#FFFDF5" },
+  page: { flex: 1, backgroundColor: "#FAF7F3" },
   header: {
     height: 86,
     backgroundColor: "#FFF8D6",
@@ -568,7 +572,7 @@ const s = StyleSheet.create({
   },
   logoutText: { color: "#5A4039", fontWeight: "700", fontSize: 12 },
   content: { width: "100%", maxWidth: 850, alignSelf: "center", padding: 24 },
-  title: { fontSize: 24, fontWeight: "800", color: "#322B29" },
+  title: { fontFamily: "LoraSemiBold", fontSize: 29, color: "#3A2D2A" },
   lead: { fontSize: 13, color: "#746865", marginTop: 5, marginBottom: 18 },
   tabs: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   tab: {
@@ -585,10 +589,10 @@ const s = StyleSheet.create({
   loader: { marginTop: 60 },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
-    padding: 10,
+    borderColor: "#E5DAD3",
+    padding: 20,
     flexDirection: "row",
     gap: 12,
     marginBottom: 10,

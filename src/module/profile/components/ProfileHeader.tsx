@@ -1,12 +1,13 @@
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import ProfileCover from '@/components/ProfileCover';
+import ResellerBadge from '@/components/ResellerBadge';
 import { pickProfileImage } from '@/services/profileImages';
 import API_URL from '@/services/api';
 import { auth } from '@/firebase/config';
 import { useEffect, useState } from 'react';
 import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
-import { Bell, Camera, Edit3, FileText, Folder, Settings } from "lucide-react-native";
+import { Bell, Camera, Edit3, FileText, Folder, Settings, Paintbrush, ArrowRight } from "lucide-react-native";
 import { Alert, Image, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -79,7 +80,7 @@ export default function ProfileHeader({
 
   return (
     <Pressable accessible={false} onHoverIn={() => setCoverHovered(true)} onHoverOut={() => setCoverHovered(false)} style={[styles.headerBackground, mobile && { paddingBottom: 28 }]}>
-      <ProfileCover uri={savedCover ?? profileData?.cover_image} />
+      <ProfileCover uri={savedCover ?? profileData?.cover_image} logoScale={mobile ? 1.25 : 1} />
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
         <View style={[styles.innerContainer, mobile && { paddingHorizontal: 16 }]}>
           {!!coverError && <Text accessibilityRole="alert" style={{ color: '#B91C1C', backgroundColor: '#FFF', padding: 12, borderRadius: 10 }}>{coverError}</Text>}
@@ -137,6 +138,7 @@ export default function ProfileHeader({
                 <Text style={[styles.userName, mobile && styles.mobileName]} numberOfLines={mobile ? undefined : 1}>
                   {fullName}
                 </Text>
+                {!mobile && <>
                 <TouchableOpacity
                   accessibilityRole="button"
                   accessibilityLabel="Edit profile"
@@ -147,10 +149,22 @@ export default function ProfileHeader({
                   <Edit3 color="#A24F41" size={compactEdit ? 16 : 12} />
                   {!compactEdit && <Text style={styles.editBtnText}>Edit Profile</Text>}
                 </TouchableOpacity>
+                </>}
               </View>
 
               {!!profileData?.username && <Text style={styles.username}>@{profileData.username}</Text>}
+              <ResellerBadge verified={profileData?.reseller_verified} />
               {profileData?.bio?.trim() ? <Text style={styles.bio}>{profileData.bio}</Text> : normalizedRole === 'artist' ? <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/(home)/edit-profile')}><Text style={[styles.bio, { color: '#A84B46' }]}>Add artist bio</Text></TouchableOpacity> : null}
+              {mobile && <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
+                {normalizedRole === 'buyer' && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Register as an artist" onPress={() => router.push('/artist-registration')} style={[styles.registerArtistBtn, { marginTop: 0, minHeight: 36, paddingHorizontal: 7, paddingVertical: 8, gap: 4, flexShrink: 1 }]}>
+                  <Paintbrush size={13} color="#A24F41" /><Text style={[styles.registerText, { fontSize: 11, flexShrink: 1 }]}>Become an artist</Text>
+                </TouchableOpacity>}
+
+      <TouchableOpacity accessibilityRole="button" disabled={coverBusy} onFocus={() => setCoverFocused(true)} onBlur={() => setCoverFocused(false)} onPress={changeCover} style={[styles.coverButton, { padding: 7, gap: 4, flexShrink: 1 }, { opacity: showCoverButton ? 1 : 0 }]}>
+        <Camera size={16} color="#70482F" /><Text style={{ color: '#70482F', fontWeight: '700', fontSize: 11 }}>{coverBusy ? 'Saving cover...' : 'Change cover photo'}</Text>
+      </TouchableOpacity>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => router.push('/(home)/edit-profile')} style={[styles.editBtn, styles.editIconBtn]}><Edit3 color="#A24F41" size={16} /></TouchableOpacity>
+              </View>}
               {mobile ? <View style={styles.mobileStats}>
                 <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>25</Text><Text style={styles.mobileStatLabel}>Reviews</Text></View>
                 <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>19</Text><Text style={styles.mobileStatLabel}>Followers</Text></View>
@@ -167,16 +181,22 @@ export default function ProfileHeader({
             </View>
 
           </View>
+      {!mobile && <>
       <TouchableOpacity accessibilityRole="button" disabled={coverBusy} onFocus={() => setCoverFocused(true)} onBlur={() => setCoverFocused(false)} onPress={changeCover} style={[styles.coverButton, { opacity: showCoverButton ? 1 : 0 }]}>
         <Camera size={16} color="#70482F" /><Text style={{ color: '#70482F', fontWeight: '700', fontSize: 12 }}>{coverBusy ? 'Saving cover...' : 'Change cover photo'}</Text>
       </TouchableOpacity>
+      </>}
           </View>
-            {normalizedRole === "buyer" && (
+            {!mobile && normalizedRole === "buyer" && (
               <TouchableOpacity
-                style={styles.registerArtistBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Register as an artist"
+                style={[styles.registerArtistBtn, mobile && { marginTop: 8 }]}
                 onPress={() => router.push("/artist-registration")}
               >
-                <Text style={styles.registerText}>Register as ARTIST</Text>
+                <Paintbrush size={16} color="#A24F41" />
+                <Text style={styles.registerText}>Become an artist</Text>
+                <ArrowRight size={15} color="#A24F41" />
               </TouchableOpacity>
             )}
         </View>
@@ -288,11 +308,14 @@ const styles = StyleSheet.create({
   registerArtistBtn: {
     alignSelf: 'flex-start',
     marginTop: 12,
-    backgroundColor: "#2ECC71",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
-    elevation: 2,
+    backgroundColor: "#FFF5EC",
+    borderWidth: 1,
+    borderColor: '#DCB7A8',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 14,
   },
-  registerText: { color: "#fff", fontWeight: "bold", fontSize: 11 },
+  registerText: { color: "#A24F41", fontWeight: "600", fontSize: 13 },
 });

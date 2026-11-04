@@ -20,7 +20,10 @@ from .moderation import AccountModerationView, ModeratorUsersView, TicketReturnR
 
 from .views import PlatformAdminPaymentsView, PaymentStatusView, AgreementCheckoutView, ActivityHistoryView, ArtworkCheckoutView, CancellationReturnRequestView, CustomerSupportRequestView, PlatformAdminRequestView, PlatformAdminUserView, WalletView, PlatformAdminWalletView, xendit_payment_session_webhook
 
+from .artist_earnings import ArtistEarningsView
+
 urlpatterns = [
+    path('artist/earnings/', ArtistEarningsView.as_view()),
     path('account/restrictions/', RestrictionStatusView.as_view()),
     path('account/appeals/', RestrictionAppealsView.as_view()),
     path('account/appeal-attachments/<int:attachment_id>/', AppealAttachmentView.as_view()),

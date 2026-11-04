@@ -114,8 +114,9 @@ export default function CreateAccount({
 
       <Pressable
         style={{
+          backgroundColor: COLORS.white,
           borderWidth: 1,
-          borderColor: COLORS.border,
+          borderColor: COLORS.red,
           borderRadius: 8,
           paddingVertical: 12,
           flexDirection: "row",
@@ -149,8 +150,8 @@ export default function CreateAccount({
 
 const inputStyle = {
   borderWidth: 1,
-  borderColor: COLORS.border,
-  backgroundColor: COLORS.creamLight,
+  borderColor: COLORS.red,
+  backgroundColor: COLORS.white,
   borderRadius: 8,
   paddingHorizontal: 14,
   paddingVertical: 12,

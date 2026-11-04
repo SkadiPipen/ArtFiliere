@@ -1,3 +1,4 @@
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
 import CategoryPicker from '@/module/artwork/components/CategoryPicker';
@@ -6,9 +7,9 @@ import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ArrowLeft, Plus } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Artwork = {
@@ -30,8 +31,13 @@ type Filter = "all" | Artwork["status"];
 
 export default function MyPortfolioScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const desktop = Platform.OS === 'web' && width >= 768;
+  const pageSize = desktop ? 6 : 5;
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
+  const [page, setPage] = useState(1);
+  const scrollRef = useRef<ScrollView>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Artwork | null>(null);
   const [draftCategories, setDraftCategories] = useState<string[]>([]);
@@ -58,6 +64,15 @@ export default function MyPortfolioScreen() {
       ),
     [artworks, filter],
   );
+  const totalPages = Math.max(1, Math.ceil(visibleArtworks.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageArtworks = visibleArtworks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => { setPage(1); }, [pageSize]);
+  useEffect(() => { setPage(current => Math.min(current, totalPages)); }, [totalPages]);
+  const changePage = (next: number) => {
+    setPage(Math.max(1, Math.min(next, totalPages)));
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
 
   useFocusEffect(useCallback(() => {
     const load = async () => {
@@ -91,9 +106,7 @@ export default function MyPortfolioScreen() {
       <View style={s.header}>
         <TouchableOpacity
           onPress={() =>
-            router.canGoBack()
-              ? router.back()
-              : router.replace("/(home)/profile")
+            goBackOr("/(home)/profile")
           }
           style={s.back}
         >
@@ -112,6 +125,7 @@ export default function MyPortfolioScreen() {
         </TouchableOpacity>
       </View>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
@@ -135,7 +149,7 @@ export default function MyPortfolioScreen() {
               <TouchableOpacity
                 key={value}
                 style={[s.filter, filter === value && s.filterActive]}
-                onPress={() => setFilter(value)}
+                onPress={() => { setFilter(value); setPage(1); }}
               >
                 <Text
                   style={[s.filterText, filter === value && s.filterTextActive]}
@@ -151,9 +165,9 @@ export default function MyPortfolioScreen() {
         {loading ? (
           <ActivityIndicator color="#BC5555" size="large" style={s.loader} />
         ) : visibleArtworks.length ? (
-          <View style={s.grid}>
-            {visibleArtworks.map((artwork) => (
-              <View key={artwork.id} style={s.card}>
+          <View style={[s.grid, desktop && s.desktopGrid]}>
+            {pageArtworks.map((artwork) => (
+              <View key={artwork.id} style={[s.card, desktop && s.desktopCard]}>
               <TouchableOpacity
                 accessibilityRole="button"
                 onPress={() =>
@@ -223,6 +237,17 @@ export default function MyPortfolioScreen() {
             </TouchableOpacity>
           </View>
         )}
+        {!loading && visibleArtworks.length > 0 && <View style={s.pagination}>
+          <View style={s.pageButtons}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Previous portfolio page" disabled={currentPage === 1} onPress={() => changePage(currentPage - 1)} style={[s.pageButton, currentPage === 1 && s.pageDisabled]}><ChevronLeft size={18} color="#BC5555" /></TouchableOpacity>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).filter(n => n === 1 || n === totalPages || Math.abs(n - currentPage) <= 1).map((n, index, shown) => <View key={n} style={s.pageNumberGroup}>
+              {index > 0 && n - shown[index - 1] > 1 && <Text style={s.summaryDetail}>…</Text>}
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Portfolio page ${n}`} accessibilityState={{ selected: currentPage === n }} onPress={() => changePage(n)} style={[s.pageButton, currentPage === n && s.filterActive]}><Text style={[s.filterText, currentPage === n && s.filterTextActive]}>{n}</Text></TouchableOpacity>
+            </View>)}
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Next portfolio page" disabled={currentPage === totalPages} onPress={() => changePage(currentPage + 1)} style={[s.pageButton, currentPage === totalPages && s.pageDisabled]}><ChevronRight size={18} color="#BC5555" /></TouchableOpacity>
+          </View>
+          <Text style={s.summaryDetail}>{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, visibleArtworks.length)} of {visibleArtworks.length} works</Text>
+        </View>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -276,19 +301,24 @@ const s = StyleSheet.create({
   filterText: { color: "#A84B46", fontSize: 12, fontWeight: "800" },
   filterTextActive: { color: "#FFFFFF" },
   loader: { marginTop: 70 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
+  grid: { flexDirection: "column", alignItems: "center", gap: 14 },
+  desktopGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'stretch' },
+  desktopCard: { width: '31%', minWidth: 0 },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#EFE1DC",
     overflow: "hidden",
-    width: "48%",
-    minWidth: 200,
-    flexGrow: 1,
+    width: "100%",
     maxWidth: 310,
   },
   image: { width: "100%", height: 180, backgroundColor: "#EEE7E2" },
+  pagination: { alignItems: 'center', gap: 10, marginTop: 24 },
+  pageButtons: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  pageNumberGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pageButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#F5E8E3', alignItems: 'center', justifyContent: 'center' },
+  pageDisabled: { opacity: 0.35 },
   cardBody: { padding: 12 },
   cardTop: {
     flexDirection: "row",

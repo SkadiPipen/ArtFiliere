@@ -70,6 +70,9 @@ class RiderView(AuthenticatedAPIView):
     permission_classes = [IsAuthenticatedUser]
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
+        if self.get_request_user(request).driver_deactivated:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Your driver account is deactivated. Contact Human Resources.')
         if self.get_request_user(request).role not in ('driver', 'rider'):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Driver access required.')
@@ -103,6 +106,9 @@ class RiderOrdersView(RiderView):
     def post(self, request, order_id, action='status'):
         # Lock rider before order, serializing simultaneous acceptance requests.
         user = User.objects.select_for_update().get(pk=self.get_request_user(request).pk)
+        if user.driver_deactivated:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Your driver account is deactivated. Contact Human Resources.')
         order = orders().select_for_update(of=('self',)).filter(pk=order_id).first()
         if not order or (order.driver_id and order.driver_id != user.id):
             return Response({'error': 'Delivery not found.'}, status=404)
@@ -183,6 +189,9 @@ class RiderProfileView(RiderView):
     @transaction.atomic
     def post(self, request):
         user = User.objects.select_for_update().get(pk=self.get_request_user(request).pk)
+        if user.driver_deactivated:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Your driver account is deactivated. Contact Human Resources.')
         profile, _ = RiderProfile.objects.get_or_create(user=user)
         expire_stale_shift(profile)
         active = request.data.get('is_clocked_in')
@@ -204,6 +213,9 @@ class RiderLocationView(RiderView):
     @transaction.atomic
     def post(self, request):
         user = User.objects.select_for_update().get(pk=self.get_request_user(request).pk)
+        if user.driver_deactivated:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Your driver account is deactivated. Contact Human Resources.')
         profile, _ = RiderProfile.objects.get_or_create(user=user)
         expire_stale_shift(profile)
         if not profile.is_clocked_in:

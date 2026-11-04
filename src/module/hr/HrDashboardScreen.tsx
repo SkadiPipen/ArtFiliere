@@ -1,7 +1,14 @@
+import { staffWorkspaceStyles as workspace } from '@/components/staffWorkspaceStyles';
+import ResellerApprovals from '@/module/admin/ResellerApprovals';
+import ModeratorEvaluation from './ModeratorEvaluation';
+import Svg, { Circle } from 'react-native-svg';
 import { Text, TextInput } from '@/components/Typography';
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
+  Users,
+  Store,
+  History,
   CheckCircle2,
   ClipboardList,
   FileText,
@@ -67,7 +74,19 @@ const statusStyle = (status: ApplicationStatus) => {
 
 export default function HrDashboardScreen() {
   const { width } = useWindowDimensions();
-  const isWide = width >= 768;
+  const desktop = width >= 900;
+  const isWide = width >= 1100;
+  const [applicationAreaWidth, setApplicationAreaWidth] = useState(0);
+  const applicationsSideBySide = applicationAreaWidth >= 1180;
+  const [section, setSection] = useState<'artists' | 'resellers' | 'moderators' | 'drivers' | 'logs'>('artists');
+  const navigation = [
+    { id: 'artists', label: 'Artist registration', icon: ClipboardList },
+    { id: 'resellers', label: 'Reseller applications', icon: Store },
+    { id: 'moderators', label: 'Moderator Evaluation', icon: Users },
+    { id: 'drivers', label: 'Driver Evaluation', icon: Users },
+    { id: 'logs', label: 'Activity logs', icon: History },
+  ] as const;
+  const current = navigation.find(item => item.id === section)!;
   const [applications, setApplications] = useState<ArtistApplication[]>([]);
   const [filter, setFilter] = useState<"all" | ApplicationStatus>("all");
   const [selectedApplication, setSelectedApplication] =
@@ -259,31 +278,23 @@ export default function HrDashboardScreen() {
   };
 
   return (
-    <View style={styles.page}>
-      <View style={styles.header}>
-        <View style={styles.headerInner}>
-          <View>
-            <Text style={styles.brand}>ArtFiliere</Text>
-            <Text style={styles.roleLabel}>HR PORTAL</Text>
-          </View>
-          <TouchableOpacity style={styles.accountButton} onPress={handleLogout}>
-            <LogOut size={15} color="#5A4039" />
-            <Text style={styles.accountButtonText}>Log out</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={[workspace.page, { flexDirection: desktop ? 'row' : 'column' }]}>
+      <View style={[workspace.sidebar, !desktop && { width: '100%', borderRightWidth: 0, borderBottomWidth: 1 }]}>
+        <View style={workspace.brandRow}><Image source={require('../../../assets/images/logo.png')} style={workspace.logo} resizeMode="contain" /><View><Text style={workspace.brand}>ArtFiliere</Text><Text style={workspace.role}>HR MODERATOR</Text></View></View>
+        <ScrollView horizontal={!desktop} style={{ flex: desktop ? 1 : undefined }} contentContainerStyle={[workspace.navigation, !desktop && { flexDirection: 'row' }]}>
+          {navigation.map(({ id, label, icon: Icon }) => <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: section === id }} onPress={() => { setSection(id); if (id === 'logs') void loadLogs(); }} style={[workspace.navItem, section === id && workspace.navActive]}><Icon size={20} color={section === id ? '#A74646' : '#81756D'} /><Text style={[workspace.navLabel, section === id && { color: '#A74646', fontWeight: '700' }]}>{label}</Text></Pressable>)}
+        </ScrollView>
+        <Pressable accessibilityRole="button" onPress={handleLogout} style={workspace.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>Log out</Text></Pressable>
       </View>
-
+      <View style={workspace.main}>
+      <View style={workspace.topbar}><Users size={22} color="#B65B50" /><Text style={workspace.workspace}>HR moderation workspace</Text><Text style={workspace.muted}>{current.label}</Text></View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.content, !isWide && styles.contentCompact]}>
-          <View style={styles.navBar}>
-            <Text style={styles.activeNav}>Artist Registration</Text>
-            <TouchableOpacity onPress={loadLogs} disabled={logsLoading}>
-              <Text style={styles.navText}>
-                {logsLoading ? "Loading logs..." : "Activity Logs"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
+        <View style={[styles.content, !desktop && styles.contentCompact]}>
+          {section === 'resellers' && <ResellerApprovals workspace />}
+          {section === 'moderators' && <ModeratorEvaluation />}
+          {section === 'drivers' && <ModeratorEvaluation driver />}
+          {section === 'logs' && <View style={workspace.hero}><View style={workspace.titleRow}><History size={30} color="#B65B50" /><Text style={workspace.title}>Activity Logs</Text></View><Text style={workspace.intro}>Track artist registration decisions and their review history.</Text></View>}
+          {section === 'artists' && <>
           <Text style={styles.pageTitle}>Artist Registration Requests</Text>
           <Text style={styles.pageSubtitle}>
             Review submitted documents and approve artists when their
@@ -310,7 +321,8 @@ export default function HrDashboardScreen() {
             />
           </View>
 
-          <View style={styles.panel}>
+          <View onLayout={event => setApplicationAreaWidth(event.nativeEvent.layout.width)} style={{ flexDirection: applicationsSideBySide ? 'row' : 'column', alignItems: 'flex-start', gap: 20 }}>
+          <View style={[styles.panel, { flex: applicationsSideBySide ? 1 : undefined, width: applicationsSideBySide ? undefined : '100%', minWidth: 0 }]}>
             <View
               style={[styles.panelHeader, !isWide && styles.panelHeaderCompact]}
             >
@@ -345,7 +357,7 @@ export default function HrDashboardScreen() {
                 <ActivityIndicator size="large" color="#C15656" />
               </View>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
                 <View style={styles.table}>
                   <TableHeader />
                   {filteredApplications.length === 0 ? (
@@ -378,6 +390,7 @@ export default function HrDashboardScreen() {
                           {statusLabel[application.status]}
                         </Text>
                         <TouchableOpacity
+                          style={{ width: 80 }}
                           onPress={() => {
                             setSelectedApplication(application);
                             setIsRejecting(false);
@@ -394,15 +407,19 @@ export default function HrDashboardScreen() {
             )}
           </View>
 
-          {showLogs && (
+          <View style={{ width: applicationsSideBySide ? 300 : '100%', maxWidth: 360, flexShrink: 0 }}><ArtistApplicationChart applications={applications} loading={loading} /></View>
+          </View>
+
+          </>}
+          {section === 'logs' && (
             <View style={styles.logPanel}>
               <View style={styles.logPanelHeader}>
                 <Text style={styles.panelTitle}>Activity logs</Text>
-                <TouchableOpacity onPress={() => setShowLogs(false)}>
-                  <Text style={styles.closeLogText}>Close</Text>
+                <TouchableOpacity onPress={() => void loadLogs()} disabled={logsLoading}>
+                  <Text style={styles.closeLogText}>{logsLoading ? "Loading..." : "Refresh logs"}</Text>
                 </TouchableOpacity>
               </View>
-              {logs.length === 0 ? (
+              {logsLoading ? <ActivityIndicator color="#B65B50" style={{ padding: 28 }} /> : logs.length === 0 ? (
                 <Text style={styles.emptyText}>
                   No activity has been logged yet.
                 </Text>
@@ -428,6 +445,7 @@ export default function HrDashboardScreen() {
           )}
         </View>
       </ScrollView>
+      </View>
 
       <Modal
         visible={!!selectedApplication}
@@ -675,6 +693,28 @@ function SummaryCard({
   );
 }
 
+function ArtistApplicationChart({ applications, loading }: { applications: ArtistApplication[]; loading: boolean }) {
+  const total = applications.length;
+  const segments = ([['pending', '#DAA24A'], ['approved', '#64866B'], ['rejected', '#C15656']] as const).map(([status, color]) => ({ status, color, count: applications.filter(item => item.status === status).length }));
+  const circumference = 2 * Math.PI * 66;
+  return <View style={styles.distributionCard}>
+    <Text style={styles.panelTitle}>Application overview</Text>
+    <Text style={{ color: '#7C6A64', fontSize: 12 }}>All submitted artist applications</Text>
+    {loading ? <ActivityIndicator color="#C15656" style={{ margin: 30 }} /> : <>
+      <View style={{ alignSelf: 'center', width: 184, height: 184, marginVertical: 16 }} accessibilityRole="image" accessibilityLabel={`Application overview: ${segments.map(item => `${item.count} ${item.status}`).join(', ')}`}>
+        <Svg width={184} height={184} viewBox="0 0 184 184"><Circle cx={92} cy={92} r={66} fill="none" stroke="#F3E8E0" strokeWidth={22} />{segments.map((item, index) => {
+          const length = total ? item.count / total * circumference : 0;
+          const start = total ? segments.slice(0, index).reduce((sum, segment) => sum + segment.count, 0) / total * circumference : 0;
+          return length > 0 ? <Circle key={item.status} cx={92} cy={92} r={66} fill="none" stroke={item.color} strokeWidth={22} strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-start} transform="rotate(-90 92 92)" /> : null;
+        })}</Svg>
+        <View pointerEvents="none" style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#4B403C', fontSize: 30, fontWeight: '700' }}>{total}</Text><Text style={{ color: '#7C6A64', fontSize: 12 }}>Applications</Text></View>
+      </View>
+      {segments.map(item => <View key={item.status} style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 12 }}><View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: item.color }} /><Text style={{ flex: 1, color: '#66564E' }}>{statusLabel[item.status]}</Text><Text style={{ color: '#4B403C', fontWeight: '700' }}>{item.count} · {total ? Math.round(item.count / total * 100) : 0}%</Text></View>)}
+      {!total && <Text style={{ color: '#7C6A64', fontSize: 12 }}>No applications yet.</Text>}
+    </>}
+  </View>;
+}
+
 function TableHeader() {
   return (
     <View style={[styles.tableRow, styles.tableHeader]}>
@@ -683,7 +723,7 @@ function TableHeader() {
       <Text style={[styles.headerCell, styles.rateCell]}>Rate</Text>
       <Text style={[styles.headerCell, styles.portfolioCell]}>Portfolio</Text>
       <Text style={[styles.headerCell, styles.statusCell]}>Status</Text>
-      <Text style={styles.headerCell}>Action</Text>
+      <Text style={[styles.headerCell, { width: 80 }]}>Action</Text>
     </View>
   );
 }
@@ -724,15 +764,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   accountButtonText: { color: "#5A4039", fontSize: 12, fontWeight: "800" },
-  scrollContent: { flexGrow: 1, backgroundColor: "#FFFDF5" },
+  scrollContent: { flexGrow: 1, backgroundColor: "#FAF7F3" },
   content: {
     width: "100%",
-    maxWidth: 1120,
+    maxWidth: 1360,
     alignSelf: "center",
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    padding: 28,
+    paddingBottom: 60,
   },
-  contentCompact: { paddingHorizontal: 14 },
+  contentCompact: { paddingHorizontal: 20 },
   navBar: {
     minHeight: 48,
     flexDirection: "row",
@@ -751,15 +791,16 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   pageTitle: {
-    color: "#322B29",
-    fontSize: 24,
-    fontWeight: "800",
-    marginTop: 26,
+    color: "#3A2D2A",
+    fontSize: 29,
+    fontFamily: "LoraSemiBold",
+    marginTop: 0,
   },
   pageSubtitle: {
     color: "#746865",
-    fontSize: 13,
-    marginTop: 5,
+    fontSize: 14,
+    lineHeight: 23,
+    marginTop: 12,
     marginBottom: 20,
   },
   summaryRow: { flexDirection: "row", gap: 14, marginBottom: 22 },
@@ -771,17 +812,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     backgroundColor: "#FFFFFF",
-    borderRadius: 9,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
-    padding: 15,
+    borderColor: "#E5DAD3",
+    padding: 20,
     shadowColor: "#4F403B",
-    shadowOpacity: 0.08,
+    shadowOpacity: 0,
     shadowRadius: 5,
-    elevation: 2,
+    elevation: 0,
   },
   summaryIcon: {
-    backgroundColor: "#FFF3E5",
+    backgroundColor: "#F5E8E3",
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -797,9 +838,9 @@ const styles = StyleSheet.create({
   },
   panel: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
+    borderColor: "#E5DAD3",
     overflow: "hidden",
   },
   panelHeader: {
@@ -830,9 +871,9 @@ const styles = StyleSheet.create({
   logPanel: {
     marginTop: 22,
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E3D8CC",
+    borderColor: "#E5DAD3",
     overflow: "hidden",
   },
   logPanelHeader: {
@@ -858,7 +899,8 @@ const styles = StyleSheet.create({
   },
   logDetail: { color: "#7C6A64", fontSize: 11, marginTop: 2 },
   loading: { height: 260, justifyContent: "center", alignItems: "center" },
-  table: { minWidth: 900 },
+  distributionCard: { alignSelf: 'flex-start', width: '100%', maxWidth: 360, padding: 22, borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 16, backgroundColor: '#FFF' },
+  table: { minWidth: 860, flex: 1 },
   tableRow: {
     minHeight: 56,
     flexDirection: "row",
@@ -867,14 +909,14 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F0E8E2",
     paddingHorizontal: 16,
   },
-  tableHeader: { minHeight: 38, backgroundColor: "#FFF5D8" },
+  tableHeader: { minHeight: 38, backgroundColor: "#F5E8E3" },
   cell: { color: "#4B403C", fontSize: 12 },
   headerCell: { color: "#58463E", fontSize: 11, fontWeight: "800" },
-  artistCell: { width: 155, fontWeight: "700" },
-  emailCell: { width: 220 },
-  rateCell: { width: 120 },
-  portfolioCell: { width: 115 },
-  statusCell: { width: 110, fontWeight: "800" },
+  artistCell: { flex: 1.4, minWidth: 140, paddingRight: 12, fontWeight: "700" },
+  emailCell: { flex: 2, minWidth: 200, paddingRight: 12 },
+  rateCell: { flex: 1, minWidth: 110, paddingRight: 12 },
+  portfolioCell: { flex: 0.9, minWidth: 95, paddingRight: 12 },
+  statusCell: { flex: 1, minWidth: 100, paddingRight: 12, fontWeight: "800" },
   statusPending: { color: "#B37D21" },
   statusApproved: { color: "#4F8757" },
   statusRejected: { color: "#C15656" },

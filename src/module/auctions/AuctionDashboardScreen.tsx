@@ -1,10 +1,13 @@
+import Header from '@/module/home/components/Header';
+import { matchesArtworkCategory, categoryLabel } from '@/services/artworkCategories';
+import { marketplaceHeading } from '@/constants/marketplaceTypography';
 import ProductImage from '@/components/ProductImage';
-import { Text, TextInput } from '@/components/Typography';
+import { Text } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AuctionDashboardScreen() {
@@ -12,6 +15,8 @@ export default function AuctionDashboardScreen() {
   const [data, setData] = useState<any>({ close_to_deadline: [], all_auctions: [] });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [showGuide, setShowGuide] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
   const isDesktop = windowWidth >= 768;
@@ -102,11 +107,14 @@ export default function AuctionDashboardScreen() {
     );
   }
 
-  const filteredAuctions = data.all_auctions.filter(
-    (item: any) =>
-      (item.title || '').toLowerCase().includes(search.toLowerCase()) ||
-      (item.artist_name || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const matchesFilters = (item: any) => {
+    const words = [item.title, item.artist_name, item.description, item.category,
+      ...(item.categories || []).map(categoryLabel)].join(' ').toLowerCase();
+    return search.trim().toLowerCase().split(/\s+/).every(word => words.includes(word))
+      && matchesArtworkCategory({ ...item, art_type: item.is_physical ? 'physical' : 'digital' }, activeCategory);
+  };
+  const filteredAuctions = data.all_auctions.filter(matchesFilters);
+  if (activeCategory === 'Trending') filteredAuctions.sort((a: any, b: any) => (b.bid_count || 0) - (a.bid_count || 0) || Number(b.id) - Number(a.id));
 
   const hasEnded = (item: any) =>
     ['ENDED', 'SETTLED', 'PAYMENT_PENDING', 'BACKUP_OFFER', 'FORFEITED'].includes(item.status) ||
@@ -115,49 +123,11 @@ export default function AuctionDashboardScreen() {
   const pastAuctions = filteredAuctions.filter(hasEnded).sort(
     (a: any, b: any) => new Date(b.end_time).getTime() - new Date(a.end_time).getTime()
   );
-  const deadlineAuctions = data.close_to_deadline.filter((item: any) => !hasEnded(item));
+  const deadlineAuctions = data.close_to_deadline.filter((item: any) => !hasEnded(item) && matchesFilters(item));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      {/* Top Header Bar */}
-      <View style={styles.headerWrapper}>
-        <View style={styles.headerContent}>
-            <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(home)' as any);
-              }
-            }}
-          >
-            <Ionicons name="arrow-back" size={22} color="#FFF" />
-          </TouchableOpacity>
-
-          <View style={styles.searchBar}>
-            <TextInput
-              placeholder="Search auction..."
-              value={search}
-              onChangeText={setSearch}
-              style={styles.searchInput}
-              placeholderTextColor="#999"
-            />
-            <Ionicons name="search" size={18} color="#BC5454" />
-          </View>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Ionicons name="folder-outline" size={20} color="#FFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Ionicons name="notifications-outline" size={20} color="#FFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Ionicons name="settings-outline" size={20} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <Header activeCategory={activeCategory} onSelectCategory={setActiveCategory} searchQuery={search} onSearchChange={setSearch} />
 
       {/* Main Feed Column */}
       <ScrollView
@@ -170,14 +140,15 @@ export default function AuctionDashboardScreen() {
           <View style={styles.banner}>
             <View style={styles.bannerText}>
               <Text style={styles.bannerTitle}>
-                New To <Text style={{ fontWeight: 'bold' }}>Artfilier</Text> Auction?
+                Discover your next original.
               </Text>
               <Text style={styles.bannerSubtitle}>
                 Bid on exclusive curated original pieces.
               </Text>
-              <TouchableOpacity style={styles.bannerButton} activeOpacity={0.8}>
-                <Text style={styles.bannerBtnText}>Learn more about our auction...</Text>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showGuide }} onPress={() => setShowGuide(value => !value)} style={styles.bannerButton} activeOpacity={0.8}>
+                <Text style={styles.bannerBtnText}>{showGuide ? 'Hide guide' : 'How auctions work →'}</Text>
               </TouchableOpacity>
+              {showGuide && <Text style={styles.bannerSubtitle}>Open an artwork to review its terms, current bid and closing time. Place your bid from the artwork page and follow the checkout instructions if you win.</Text>}
             </View>
           </View>
 
@@ -226,7 +197,7 @@ export default function AuctionDashboardScreen() {
 
           {/* Feed Grid */}
           {[
-            { title: 'See More', auctions: ongoingAuctions, empty: 'No live auctions found.' },
+            { title: 'Live auctions', auctions: ongoingAuctions, empty: 'No live auctions found.' },
             { title: 'Past auctions', auctions: pastAuctions, empty: 'No past auctions found.' },
           ].map(section => (
           <View key={section.title} style={styles.sectionContainer}>
@@ -308,7 +279,7 @@ export default function AuctionDashboardScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#C05C5C',
+    backgroundColor: '#F8F9FA',
   },
   centerContainer: {
     flex: 1,
@@ -319,22 +290,22 @@ const styles = StyleSheet.create({
 
   // HEADER
   headerWrapper: {
-    backgroundColor: '#C05C5C',
+    backgroundColor: '#FFFFFF',
     width: '100%',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: '#E8DAD2',
   },
   headerContent: {
     width: '100%',
-    maxWidth: 680,
+    maxWidth: 1280,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
+    gap: 14, flexWrap: 'wrap',
   },
   backBtn: {
-    right: 300,
     paddingVertical: 6,
     paddingRight: 10,
     justifyContent: 'center',
@@ -343,10 +314,10 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#FFF',
+    backgroundColor: '#FAF7F3', borderWidth: 1, borderColor: '#E8DAD2', minWidth: 160,
     borderRadius: 20,
     paddingHorizontal: 14,
-    height: 38,
+    height: 44,
     alignItems: 'center',
   },
   searchInput: {
@@ -376,47 +347,47 @@ const styles = StyleSheet.create({
   },
   feedWrapper: {
     width: '100%',
-    maxWidth: 900,
-    backgroundColor: '#FFFFFF',
+    maxWidth: 1200,
+    backgroundColor: '#F8F9FA',
     minHeight: '100%',
-    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
-    borderRightWidth: Platform.OS === 'web' ? 1 : 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
     borderColor: '#ECECEC',
   },
 
   // BANNER
   banner: {
-    backgroundColor: '#A96B6B',
+    backgroundColor: '#F5E8DC', borderWidth: 1, borderColor: '#E6D6C6',
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 20,
+    padding: 28,
     flexDirection: 'row',
   },
   bannerText: {
     flex: 1,
   },
   bannerTitle: {
-    color: '#FFF',
-    fontSize: 15,
+    color: '#3A2D2A',
+    fontSize: 28, fontFamily: 'LoraSemiBold',
   },
   bannerSubtitle: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 12,
-    marginVertical: 4,
+    color: '#756357',
+    fontSize: 14, lineHeight: 22,
+    marginVertical: 8,
   },
   bannerButton: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: '#BC5555',
     alignSelf: 'flex-start',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     marginTop: 6,
   },
   bannerBtnText: {
     color: '#FFF',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
   },
 
@@ -425,9 +396,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#C05C5C',
+    ...marketplaceHeading,
     marginHorizontal: 16,
     marginBottom: 10,
   },
@@ -500,10 +469,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: '#E2D6CD',
   },
   gridCardDesktop: {
-    width: '48.8%',
+    width: '23%',
     marginBottom: 10,
   },
   gridCardMobile: {
@@ -516,7 +485,7 @@ const styles = StyleSheet.create({
   },
   gridImage: {
     width: '100%',
-    height: 160,
+    height: 190,
   },
   timerBadge: {
     position: 'absolute',
@@ -546,16 +515,16 @@ const styles = StyleSheet.create({
     color: '#C05C5C',
   },
   cardBody: {
-    padding: 10,
+    padding: 16,
   },
   gridTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#222',
+    fontSize: 18,
+    fontWeight: '600', fontFamily: 'LoraSemiBold',
+    color: '#3A2D2A',
   },
   gridArtist: {
     fontSize: 11,
-    color: '#777',
+    color: '#81756D',
     marginTop: 2,
   },
   priceRow: {
@@ -593,6 +562,7 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     padding: 32,
+    marginHorizontal: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2D6CD', borderRadius: 16, minHeight: 150,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -601,4 +571,6 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 13,
   },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  brandTitle: { fontSize: 24, fontFamily: 'LoraSemiBold', color: '#B54848' },
 });

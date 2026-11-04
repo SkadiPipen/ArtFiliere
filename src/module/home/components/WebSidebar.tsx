@@ -36,6 +36,7 @@ interface NavItemProps {
   active: boolean;
   compact: boolean;
   count?: number;
+  onNavigate?: () => void;
 }
 
 // React Native Web supports dataSet; native React Native types omit it.
@@ -50,6 +51,7 @@ function NavItem({
   active,
   compact,
   count,
+  onNavigate,
 }: NavItemProps) {
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -57,6 +59,7 @@ function NavItem({
   return (
     <Link href={href} asChild>
       <Pressable
+        onPress={onNavigate}
         accessibilityRole="link"
         accessibilityLabel={count ? `${label}, ${count} items` : label}
         accessibilityState={{ selected: active }}
@@ -103,7 +106,7 @@ function NavItem({
 
 // --- Main Component ---
 
-export default function WebSidebar() {
+export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const collapsed = false;
   // Keep sidebar contents fixed while CSS resizes the space reserved beside the page.
   const compact = false;
@@ -171,6 +174,7 @@ export default function WebSidebar() {
       active={active}
       compact={compact}
       count={count}
+      onNavigate={onNavigate}
     />
   );
 
@@ -212,6 +216,7 @@ export default function WebSidebar() {
         <Link href="/(home)" asChild>
           <Pressable
             accessibilityLabel="ArtFiliere home"
+            onPress={onNavigate}
             style={StyleSheet.flatten([
               styles.brand,
               { width: compact ? 84 : 256 },
@@ -246,7 +251,7 @@ export default function WebSidebar() {
           )}
           {renderItem('Home', '/(home)', Home, isHome)}
           {renderItem('Activities', '/(home)/activities', Clock, pathname === '/activities')}
-          {renderItem('Auctions', '/auction-dashboard', Compass, pathname === '/auction-dashboard')}
+          {renderItem('Auctions', '/(home)/auction-dashboard', Compass, pathname === '/auction-dashboard')}
 
           <View style={styles.divider} />
 
@@ -269,6 +274,7 @@ export default function WebSidebar() {
             <Link href="/artist-post" asChild>
               <Pressable
                 accessibilityLabel="Create an artwork listing"
+                onPress={onNavigate}
                 style={StyleSheet.flatten([
                   styles.create,
                   compact && { paddingHorizontal: 0 },
@@ -295,6 +301,7 @@ export default function WebSidebar() {
           <Link href="/(home)/profile" asChild>
             <Pressable
               accessibilityLabel={`Open profile for ${name}`}
+              onPress={onNavigate}
               style={StyleSheet.flatten([
                 styles.account,
                 compact && { justifyContent: 'center' },
