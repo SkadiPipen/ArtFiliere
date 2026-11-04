@@ -1,3 +1,4 @@
+import { PlatformDefaultsProvider, useOptionalPlatformDefaults, usePlatformDefaults } from '@/services/platformDefaults';
 import { Text, TextInput } from '@/components/Typography';
 import { RequiredMark } from './NegotiationSection';
 import RoyaltyCalculationFields from './RoyaltyCalculationFields';
@@ -36,13 +37,13 @@ export const compensationOptions: Record<CompensationCategory, Option[]> = {
     { id: 'minimum_guarantee_royalty', label: 'Minimum Guarantee + Royalty', description: 'Each period pays the greater of the guaranteed minimum or calculated royalty.', guarantee: true, details: 'Agree the calculation rate and minimum per period. The guarantee offsets the royalty; it is not an extra charge.' },
   ],
 };
-export function defaultCompensation(subtype: string): CompensationTerms {
+export function defaultCompensation(subtype: string, royaltyRate = 5, duration = 12): CompensationTerms {
   const perUnit = subtype.includes('per_unit');
-  return { subtype, reporting_frequency: 'monthly', reporting_duration_months: 12,
+  return { subtype, reporting_frequency: 'monthly', reporting_duration_months: duration,
     ...(scheduledTypes.includes(subtype) ? { entries: [emptyEntry()] } : {}),
-    ...(!subtype.includes('tiered') && !subtype.includes('guarantee') && !subtype.includes('guaranteed') ? { rate: perUnit ? '1' : '5' } : {}),
-    ...(subtype.includes('tiered') ? { calculation: { basis: 'gross_sales', tiers: [{ from: '0', rate: '5' }] } } : {}),
-    ...(subtype.includes('guarantee') ? { calculation: { basis: 'gross_sales', rate: '5' } } : {}),
+    ...(!subtype.includes('tiered') && !subtype.includes('guarantee') && !subtype.includes('guaranteed') ? { rate: perUnit ? '1' : String(royaltyRate) } : {}),
+    ...(subtype.includes('tiered') ? { calculation: { basis: 'gross_sales', tiers: [{ from: '0', rate: String(royaltyRate) }] } } : {}),
+    ...(subtype.includes('guarantee') ? { calculation: { basis: 'gross_sales', rate: String(royaltyRate) } } : {}),
   };
 }
 export const categoryLabels: Record<CompensationCategory, string> = { one_time: 'Flat-Fee', royalty: 'Royalty-Based', hybrid: 'Hybrid' };
@@ -86,7 +87,9 @@ export function compensationError(category: CompensationCategory, terms: Compens
   return null;
 }
 
-export function CompensationSettings({ enabled, category, terms, onChange, onAccessChange, expectedTotal, commissionMode = false, allowApplication = true }: { allowApplication?: boolean; commissionMode?: boolean; onAccessChange?: (enabled: boolean) => void; expectedTotal?: number; enabled: boolean; category: CompensationCategory; terms: CompensationTerms; onChange: (category: CompensationCategory, terms: CompensationTerms) => void }) {
+function ConfiguredCompensationSettings({ enabled, category, terms, onChange, onAccessChange, expectedTotal, commissionMode = false, allowApplication = true }: { allowApplication?: boolean; commissionMode?: boolean; onAccessChange?: (enabled: boolean) => void; expectedTotal?: number; enabled: boolean; category: CompensationCategory; terms: CompensationTerms; onChange: (category: CompensationCategory, terms: CompensationTerms) => void }) {
+  const platformDefaults = usePlatformDefaults();
+  const configuredCompensation = (subtype: string) => defaultCompensation(subtype, platformDefaults.default_artist_royalty_percentage, platformDefaults.default_license_duration_months);
   const [applicationOpen, setApplicationOpen] = useState(false);
   const option = compensationOptions[category].find(value => value.id === terms.subtype)!;
   const update = (values: Partial<CompensationTerms>) => onChange(category, { ...terms, ...values });
@@ -99,11 +102,11 @@ export function CompensationSettings({ enabled, category, terms, onChange, onAcc
     </Modal>
     <Text style={{ fontSize: 18, fontWeight: '700' }}>Commercial compensation</Text>
     <Text style={{ color: '#81756D', fontSize: 13, lineHeight: 20 }}>Choose how the artist is paid, then set the amounts and schedule below.</Text>
-    <View style={{ gap: 8 }}>{(Object.keys(categoryLabels) as CompensationCategory[]).filter(value => !commissionMode || value !== 'royalty').map(value => <InfoAccordion key={value} title={commissionMode ? value === 'one_time' ? 'One-time commission fee' : 'Upfront fee + commercial royalties' : categoryLabels[value]} description={value === 'one_time' ? 'A fixed fee, paid once or through an agreed schedule.' : value === 'royalty' ? 'Recurring payments based on reported units, sales or profit.' : 'An upfront fee with royalties, or a minimum guarantee per period.'} details={value === 'one_time' ? 'No recurring sales royalty. License scope and duration still apply.' : 'Reports need evidence and artist approval. Automatic collection requires separate payer authorization.'} selected={category === value} disabled={value !== 'one_time' && !enabled} onSelect={() => value !== category && onChange(value, defaultCompensation(value === 'one_time' ? 'one_time_payment' : value === 'royalty' ? 'gross_sales' : 'upfront_gross_sales'))} />)}</View>
+    <View style={{ gap: 8 }}>{(Object.keys(categoryLabels) as CompensationCategory[]).filter(value => !commissionMode || value !== 'royalty').map(value => <InfoAccordion key={value} title={commissionMode ? value === 'one_time' ? 'One-time commission fee' : 'Upfront fee + commercial royalties' : categoryLabels[value]} description={value === 'one_time' ? 'A fixed fee, paid once or through an agreed schedule.' : value === 'royalty' ? 'Recurring payments based on reported units, sales or profit.' : 'An upfront fee with royalties, or a minimum guarantee per period.'} details={value === 'one_time' ? 'No recurring sales royalty. License scope and duration still apply.' : 'Reports need evidence and artist approval. Automatic collection requires separate payer authorization.'} selected={category === value} disabled={value !== 'one_time' && !enabled} onSelect={() => value !== category && onChange(value, configuredCompensation(value === 'one_time' ? 'one_time_payment' : value === 'royalty' ? 'gross_sales' : 'upfront_gross_sales'))} />)}</View>
     {!enabled && <Text style={{ color: '#666' }}>Royalty-Based and Hybrid require admin approval of your unexpired business permit.</Text>}
     {!enabled && allowApplication && <Pressable accessibilityRole="button" onPress={() => setApplicationOpen(true)}><Text style={{ color: '#C15656' }}>View royalty application / submit a permit</Text></Pressable>}
     {compensationOptions[category].filter(value => !commissionMode || value.id === 'one_time_payment' || value.id.startsWith('upfront_')).map(value => <View key={value.id}>
-      <InfoAccordion embedded title={value.label} description={value.description} details={value.details} selected={value.id === terms.subtype} onSelect={() => value.id !== terms.subtype && onChange(category, { ...defaultCompensation(value.id), reporting_duration_months: terms.reporting_duration_months || 12, reporting_frequency: terms.reporting_frequency || 'monthly' })} />
+      <InfoAccordion embedded title={value.label} description={value.description} details={value.details} selected={value.id === terms.subtype} onSelect={() => value.id !== terms.subtype && onChange(category, { ...configuredCompensation(value.id), reporting_duration_months: terms.reporting_duration_months || platformDefaults.default_license_duration_months, reporting_frequency: terms.reporting_frequency || 'monthly' })} />
     </View>)}
     {category !== 'one_time' && <InfoAccordion title="Editable royalty starting values" description="5% is an example starting point for percentage royalties, and PHP 1 for per-item royalties. Both are editable and negotiable. These are not legal minimums, statutory resale rates, or industry benchmarks. Existing negotiated values are preserved when reopening a proposal." />}
     {option?.rate && <><Text>{option.rate === 'unit' ? 'Royalty amount per unit (PHP)' : 'Royalty percentage (%)'}<RequiredMark /></Text><TextInput accessibilityLabel="Royalty rate" value={terms.rate || ''} onChangeText={rate => update({ rate })} keyboardType="decimal-pad" placeholder={option.rate === 'unit' ? '0.50' : '3'} style={inputStyle} /></>}
@@ -127,6 +130,12 @@ export function CompensationSettings({ enabled, category, terms, onChange, onAcc
     {category !== 'one_time' && <RoyaltyCalculationFields terms={terms} onChange={update} />}
     {category !== 'one_time' && <><Text style={{ fontWeight: '700' }}>Royalty Reporting &amp; Payment</Text><View style={{ gap: 8 }}>{Object.entries(frequencies).map(([value, label]) => <InfoAccordion key={value} title={label} description={`Report this period's figures ${value === 'monthly' ? 'every month' : value === 'quarterly' ? 'every three months' : value === 'semi_annually' ? 'every six months' : 'every twelve months'}. Reports are due seven days after the period ends; payment is due seven days later. Admin verification releases held funds.`} selected={terms.reporting_frequency === value} onSelect={() => update({ reporting_frequency: value })} />)}</View></>}
     <Text style={{ color: '#666' }}>The artwork checkout is separate. {commissionMode ? 'Commission royalty periods start after final delivery approval; production milestones do not collect royalties.' : 'Royalty periods start on the later signing date.'} Submit evidence within seven days after each period ends, then pay by seven days after the report deadline. A platform administrator verifies the report before releasing held funds to the artist wallet. Scheduled flat-fee payments remain contractual obligations.</Text>
+    {category !== 'one_time' && platformDefaults.royalty_platform_fee_percentage > 0 && <Text style={{ color: '#A74646' }}>Additional platform royalty fee: {platformDefaults.royalty_platform_fee_percentage}% of the calculated artist royalty, payable by the buyer. The artist receives the full agreed royalty.</Text>}
     {category === 'hybrid' && terms.subtype.startsWith('upfront_') && <Text>The proposed artwork price below is the upfront fee; royalties apply in addition.</Text>}
   </View>;
+}
+
+export function CompensationSettings(props: Parameters<typeof ConfiguredCompensationSettings>[0]) {
+  const defaults = useOptionalPlatformDefaults();
+  return defaults ? <ConfiguredCompensationSettings {...props} /> : <PlatformDefaultsProvider><ConfiguredCompensationSettings {...props} /></PlatformDefaultsProvider>;
 }

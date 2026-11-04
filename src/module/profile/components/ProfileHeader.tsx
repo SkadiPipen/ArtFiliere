@@ -7,8 +7,8 @@ import { auth } from '@/firebase/config';
 import { useEffect, useState } from 'react';
 import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
-import { Bell, Camera, Edit3, FileText, Folder, Settings, Paintbrush, ArrowRight } from "lucide-react-native";
-import { Alert, Image, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Bell, Camera, Edit3, FileText, Folder, Settings, Paintbrush, ArrowRight, Store, ChevronDown, X } from "lucide-react-native";
+import { Alert, Image, Modal, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface ProfileHeaderProps {
@@ -30,6 +30,7 @@ export default function ProfileHeader({
   const { width } = useWindowDimensions();
   const compactEdit = width < 768;
   const mobile = width < 600;
+  const [sellerOptionsOpen, setSellerOptionsOpen] = useState(false);
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverError, setCoverError] = useState('');
   const [savedCover, setSavedCover] = useState<string>();
@@ -156,8 +157,8 @@ export default function ProfileHeader({
               <ResellerBadge verified={profileData?.reseller_verified} />
               {profileData?.bio?.trim() ? <Text style={styles.bio}>{profileData.bio}</Text> : normalizedRole === 'artist' ? <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/(home)/edit-profile')}><Text style={[styles.bio, { color: '#A84B46' }]}>Add artist bio</Text></TouchableOpacity> : null}
               {mobile && <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-                {normalizedRole === 'buyer' && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Register as an artist" onPress={() => router.push('/artist-registration')} style={[styles.registerArtistBtn, { marginTop: 0, minHeight: 36, paddingHorizontal: 7, paddingVertical: 8, gap: 4, flexShrink: 1 }]}>
-                  <Paintbrush size={13} color="#A24F41" /><Text style={[styles.registerText, { fontSize: 11, flexShrink: 1 }]}>Become an artist</Text>
+                {['buyer', 'artist'].includes(normalizedRole) && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open artist and reseller options" accessibilityState={{ expanded: sellerOptionsOpen }} onPress={() => setSellerOptionsOpen(true)} style={[styles.registerArtistBtn, { marginTop: 0, minHeight: 36, paddingHorizontal: 7, paddingVertical: 8, gap: 4, flexShrink: 1 }]}>
+                  <Store size={13} color="#A24F41" /><Text style={[styles.registerText, { fontSize: 11, flexShrink: 1 }]}>{normalizedRole === 'buyer' ? 'Become a seller' : 'Seller options'}</Text>
                 </TouchableOpacity>}
 
       <TouchableOpacity accessibilityRole="button" disabled={coverBusy} onFocus={() => setCoverFocused(true)} onBlur={() => setCoverFocused(false)} onPress={changeCover} style={[styles.coverButton, { padding: 7, gap: 4, flexShrink: 1 }, { opacity: showCoverButton ? 1 : 0 }]}>
@@ -187,18 +188,23 @@ export default function ProfileHeader({
       </TouchableOpacity>
       </>}
           </View>
-            {!mobile && normalizedRole === "buyer" && (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Register as an artist"
-                style={[styles.registerArtistBtn, mobile && { marginTop: 8 }]}
-                onPress={() => router.push("/artist-registration")}
-              >
-                <Paintbrush size={16} color="#A24F41" />
-                <Text style={styles.registerText}>Become an artist</Text>
-                <ArrowRight size={15} color="#A24F41" />
+            {!mobile && ['buyer', 'artist'].includes(normalizedRole) && (
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open artist and reseller options" accessibilityState={{ expanded: sellerOptionsOpen }} style={styles.registerArtistBtn} onPress={() => setSellerOptionsOpen(true)}>
+                <Store size={17} color="#A24F41" />
+                <Text style={styles.registerText}>{normalizedRole === 'buyer' ? 'Become a seller' : 'Seller options'}</Text>
+                <ChevronDown size={16} color="#A24F41" />
               </TouchableOpacity>
             )}
+            <Modal visible={sellerOptionsOpen} transparent animationType="fade" onRequestClose={() => setSellerOptionsOpen(false)}>
+              <Pressable accessible={false} style={styles.sellerOverlay} onPress={() => setSellerOptionsOpen(false)}>
+                <View accessibilityViewIsModal style={styles.sellerDialog} onStartShouldSetResponder={() => true}>
+                  <View style={styles.sellerDialogHeader}><Text accessibilityRole="header" style={styles.sellerDialogTitle}>Your next step</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel="Close seller options" onPress={() => setSellerOptionsOpen(false)} style={{ padding: 8 }}><X size={21} color="#786862" /></TouchableOpacity></View>
+                  <Text style={styles.sellerDescription}>Choose how you would like to sell on ArtFiliere.</Text>
+                  {normalizedRole === 'buyer' && <TouchableOpacity accessibilityRole="button" style={styles.sellerOption} onPress={() => { setSellerOptionsOpen(false); router.push('/artist-registration'); }}><View style={styles.sellerIcon}><Paintbrush size={23} color="#A24F41" /></View><View style={{ flex: 1, gap: 5 }}><Text style={styles.sellerOptionTitle}>Become an artist</Text><Text style={styles.sellerDescription}>Apply to share and sell your original artwork.</Text></View><ArrowRight size={19} color="#A24F41" /></TouchableOpacity>}
+                  <TouchableOpacity accessibilityRole="button" style={styles.sellerOption} onPress={() => { setSellerOptionsOpen(false); router.push('/reseller-verification'); }}><View style={styles.sellerIcon}><Store size={23} color="#A24F41" /></View><View style={{ flex: 1, gap: 5 }}><Text style={styles.sellerOptionTitle}>{profileData?.reseller_verified ? 'Manage reseller verification' : 'Become a reseller'}</Text><Text style={styles.sellerDescription}>Submit and track your reseller verification documents.</Text></View><ArrowRight size={19} color="#A24F41" /></TouchableOpacity>
+                </View>
+              </Pressable>
+            </Modal>
         </View>
       </SafeAreaView>
 
@@ -207,6 +213,14 @@ export default function ProfileHeader({
 }
 
 const styles = StyleSheet.create({
+  sellerOverlay: { flex: 1, backgroundColor: 'rgba(43,35,32,0.4)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  sellerDialog: { width: '100%', maxWidth: 500, backgroundColor: '#FAF7F3', borderRadius: 20, padding: 24, gap: 16 },
+  sellerDialogHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  sellerDialogTitle: { fontFamily: 'LoraSemiBold', fontSize: 24, color: '#3A2D2A' },
+  sellerDescription: { fontSize: 13, lineHeight: 20, color: '#81756D' },
+  sellerOption: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderRadius: 14, borderWidth: 1, borderColor: '#E5DAD3', backgroundColor: '#FFFFFF' },
+  sellerIcon: { padding: 12, borderRadius: 12, backgroundColor: '#F5E8E3' },
+  sellerOptionTitle: { fontSize: 16, fontWeight: '600', color: '#59453D' },
   headerBackground: {
     backgroundColor: "#FFF",
     width: "100%",

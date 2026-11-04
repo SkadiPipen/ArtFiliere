@@ -25,3 +25,14 @@ export interface ArtistRegistrationData {
   status: "pending_approval" | "approved" | "rejected";
   submittedAt: string;
 }
+
+export type DocumentDetails = {
+  registered_name: string;
+  rdo_code: string;
+  registration_date: string;
+  taxable_year: string;
+  notarized_date: string;
+  bir_received_date: string;
+  remittance_status: '' | 'not_exceed_500000' | 'exceed_500000';
+  confirmed: boolean;
+};

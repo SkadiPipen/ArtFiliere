@@ -7,4 +7,8 @@ def base_cost(artwork):
         return artwork.price
     return artwork.hours * artwork.hourly_rate + (artwork.material_cost if artwork.art_type == "physical" else 0)
 def minimum_price(artwork, license_type, exclusivity):
-    return (base_cost(artwork) * Decimal("1.10") * LICENSE[license_type] * EXCLUSIVITY[exclusivity]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    from messaging.platform_defaults import current_defaults
+    defaults = current_defaults()
+    return (base_cost(artwork) * (1 + Decimal(defaults['platform_fee_percentage']) / 100)
+            * Decimal(defaults['license_multipliers'][license_type])
+            * Decimal(defaults['exclusivity_multipliers'][exclusivity.replace('_', '-')])).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)

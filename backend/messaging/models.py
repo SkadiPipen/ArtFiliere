@@ -49,7 +49,15 @@ class ConversationParticipant(models.Model):
         constraints = [models.UniqueConstraint(fields=["conversation", "user"], name="unique_conversation_participant")]
 
 
+class PlatformDefaults(models.Model):
+    values = models.JSONField(default=dict)
+    revision = models.PositiveIntegerField(default=1)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class AgreementTemplate(models.Model):
+    wording = models.JSONField(default=dict, blank=True)
     name = models.CharField(max_length=120, unique=True)
     body = models.TextField(help_text="Supports safe placeholders such as {{buyer_name}}, {{artist_name}}, {{amount}}.")
     is_active = models.BooleanField(default=True)
@@ -58,6 +66,8 @@ class AgreementTemplate(models.Model):
 
 
 class Agreement(models.Model):
+    wording_snapshot = models.JSONField(default=dict, blank=True)
+    platform_defaults_snapshot = models.JSONField(default=dict, blank=True)
     class Status(models.TextChoices):
         PROPOSED = "proposed", "Proposed"
         ACCEPTED = "accepted", "Accepted"
@@ -163,6 +173,7 @@ class RoyaltyMandate(models.Model):
 
 
 class RoyaltyReceipt(models.Model):
+    platform_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     period = models.OneToOneField(RoyaltyPeriod, on_delete=models.PROTECT, related_name='receipt')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     provider_payment_id = models.CharField(max_length=100, unique=True)

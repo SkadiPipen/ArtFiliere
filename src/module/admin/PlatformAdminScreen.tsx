@@ -81,7 +81,7 @@ export default function PlatformAdminScreen() {
         <Text style={s.meta}>Platform fee revenue is recorded income, not the live Xendit account balance. Held artist and commission funds are separate obligations.</Text>
         <View style={[s.metrics, { marginTop: 16 }]}>
           <TouchableOpacity onPress={() => router.push('/admin-payments' as any)} style={s.round}><Text style={{ color: '#C15656', fontWeight: '700' }}>Manage payments →</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/admin-agreement-templates' as any)} style={s.round}><Text style={{ color: '#C15656', fontWeight: '700' }}>Agreement templates →</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/admin-agreement-templates' as any)} style={s.round}><Text style={{ color: '#C15656', fontWeight: '700' }}>Platform defaults →</Text></TouchableOpacity>
         </View>
         <AdminOverview data={data?.analytics} />
         <CommissionReviews />

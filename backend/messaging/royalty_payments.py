@@ -1,3 +1,4 @@
+from .platform_defaults import royalty_split
 """Xendit tokens only: never accept bank details or payment tokens from clients."""
 import secrets
 import uuid
@@ -90,7 +91,7 @@ def reconcile(period_id, data):
         except (InvalidOperation, TypeError):
             raise ValueError('Invalid royalty payment amount.') from None
         if (data.get('reference_id') != f'af-royalty-{period.pk}' or data.get('currency') != 'PHP'
-                or not amount.is_finite() or amount != period.amount
+                or not amount.is_finite() or amount != royalty_split(period)[2]
                 or not period.provider_request_id or data.get('payment_request_id') != period.provider_request_id):
             raise ValueError('Royalty payment details do not match.')
         if period.status == 'paid':
@@ -101,7 +102,7 @@ def reconcile(period_id, data):
             payment_id = data.get('latest_payment_id')
             if not payment_id:
                 raise ValueError('A successful provider payment ID is required.')
-            _, created = RoyaltyReceipt.objects.get_or_create(period=period, defaults={'amount': period.amount, 'provider_payment_id': payment_id})
+            _, created = RoyaltyReceipt.objects.get_or_create(period=period, defaults={'amount': royalty_split(period)[2], 'platform_fee': royalty_split(period)[1], 'provider_payment_id': payment_id})
             if created:
                 from wallets.models import WalletAccount
                 wallet, _ = WalletAccount.objects.get_or_create(user=period.agreement.artist)
@@ -136,7 +137,7 @@ def collect(period_id):
     try:
         data = provider('POST', '/v3/payment_requests', json={
             'reference_id': f'af-royalty-{period.pk}', 'type': 'PAY', 'payment_token_id': token,
-            'country': 'PH', 'currency': 'PHP', 'request_amount': float(period.amount), 'capture_method': 'AUTOMATIC',
+            'country': 'PH', 'currency': 'PHP', 'request_amount': float(royalty_split(period)[2]), 'capture_method': 'AUTOMATIC',
             'channel_properties': settings.ROYALTY_CHANNEL_PROPERTIES,
             'description': f'Approved royalty report {period.pk} for {period.starts_on} to {period.ends_on}'})
         request_id = data['payment_request_id']

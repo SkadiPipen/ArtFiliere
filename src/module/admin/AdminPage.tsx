@@ -1,3 +1,4 @@
+import UserManagement from './UserManagement';
 import { AdminRefreshContext } from './AdminRefresh';
 import AccountApprovalWorkspace from './AccountApprovalWorkspace';
 import { adminWorkspaceStyles as workspace, adminType } from './adminDesign';
@@ -15,16 +16,17 @@ import type { AdminRequestCategories } from '@/components/AdminRequestBell';
 import { purchaseRequest } from '@/services/purchases';
 import { auth } from '@/firebase/config';
 import { router } from 'expo-router';
-import { Users, LogOut, RefreshCcw, LayoutDashboard, Banknote, FileText, Store, ShieldCheck, Percent, UserCog, ScanLine, Shield, Flag } from 'lucide-react-native';
+import { ChartNoAxesCombined, LogOut, RefreshCcw, LayoutDashboard, Banknote, FileText, Store, ShieldCheck, Percent, UserCog, Users, ScanLine, Shield, Flag } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 
-type Tab = 'dashboard' | 'payments' | 'templates' | 'reports';
+type Tab = 'dashboard' | 'payments' | 'templates' | 'reports' | 'performance';
 const tabs = [
   { key: 'dashboard', label: 'Overview', icon: LayoutDashboard, path: '/admin-dashboard' },
+  { key: 'performance', label: 'Performance', icon: ChartNoAxesCombined, path: '/admin-performance' },
   { key: 'reports', label: 'Reports & transactions', icon: Flag, path: '/admin-reports' },
   { key: 'payments', label: 'Payment controls', icon: Banknote, path: '/admin-payments' },
-  { key: 'templates', label: 'Agreement templates', icon: FileText, path: '/admin-agreement-templates' },
+  { key: 'templates', label: 'Platform defaults', icon: FileText, path: '/admin-agreement-templates' },
 ] as const;
 const approvalQueues = [
   { icon: Users, label: 'Driver approvals', path: '/admin-driver-approvals', categories: ['driver'] },
@@ -52,7 +54,7 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
   const desktop = width >= 900;
   const [section, setSection] = useState<string | null>(initialSection);
   const [logoutError, setLogoutError] = useState('');
-  const current = section === 'lookup' ? 'Artwork code lookup' : approvalQueues.find(queue => queue.path === section)?.label || tabs.find(tab => tab.key === activeTab)!.label;
+  const current = section === 'users' ? 'User management' : section === 'lookup' ? 'Artwork code lookup' : approvalQueues.find(queue => queue.path === section)?.label || tabs.find(tab => tab.key === activeTab)!.label;
   const [categories, setCategories] = useState<AdminRequestCategories>({});
   useEffect(() => {
     let active = true;
@@ -79,6 +81,7 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
           const pending = keys.reduce((count, key) => count + (categories[key]?.pending || 0), 0);
           return <Pressable key={path} accessibilityRole="button" accessibilityState={{ selected: section === path }} accessibilityLabel={`${label}, ${pending} pending`} onPress={() => setSection(path)} style={[workspace.navItem, section === path && workspace.navActive]}><Icon size={20} color="#A74646" /><Text style={[workspace.navLabel, { flex: 1 }]}>{label}</Text>{pending > 0 && <View style={s.badge}><Text style={s.badgeText}>{pending > 99 ? '99+' : pending}</Text></View>}</Pressable>;
         })}
+        <Pressable accessibilityRole="button" accessibilityState={{ selected: section === 'users' }} onPress={() => setSection('users')} style={[workspace.navItem, section === 'users' && workspace.navActive]}><Users size={20} color="#A74646" /><Text style={workspace.navLabel}>User management</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityState={{ selected: section === 'lookup' }} onPress={() => setSection('lookup')} style={[workspace.navItem, section === 'lookup' && workspace.navActive]}><ScanLine size={20} color="#A74646" /><Text style={workspace.navLabel}>Artwork code lookup</Text></Pressable>
 
       </ScrollView>
@@ -89,6 +92,7 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
       <View style={workspace.topbar}><Shield size={22} color="#B65B50" /><Text style={workspace.workspace}>Platform administration</Text><Text style={workspace.muted}>{current}</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh current admin section" disabled={refreshing} onPress={() => void refreshCurrent()} style={{ padding: 8, opacity: refreshing ? 0.4 : 1 }}><RefreshCcw size={20} color="#A74646" /></TouchableOpacity></View>
       {!!refreshError && <Text style={workspace.error}>{refreshError}</Text>}
       {!section ? children : section === 'lookup' ? <ArtworkCodeLookup /> : section === '/attribution-reviews' ? <AttributionReviewsScreen embedded /> : <ScrollView key={section} contentContainerStyle={workspace.content}>
+        {section === 'users' && <UserManagement />}
         {section === '/reseller-approvals' && <ResellerApprovals workspace />}
         {section === '/admin-moderator-approvals' && <ModeratorEvaluation admin />}
         {section === '/admin-driver-approvals' && <ModeratorEvaluation admin driver />}

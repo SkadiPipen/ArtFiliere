@@ -1,3 +1,4 @@
+from messaging.platform_defaults import current_defaults
 from decimal import Decimal, InvalidOperation
 from rest_framework.response import Response
 from rest_framework import status
@@ -326,6 +327,7 @@ class ArtworkView(AuthenticatedAPIView):
                     "exclusivity": auction_exclusivity,
                     "delivery_type": auction_delivery_type,
                     "terms_snapshot": auction_terms,
+                    "platform_defaults_snapshot": current_defaults(),
                     "agreement_template": auction_template,
                     'signed_document': auction_document,
                     'signed_document_hash': auction_document_hash,

@@ -1,11 +1,13 @@
 import { Text, TextInput } from '@/components/Typography';
 import * as DocumentPicker from "expo-document-picker";
-import { FilePlus, HelpCircle } from "lucide-react-native";
-import React, { useRef, useState } from "react";
+import { FilePlus, Square, SquareCheck } from "lucide-react-native";
+import React from "react";
 import { Alert, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { DocumentFile } from "@/module/artist-registration/types";
+import { DocumentDetails, DocumentFile } from "@/module/artist-registration/types";
 
 interface Props {
+  details: DocumentDetails;
+  setDetails: (value: DocumentDetails) => void;
   hourlyRate: string;
   setHourlyRate: (val: string) => void;
   tinNum: string[];
@@ -21,6 +23,7 @@ interface Props {
 }
 
 export default function PersonalDocs({
+  details, setDetails,
   hourlyRate,
   setHourlyRate,
   tinNum,
@@ -34,8 +37,6 @@ export default function PersonalDocs({
   onNext,
   errorMessage,
 }: Props) {
-  const tinInputRefs = useRef<Array<TextInput | null>>([]);
-  const [showHelp, setShowHelp] = useState(false);
 
   const readDocumentAsDataUri = async (
     uri: string,
@@ -89,264 +90,66 @@ export default function PersonalDocs({
     }
   };
 
-  const handleTinChange = (text: string, index: number) => {
-    const digits = text.replace(/\D/g, "");
-    const newTin = [...tinNum];
-    if (!digits) {
-      newTin[index] = "";
-      setTinNum(newTin);
-      return;
-    }
-
-    digits
-      .slice(0, tinNum.length - index)
-      .split("")
-      .forEach((digit, offset) => {
-        newTin[index + offset] = digit;
-      });
-    setTinNum(newTin);
-
-    const nextIndex = Math.min(index + digits.length, tinNum.length - 1);
-    if (index + digits.length < tinNum.length) {
-      tinInputRefs.current[nextIndex]?.focus();
-    }
-  };
-
-  const handleTinKeyPress = (key: string, index: number) => {
-    if (key === "Backspace" && !tinNum[index] && index > 0) {
-      tinInputRefs.current[index - 1]?.focus();
-    }
-  };
-
+  const field = (key: keyof DocumentDetails, label: string, placeholder: string) => (
+    <View style={styles.field} key={key}>
+      <Text style={styles.label}>{label} *</Text>
+      <TextInput accessibilityLabel={label} style={styles.input} value={String(details[key] || '')} onChangeText={value => setDetails({ ...details, [key]: value })} placeholder={placeholder} placeholderTextColor="#A39690" />
+    </View>
+  );
+  const upload = (type: 'bir' | 'sworn', doc: DocumentFile | null) => (
+    <TouchableOpacity accessibilityRole="button" style={styles.upload} onPress={() => pickDocument(type)}>
+      <FilePlus size={23} color="#BF5555" />
+      <View style={{ flex: 1 }}><Text style={styles.uploadTitle}>{doc?.name || 'Choose a PDF or image *'}</Text><Text style={styles.hint}>{doc ? 'Tap to replace document' : 'Maximum 5 MB per document'}</Text></View>
+    </TouchableOpacity>
+  );
   return (
-    <View style={styles.stepContainer}>
-      <View style={styles.titleRow}>
-        <Text style={styles.mainTitleText}>Register as an Artist</Text>
-        <TouchableOpacity
-          onPress={() => setShowHelp((visible) => !visible)}
-          accessibilityLabel="Artist registration requirements"
-        >
-          <HelpCircle size={22} color="#C15656" />
-        </TouchableOpacity>
-      </View>
-
-      {showHelp && (
-        <View style={styles.helpPanel}>
-          <Text style={styles.helpTitle}>Before you apply</Text>
-          <Text style={styles.helpText}>
-            Upload your BIR Form 2303 and sworn declaration, enter your TIN and
-            default hourly rate, then add at least one original artwork to your
-            portfolio. Applications are reviewed before artist access is
-            approved.
-          </Text>
+    <View style={{ gap: 20 }}>
+      <View><Text style={styles.heading}>Artist details</Text><Text style={styles.hint}>Enter the details shown on your documents. All marked fields are required and will be reviewed by HR.</Text></View>
+      <View style={styles.card}>
+        <Text style={styles.section}>Artist profile</Text>
+        <View style={styles.row}>
+          <View style={styles.field}><Text style={styles.label}>Default hourly rate (PHP) *</Text><TextInput accessibilityLabel="Default hourly rate" style={styles.input} keyboardType="decimal-pad" value={hourlyRate} onChangeText={setHourlyRate} placeholder="120.00" /><Text style={styles.hint}>Prefills your future artwork pricing; you can adjust it per post.</Text></View>
+          <View style={styles.field}><Text style={styles.label}>TIN (9 digits) *</Text><TextInput accessibilityLabel="TIN" style={styles.input} keyboardType="number-pad" maxLength={11} value={tinNum.join('')} onChangeText={value => setTinNum(value.replace(/\D/g, '').slice(0, 9).padEnd(9, ' ').split('').map(v => v.trim()))} placeholder="123456789" /></View>
         </View>
-      )}
-
-      <Text style={styles.labelTitle}>Default Hourly Rate</Text>
-      <Text style={styles.fieldHint}>
-        Used to prefill future Buy & Sell posts. You can change it per artwork.
-      </Text>
-      <View style={styles.inputBoxRow}>
-        <Text style={styles.currencyPrefix}>Php.</Text>
-        <TextInput
-          style={styles.innerInputText}
-          placeholder="ex. 120.00"
-          placeholderTextColor="#aaa"
-          keyboardType="numeric"
-          value={hourlyRate}
-          onChangeText={setHourlyRate}
-        />
+        <Text style={styles.label}>Artist bio</Text><TextInput accessibilityLabel="Artist bio" style={[styles.input, { minHeight: 90, textAlignVertical: 'top' }]} multiline value={bio} onChangeText={setBio} placeholder="Tell us about your work and artistic style" />
       </View>
-
-      <Text style={styles.labelTitle}>
-        BIR Certificate of Registration (BIR Form 2303) *
-      </Text>
-      <TouchableOpacity
-        style={styles.uploadBoxDotted}
-        onPress={() => pickDocument("bir")}
-      >
-        <FilePlus size={36} color="#C15656" />
-        {birDoc && (
-          <Text style={styles.uploadedFileNameText} numberOfLines={1}>
-            {birDoc.name}
-          </Text>
-        )}
-      </TouchableOpacity>
-
-      <Text style={styles.labelTitle}>TIN Number</Text>
-      <Text style={styles.fieldHint}>
-        Enter your 9-digit TIN. Each number moves you to the next field
-        automatically.
-      </Text>
-      <View style={styles.tinBoxRow}>
-        {tinNum.map((val, idx) => (
-          <React.Fragment key={idx}>
-            <TextInput
-              ref={(input) => {
-                tinInputRefs.current[idx] = input;
-              }}
-              style={styles.tinBoxSquare}
-              maxLength={tinNum.length}
-              keyboardType="number-pad"
-              value={val}
-              onChangeText={(t) => handleTinChange(t, idx)}
-              onKeyPress={({ nativeEvent }) =>
-                handleTinKeyPress(nativeEvent.key, idx)
-              }
-              returnKeyType={idx === tinNum.length - 1 ? "done" : "next"}
-            />
-            {(idx === 2 || idx === 5) && (
-              <Text style={styles.tinDashSeparator}>-</Text>
-            )}
-          </React.Fragment>
-        ))}
+      <View style={styles.card}>
+        <Text style={styles.section}>BIR Certificate of Registration</Text><Text style={styles.hint}>Form 2303 ? Upload your current registration record. No expiry date is requested for this certificate.</Text>
+        {upload('bir', birDoc)}
+        {field('registered_name', 'BIR registered name', 'Name exactly as registered')}
+        <View style={styles.row}>{field('rdo_code', 'RDO code', 'e.g. 039')}{field('registration_date', 'Registration date', 'YYYY-MM-DD')}</View>
       </View>
-
-      <Text style={styles.labelTitle}>
-        Sworn Declaration (Sworn Statement) *
-      </Text>
-      <TouchableOpacity
-        style={styles.uploadBoxDotted}
-        onPress={() => pickDocument("sworn")}
-      >
-        <FilePlus size={36} color="#C15656" />
-        {swornDoc && (
-          <Text style={styles.uploadedFileNameText} numberOfLines={1}>
-            {swornDoc.name}
-          </Text>
-        )}
-      </TouchableOpacity>
-
-      <Text style={styles.labelTitle}>Bio</Text>
-      <TextInput
-        style={styles.bioTextAreaInput}
-        multiline
-        numberOfLines={4}
-        value={bio}
-        onChangeText={setBio}
-        placeholder="Briefly describe your artistic style and background..."
-        placeholderTextColor="#aaa"
-      />
-
-      {errorMessage ? (
-        <Text style={styles.validationError}>{errorMessage}</Text>
-      ) : null}
-      <TouchableOpacity style={styles.primaryRedButton} onPress={onNext}>
-        <Text style={styles.primaryBtnLabel}>Next</Text>
-      </TouchableOpacity>
+      <View style={styles.card}>
+        <Text style={styles.section}>Sworn declaration of gross remittances</Text><Text style={styles.hint}>RMC 8-2024 Annex A ? Upload the notarized, BIR-received declaration for the current taxable year. Declare remittances across all marketplaces and payment providers.</Text>
+        {upload('sworn', swornDoc)}
+        <View style={styles.row}>{field('taxable_year', 'Taxable year', String(new Date().getFullYear()))}{field('notarized_date', 'Notarization date', 'YYYY-MM-DD')}{field('bir_received_date', 'BIR received date', 'YYYY-MM-DD')}</View>
+        <Text style={styles.label}>Annual gross remittances stated in the declaration *</Text>
+        <View style={styles.row}>{([['not_exceed_500000', 'Do not exceed PHP 500,000'], ['exceed_500000', 'Exceed PHP 500,000']] as const).map(([value, label]) => <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: details.remittance_status === value }} key={value} style={[styles.choice, details.remittance_status === value && styles.selected]} onPress={() => setDetails({ ...details, remittance_status: value })}>{details.remittance_status === value ? <SquareCheck size={21} color="#B74F4B" /> : <Square size={21} color="#A78C80" />}<Text style={[styles.choiceText, { flexShrink: 1 }]}>{label}</Text></TouchableOpacity>)}</View>
+        <Text style={styles.hint}>Use the declaration for the applicable year. HR will review the uploaded document.</Text>
+      </View>
+      <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: details.confirmed }} style={styles.confirm} onPress={() => setDetails({ ...details, confirmed: !details.confirmed })}>{details.confirmed ? <SquareCheck size={21} color="#B74F4B" /> : <Square size={21} color="#A78C80" />}<Text style={[styles.choiceText, { flex: 1 }]}>I confirm these details match my uploaded documents and are accurate.</Text></TouchableOpacity>
+      {!!errorMessage && <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text>}
+      <TouchableOpacity accessibilityRole="button" style={styles.primary} onPress={onNext}><Text style={styles.primaryText}>Continue to portfolio</Text></TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  stepContainer: { width: "100%" },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  mainTitleText: { fontSize: 22, fontWeight: "bold", color: "#C15656" },
-  labelTitle: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#C15656",
-    marginTop: 14,
-    marginBottom: 6,
-  },
-  fieldHint: {
-    color: "#7B6A65",
-    fontSize: 11,
-    lineHeight: 15,
-    marginBottom: 3,
-  },
-  helpPanel: {
-    backgroundColor: "#FFF6E8",
-    borderLeftWidth: 3,
-    borderLeftColor: "#C15656",
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 8,
-  },
-  helpTitle: {
-    color: "#C15656",
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  helpText: { color: "#6F625D", fontSize: 12, lineHeight: 18 },
-  validationError: {
-    color: "#B84A4A",
-    backgroundColor: "#FFF0EE",
-    borderWidth: 1,
-    borderColor: "#E5B4AE",
-    borderRadius: 8,
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 16,
-    padding: 10,
-  },
-  inputBoxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D0D0D0",
-    borderRadius: 8,
-    height: 44,
-    paddingHorizontal: 12,
-  },
-  currencyPrefix: { fontSize: 13, color: "#888", marginRight: 5 },
-  innerInputText: { flex: 1, fontSize: 13, color: "#000" },
-  uploadBoxDotted: {
-    borderWidth: 1,
-    borderColor: "#C15656",
-    borderStyle: "dashed",
-    borderRadius: 10,
-    height: 80,
-    justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 6,
-  },
-  uploadedFileNameText: {
-    fontSize: 11,
-    color: "#333",
-    marginTop: 4,
-    paddingHorizontal: 10,
-  },
-  tinBoxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 6,
-  },
-  tinBoxSquare: {
-    width: 28,
-    height: 36,
-    borderWidth: 1,
-    borderColor: "#D0D0D0",
-    borderRadius: 6,
-    textAlign: "center",
-    fontSize: 14,
-    color: "#000",
-  },
-  tinDashSeparator: { fontSize: 16, color: "#888", fontWeight: "bold" },
-  bioTextAreaInput: {
-    borderWidth: 1,
-    borderColor: "#D0D0D0",
-    borderRadius: 8,
-    padding: 10,
-    textAlignVertical: "top",
-    fontSize: 13,
-    color: "#000",
-    minHeight: 90,
-  },
-  primaryRedButton: {
-    backgroundColor: "#C15656",
-    borderRadius: 8,
-    height: 46,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 25,
-  },
-  primaryBtnLabel: { color: "#fff", fontSize: 15, fontWeight: "bold" },
+  heading: { fontFamily: 'LoraSemiBold', fontSize: 26, color: '#3A2D2A', marginBottom: 8 },
+  section: { fontFamily: 'LoraSemiBold', fontSize: 20, color: '#3A2D2A', marginBottom: 4 },
+  hint: { fontSize: 14, lineHeight: 21, color: '#786862' },
+  card: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E8D8D0', borderRadius: 16, padding: 20, gap: 12 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  field: { flexGrow: 1, minWidth: 220, gap: 7 },
+  label: { color: '#674B40', fontSize: 14, fontWeight: '600' },
+  input: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E4D3CB', borderRadius: 12, minHeight: 46, padding: 12, fontSize: 15, color: '#3A2D2A' },
+  upload: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FAF5F1', borderWidth: 1, borderStyle: 'dashed', borderColor: '#D5B6AA', borderRadius: 12, padding: 16 },
+  uploadTitle: { color: '#B74F4B', fontSize: 14, fontWeight: '600' },
+  choice: { flexDirection: 'row', alignItems: 'center', gap: 10, flexGrow: 1, padding: 14, borderWidth: 1, borderColor: '#E8D8D0', borderRadius: 12, backgroundColor: '#FFF' },
+  selected: { backgroundColor: '#F5E8E3', borderColor: '#DCA99A' },
+  choiceText: { color: '#674B40', fontSize: 14, lineHeight: 21 },
+  confirm: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, backgroundColor: '#F5E8E3', borderRadius: 12 },
+  error: { color: '#AD3D3D', fontSize: 14, lineHeight: 21 },
+  primary: { backgroundColor: '#C15656', alignSelf: 'flex-end', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 22 },
+  primaryText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
 });

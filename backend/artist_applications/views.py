@@ -6,6 +6,7 @@ from authentication.views import AuthenticatedAPIView
 from authentication.permissions import IsHR
 from users.models import User
 from .models import ArtistApplication, ArtistApplicationLog
+from .document_details import validate_document_details
 
 
 def submitted_document(value, fallback_name):
@@ -45,6 +46,8 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
                     "portfolio": application.portfolio,
                     "bir_certificate": document_response(application.bir_certificate, application.bir_certificate_name, "BIR Certificate"),
                     "sworn_declaration": document_response(application.sworn_declaration, application.sworn_declaration_name, "Sworn Declaration"),
+                    "tin_number": application.tin_number,
+                    "document_details": application.document_details,
                     "status": application.status,
                     "submitted_at": application.submitted_at.isoformat(),
                 }
@@ -63,6 +66,10 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
             request.data.get("swornDeclaration"), "Sworn Declaration"
         )
         portfolio = request.data.get("portfolio", [])
+        try:
+            document_details = validate_document_details(request.data.get('documentDetails'))
+        except ValueError as error:
+            return Response({'error': str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         if not firebase_uid:
             return Response(
@@ -113,6 +120,7 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
                 "bir_certificate_name": bir_certificate_name,
                 "sworn_declaration": sworn_declaration,
                 "sworn_declaration_name": sworn_declaration_name,
+                "document_details": document_details,
                 "portfolio": portfolio,
                 "status": ArtistApplication.ApprovalStatus.PENDING,
             },

@@ -1,3 +1,4 @@
+import { PlatformDefaultsProvider, usePlatformDefaults } from '@/services/platformDefaults';
 import FloatingProgressTracker from './FloatingProgressTracker';
 import { Text, TextInput } from '@/components/Typography';
 import NegotiationSection, { NegotiationSectionsContext, RequiredMark } from './NegotiationSection';
@@ -20,14 +21,6 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import DeliveryAddressPicker, { DeliveryQuote } from './DeliveryAddressPicker';
 import type { Artwork, ExclusivityType, LicenseType } from './types';
-
-// Retain the form's existing defaults until a settings backend is available.
-const platformSettings = {
-  platform_fee_percentage: 10,
-  license_multipliers: { personal: 1.0, commercial: 1.5 },
-  exclusivity_multipliers: { 'non-exclusive': 1.0, exclusive: 1.5, sole: 1.3 },
-};
-
 
 interface NegotiationFormProps {
   commissionMode?: boolean;
@@ -58,12 +51,14 @@ function ArtworkNegotiationForm({
   initialProposal,
   revisionId,
 }: NegotiationFormProps) {
+  const platformSettings = usePlatformDefaults();
+  const preferredExclusivity = artwork.exclusivity_types?.includes(platformSettings.default_exclusivity) !== false ? platformSettings.default_exclusivity : artwork.exclusivity_types?.[0] || platformSettings.default_exclusivity;
   const [royaltyEnabled, setRoyaltyEnabled] = useState(!!artwork.royalty_enabled);
   useEffect(() => setRoyaltyEnabled(!!artwork.royalty_enabled), [artwork.royalty_enabled]);
-  const [offer, setOffer] = useState(initialProposal ? initialProposal.pricing_terms?.license_fee || ((Number(initialProposal.price) - Number(initialProposal.delivery_fee || 0)) / 1.1).toFixed(2) : '');
+  const [offer, setOffer] = useState(initialProposal ? initialProposal.pricing_terms?.license_fee || ((Number(initialProposal.price) - Number(initialProposal.delivery_fee || 0)) / (1 + platformSettings.platform_fee_percentage / 100)).toFixed(2) : '');
   const [pricingMode, setPricingMode] = useState<'multipliers' | 'fixed'>(initialProposal?.pricing_terms?.mode || (initialProposal ? 'fixed' : 'multipliers'));
   const [licenseFactor, setLicenseFactor] = useState(initialProposal?.pricing_terms?.license_multiplier || String(platformSettings.license_multipliers[initialProposal?.license_type || (artwork.license_types?.includes('personal') !== false ? 'personal' : 'commercial')]));
-  const [exclusivityFactor, setExclusivityFactor] = useState(initialProposal?.pricing_terms?.exclusivity_multiplier || String(platformSettings.exclusivity_multipliers[(initialProposal?.exclusivity?.replace('_', '-') || artwork.exclusivity_types?.[0] || 'non-exclusive') as ExclusivityType]));
+  const [exclusivityFactor, setExclusivityFactor] = useState(initialProposal?.pricing_terms?.exclusivity_multiplier || String(platformSettings.exclusivity_multipliers[(initialProposal?.exclusivity?.replace('_', '-') || preferredExclusivity) as ExclusivityType]));
   const [sending, setSending] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -81,9 +76,9 @@ function ArtworkNegotiationForm({
     initialProposal?.license_type || (availableLicenses.includes('personal') ? 'personal' : availableLicenses[0] || 'personal')
   );
   const [exclusivity, setExclusivity] = useState<'non-exclusive' | 'exclusive' | 'sole'>(
-    (initialProposal?.exclusivity?.replace('_', '-') as ExclusivityType) || (availableExclusivity.includes('non-exclusive') ? 'non-exclusive' : availableExclusivity[0] || 'non-exclusive')
+    (initialProposal?.exclusivity?.replace('_', '-') as ExclusivityType) || preferredExclusivity
   );
-  const [durationMonths, setDurationMonths] = useState(String(initialProposal?.license_scope?.duration_months || initialProposal?.compensation_terms?.reporting_duration_months || 12));
+  const [durationMonths, setDurationMonths] = useState(String(initialProposal?.license_scope?.duration_months || initialProposal?.compensation_terms?.reporting_duration_months || platformSettings.default_license_duration_months));
   const requiresDelivery = !isDigital;
   const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
   const [compensationCategory, setCompensationCategory] = useState<CompensationCategory>(initialProposal?.compensation_type || 'one_time');
@@ -149,7 +144,7 @@ function ArtworkNegotiationForm({
     const roundMoney = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
     const subtotal = pricingMode === 'fixed' ? Number(offer) : roundMoney(basePrice * licenseMult * exclusivityMult);
     const finalPrice = roundMoney(subtotal * (1 + settings.platform_fee_percentage / 100));
-    const platformFee = roundMoney(finalPrice - finalPrice / 1.1);
+    const platformFee = roundMoney(finalPrice - finalPrice / (1 + platformSettings.platform_fee_percentage / 100));
 
     const baseDeliveryFee = requiresDelivery ? Number(deliveryQuote?.base_fee ?? (deliveryQuote?.is_priority ? Math.max(0, (deliveryQuote?.fee || 0) - 40) : (deliveryQuote?.fee || 0))) : 0;
     const priorityFee = requiresDelivery && deliveryQuote?.is_priority ? 40 : 0;
@@ -463,7 +458,7 @@ function ArtworkNegotiationForm({
             <Text style={styles.priceValue}>₱{formatPrice(prices.subtotal)}</Text>
           </View>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Platform Fee ({platformSettings?.platform_fee_percentage || 10}%)</Text>
+            <Text style={styles.priceLabel}>Platform Fee ({platformSettings.platform_fee_percentage}%)</Text>
             <Text style={styles.priceValue}>₱{formatPrice(prices.platformFee)}</Text>
           </View>
           {requiresDelivery && (
@@ -763,5 +758,5 @@ const styles = StyleSheet.create({
 });
 
 export default function NegotiationForm(props: NegotiationFormProps) {
-  return props.commissionMode ? <CommissionNegotiationForm {...props} /> : <ArtworkNegotiationForm {...props} />;
+  return <PlatformDefaultsProvider>{props.commissionMode ? <CommissionNegotiationForm {...props} /> : <ArtworkNegotiationForm {...props} />}</PlatformDefaultsProvider>;
 }

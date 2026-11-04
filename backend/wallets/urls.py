@@ -1,3 +1,4 @@
+from .performance import AdminPerformanceView
 from django.urls import path
 from .management import (
     AccountActionsView,
@@ -24,6 +25,7 @@ from .artist_earnings import ArtistEarningsView
 
 urlpatterns = [
     path('artist/earnings/', ArtistEarningsView.as_view()),
+    path('admin/performance/', AdminPerformanceView.as_view()),
     path('account/restrictions/', RestrictionStatusView.as_view()),
     path('account/appeals/', RestrictionAppealsView.as_view()),
     path('account/appeal-attachments/<int:attachment_id>/', AppealAttachmentView.as_view()),

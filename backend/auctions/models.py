@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 
 class AuctionListing(models.Model):
+    platform_defaults_snapshot = models.JSONField(default=dict, blank=True)
     STATUS_CHOICES = [
         ('PENDING_APPROVAL', 'Pending Approval'),
         ('ACTIVE', 'Active'),

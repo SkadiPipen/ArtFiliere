@@ -2,10 +2,10 @@
 import base64
 import binascii
 from io import BytesIO
-import re
+from django.utils.dateparse import parse_date
 
 from PIL import Image, UnidentifiedImageError
-from django.db import transaction
+from django.db import transaction, models
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -39,7 +39,7 @@ def validate_document(value, required=True):
     if not value and not required:
         return '', ''
     if not isinstance(value, dict):
-        raise ValidationError('Upload the required BIR certificate as a PDF, JPEG, PNG or WebP file.')
+        raise ValidationError('Upload the required business permit as a PDF, JPEG, PNG or WebP file.')
     uri, name = value.get('data_uri'), value.get('name')
     if not isinstance(name, str) or not 1 <= len(name.strip()) <= 180 or any(ord(c) < 32 for c in name):
         raise ValidationError('Enter a valid document filename (up to 180 characters).')
@@ -64,12 +64,32 @@ def validate_document(value, required=True):
     return uri, name.strip()
 
 
+def validate_permit_details(details):
+    if not isinstance(details, dict):
+        raise ValidationError('Enter your business permit details.')
+    clean = {}
+    for key in ('registered_business_name', 'permit_number', 'issuing_authority'):
+        value = details.get(key)
+        if not isinstance(value, str) or not value.strip() or len(value.strip()) > 180:
+            raise ValidationError('Enter a valid business name, permit number and issuing authority (up to 180 characters each).')
+        clean[key] = value.strip()
+    try:
+        issued = parse_date(details.get('issued_on', ''))
+        expires = parse_date(details.get('expires_on', ''))
+    except (ValueError, TypeError):
+        issued = expires = None
+    if not issued or not expires or issued > timezone.localdate() or expires < timezone.localdate() or expires < issued:
+        raise ValidationError('Enter valid issue and expiry dates. The permit must be unexpired and already issued.')
+    clean.update(issued_on=issued.isoformat(), expires_on=expires.isoformat())
+    return clean, expires
+
+
 def application_data(item, reviewer=False):
     result = dict(id=item.pk, status=item.status, submitted_at=item.submitted_at,
                   reviewed_at=item.reviewed_at, review_note=item.review_note,
                   bir_certificate_name=item.bir_certificate_name,
                   sworn_declaration_name=item.sworn_declaration_name,
-                  verified=item.user.reseller_verified)
+                  verified=item.user.reseller_verified, business_permit_name=item.business_permit_name, permit_details=item.permit_details, permit_expires_on=item.permit_expires_on)
     if reviewer:
         result.update(username=item.user.username, name=f'{item.user.first_name} {item.user.last_name}'.strip(), tin_number=item.tin_number)
     return result
@@ -89,20 +109,16 @@ class ResellerApplicationView(AuthenticatedAPIView):
         user = User.objects.select_for_update().get(pk=self.get_request_user(request).pk)
         if user.role not in {User.Role.BUYER, User.Role.ARTIST} or user.access_restricted:
             raise PermissionDenied('An unrestricted buyer or artist account is required.')
-        if ResellerApplication.objects.filter(user=user, status__in=['pending', 'approved']).exists():
+        if ResellerApplication.objects.filter(user=user, status__in=['pending', 'approved']).filter(models.Q(status='pending') | models.Q(permit_expires_on__isnull=True) | models.Q(permit_expires_on__gte=timezone.localdate())).exists():
             return Response({'error': 'You already have a pending or approved reseller application.'}, status=409)
-        tin = request.data.get('tin_number')
-        if not isinstance(tin, str) or not re.fullmatch(r'[0-9 -]+', tin):
-            raise ValidationError('Enter your 9-digit TIN, optionally followed by its 3-digit branch code.')
-        tin = re.sub(r'[ -]', '', tin)
-        if len(tin) not in (9, 12):
-            raise ValidationError('Enter your 9-digit TIN, optionally followed by its 3-digit branch code.')
         if request.data.get('consent') is not True:
-            raise ValidationError('Confirm the documents are yours and that seller verification does not grant resale rights.')
-        bir, bir_name = validate_document(request.data.get('bir_certificate'))
-        sworn, sworn_name = validate_document(request.data.get('sworn_declaration'), required=False)
-        item = ResellerApplication.objects.create(user=user, tin_number=tin, bir_certificate=bir,
-            bir_certificate_name=bir_name, sworn_declaration=sworn, sworn_declaration_name=sworn_name)
+            raise ValidationError('Confirm the permit belongs to you and seller approval does not grant resale rights.')
+        clean, expires = validate_permit_details(request.data.get('permit_details'))
+        ResellerApplication.objects.filter(user=user, status='approved', permit_expires_on__lt=timezone.localdate()).update(status='revoked', review_note='Business permit expired.')
+        permit, name = validate_document(request.data.get('business_permit'))
+        item = ResellerApplication.objects.create(user=user, business_permit=permit,
+            business_permit_name=name, permit_details=clean, permit_expires_on=expires,
+            tin_number='', bir_certificate='', bir_certificate_name='')
         ResellerReview.objects.create(application=item, actor=user, action='submitted')
         return Response(application_data(item), status=201)
 
@@ -140,6 +156,8 @@ class ResellerReviewsView(AuthenticatedAPIView):
         source, target = states[action]
         if item.status != source:
             return Response({'error': 'This application has already changed. Refresh before reviewing.'}, status=409)
+        if action == 'approve' and item.permit_expires_on and item.permit_expires_on < timezone.localdate():
+            raise ValidationError('This business permit has expired. Ask the applicant to renew it.')
         item.status, item.review_note = target, note.strip()
         item.reviewed_by, item.reviewed_at = reviewer, timezone.now()
         item.save(update_fields=['status', 'review_note', 'reviewed_by', 'reviewed_at'])
@@ -158,7 +176,7 @@ class ResellerDocumentView(AuthenticatedAPIView):
         item = ResellerApplication.objects.filter(pk=application_id).first()
         if not item or (item.user_id != user.pk and user.role not in REVIEWERS) or user.access_restricted:
             raise NotFound('Document not found.')
-        if document not in {'bir_certificate', 'sworn_declaration'}:
+        if document not in {'bir_certificate', 'sworn_declaration', 'business_permit'}:
             raise NotFound('Document not found.')
         uri = getattr(item, document)
         if not uri:

@@ -1,4 +1,5 @@
 import { staffWorkspaceStyles as workspace } from '@/components/staffWorkspaceStyles';
+import UserManagement from '@/module/admin/UserManagement';
 import ResellerApprovals from '@/module/admin/ResellerApprovals';
 import ModeratorEvaluation from './ModeratorEvaluation';
 import Svg, { Circle } from 'react-native-svg';
@@ -37,6 +38,8 @@ type ArtistApplication = {
     imageDataUri?: string;
     imageUri?: string;
   }>;
+  tin_number?: string;
+  document_details?: Record<string, string | number | boolean>;
   bir_certificate: SubmittedDocument;
   sworn_declaration: SubmittedDocument;
   status: ApplicationStatus;
@@ -78,8 +81,9 @@ export default function HrDashboardScreen() {
   const isWide = width >= 1100;
   const [applicationAreaWidth, setApplicationAreaWidth] = useState(0);
   const applicationsSideBySide = applicationAreaWidth >= 1180;
-  const [section, setSection] = useState<'artists' | 'resellers' | 'moderators' | 'drivers' | 'logs'>('artists');
+  const [section, setSection] = useState<'artists' | 'resellers' | 'moderators' | 'drivers' | 'logs' | 'people'>('artists');
   const navigation = [
+    { id: 'people', label: 'People & drivers', icon: Users },
     { id: 'artists', label: 'Artist registration', icon: ClipboardList },
     { id: 'resellers', label: 'Reseller applications', icon: Store },
     { id: 'moderators', label: 'Moderator Evaluation', icon: Users },
@@ -290,6 +294,7 @@ export default function HrDashboardScreen() {
       <View style={workspace.topbar}><Users size={22} color="#B65B50" /><Text style={workspace.workspace}>HR moderation workspace</Text><Text style={workspace.muted}>{current.label}</Text></View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={[styles.content, !desktop && styles.contentCompact]}>
+          {section === 'people' && <UserManagement hr />}
           {section === 'resellers' && <ResellerApprovals workspace />}
           {section === 'moderators' && <ModeratorEvaluation />}
           {section === 'drivers' && <ModeratorEvaluation driver />}
@@ -529,6 +534,9 @@ export default function HrDashboardScreen() {
                 ) : (
                   <Text style={styles.detailValue}>No pieces listed.</Text>
                 )}
+                <Text style={styles.detailLabel}>Submitted document details</Text>
+                <Text style={styles.detailValue}>TIN: {selectedApplication.tin_number || 'Not recorded'}</Text>
+                {selectedApplication.document_details && Object.keys(selectedApplication.document_details).length ? Object.entries(selectedApplication.document_details).map(([key, value]) => <Text key={key} style={styles.detailValue}>{key.replace(/_/g, ' ')}: {key === 'remittance_status' ? (value === 'exceed_500000' ? 'Exceed PHP 500,000' : 'Do not exceed PHP 500,000') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}</Text>) : <Text style={styles.detailValue}>Legacy application: structured document details were not collected.</Text>}
                 <Text style={styles.detailLabel}>Submitted documents</Text>
                 <View style={styles.documentActions}>
                   <TouchableOpacity

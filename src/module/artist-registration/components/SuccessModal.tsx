@@ -12,15 +12,14 @@ export default function SuccessModal({ visible, onConfirm }: Props) {
       <View style={styles.modalOverlayBackground}>
         <View style={styles.modalCardContainer}>
           <Text style={styles.modalHeadingTitleText}>
-            Your Registration as Artist{"\n"}is Undergoing Approval
+            Application submitted
           </Text>
           <Text style={styles.modalMutedSubtitle}>
-            (This process usually takes 2-3 business days. HR will review your
-            submitted BIR Form and portfolio.)
+            HR will review your registration details, uploaded documents, and portfolio.
           </Text>
 
           <TouchableOpacity style={styles.modalConfirmBtn} onPress={onConfirm}>
-            <Text style={styles.modalConfirmBtnText}>Confirm</Text>
+            <Text style={styles.modalConfirmBtnText}>Done</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -45,23 +44,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalHeadingTitleText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#C15656",
+    fontFamily: "LoraSemiBold",
+    fontSize: 24,
+    color: "#3A2D2A",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 32,
   },
   modalMutedSubtitle: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 14,
+    color: "#786862",
     marginVertical: 15,
     textAlign: "center",
-    lineHeight: 18,
+    lineHeight: 21,
   },
   modalConfirmBtn: {
     backgroundColor: "#C15656",
-    borderRadius: 8,
-    height: 42,
+    borderRadius: 12,
+    height: 46,
     width: "60%",
     justifyContent: "center",
     alignItems: "center",

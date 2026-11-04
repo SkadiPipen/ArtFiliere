@@ -1,3 +1,4 @@
+from .platform_defaults import PlatformDefaultsView, PlatformDefaultsAdminView
 from .royalty_funding import RoyaltyCheckoutView, RoyaltyAdminReviewView
 from django.urls import path
 
@@ -11,6 +12,8 @@ from .royalties import RoyaltyReportsView, RoyaltyEvidenceView
 from .royalty_payments import RoyaltyMandateView, royalty_payment_webhook
 
 urlpatterns = [
+    path('platform-defaults/', PlatformDefaultsView.as_view()),
+    path('admin/platform-defaults/', PlatformDefaultsAdminView.as_view()),
     path('royalties/admin/reports/', RoyaltyAdminReviewView.as_view()),
     path('royalties/admin/reports/<int:period_id>/', RoyaltyAdminReviewView.as_view()),
     path('royalties/periods/<int:period_id>/payment/', RoyaltyCheckoutView.as_view()),

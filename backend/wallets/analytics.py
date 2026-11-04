@@ -24,7 +24,9 @@ def admin_analytics():
     commission_volume = max(Decimal('0'), amount(funded, 'time_duration') - refunds)
     shop_fees = amount(paid, 'platform_fee')
     commission_fees = amount(funded.filter(status='COMPLETE'), 'platform_fee')
-    commercial_royalties = amount(RoyaltyReceipt.objects.filter(period__status='paid'), 'amount')
+    royalty_receipts = RoyaltyReceipt.objects.filter(period__status='paid')
+    royalty_fees = amount(royalty_receipts, 'platform_fee')
+    commercial_royalties = amount(royalty_receipts, 'amount') - royalty_fees
     resale_royalties = amount(CommissionResale.objects.filter(payment__status='paid', payment__is_simulated=False), 'royalty_amount')
     artworks = Artwork.objects.all()
     return {
@@ -38,7 +40,7 @@ def admin_analytics():
             'commercial_royalties': str(commercial_royalties), 'resale_royalties': str(resale_royalties),
             'artist_royalties': str(commercial_royalties + resale_royalties),
             'shop_platform_fees': str(shop_fees), 'commission_platform_fees': str(commission_fees),
-            'royalty_platform_fees': '0.00', 'total_platform_fees': str(shop_fees + commission_fees),
+            'royalty_platform_fees': str(royalty_fees), 'total_platform_fees': str(shop_fees + commission_fees + royalty_fees),
             'commission_holding': str(amount(funded, 'held_amount')),
             'shop_refunded': str(amount(PaymentSession.objects.filter(status='refunded', is_simulated=False), 'gross_amount')),
             'commission_refunded': str(refunds),

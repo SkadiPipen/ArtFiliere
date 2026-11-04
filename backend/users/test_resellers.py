@@ -20,7 +20,7 @@ class ResellerTests(TestCase):
         image = BytesIO()
         Image.new('RGB', (8, 8), 'white').save(image, 'PNG')
         self.doc = {'name': 'bir.png', 'data_uri': 'data:image/png;base64,' + base64.b64encode(image.getvalue()).decode()}
-        self.payload = {'tin_number': '123-456-789', 'bir_certificate': self.doc, 'consent': True}
+        self.payload = {'business_permit': self.doc, 'permit_details': {'registered_business_name': 'Test Store', 'permit_number': 'P-123', 'issuing_authority': 'Manila', 'issued_on': '2020-01-01', 'expires_on': '2099-12-31'}, 'consent': True}
 
     def user(self, name, role):
         return User.objects.create(username=name, firebase_uid=name, email=name + '@test.com', role=role)
@@ -48,11 +48,12 @@ class ResellerTests(TestCase):
         self.buyer.refresh_from_db()
         self.assertEqual(self.buyer.role, 'buyer')
         self.assertTrue(self.buyer.reseller_verified)
+        self.assertTrue(self.buyer.royalty_enabled)
         require_seller(self.buyer)
         self.assertEqual(ResellerReview.objects.count(), 2)
 
     def test_validation_and_duplicate_submission(self):
-        for changes in ({'tin_number': 'x'}, {'tin_number': '123'}, {'bir_certificate': {'name': 'bad.png', 'data_uri': 'data:image/png;base64,YmFk'}}, {'consent': False}):
+        for changes in ({'permit_details': {}}, {'permit_details': {**self.payload['permit_details'], 'expires_on': '2000-01-01'}}, {'business_permit': {'name': 'bad.png', 'data_uri': 'data:image/png;base64,YmFk'}}, {'consent': False}):
             response = self.call(ResellerApplicationView, self.buyer, 'post', {**self.payload, **changes})
             self.assertEqual(response.status_code, 400, response.data)
         self.submit()
@@ -67,7 +68,7 @@ class ResellerTests(TestCase):
         self.submit()
         self.assertEqual(ResellerApplication.objects.filter(user=self.buyer).count(), 2)
         item.refresh_from_db()
-        self.assertEqual(item.bir_certificate, self.doc['data_uri'])
+        self.assertEqual(item.business_permit, self.doc['data_uri'])
         self.assertEqual(item.status, 'rejected')
 
     def test_revocation_removes_badge_and_resale_permission(self):
@@ -81,9 +82,9 @@ class ResellerTests(TestCase):
 
     def test_documents_are_protected_and_never_in_summary(self):
         item = self.submit()
-        self.assertEqual(self.call(ResellerDocumentView, self.other, application_id=item.pk, document='bir_certificate').status_code, 404)
-        self.assertEqual(self.call(ResellerDocumentView, None, application_id=item.pk, document='bir_certificate').status_code, 403)
-        response = self.call(ResellerDocumentView, self.admin, application_id=item.pk, document='bir_certificate')
+        self.assertEqual(self.call(ResellerDocumentView, self.other, application_id=item.pk, document='business_permit').status_code, 404)
+        self.assertEqual(self.call(ResellerDocumentView, None, application_id=item.pk, document='business_permit').status_code, 403)
+        response = self.call(ResellerDocumentView, self.admin, application_id=item.pk, document='business_permit')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'image/png')
         self.assertEqual(response['Cache-Control'], 'private, no-store')
@@ -150,3 +151,34 @@ class ResellerTests(TestCase):
             assets.return_value.filter.return_value.first.return_value = SimpleNamespace(owner_id=self.buyer.pk)
             response = self.call(CommissionResaleView, self.buyer, 'post', {'price': '100'}, asset_id=1)
             self.assertEqual(response.status_code, 403)
+
+    def test_expired_permit_disables_resale_and_royalty_and_can_be_renewed(self):
+        item = self.submit()
+        self.approve(item)
+        from datetime import date
+        item.permit_expires_on = date(2000, 1, 1)
+        item.save(update_fields=['permit_expires_on'])
+        self.assertFalse(self.buyer.reseller_verified)
+        self.assertFalse(self.buyer.royalty_enabled)
+        self.submit()
+
+    def test_expired_pending_permit_cannot_be_approved(self):
+        item = self.submit()
+        from datetime import date
+        item.permit_expires_on = date(2000, 1, 1)
+        item.save(update_fields=['permit_expires_on'])
+        result = self.call(ResellerReviewsView, self.hr, 'patch', {'action': 'approve'}, application_id=item.pk)
+        self.assertEqual(result.status_code, 400)
+
+    def test_royalty_status_uses_approved_reseller_permit(self):
+        from users.royalty_views import RoyaltyApplicationView
+        item = self.submit()
+        self.assertFalse(self.buyer.royalty_enabled)
+        self.approve(item)
+        response = self.call(RoyaltyApplicationView, self.buyer)
+        self.assertTrue(response.data['royalty_enabled'])
+        self.assertEqual(response.data['source'], 'reseller')
+        self.assertEqual(response.data['permit_expires_on'], '2099-12-31')
+        self.assertNotIn('business_permit', response.data)
+        self.call(ResellerReviewsView, self.hr, 'patch', {'action': 'revoke', 'review_note': 'Renew documents'}, application_id=item.pk)
+        self.assertFalse(self.call(RoyaltyApplicationView, self.buyer).data['royalty_enabled'])

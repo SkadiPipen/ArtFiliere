@@ -482,7 +482,7 @@ class LifecycleTests(TestCase):
         history = self.call(driver, prefix + 'orders/history/', method='get')
         self.assertEqual(history.data[0]['id'], order.pk)
 
-    def test_delivery_invalid_geocodes_are_cleared_and_owner_pins_synced(self):
+    def test_delivery_invalid_geocodes_are_cleared_and_retry_uses_order_address(self):
         from fulfillment.models import DeliveryOrder
         from .shipping import verified_locations
         c = self.funded('Physical')
@@ -495,8 +495,11 @@ class LifecycleTests(TestCase):
         self.assertIn('pickup', result['location_errors'])
         address = c.artist.address
         address.latitude = 10.33; address.longitude = 123.93; address.save()
-        result = verified_locations(order)
-        self.assertEqual(result['pickup_coordinates'], [123.93, 10.33])
+        match = {'coordinates': [123.94, 10.34], 'precision': 'street', 'notice': 'Approximate street pin', 'provider': 'test'}
+        with patch('fulfillment.routing.geocode_address', return_value=match) as lookup:
+            result = verified_locations(order, force_side='pickup')
+        lookup.assert_called_once_with(order.pickup_address, include_metadata=True)
+        self.assertEqual(result['pickup_coordinates'], [123.94, 10.34])
         self.assertNotIn('pickup', result['location_errors'])
         self.assertIn('delivery', result['location_errors'])
         c.refresh_from_db()

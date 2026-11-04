@@ -1,3 +1,5 @@
+from .platform_defaults import royalty_fee_text
+from messaging.license_wording import wording, resolved_wording
 import hashlib
 import base64
 from pathlib import Path
@@ -36,35 +38,31 @@ def document_text(item):
         return item.artist_presigned_document + '\n\nAUCTION WINNER DETAILS (license terms above remain unchanged)\n\n' + f'Winning buyer: {party_name(item.buyer)}\nFinal winning bid: PHP {item.price:.2f}\nShipping fees and delivery details, if applicable, are completed at checkout under the delivery policy above.\nThe artist signature covers the original auction terms above. The buyer signs the same terms together with these completed purchase details.'
     # Use the supplied wording with accepted values, without invented dates or fees.
     title = item.artwork.title if item.artwork else "Unavailable artwork"
-    rights = (
-        f"The Artist grants the Client an {item.exclusivity.replace('_', '-')}, worldwide license to reproduce, publicly display, distribute, and use the Images for commercial purposes including but not limited to advertising, marketing, product packaging, and merchandise."
-        if item.license_type == "commercial" else
-        f"The Artist grants the Client an {item.exclusivity.replace('_', '-')}, worldwide license to reproduce, publicly display, and distribute the Images solely for personal, non-commercial purposes."
-    )
+    grant_key = 'commercial_grant' if item.license_type == 'commercial' else 'personal_grant'
+    from .license_wording import SECTIONS
+    rights = wording(item, grant_key, SECTIONS[grant_key]['default']).replace('{{exclusivity}}', item.exclusivity.replace('_', '-'))
     if item.license_scope:
-        rights = 'The Artist grants the Client a license to reproduce, display and distribute the work solely within the permissions below.\n' + scope_text(item.license_scope)
-    exclusivity = {
-        "exclusive": "Within the licensed scope and term, only the Client may exercise the licensed rights. The Artist shall not exercise those rights or grant them to any other party, except for the portfolio and promotional display expressly reserved below.",
-        "sole": "Within the licensed scope and term, the Client is the only licensee. The Artist may continue to exercise the licensed rights themselves, but shall not grant those rights to any other party.",
-    }.get(item.exclusivity, "The Artist retains the right to license the same Images to other parties.")
+        rights = wording(item, 'scoped_grant', SECTIONS['scoped_grant']['default']) + '\n' + scope_text(item.license_scope)
+    exclusivity_key = {'exclusive': 'exclusive_rights', 'sole': 'sole_rights'}.get(item.exclusivity, 'nonexclusive_rights')
+    exclusivity = wording(item, exclusivity_key, SECTIONS[exclusivity_key]['default'])
     transfer = item.license_scope.get('copyright_transfer') if item.license_scope else None
     sections = [
         "ART LICENSING AND COPYRIGHT ASSIGNMENT AGREEMENT" if transfer else "ART LICENSING AGREEMENT",
         f'between: {party_name(item.artist)} ("Artist"), and {party_name(item.buyer)} ("Client").',
-        'The Artist and Client are each referred to herein as a "Party" and collectively as the "Parties."',
+        wording(item, 'parties', 'The Artist and Client are each referred to herein as a "Party" and collectively as the "Parties."'),
         '1. Scope of this Agreement',
         f'This Agreement applies to the artwork titled "{title}" (the "IMAGES"). This Agreement governs the relationship between the parties and no communication or other exchange shall modify the terms of this Agreement unless agreed to in writing.',
         '2. Rights', rights, exclusivity,
-        transfer_text(transfer) if transfer else 'Copyright ownership remains with the Artist. This Agreement grants a license and does not assign copyright ownership to the Client.',
-        'Artist use after assignment is governed by the express reservations in the assignment section.' if transfer else 'The Artist retains the right to display the Images in their portfolio, website, and for self-promotional purposes. Public viewing of this display does not grant any viewer a license.',
+        transfer_text(transfer) if transfer else wording(item, 'copyright', 'Copyright ownership remains with the Artist. This Agreement grants a license and does not assign copyright ownership to the Client.'),
+        'Artist use after assignment is governed by the express reservations in the assignment section.' if transfer else wording(item, 'portfolio', 'The Artist retains the right to display the Images in their portfolio, website, and for self-promotional purposes. Public viewing of this display does not grant any viewer a license.'),
         'Moral rights and authority',
-        'The Artist retains moral rights, including attribution and protection against distortions or modifications prejudicial to honor or reputation. No moral-rights waiver is implied. Nothing here removes statutory exceptions or limitations, including fair use.',
-        'The Artist confirms that they own or control the licensed rights and have obtained prior written consent from all copyright co-owners and any required employer, commissioner, or other right holder. The Client may request supporting documentation.',
-        'Negotiated license royalties do not replace or waive any applicable statutory resale right in qualifying original works. Statutory resale obligations must be assessed separately; this agreement does not automatically calculate or settle them.',
-        'Platform certificates and blockchain records record transactions and document integrity; they do not establish authorship, create copyright, or constitute IPOPHL registration.',
+        wording(item, 'moral_rights', 'The Artist retains moral rights, including attribution and protection against distortions or modifications prejudicial to honor or reputation. No moral-rights waiver is implied. Nothing here removes statutory exceptions or limitations, including fair use.'),
+        wording(item, 'authority', 'The Artist confirms that they own or control the licensed rights and have obtained prior written consent from all copyright co-owners and any required employer, commissioner, or other right holder. The Client may request supporting documentation.'),
+        wording(item, 'statutory_resale', 'Negotiated license royalties do not replace or waive any applicable statutory resale right in qualifying original works. Statutory resale obligations must be assessed separately; this agreement does not automatically calculate or settle them.'),
+        wording(item, 'records', 'Platform certificates and blockchain records record transactions and document integrity; they do not establish authorship, create copyright, or constitute IPOPHL registration.'),
         '3. Term and agreed details', item.terms_snapshot,
         '4. Fees', f'The Client shall pay a total license fee of PHP {item.price}.',
-        "The total fee is due and payable through the Platform's payment system no later than ten (10) business days from the delivery of the Images.",
+        wording(item, 'payment_timing', "The total fee is due and payable through the Platform's payment system no later than ten (10) business days from the delivery of the Images."),
     ]
     if getattr(item, 'compensation_terms', None):
         # The commercial schedule must not be overridden by the legacy ten-day clause.
@@ -72,15 +70,17 @@ def document_text(item):
             '4. Fees and commercial compensation',
             f'Artwork purchase payable through platform checkout: PHP {item.price} (including PHP {item.delivery_fee} delivery).',
             compensation_summary(item.compensation_type, item.compensation_terms),
-            'The agreed schedules and royalty calculations above govern commercial obligations. The artwork checkout does not collect future royalties. Approved royalties may be collected through the reporting service only with structured agreed terms and separate payer authorization. Scheduled flat-fee payments remain contractual obligations.',
+            wording(item, 'commercial_payments', 'The agreed schedules and royalty calculations above govern commercial obligations. The artwork checkout does not collect future royalties. Approved royalties may be collected through the reporting service only with structured agreed terms and separate payer authorization. Scheduled flat-fee payments remain contractual obligations.'),
         ]
         if item.compensation_type == 'hybrid' and item.compensation_terms.get('subtype', '').startswith('upfront_'):
             sections.append(f'The upfront fee is PHP {item.price - item.delivery_fee}; delivery is separate. Royalties are payable in addition to this fee.')
     if item.delivery_type == "digital":
-        sections += ['5. Digital Delivery', "The Artist shall deliver the Images to the Client in digital format via the Platform's delivery system or such other electronic means as the parties may agree. It is the Client's responsibility to verify that the Images are suitable for reproduction and to notify the Artist within five (5) business days if the Images are not deemed suitable."]
-    sections += ['6. Termination for Breach', 'If either party materially breaches this Agreement and fails to cure within fifteen (15) days after written notice, the non-breaching party may terminate this Agreement immediately. Upon termination for breach by Client, all rights granted shall immediately cease, and Client shall destroy all copies of the Images and certify such destruction in writing.']
+        sections += ['5. Digital Delivery', wording(item, 'digital_delivery', "The Artist shall deliver the Images to the Client in digital format via the Platform's delivery system or such other electronic means as the parties may agree. It is the Client's responsibility to verify that the Images are suitable for reproduction and to notify the Artist within five (5) business days if the Images are not deemed suitable.")]
+    sections += ['6. Termination for Breach', wording(item, 'termination', 'If either party materially breaches this Agreement and fails to cure within fifteen (15) days after written notice, the non-breaching party may terminate this Agreement immediately. Upon termination for breach by Client, all rights granted shall immediately cease, and Client shall destroy all copies of the Images and certify such destruction in writing.')]
     if transfer:
-        sections[-1] = 'For a material breach, the non-breaching party may seek remedies available under the agreement and applicable law after written notice and a fifteen-day opportunity to cure. Termination of a license does not automatically reverse a completed copyright assignment; any reassignment or other relief requires an express written agreement or applicable legal process.'
+        sections[-1] = wording(item, 'assignment_termination', 'For a material breach, the non-breaching party may seek remedies available under the agreement and applicable law after written notice and a fifteen-day opportunity to cure. Termination of a license does not automatically reverse a completed copyright assignment; any reassignment or other relief requires an express written agreement or applicable legal process.')
+    if item.compensation_type in ('royalty', 'hybrid') and royalty_fee_text(item.platform_defaults_snapshot):
+        sections.append(royalty_fee_text(item.platform_defaults_snapshot))
     return "\n\n".join(sections)
 
 

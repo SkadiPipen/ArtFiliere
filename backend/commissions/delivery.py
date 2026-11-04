@@ -51,7 +51,7 @@ class CommissionDeliveryQuoteView(AuthenticatedAPIView):
                 raise ValidationError(f'{label} requires a complete saved street, barangay, city, province, region and postal code.')
         pickup_data, delivery_data = address_data(pickup), address_data(destination)
         try:
-            meters = road_distance(pickup_data['formatted'], delivery_data['formatted'](pickup_data)(delivery_data))
+            meters = road_distance(pickup_data['formatted'], delivery_data['formatted'])
         except ValueError as error: raise ValidationError(str(error))
         km = Decimal(str(meters)) / 1000
         base, rate = Decimal(settings.DELIVERY_BASE_FARE), Decimal(settings.DELIVERY_PER_KM)

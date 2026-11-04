@@ -94,11 +94,12 @@ class User(models.Model):
     @property
     def royalty_enabled(self):
         from django.utils import timezone
-        return RoyaltyApplication.objects.filter(user=self, status='approved', permit_expires_on__gte=timezone.localdate()).exists()
+        return not self.access_restricted and (ResellerApplication.objects.filter(user=self, status='approved', permit_expires_on__gte=timezone.localdate()).exists() or RoyaltyApplication.objects.filter(user=self, status='approved', permit_expires_on__gte=timezone.localdate()).exists())
 
     @property
     def reseller_verified(self):
-        return not self.access_restricted and ResellerApplication.objects.filter(user=self, status='approved').exists()
+        from django.utils import timezone
+        return not self.access_restricted and ResellerApplication.objects.filter(user=self, status='approved').filter(models.Q(permit_expires_on__isnull=True) | models.Q(permit_expires_on__gte=timezone.localdate())).exists()
 
     royalty_proof = models.FileField(
         upload_to="royalty_proofs/",
@@ -140,6 +141,8 @@ class User(models.Model):
 
 
 class RoyaltyApplication(models.Model):
+    permit_details = models.JSONField(default=dict, blank=True)
+    business_permit_name = models.CharField(max_length=180, blank=True)
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
         APPROVED = 'approved', 'Approved'
@@ -156,6 +159,10 @@ class RoyaltyApplication(models.Model):
 
 
 class ResellerApplication(models.Model):
+    business_permit = models.TextField(blank=True)
+    business_permit_name = models.CharField(max_length=180, blank=True)
+    permit_details = models.JSONField(default=dict, blank=True)
+    permit_expires_on = models.DateField(null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='reseller_applications')
     tin_number = models.CharField(max_length=12)
     bir_certificate = models.TextField()

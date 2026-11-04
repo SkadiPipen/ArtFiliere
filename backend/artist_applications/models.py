@@ -26,6 +26,7 @@ class ArtistApplication(models.Model):
     bir_expires_on = models.DateField(null=True, blank=True)
     sworn_declaration = models.TextField()
     sworn_declaration_name = models.CharField(max_length=255, blank=True, default="")
+    document_details = models.JSONField(default=dict, blank=True)
     portfolio = models.JSONField(default=list)
 
     status = models.CharField(

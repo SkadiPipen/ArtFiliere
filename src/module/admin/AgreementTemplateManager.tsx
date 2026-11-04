@@ -1,284 +1,83 @@
-import { adminType, adminSurfaces } from './adminDesign';
-import { useAdminRefresh } from './AdminRefresh';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FileText, Pencil, X } from 'lucide-react-native';
 import { Text, TextInput } from '@/components/Typography';
-import { auth } from "@/firebase/config";
-import API_URL from "@/services/api";
-import AgreementPaper from '@/module/messages/components/AgreementPaper';
-import { FileText, Pencil, Plus } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
-type T = { id: number; name: string; body: string; is_active: boolean };
-const standard =
-  "ARTFILIERE ART LICENSE AGREEMENT\n\nBuyer: {{buyer_name}}\nArtist: {{artist_name}}\nAgreed price: PHP {{amount}}\n\nDescribe the permitted use, exclusivity, delivery requirements, and other conditions here.";
+import { auth } from '@/firebase/config';
+import API_URL from '@/services/api';
+import { useAdminRefresh } from './AdminRefresh';
+import { adminType as type, adminSurfaces as surface } from './adminDesign';
+import AdminTabs from './AdminTabs';
+
+type Section = { key: string; label: string; body: string };
+type Template = { id: number; name: string; sections: Section[]; is_active: boolean };
 export default function AgreementTemplateManager() {
-  const [items, setItems] = useState<T[]>([]),
-    [loading, setLoading] = useState(true),
-    [show, setShow] = useState(false),
-    [edit, setEdit] = useState<T | null>(null),
-    [name, setName] = useState(""),
-    [body, setBody] = useState(standard),
-    [active, setActive] = useState(true),
-    [saving, setSaving] = useState(false);
+  const [items, setItems] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [editing, setEditing] = useState<Template | null>(null);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-  const h = async () => {
+  const request = async (body?: object) => {
     await auth.authStateReady();
-    if (!auth.currentUser) throw Error("Please log in again.");
-    return {
-      Authorization: `Bearer ${await auth.currentUser.getIdToken()}`,
-      "Content-Type": "application/json",
-    };
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw Error('Please sign in again.');
+    const response = await fetch(`${API_URL}/api/users/admin/agreement-templates/`, { method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const result = await response.json();
+    if (!response.ok) throw Error(result.error || 'Unable to update license wording.');
+    return result;
   };
   const load = async () => {
-    try {
-      setLoading(true);
-      const r = await fetch(`${API_URL}/api/users/admin/agreement-templates/`, {
-          headers: await h(),
-        }),
-        d = await r.json();
-      if (!r.ok) throw Error(d.error);
-      setItems(d);
-    } catch (e: any) {
-      Alert.alert(
-        "Agreement templates",
-        e.message || "Unable to load templates.",
-      );
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    try { setItems(await request()); setError(''); }
+    catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
   };
-  const adminWorkspace = useAdminRefresh(load);
-  useEffect(() => {
-    load();
-  }, []);
-  const open = (x?: T) => {
-    setEdit(x || null);
-    setName(x?.name || "ArtFiliere standard agreement");
-    setBody(x?.body || standard);
-    setActive(x?.is_active ?? true);
-    setMode('edit');
-    setShow(true);
-  };
-  const close = () => {
-    setShow(false);
-    setEdit(null);
+  useAdminRefresh(load);
+  useEffect(() => { void load(); }, []);
+  const open = (item: Template) => {
+    setEditing(item); setDraft(Object.fromEntries(item.sections.map(section => [section.key, section.body])));
+    setFormError(''); setMode('edit'); setNotice('');
   };
   const save = async () => {
-    if (!name.trim() || !body.trim())
-      return Alert.alert(
-        "Agreement template",
-        "Name and wording are required.",
-      );
-    try {
-      setSaving(true);
-      const r = await fetch(`${API_URL}/api/users/admin/agreement-templates/`, {
-          method: "POST",
-          headers: await h(),
-          body: JSON.stringify({ id: edit?.id, name, body, is_active: active }),
-        }),
-        d = await r.json();
-      if (!r.ok) throw Error(d.error);
-      close();
-      load();
-    } catch (e: any) {
-      Alert.alert(
-        "Agreement template",
-        e.message || "Unable to save template.",
-      );
-    } finally {
-      setSaving(false);
-    }
+    if (!editing || saving) return;
+    if (editing.sections.some(section => !draft[section.key]?.trim())) { setFormError('Enter wording for every section before saving.'); return; }
+    setSaving(true); setFormError('');
+    try { await request({ id: editing.id, sections: draft }); setEditing(null); setNotice('Default wording saved for new agreements.'); await load(); }
+    catch (e: any) { setFormError(e.message); }
+    finally { setSaving(false); }
   };
-  return (
-    <View style={{ gap: 24 }}>
-      <View style={s.top}>
-        <View style={{ flex: 1, minWidth: 200 }}>
-          <Text style={s.title}>Agreement templates</Text>
-          <Text style={s.lead}>
-            Edit the wording users see before accepting an agreement.
-          </Text>
-        </View>
-        <TouchableOpacity onPress={() => open()} style={s.new}>
-          <Plus size={15} color="#fff" />
-          <Text style={s.white}>New template</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={s.panel}>
-      {loading ? (
-        <ActivityIndicator color="#C15656" style={{ padding: 20 }} />
-      ) : (
-        items.map((x) => (
-          <View style={s.row} key={x.id}>
-            <FileText size={19} color="#C15656" />
-            <View style={{ flex: 1 }}>
-              <Text style={s.name}>{x.name}</Text>
-              <Text numberOfLines={2} style={s.preview}>
-                {x.body}
-              </Text>
-              <Text style={[s.state, x.is_active ? s.on : s.off]}>
-                {x.is_active ? "Active" : "Inactive"}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => open(x)} style={s.edit}>
-              <Pencil size={15} color="#8A6258" />
-              <Text>Edit</Text>
-            </TouchableOpacity>
-          </View>
-        ))
-      )}
-      </View>
-      <Modal
-        visible={show}
-        transparent
-        animationType="fade"
-        onRequestClose={close}
-      >
-        <View style={s.overlay}>
-          <ScrollView style={s.modalScroll} contentContainerStyle={s.modal}>
-            <Text style={s.modalTitle}>
-              {edit ? "Edit" : "New"} agreement template
-            </Text>
-            <Text style={s.help}>
-              Edit the wording and paragraph spacing, then preview the full document before saving. Keep placeholders such as {'{{buyer_name}}'}, {'{{artist_name}}'} and {'{{amount}}'} for the actual agreement details.
-            </Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              style={s.field}
-              placeholder="Template name"
-              accessibilityLabel="Agreement template name"
-              editable={!saving}
-            />
-            <View style={s.tabs}>{(['edit', 'preview'] as const).map(tab => <TouchableOpacity key={tab} accessibilityRole="button" accessibilityState={{ selected: mode === tab }} style={[s.tab, mode === tab && s.selectedTab]} onPress={() => setMode(tab)}><Text style={s.tabText}>{tab === 'edit' ? 'Edit agreement' : 'Document preview'}</Text></TouchableOpacity>)}</View>
-            {mode === 'edit' ? <View style={s.documentEditor}><Text style={s.documentTitle}>Art Licensing Agreement</Text><TextInput
-              value={body}
-              onChangeText={setBody}
-              multiline
-              textAlignVertical="top"
-              accessibilityLabel="Full agreement wording"
-              editable={!saving}
-              style={s.body}
-            /></View> : <AgreementPaper document={body} />}
-            <Text style={s.help}>The preview preserves your exact wording. Buyer, artist and amount placeholders are filled when an agreement is created.</Text>
-            <View style={s.switch}>
-              <Text>Available for new agreements</Text>
-              <Switch
-                value={active}
-                disabled={saving}
-                onValueChange={setActive}
-                trackColor={{ true: "#C15656" }}
-              />
-            </View>
-            <View style={s.actions}>
-              <TouchableOpacity onPress={close} disabled={saving}>
-                <Text>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={save} disabled={saving} style={s.save}>
-                <Text style={s.white}>
-                  {saving ? "Saving…" : "Save template"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </View>
-      </Modal>
-    </View>
-  );
+  return <View style={{ gap: 24 }}>
+    <View style={{ gap: 12 }}><Text style={type.pageTitle}>License wording</Text><Text style={type.body}>Adjust the default clauses included in new artwork and commission licenses.</Text></View>
+    <View style={s.notice}><Text style={type.muted}>Each clause has its own editor. Prices, parties, selected permissions, royalty calculations, and delivery details are filled from the agreement. Existing agreements keep their recorded wording.</Text></View>
+    {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+    {!!notice && <Text accessibilityLiveRegion="polite" style={{ color: '#477452' }}>{notice}</Text>}
+    {loading ? <ActivityIndicator color="#B65B50" /> : items.map(item => <View key={item.id} style={[surface.card, s.row]}>
+      <FileText size={23} color="#B65B50" /><View style={{ flex: 1, gap: 6 }}><Text style={type.cardTitle}>{item.name}</Text><Text style={type.muted}>{item.sections.length} editable clauses | {item.is_active ? 'Active' : 'Inactive'}</Text><Text numberOfLines={2} style={type.muted}>{item.sections.map(section => section.label).join(', ')}</Text></View>
+      <Pressable accessibilityRole="button" style={[surface.button, s.secondary]} onPress={() => open(item)}><Pencil size={16} color="#A74646" /><Text style={[type.button, s.accent]}>Edit wording</Text></Pressable>
+    </View>)}
+    {!loading && !error && !items.length && <Text style={type.muted}>No license templates are configured.</Text>}
+    <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => { if (!saving) setEditing(null); }}>
+      <View style={s.overlay}><View accessibilityViewIsModal style={s.dialog}>
+        <View style={s.dialogHeader}><View style={{ flex: 1, gap: 6 }}><Text style={type.sectionTitle}>{editing?.name}</Text><Text style={type.muted}>Edit individual default clauses</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Close wording editor" disabled={saving} onPress={() => setEditing(null)} style={{ padding: 10 }}><X size={22} color="#81756D" /></Pressable></View>
+        <ScrollView contentContainerStyle={{ padding: 24, gap: 20 }} keyboardShouldPersistTaps="handled">
+          <AdminTabs items={[{ id: 'edit', label: 'Edit clauses' }, { id: 'preview', label: 'Wording preview' }]} value={mode} onChange={setMode} />
+          <Text style={type.muted}>These sections are inserted into the full license alongside the agreed transaction details. Keep the {'{{exclusivity}}'} placeholder where shown. Review changes before saving.</Text>
+          {editing?.sections.map((section, index) => <View key={section.key} style={{ gap: 10 }}><Text style={type.cardTitle}>{index + 1}. {section.label}</Text>{mode === 'edit' ? <TextInput accessibilityLabel={`${section.label} default wording`} editable={!saving} value={draft[section.key] || ''} onChangeText={value => setDraft(old => ({ ...old, [section.key]: value }))} multiline maxLength={10000} textAlignVertical="top" style={[surface.input, type.body, { minHeight: 120 }]} /> : <Text selectable style={type.body}>{draft[section.key]}</Text>}</View>)}
+        </ScrollView>
+        {!!formError && <Text accessibilityRole="alert" style={[s.error, { paddingHorizontal: 24 }]}>{formError}</Text>}
+        <View style={s.footer}><Pressable accessibilityRole="button" disabled={saving} onPress={() => setEditing(null)} style={[surface.button, s.secondary]}><Text style={[type.button, s.accent]}>Cancel</Text></Pressable><Pressable accessibilityRole="button" disabled={saving} onPress={() => void save()} style={[surface.button, { backgroundColor: '#B95353', opacity: saving ? .5 : 1 }]}><Text style={[type.button, { color: '#FFFFFF' }]}>{saving ? 'Saving...' : 'Save default wording'}</Text></Pressable></View>
+      </View></View>
+    </Modal>
+  </View>;
 }
 const s = StyleSheet.create({
-  panel: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E5DAD3",
-    marginTop: 0,
-    overflow: "hidden",
-  },
-  top: {
-    flexWrap: "wrap",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 16,
-  },
-  title: { ...adminType.pageTitle, },
-  lead: { ...adminType.muted, marginTop: 3 },
-  new: {
-    ...adminSurfaces.button,
-    marginLeft: "auto",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    backgroundColor: "#C15656",
-    borderRadius: 12,
-    flexDirection: "row",
-    gap: 4,
-  },
-  white: { ...adminType.button,  color: "#fff", },
-  row: {
-    padding: 14,
-    borderBottomWidth: 1,
-    borderColor: "#F0E8E2",
-    flexDirection: "row",
-    gap: 10,
-  },
-  name: { ...adminType.cardTitle, },
-  preview: { ...adminType.muted, marginTop: 3 },
-  state: { ...adminType.label,  marginTop: 5 },
-  on: { color: "#5D8A63" },
-  off: { color: "#A86868" },
-  edit: {
-    ...adminSurfaces.button,
-    alignSelf: "center",
-    minHeight: 44,
-    padding: 12,
-    backgroundColor: "#F5E8E3",
-    borderRadius: 12,
-    flexDirection: "row",
-    gap: 4,
-    alignItems: "center",
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(43,35,32,.45)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 18,
-  },
-  modal: {
-    backgroundColor: "#fff",
-    width: "100%",
-    maxWidth: 1000,
-    borderRadius: 14,
-    padding: 20,
-  },
-  modalTitle: { ...adminType.sectionTitle, },
-  help: { ...adminType.muted, marginVertical: 10 },
-  field: {
-    borderWidth: 1,
-    borderColor: "#E6D7CF",
-    borderRadius: 8,
-    padding: 11,
-    marginBottom: 10,
-  },
-  modalScroll: { width: '100%', maxWidth: 1000, maxHeight: '92%' },
-  tabs: { flexDirection: 'row', gap: 10, marginVertical: 16 },
-  tab: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8, borderWidth: 1, borderColor: '#DDD4CF' },
-  selectedTab: { backgroundColor: '#FFF0E9', borderColor: '#C15656' },
-  tabText: { ...adminType.button,  color: '#704F46', },
-  documentEditor: { backgroundColor: '#FFFFFF', padding: 28, borderWidth: 1, borderColor: '#ECE7E2' },
-  documentTitle: { fontSize: 28, fontWeight: '700', color: '#111111', marginBottom: 26 },
-  body: { minHeight: 650, fontSize: 16, lineHeight: 29, color: '#171717', padding: 0 },
-  switch: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 18,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  save: { ...adminSurfaces.button, backgroundColor: "#C15656" },
+  row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }, notice: { padding: 20, backgroundColor: '#F5E8E3', borderRadius: 16 },
+  secondary: { flexDirection: 'row', gap: 8, backgroundColor: '#F5E8E3' }, accent: { color: '#A74646' }, error: { color: '#B42318' },
+  overlay: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(43,35,32,.4)' },
+  dialog: { width: '100%', maxWidth: 960, maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 20, overflow: 'hidden' },
+  dialogHeader: { padding: 24, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderColor: '#E5DAD3' },
+  footer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12, padding: 20, borderTopWidth: 1, borderColor: '#E5DAD3' },
 });
