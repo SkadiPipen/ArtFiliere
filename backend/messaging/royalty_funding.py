@@ -1,3 +1,4 @@
+from .platform_defaults import royalty_split
 """Hosted royalty payments: verified receipt -> held balance -> admin release."""
 import uuid
 from urllib.parse import urlencode, urlsplit, urlunsplit
@@ -23,7 +24,7 @@ def apply_session(funding_id, data):
             amount = Decimal(str(data.get('amount')))
         except (InvalidOperation, TypeError, ValueError):
             raise ValueError('Invalid payment amount.')
-        if (not amount.is_finite() or amount != funding.amount or amount != period.amount
+        if (not amount.is_finite() or amount != funding.amount or amount != royalty_split(period)[2]
                 or data.get('payment_session_id') != funding.session_id or data.get('reference_id') != funding.reference
                 or data.get('currency') != 'PHP' or data.get('session_type') != 'PAY'):
             raise ValueError('Payment details do not match this royalty report.')
@@ -33,12 +34,12 @@ def apply_session(funding_id, data):
             payment_id = data.get('payment_id')
             if not isinstance(payment_id, str) or not payment_id:
                 raise ValueError('A verified provider payment ID is required.')
-            _, created = RoyaltyReceipt.objects.get_or_create(period=period, defaults={'amount': funding.amount, 'provider_payment_id': payment_id})
+            _, created = RoyaltyReceipt.objects.get_or_create(period=period, defaults={'amount': funding.amount, 'platform_fee': royalty_split(period)[1], 'provider_payment_id': payment_id})
             if not created:
                 raise ValueError('This report already has a different receipt. Manual reconciliation is required.')
             from wallets.models import WalletAccount
             wallet, _ = WalletAccount.objects.get_or_create(user=period.agreement.artist)
-            WalletAccount.objects.filter(pk=wallet.pk).update(pending_balance=F('pending_balance') + funding.amount)
+            WalletAccount.objects.filter(pk=wallet.pk).update(pending_balance=F('pending_balance') + period.amount)
             funding.status, funding.paid_at = 'held', timezone.now()
             period.status, period.paid_at = 'funded', funding.paid_at
             period.history.append({'action': 'payment_held', 'at': funding.paid_at.isoformat(), 'amount': str(funding.amount)})
@@ -72,7 +73,7 @@ class RoyaltyCheckoutView(AuthenticatedAPIView):
                     return Response({'error': 'Payment already initiated. Refresh its status or contact support; no duplicate payment will be created.'}, status=409)
                 if not settings.XENDIT_SECRET_KEY:
                     return Response({'error': 'Xendit payment credentials are not configured.'}, status=503)
-                funding = RoyaltyFunding.objects.create(period=period, amount=period.amount, reference='af-royalty-report-' + uuid.uuid4().hex)
+                funding = RoyaltyFunding.objects.create(period=period, amount=royalty_split(period)[2], reference='af-royalty-report-' + uuid.uuid4().hex)
             else:
                 return Response({'error': 'Choose pay or refresh.'}, status=400)
         # Persist the unique claim before any external request. Ambiguous failures
@@ -141,9 +142,9 @@ class RoyaltyAdminReviewView(AuthenticatedAPIView):
                 return Response({'error': 'A different administrator must review a transaction in which you are a party.'}, status=403)
             from wallets.models import WalletAccount
             wallet = WalletAccount.objects.select_for_update().get(user=period.agreement.artist)
-            if wallet.pending_balance < funding.amount:
+            if wallet.pending_balance < period.amount:
                 return Response({'error': 'Held balance mismatch. Contact support for reconciliation.'}, status=409)
-            wallet.pending_balance -= funding.amount; wallet.available_balance += funding.amount
+            wallet.pending_balance -= period.amount; wallet.available_balance += period.amount
             wallet.save(update_fields=['pending_balance', 'available_balance'])
             funding.status, funding.released_at, funding.reviewed_by, funding.review_note = 'released', timezone.now(), admin, note.strip()
             funding.save(); period.status = 'paid'

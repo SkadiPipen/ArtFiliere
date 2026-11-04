@@ -1,3 +1,5 @@
+from decimal import Decimal
+from .platform_defaults import royalty_split
 """Reporting periods, private evidence, and artist approval for signed licenses."""
 import base64
 import binascii
@@ -85,6 +87,7 @@ def royalty_title(agreement):
 
 
 def period_data(period, user):
+    artist_amount, platform_fee, total = royalty_split(period)
     funding = getattr(period, 'funding', None)
     return {'id': period.pk, 'agreement_id': period.agreement_id, 'title': royalty_title(period.agreement),
             'is_buyer': period.agreement.buyer_id == user.pk, 'starts_on': str(period.starts_on), 'ends_on': str(period.ends_on),
@@ -95,7 +98,7 @@ def period_data(period, user):
             'overdue': timezone.localdate() > period.due_on and period.status not in ('paid', 'zero_due', 'funded'),
             'can_submit': timezone.localdate() >= period.ends_on and period.status in ('awaiting_report', 'rejected'),
             'terms': period.terms, 'basis': basis_for(period.terms), 'metrics': period.metrics,
-            'amount': str(period.amount) if period.amount is not None else None, 'review_note': period.review_note,
+            'amount': str(period.amount) if period.amount is not None else None, 'platform_fee': str(platform_fee), 'total_amount': str(total) if period.amount is not None else None, 'review_note': period.review_note,
             'evidence': [{'name': item['name'], 'path': f'royalties/periods/{period.pk}/evidence/{i}/'} for i, item in enumerate(period.evidence)],
             'history': [{key: value for key, value in item.items() if key != 'evidence'} for item in period.history],
             'collection_error': period.collection_error}
@@ -173,6 +176,10 @@ class RoyaltyReportsView(AuthenticatedAPIView):
         except ValueError as error:
             return Response({'error': str(error)}, status=400)
         period.metrics, period.amount, period.evidence = metrics, amount, evidence
+        try:
+            royalty_split(period)
+        except ValueError as error:
+            return Response({'error': str(error)}, status=400)
         period.status, period.submitted_at, period.review_note = 'submitted', timezone.now(), ''
         period.history.append({'action': 'submitted', 'at': period.submitted_at.isoformat(), 'metrics': metrics, 'amount': str(amount), 'evidence': evidence})
         period.save()

@@ -1,3 +1,5 @@
+from messaging.platform_defaults import current_defaults, included_fee, royalty_fee_text
+from messaging.license_wording import wording, resolved_wording
 """Versioned commission contracts and verified money movement."""
 import hashlib
 import hmac
@@ -56,7 +58,8 @@ def normalized_terms(c, data, accepting=False):
     if not isinstance(percentages, list) or len(percentages) != 3 or any(type(v) is not int or v <= 0 for v in percentages) or sum(percentages) != 100:
         raise ValidationError('The three milestone percentages must total 100.')
     license_type = data.get('license_type', 'personal')
-    exclusivity = str(data.get('exclusivity', 'non_exclusive')).replace('-', '_')
+    default_exclusivity = 'non_exclusive' if accepting else current_defaults()['default_exclusivity']
+    exclusivity = str(data.get('exclusivity', default_exclusivity)).replace('-', '_')
     if license_type not in ('personal', 'commercial') or exclusivity not in ('non_exclusive', 'exclusive', 'sole'):
         raise ValidationError('Invalid license or exclusivity.')
     try:
@@ -108,7 +111,9 @@ def normalized_terms(c, data, accepting=False):
     if len(floor_unit) > 200 or len(instruction) > 1000:
         raise ValidationError('Floor/unit must be at most 200 characters and delivery instructions at most 1000.')
     if delivery_fee >= price: raise ValidationError('Delivery fee must be below the total.')
-    fee = ((price - delivery_fee) / Decimal('11')).quantize(Decimal('.01'))
+    defaults = current_defaults()
+    percent = data.get('platform_fee_percent', '10.00') if accepting else defaults['platform_fee_percentage']
+    fee = included_fee(price - delivery_fee, percent)
     net = price - fee - delivery_fee
     amounts = [(net * Decimal(p) / 100).quantize(Decimal('.01')) for p in percentages]
     amounts[2] = net - amounts[0] - amounts[1]
@@ -125,7 +130,8 @@ def normalized_terms(c, data, accepting=False):
             'commercial_royalty_policy': ('Production is funded fully upfront. Commercial royalties start after final delivery approval, use separate sales reports and artist approval, and require separate buyer payment authorization. Milestone approval never collects commercial royalties.' if category == 'hybrid' else 'No commercial-use royalties apply; the production fee is paid upfront.'),
             'resale_calculation': (data.get('resale_calculation', '') if accepting else RESALE_POLICY) if royalty else '',
             'royalty_policy': (data.get('royalty_policy', RESALE_SUMMARY) if accepting else RESALE_SUMMARY),
-            'platform_fee': str(fee), 'delivery_fee': str(delivery_fee), 'artist_total': str(price - fee - delivery_fee),
+            'platform_fee': str(fee), 'platform_fee_percent': str(percent),
+            'platform_defaults_snapshot': data.get('platform_defaults_snapshot', {}) if accepting else defaults, 'delivery_fee': str(delivery_fee), 'artist_total': str(price - fee - delivery_fee),
             'delivery_address': delivery_address, 'pickup_address': pickup_address,
             'delivery_quote': delivery_token if delivery else '', 'delivery_details': delivery,
             'delivery_floor_unit': floor_unit if delivery else '', 'delivery_instruction': instruction if delivery else '',
@@ -224,18 +230,22 @@ def accept_proposal(c, latest):
     if c.art_type.lower() == 'physical' and (not terms['delivery_address'] or not terms['pickup_address']):
         raise ValidationError('Agree on the physical delivery destination and pickup address before accepting.')
     template, _ = AgreementTemplate.objects.get_or_create(name='Commission milestone agreement', defaults={'body': 'Commission milestone agreement'})
+    from types import SimpleNamespace
+    wording_source = SimpleNamespace(wording_snapshot=resolved_wording(template))
     conv = Conversation.objects.create()
     ConversationParticipant.objects.bulk_create([ConversationParticipant(conversation=conv, user=c.buyer), ConversationParticipant(conversation=conv, user=c.artist)])
     document = '\n\n'.join(['ART LICENSING AND COMMISSION AGREEMENT', f'Artist: {c.artist.username}; Buyer: {c.buyer.username}',
         f'Subject: {c.subject}; Style: {c.style}; Deliverable: {c.art_type}\nInstructions: {c.description}',
-        *[f'{key.replace("_", " ").title()}: {value}' for key, value in terms.items() if key not in ('compensation_terms', 'delivery_quote', 'delivery_details')],
+        *[f'{key.replace("_", " ").title()}: {value}' for key, value in terms.items() if key not in ('compensation_terms', 'delivery_quote', 'delivery_details', 'platform_defaults_snapshot')],
         compensation_summary(terms['compensation_type'], terms['compensation_terms']) if terms['license_type'] == 'commercial' else 'Personal commission: one-time production fee without commercial-use royalties. Optional resale permission and resale royalties apply only as explicitly agreed above.',
-        'One consolidated buyer revision request/comment per stage. A revision does not create another entitlement. Extra scope requires a separate agreement.',
-        'Copyright remains with the original artist. The buyer receives the agreed personal or commercial license; ownership of this asset record does not transfer copyright.',
-        'Personal use permits non-commercial display and sharing. Commercial use permits reproduction, advertising and merchandise during the agreed license duration. Resale of the licensed asset is permitted only when Allow Resale above is True; subsequent owners inherit the same restrictions and expiry.',
-        'Non-exclusive rights permit other licenses. Exclusive rights prevent the artist licensing the same work to others during the license term. Sole rights permit use by the artist and this buyer, without licenses to others during that term.',
-        'Review within five days. Inactivity escalates to Customer Service, never automatic approval. Physical final approval requires receipt and inspection.'])
-    a = Agreement.objects.create(conversation=conv, template=template, buyer=c.buyer, artist=c.artist, price=terms['price'],
+        wording(wording_source, 'commission_revisions', 'One consolidated buyer revision request/comment per stage. A revision does not create another entitlement. Extra scope requires a separate agreement.'),
+        wording(wording_source, 'commission_copyright', 'Copyright remains with the original artist. The buyer receives the agreed personal or commercial license; ownership of this asset record does not transfer copyright.'),
+        wording(wording_source, 'commission_permissions', 'Personal use permits non-commercial display and sharing. Commercial use permits reproduction, advertising and merchandise during the agreed license duration. Resale of the licensed asset is permitted only when Allow Resale above is True; subsequent owners inherit the same restrictions and expiry.'),
+        wording(wording_source, 'commission_exclusivity', 'Non-exclusive rights permit other licenses. Exclusive rights prevent the artist licensing the same work to others during the license term. Sole rights permit use by the artist and this buyer, without licenses to others during that term.'),
+        wording(wording_source, 'commission_inspection', 'Review within five days. Inactivity escalates to Customer Service, never automatic approval. Physical final approval requires receipt and inspection.')])
+    if terms['compensation_type'] == 'hybrid' and royalty_fee_text(terms.get('platform_defaults_snapshot', {})):
+        document += '\n\n' + royalty_fee_text(terms['platform_defaults_snapshot'])
+    a = Agreement.objects.create(conversation=conv, template=template, wording_snapshot=wording_source.wording_snapshot, platform_defaults_snapshot=terms.get('platform_defaults_snapshot', {}), buyer=c.buyer, artist=c.artist, price=terms['price'],
         terms_snapshot=document, document_snapshot=document, status='accepted', buyer_accepted_at=timezone.now(), artist_accepted_at=timezone.now(),
         license_type=terms['license_type'], exclusivity=terms['exclusivity'], delivery_type=c.art_type.lower(), delivery_fee=terms['delivery_fee'], revision_limit=1,
         compensation_type=terms['compensation_type'], compensation_terms=terms['compensation_terms'])

@@ -1,3 +1,4 @@
+from .platform_defaults import fee_percent, included_fee
 """Contract-specific pricing; platform fees are never client-controlled."""
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from artworks.pricing import base_cost
@@ -30,14 +31,15 @@ def validate_pricing(raw, artwork, checkout_amount):
     if amount <= 0:
         raise ValueError('The calculated license fee must be positive.')
     # Match checkout's split of the fee-inclusive total.
-    total = (amount * Decimal('1.10')).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+    percent = fee_percent()
+    total = (amount * (1 + percent / 100)).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
     minimum = base_cost(artwork).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
     if total < minimum:
         raise ValueError(f'The proposed artwork price must be at least PHP {minimum} (artwork base price), excluding delivery.')
     if total > Decimal('9999999999.99') or total != checkout_amount:
         raise ValueError('Checkout amount does not match the agreed pricing plus the platform fee. Reload and review the proposal.')
-    platform_fee = (total - total / Decimal('1.10')).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
-    result.update(license_fee=str(total - platform_fee), platform_fee=str(platform_fee), platform_fee_percent='10', checkout_excluding_delivery=str(total))
+    platform_fee = included_fee(total, percent)
+    result.update(license_fee=str(total - platform_fee), platform_fee=str(platform_fee), platform_fee_percent=str(percent), checkout_excluding_delivery=str(total))
     return result
 
 
@@ -47,7 +49,7 @@ def pricing_summary(values):
     lines = ['Agreed pricing: ' + ('Calculated using negotiated multipliers' if values['mode'] == 'multipliers' else 'Agreed fixed license fee')]
     if values['mode'] == 'multipliers':
         lines.append(f"Base: PHP {values['base_price']} x license {values['license_multiplier']} x exclusivity {values['exclusivity_multiplier']}")
-    lines += [f"License fee: PHP {values['license_fee']}", f"Platform fee (10%, not negotiable): PHP {values['platform_fee']}",
+    lines += [f"License fee: PHP {values['license_fee']}", f"Platform fee ({format(Decimal(values['platform_fee_percent']).normalize(), 'f')}%, not negotiable): PHP {values['platform_fee']}",
               f"Checkout excluding delivery: PHP {values['checkout_excluding_delivery']}",
               'Multipliers adjust the license price only. They do not change the granted rights or the separately agreed recurring royalty rate.']
     return '\n'.join(lines)

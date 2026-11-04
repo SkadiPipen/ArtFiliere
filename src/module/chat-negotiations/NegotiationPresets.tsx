@@ -1,3 +1,4 @@
+import { usePlatformDefaults } from '@/services/platformDefaults';
 import { Text } from '@/components/Typography';
 import { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
@@ -23,15 +24,17 @@ export const negotiationPresets = [
 ];
 
 export default function NegotiationPresets({ licenses, exclusivities, royaltyEnabled, onApply }: { licenses: LicenseType[]; exclusivities: ExclusivityType[]; royaltyEnabled: boolean; onApply: (preset: NegotiationPreset) => void }) {
+  const defaults = usePlatformDefaults();
   const [selected, setSelected] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
-  const available = negotiationPresets.filter(item => licenses.includes(item.license) && exclusivities.includes(item.exclusivity));
+  const configuredPresets = negotiationPresets.map(item => ({ ...item, scope: { ...item.scope, duration_months: defaults.default_license_duration_months }, licenseFactor: String(defaults.license_multipliers[item.license]), exclusivityFactor: String(defaults.exclusivity_multipliers[item.exclusivity]), description: item.description.replace('5% gross-sales', `${defaults.default_artist_royalty_percentage}% gross-sales`), terms: item.compensation === 'royalty' ? { ...item.terms, rate: String(defaults.default_artist_royalty_percentage), reporting_duration_months: defaults.default_license_duration_months } : item.terms }));
+  const available = configuredPresets.filter(item => licenses.includes(item.license) && exclusivities.includes(item.exclusivity));
   const candidate = available.find(item => item.id === selected);
   const blocked = candidate?.compensation === 'royalty' && !royaltyEnabled;
   return <View style={{ gap: 12 }}>
     <Text style={{ fontSize: 18, fontWeight: '700', color: '#382C26' }}>Start with a preset</Text>
     <Text style={{ color: '#81756D', fontSize: 13, lineHeight: 20 }}>Choose a platform starting point, then customize any setting below. These are examples, not legal standards or industry rates.</Text>
-    {available.map(item => <InfoAccordion key={item.id} title={item.title} description={item.description} selected={selected === item.id} onSelect={() => { setSelected(item.id); setApplied(false); }} details={`Philippines; 12 months; artist credit required; technical formatting only; no copyright transfer. Pricing uses editable multipliers: license x${item.licenseFactor}, exclusivity x${item.exclusivityFactor}, plus the separate 10% platform fee.${item.license === 'commercial' ? ' Specify the licensed products, media or campaign before sending.' : ''}${item.compensation === 'royalty' ? ' Royalty access approval is required. The checkout fee and future royalties are separate; review both.' : ''}`} />)}
+    {available.map(item => <InfoAccordion key={item.id} title={item.title} description={item.description} selected={selected === item.id} onSelect={() => { setSelected(item.id); setApplied(false); }} details={`Philippines; ${defaults.default_license_duration_months} months; artist credit required; technical formatting only; no copyright transfer. Pricing uses editable multipliers: license x${item.licenseFactor}, exclusivity x${item.exclusivityFactor}, plus the separate ${defaults.platform_fee_percentage}% platform fee.${item.license === 'commercial' ? ' Specify the licensed products, media or campaign before sending.' : ''}${item.compensation === 'royalty' ? ' Royalty access approval is required. The checkout fee and future royalties are separate; review both.' : ''}`} />)}
     {!available.length && <Text>No presets match this artwork’s available license choices. Customize the settings below.</Text>}
     {!!candidate && <>
       <Text style={{ color: '#81756D', fontSize: 12, lineHeight: 19 }}>Applying replaces the license, territory, permissions, duration, compensation, pricing method and copyright-transfer settings in this draft. Notes and delivery details are kept. Review the resulting price and terms before sending.</Text>

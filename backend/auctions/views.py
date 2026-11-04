@@ -37,6 +37,7 @@ def create_auction_agreement(auction, buyer, amount):
     ])
     agreement = Agreement.objects.create(
         conversation=conversation, template=template, artwork=auction.artwork,
+        platform_defaults_snapshot=auction.platform_defaults_snapshot,
         buyer=buyer, artist=auction.artist, price=amount,
         terms_snapshot=auction_terms(auction, buyer.username, amount), license_type=auction.license_type,
         exclusivity=auction.exclusivity, delivery_type=auction.delivery_type if auction.signed_document else auction.artwork.art_type,

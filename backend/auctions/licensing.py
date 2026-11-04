@@ -1,3 +1,5 @@
+from messaging.license_wording import resolved_wording
+from messaging.platform_defaults import current_defaults
 import hashlib
 from types import SimpleNamespace
 from rest_framework.exceptions import ValidationError
@@ -22,6 +24,10 @@ def request_document(user, data):
     terms = template.body.replace('{{buyer_name}}', 'Winning bidder—to be determined').replace('{{artist_name}}', party_name(user)).replace('{{artwork_title}}', title).replace('{{amount}}', 'the final winning bid')
     terms += f'\n\nLicense: {license_type}\nExclusivity: {exclusivity}\nProduct: {delivery}\nCompensation: one-time winning bid. Shipping, if applicable, is calculated at checkout under the platform delivery policy.'
     buyer = SimpleNamespace(username='Winning bidder—to be determined', first_name='', middle_name='', last_name='')
-    item = SimpleNamespace(artwork=SimpleNamespace(title=title), artist=user, buyer=buyer, price='the final winning bid', license_type=license_type, exclusivity=exclusivity, delivery_type=delivery, terms_snapshot=terms, artist_presigned_document='', license_scope={}, compensation_terms={}, compensation_type='one_time', delivery_fee=0)
+    defaults = current_defaults()
+    clauses = resolved_wording(template)
+    clauses['payment_timing'] = 'The winning buyer must sign and complete payment through the Platform within 48 hours after the winner is selected. Shipping fees and delivery details are completed at checkout; the license terms remain unchanged.'
+    item = SimpleNamespace(wording_snapshot=clauses, platform_defaults_snapshot=defaults, artwork=SimpleNamespace(title=title), artist=user, buyer=buyer, price='the final winning bid', license_type=license_type, exclusivity=exclusivity, delivery_type=delivery, terms_snapshot=terms, artist_presigned_document='', license_scope={}, compensation_terms={}, compensation_type='one_time', delivery_fee=0)
     document = document_text(item).replace("The total fee is due and payable through the Platform's payment system no later than ten (10) business days from the delivery of the Images.", 'The winning buyer must sign and complete payment through the Platform within 48 hours after the winner is selected. Shipping fees and delivery details are completed at checkout; the license terms remain unchanged.')
+    document += f"\n\nPlatform fee: {defaults['platform_fee_percentage']}% added to the artist fee and included in the winning-bid total; delivery fees are separate."
     return document, hashlib.sha256(document.encode()).hexdigest()

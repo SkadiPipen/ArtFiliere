@@ -1,10 +1,10 @@
 from decimal import Decimal
 from types import SimpleNamespace
-from django.test import SimpleTestCase
+from django.test import TestCase
 from messaging.pricing import validate_pricing, pricing_summary
 
 
-class PricingTests(SimpleTestCase):
+class PricingTests(TestCase):
     def setUp(self):
         self.art = SimpleNamespace(hours=None, hourly_rate=None, price=Decimal('1000'))
 

@@ -23,7 +23,7 @@ const tabs = [
   { key: 'dashboard', label: 'Overview', icon: LayoutDashboard, path: '/admin-dashboard' },
   { key: 'reports', label: 'Reports & transactions', icon: Flag, path: '/admin-reports' },
   { key: 'payments', label: 'Payment controls', icon: Banknote, path: '/admin-payments' },
-  { key: 'templates', label: 'Agreement templates', icon: FileText, path: '/admin-agreement-templates' },
+  { key: 'templates', label: 'Platform defaults', icon: FileText, path: '/admin-agreement-templates' },
 ] as const;
 const approvalQueues = [
   { icon: Store, label: 'Reseller approvals', path: '/reseller-approvals', categories: ['reseller'] },

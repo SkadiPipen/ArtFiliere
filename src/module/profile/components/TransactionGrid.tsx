@@ -5,6 +5,7 @@ import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useRouter } from "expo-router";
 import {
+  Flag,
   Handshake,
   Percent,
   Paintbrush,
@@ -123,16 +124,7 @@ export default function TransactionGrid({ role }: { role?: string }) {
       )}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>My Transactions</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={() => router.push("/verify-record" as any)}
-          >
-            <Text style={styles.verifyLink}>Verify record</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setPurchaseFilter("all")}>
-            <Text style={styles.viewMore}>My Purchases {">>"}</Text>
-          </TouchableOpacity>
-        </View>
+
       </View>
 
       {showRoyalties && <ArtRoyalties onClose={() => setShowRoyalties(false)} />}
@@ -192,6 +184,10 @@ export default function TransactionGrid({ role }: { role?: string }) {
           <ShieldCheck color="#5D8A63" size={28} />
           <Text style={styles.iconLabel}>Verify</Text>
         </TouchableOpacity>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Reports, disputes and transaction requests" style={styles.iconItem} onPress={() => router.push('/report-management')}>
+          <Flag color="#C15656" size={28} />
+          <Text style={styles.iconLabel}>Reports & Disputes</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -206,8 +202,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: { fontSize: 16, fontWeight: "bold", color: "#C15656" },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
-  verifyLink: { fontSize: 12, color: "#5D8A63", fontWeight: "800" },
   viewMore: { fontSize: 12, color: "#C15656", opacity: 0.75 },
   iconGrid: {
     flexDirection: "row",

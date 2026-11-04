@@ -9,7 +9,7 @@ import API_URL from '@/services/api';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import { downloadProtectedFile } from '@/services/purchases';
 
-type Report = { id: number; title: string; buyer: string; artist: string; status: string; amount: string | null; report_due_on: string; due_on: string; payment_status: string; metrics: Record<string, string>; evidence: { name: string; path: string }[] };
+type Report = { platform_fee?: string; total_amount?: string; id: number; title: string; buyer: string; artist: string; status: string; amount: string | null; report_due_on: string; due_on: string; payment_status: string; metrics: Record<string, string>; evidence: { name: string; path: string }[] };
 async function request(path = '', body?: object) {
   const token = await auth.currentUser?.getIdToken();
   return readApiResponse(await fetch(`${API_URL}/api/users/royalties/admin/reports/${path}`, { method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) }));
@@ -27,7 +27,8 @@ function ReviewCard({ report, refresh }: { report: Report; refresh: () => Promis
     <Text>Buyer: {report.buyer} · Artist: {report.artist}</Text>
     <Text>Report: {report.status} · Payment: {report.payment_status}</Text>
     <Text>Report due {report.report_due_on} · Payment due {report.due_on}</Text>
-    <Text style={{ fontWeight: '700' }}>Royalty: PHP {report.amount}</Text>
+    <Text style={{ fontWeight: '700' }}>Artist royalty: PHP {report.amount}</Text>
+    {Number(report.platform_fee) > 0 && <><Text>Platform royalty fee: PHP {report.platform_fee}</Text><Text>Buyer total: PHP {report.total_amount}</Text></>}
     {Object.entries(report.metrics).map(([key, value]) => <Text key={key}>{key.replaceAll('_', ' ')}: {value}</Text>)}
     {report.evidence.map(file => <Pressable key={file.path} disabled={busy} onPress={async () => { try { await downloadProtectedFile('users/' + file.path, file.name); } catch (e: any) { setError(e.message); } }}><Text style={{ color: '#A33F45', paddingVertical: 6 }}>Review evidence: {file.name}</Text></Pressable>)}
     <Text>Verify figures and attachments before release. Release credits the artist’s available wallet; it does not initiate a bank withdrawal.</Text>

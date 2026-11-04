@@ -1,3 +1,5 @@
+from .platform_defaults import current_defaults
+from .license_wording import resolved_wording, serialized_sections, section_keys
 from .license_scope import validate_scope
 from django.db.models import Q
 from rest_framework.response import Response
@@ -145,7 +147,7 @@ class AgreementView(AuthenticatedAPIView):
             return Response({"error": "Conversation not found."}, status=404)
         buyer = next((p.user for p in participants if p.user.role == User.Role.BUYER), None)
         artist = next((p.user for p in participants if p.user.role == User.Role.ARTIST), None)
-        template = AgreementTemplate.objects.filter(is_active=True).first()
+        template = (AgreementTemplate.objects.filter(is_active=True, name='ArtFiliere standard agreement').first() or AgreementTemplate.objects.filter(is_active=True).exclude(name='Commission milestone agreement').first())
         if not buyer or not artist or not template:
             return Response({"error": "A buyer, artist, and active agreement template are required."}, status=400)
         price = request.data.get("price")
@@ -168,7 +170,7 @@ class AgreementView(AuthenticatedAPIView):
             return Response({'error': str(error)}, status=400)
         if compensation_terms:
             terms += '\n\n' + compensation_summary(request.data.get('compensation_type', 'one_time'), compensation_terms)
-        agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, license_scope=license_scope, compensation_terms=compensation_terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=request.data.get("exclusivity", "non_exclusive"), delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
+        agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, wording_snapshot=resolved_wording(template), platform_defaults_snapshot=current_defaults(), artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, license_scope=license_scope, compensation_terms=compensation_terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=request.data.get("exclusivity", "non_exclusive"), delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
         Message.objects.create(conversation_id=conversation_id, sender=user, message_type=Message.Type.AGREEMENT, agreement=agreement, body="Agreement proposed")
         notify_negotiation(agreement, user, 'proposed')
         return Response(serialize_agreement(agreement), status=201)
@@ -221,8 +223,23 @@ class AgreementView(AuthenticatedAPIView):
 class AgreementTemplateAdminView(AuthenticatedAPIView):
     permission_classes = [IsPlatformAdmin]
     def get(self, request):
-        return Response([{"id": item.id, "name": item.name, "body": item.body, "is_active": item.is_active} for item in AgreementTemplate.objects.all()])
+        return Response([{"id": item.id, "name": item.name, "body": item.body, "is_active": item.is_active, "sections": serialized_sections(item)} for item in AgreementTemplate.objects.all()])
     def post(self, request):
+        if 'sections' in request.data:
+            item = AgreementTemplate.objects.filter(pk=request.data.get('id')).first()
+            if not item:
+                return Response({'error': 'Select an existing license template.'}, status=404)
+            sections = request.data['sections']
+            if not isinstance(sections, dict) or set(sections) != set(section_keys(item)):
+                return Response({'error': 'Submit all wording sections for this template.'}, status=400)
+            if any(not isinstance(value, str) or not value.strip() or len(value) > 10000 for value in sections.values()):
+                return Response({'error': 'Each section needs wording of 1 to 10,000 characters.'}, status=400)
+            if any('{{exclusivity}}' not in sections[key] for key in ('personal_grant', 'commercial_grant') if key in sections):
+                return Response({'error': 'Keep {{exclusivity}} in the personal and commercial grant clauses.'}, status=400)
+            item.wording = {key: value.strip() for key, value in sections.items()}
+            item.updated_by = self.get_request_user(request)
+            item.save(update_fields=['wording', 'updated_by', 'updated_at'])
+            return Response({'id': item.pk})
         defaults = {"name": request.data.get("name", "Standard agreement"), "body": request.data.get("body", ""), "is_active": request.data.get("is_active", True), "updated_by": self.get_request_user(request)}
         if request.data.get("id"):
             item, _ = AgreementTemplate.objects.update_or_create(id=request.data["id"], defaults=defaults)

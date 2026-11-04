@@ -1,3 +1,5 @@
+from .platform_defaults import current_defaults
+from .license_wording import resolved_wording, serialized_sections, section_keys
 from fulfillment.services import physical, shipping_details
 from artworks.pricing import base_cost, minimum_price
 from decimal import Decimal, InvalidOperation
@@ -186,7 +188,8 @@ class ContractsView(AuthenticatedAPIView):
             "delivery_type": ("digital", "physical"),
             "compensation_type": ("one_time", "royalty", "hybrid"),
         }
-        selected = {key: request.data.get(key, values[0]) for key, values in choices.items()}
+        defaults = current_defaults()
+        selected = {key: request.data.get(key, defaults['default_exclusivity'].replace('-', '_') if key == 'exclusivity' else values[0]) for key, values in choices.items()}
         resale = getattr(artwork, 'commission_resale', None)
         if resale:
             from commissions.resale import license_active
@@ -215,7 +218,7 @@ class ContractsView(AuthenticatedAPIView):
         minimum = minimum_price(artwork, selected["license_type"], selected["exclusivity"])
         if not pricing_terms and price - delivery_fee < minimum:
             return Response({"error": f"The proposed price cannot be below PHP {minimum} for these terms, plus PHP {delivery_fee} delivery."}, status=400)
-        template = AgreementTemplate.objects.filter(is_active=True).first()
+        template = (AgreementTemplate.objects.filter(is_active=True, name='ArtFiliere standard agreement').first() or AgreementTemplate.objects.filter(is_active=True).exclude(name='Commission milestone agreement').first())
         if not template:
             return Response({"error": "No active agreement template is configured."}, status=409)
         if not original and previous.filter(status=Agreement.Status.PROPOSED).exists():
@@ -242,7 +245,7 @@ class ContractsView(AuthenticatedAPIView):
             snapshot += '\n\n' + scope_text(license_scope)
         if compensation_terms:
             snapshot += '\n\n' + compensation_summary(selected['compensation_type'], compensation_terms)
-        item = Agreement.objects.create(conversation=conversation, template=template, artwork=artwork, buyer=buyer, artist=artwork.artist, price=price, terms_snapshot=snapshot, delivery_fee=delivery_fee, delivery_details=delivery_details, compensation_terms=compensation_terms, license_scope=license_scope, pricing_terms=pricing_terms, revision_of=original, negotiation_key=negotiation_key, **selected)
+        item = Agreement.objects.create(conversation=conversation, template=template, wording_snapshot=resolved_wording(template), platform_defaults_snapshot=current_defaults(), artwork=artwork, buyer=buyer, artist=artwork.artist, price=price, terms_snapshot=snapshot, delivery_fee=delivery_fee, delivery_details=delivery_details, compensation_terms=compensation_terms, license_scope=license_scope, pricing_terms=pricing_terms, revision_of=original, negotiation_key=negotiation_key, **selected)
         if user.id == buyer.id:
             item.buyer_accepted_at = timezone.now()
         else:

@@ -1,3 +1,4 @@
+from messaging.platform_defaults import fee_percent, included_fee
 import hmac
 import logging
 import os
@@ -24,7 +25,6 @@ from fulfillment.services import fulfill_payment, physical, png_bytes
 from .models import CancellationReturnRequest, PaymentSession, WalletAccount, WalletLedgerEntry
 from blockchain.proofs import record_sale_proof
 
-PLATFORM_FEE_RATE = Decimal("0.10")
 
 
 class WalletView(AuthenticatedAPIView):
@@ -39,7 +39,7 @@ class WalletView(AuthenticatedAPIView):
             wallet, _ = WalletAccount.objects.get_or_create(user=user)
         entries = wallet.entries.select_related("payment_session__artwork")[:30]
         from messaging.models import RoyaltyReceipt
-        royalty_entries = [{'id': f'royalty-{receipt.pk}', 'type': 'royalty_received', 'amount': str(receipt.amount),
+        royalty_entries = [{'id': f'royalty-{receipt.pk}', 'type': 'royalty_received', 'amount': str(receipt.amount - receipt.platform_fee),
                             'artwork_title': receipt.period.agreement.artwork.title if receipt.period.agreement.artwork else 'Artwork',
                             'created_at': receipt.created_at.isoformat()}
                            for receipt in RoyaltyReceipt.objects.filter(period__agreement__artist=user).select_related('period__agreement__artwork').order_by('-created_at')[:30]]
@@ -140,7 +140,7 @@ class AgreementCheckoutView(AuthenticatedAPIView):
                 return Response({"error": str(error)}, status=409)
         gross = agreement.price + agreement.delivery_fee if is_auction else agreement.price
         artwork_amount = gross - agreement.delivery_fee
-        platform_fee = (artwork_amount - artwork_amount / (Decimal("1") + PLATFORM_FEE_RATE)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        platform_fee = included_fee(artwork_amount, fee_percent(agreement))
         session = PaymentSession.objects.create(
             reference_id=f"agreement_{agreement.id}_{uuid.uuid4().hex[:16]}", buyer=buyer, artist=agreement.artist,
             artwork=agreement.artwork, agreement=agreement, gross_amount=gross,

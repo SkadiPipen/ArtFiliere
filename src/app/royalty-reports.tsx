@@ -18,7 +18,7 @@ const link = { color: '#A33F45', fontWeight: '700' as const, paddingVertical: 8 
 const readable = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 const displayDate = (value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 type Evidence = { name: string; data: string };
-type Period = { admin_review?: boolean; report_due_on?: string; report_overdue?: boolean; payment_status?: string; id: number; agreement_id: number; title: string; is_buyer: boolean; starts_on: string; ends_on: string; due_on: string; status: string; overdue: boolean; can_submit: boolean; basis: string; amount: string | null; metrics: Record<string, string>; review_note: string; collection_error: string; evidence: { name: string; path: string }[]; history: { action: string; at: string; amount?: string; note?: string }[] };
+type Period = { platform_fee?: string; total_amount?: string; admin_review?: boolean; report_due_on?: string; report_overdue?: boolean; payment_status?: string; id: number; agreement_id: number; title: string; is_buyer: boolean; starts_on: string; ends_on: string; due_on: string; status: string; overdue: boolean; can_submit: boolean; basis: string; amount: string | null; metrics: Record<string, string>; review_note: string; collection_error: string; evidence: { name: string; path: string }[]; history: { action: string; at: string; amount?: string; note?: string }[] };
 type License = { admin_review?: boolean; id: number; title: string; is_buyer: boolean; configured: boolean; mandate_status: string };
 async function request(path = '', method = 'GET', body?: object) {
   const token = await auth.currentUser?.getIdToken();
@@ -102,6 +102,7 @@ function ReportCard({ report, reload }: { report: Period; reload: () => Promise<
     <View style={styles.amountBox}>
       <Text style={styles.tileLabel}>Calculated Royalty</Text>
       <Text style={styles.amount}>{report.amount !== null ? `PHP ${Number(report.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Awaiting Report'}</Text>
+      {report.amount !== null && Number(report.platform_fee) > 0 && <><Text>Platform royalty fee: PHP {report.platform_fee}</Text><Text style={{ fontWeight: '700' }}>Buyer total: PHP {report.total_amount}</Text><Text>The artist receives the full royalty shown above.</Text></>}
       {!!Object.keys(report.metrics).length && <View style={styles.metrics}>{Object.entries(report.metrics).map(([key, value]) => <View key={key} style={styles.metric}><Text style={styles.muted}>{readable(key)}</Text><Text style={styles.tileValue}>{value}</Text></View>)}</View>}
     </View>
     {!!report.review_note && <Text>{report.admin_review ? 'Admin review' : 'Artist review'}: {report.review_note}</Text>}
