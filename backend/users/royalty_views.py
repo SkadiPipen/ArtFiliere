@@ -5,14 +5,15 @@ from rest_framework.response import Response
 from authentication.permissions import IsAuthenticatedUser, IsPlatformAdmin
 from authentication.views import AuthenticatedAPIView
 from .models import RoyaltyApplication
-from .royalty_validation import validate_permit
+from .resellers import validate_document, validate_permit_details
+from rest_framework.exceptions import ValidationError
 
 
 def application_data(item, admin=False):
     today = timezone.localdate()
     dob = item.user.date_of_birth
     data = {
-        'id': item.pk, 'status': item.status,
+        'id': item.pk, 'status': item.status, 'permit_details': item.permit_details, 'business_permit_name': item.business_permit_name,
         'permit_expires_on': item.permit_expires_on.isoformat(),
         'royalty_enabled': item.status == 'approved' and item.permit_expires_on >= today,
         'review_note': item.review_note, 'submitted_at': item.submitted_at.isoformat(),
@@ -29,8 +30,14 @@ class RoyaltyApplicationView(AuthenticatedAPIView):
     permission_classes = [IsAuthenticatedUser]
 
     def get(self, request):
-        item = RoyaltyApplication.objects.filter(user=self.get_request_user(request)).first()
-        response = Response(application_data(item) if item else {'status': 'not_applied', 'royalty_enabled': False})
+        user = self.get_request_user(request)
+        item = RoyaltyApplication.objects.filter(user=user).first()
+        data = application_data(item) if item else {'status': 'approved' if user.royalty_enabled else 'not_applied'}
+        reseller = user.reseller_applications.filter(status='approved', permit_expires_on__gte=timezone.localdate()).first()
+        if reseller:
+            data.update(status='approved', source='reseller', permit_expires_on=reseller.permit_expires_on.isoformat(), submitted_at=reseller.submitted_at.isoformat(), review_note=reseller.review_note)
+        data['royalty_enabled'] = user.royalty_enabled
+        response = Response(data)
         response['Cache-Control'] = 'private, no-store'
         return response
 
@@ -43,7 +50,11 @@ class RoyaltyApplicationView(AuthenticatedAPIView):
         if item and (item.status == 'pending' or (item.status == 'approved' and item.permit_expires_on >= timezone.localdate())):
             return Response({'error': 'Your application is already pending or approved.'}, status=409)
         try:
-            values = validate_permit(request.data)
+            if request.data.get('consent') is not True:
+                raise ValidationError('Confirm the permit belongs to your business and its details are accurate.')
+            details, expires = validate_permit_details(request.data.get('permit_details'))
+            permit, name = validate_document(request.data.get('business_permit'))
+            values = {'business_permit_image': permit, 'business_permit_name': name, 'permit_details': details, 'permit_expires_on': expires}
         except ValueError as error:
             return Response({'error': str(error)}, status=400)
         item, _ = RoyaltyApplication.objects.update_or_create(user=user, defaults={**values, 'status': 'pending', 'reviewed_at': None, 'reviewed_by': None, 'review_note': '', 'submitted_at': timezone.now()})

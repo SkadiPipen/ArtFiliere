@@ -29,7 +29,7 @@ class RoyaltyTests(TestCase):
         Image.new('RGB', (2, 2), 'blue').save(buffer, 'JPEG')
         self.image = 'data:image/jpeg;base64,' + base64.b64encode(buffer.getvalue()).decode()
         self.expires = timezone.localdate() + timedelta(days=30)
-        self.permit = {'business_permit_image': self.image, 'permit_expires_on': self.expires.isoformat()}
+        self.permit = {'business_permit_image': self.image, 'permit_expires_on': self.expires.isoformat(), 'business_permit': {'name': 'permit.jpg', 'data_uri': self.image}, 'permit_details': {'registered_business_name': 'Test Business', 'permit_number': 'P-123', 'issuing_authority': 'Manila', 'issued_on': timezone.localdate().isoformat(), 'expires_on': self.expires.isoformat()}, 'consent': True}
 
     def call(self, view, user, method='get', data=None, **kwargs):
         request = getattr(self.factory, method)('/', data or {}, format='json')
@@ -58,6 +58,8 @@ class RoyaltyTests(TestCase):
         self.assertEqual(review['name'], 'Test User')
         self.assertIsInstance(review['age'], int)
         self.assertEqual(review['business_permit_image'], self.image)
+        self.assertEqual(review['permit_details'], self.permit['permit_details'])
+        self.assertEqual(review['business_permit_name'], 'permit.jpg')
         self.assertEqual(review['permit_expires_on'], self.expires.isoformat())
         self.assertEqual(self.call(RoyaltyReviewView, self.admin, 'patch', {'action': 'approve'}, application_id=pk).status_code, 200)
         self.assertTrue(self.user.royalty_enabled)
@@ -68,7 +70,7 @@ class RoyaltyTests(TestCase):
         self.assertFalse(self.user.royalty_enabled)
 
     def test_invalid_uploads_expired_dates_and_reapplication(self):
-        for values in [{}, {**self.permit, 'business_permit_image': 'data:image/jpeg;base64,aGVsbG8='}, {**self.permit, 'permit_expires_on': '2026-02-30'}, {**self.permit, 'permit_expires_on': '2000-01-01'}]:
+        for values in [{}, {**self.permit, 'business_permit': {'name': 'bad.jpg', 'data_uri': 'data:image/jpeg;base64,aGVsbG8='}}, {**self.permit, 'permit_details': {**self.permit['permit_details'], 'expires_on': '2026-02-30'}}, {**self.permit, 'permit_details': {**self.permit['permit_details'], 'expires_on': '2000-01-01'}}, {**self.permit, 'consent': False}, {**self.permit, 'permit_details': {**self.permit['permit_details'], 'permit_number': ''}}]:
             self.assertEqual(self.call(RoyaltyApplicationView, self.user, 'post', values).status_code, 400)
         self.assertFalse(RoyaltyApplication.objects.exists())
         pk = self.apply()
@@ -165,3 +167,22 @@ class RoyaltyTests(TestCase):
         result = self.call(RoyaltyReviewView, self.admin, 'patch', {'action': 'approve'}, application_id=pk)
         self.assertEqual(result.status_code, 400)
         self.assertFalse(self.user.royalty_enabled)
+
+    def test_pdf_business_permit_uses_same_upload_rules_as_reseller(self):
+        pdf = 'data:application/pdf;base64,' + base64.b64encode(b'%PDF-1.4\npermit\n%%EOF').decode()
+        response = self.call(RoyaltyApplicationView, self.user, 'post', {**self.permit, 'business_permit': {'name': 'permit.pdf', 'data_uri': pdf}})
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(self.call(RoyaltyPermitView, self.user).data['business_permit_image'], pdf)
+
+    def test_royalty_approval_does_not_grant_reseller_access(self):
+        from users.resellers import ResellerApplicationView, require_seller
+        from rest_framework.exceptions import PermissionDenied
+        self.approve()
+        self.assertTrue(self.user.royalty_enabled)
+        self.assertFalse(self.user.reseller_verified)
+        with self.assertRaises(PermissionDenied):
+            require_seller(self.user)
+        result = self.call(ResellerApplicationView, self.user, 'post', self.permit)
+        self.assertEqual(result.status_code, 201, result.data)
+        self.assertEqual(result.data['status'], 'pending')
+        self.assertFalse(self.user.reseller_verified)

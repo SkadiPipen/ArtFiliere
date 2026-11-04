@@ -1,3 +1,4 @@
+import PrivateDocumentPreview from '@/components/PrivateDocumentPreview';
 import AdminTabs from './AdminTabs';
 import { adminSurfaces } from './adminDesign';
 import { ChevronDown, ChevronUp, Percent } from 'lucide-react-native';
@@ -7,11 +8,11 @@ import { Text, TextInput } from '@/components/Typography';
 import { markAdminQueueRead } from '@/services/adminNotifications';
 import { AuthContext } from '@/context/AuthContext';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 
-type Application = { id: number; username: string; name: string; age: number | null; status: string; permit_expires_on: string; business_permit_image: string; review_note: string; royalty_enabled: boolean };
+type Application = { permit_details?: Record<string, string>; business_permit_name?: string; id: number; username: string; name: string; age: number | null; status: string; permit_expires_on: string; business_permit_image: string; review_note: string; royalty_enabled: boolean };
 export default function RoyaltyApprovals({ workspace = false }: { workspace?: boolean }) {
   const { user, loading: authLoading } = useContext(AuthContext);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -54,15 +55,15 @@ export default function RoyaltyApprovals({ workspace = false }: { workspace?: bo
       </Pressable>
       {expandedId === item.id && <View style={{ padding: 22, borderTopWidth: 1, borderColor: '#EFE3DD', gap: 16 }}>
       <Text>Name: {item.name}</Text><Text>Age: {item.age ?? 'Not provided'}</Text>
-      <Text>Permit expires: {item.permit_expires_on}</Text>
+      <Text>Permit expires: {item.permit_expires_on}</Text>{Object.entries(item.permit_details || {}).map(([key, value]) => <Text key={key}>{key.replace(/_/g, ' ')}: {value}</Text>)}
       <Text>Status: {item.status}{item.status === 'approved' && !item.royalty_enabled ? ' (permit expired)' : ''}</Text>
-      <Pressable onPress={() => setPreview(item.business_permit_image)}><Image source={{ uri: item.business_permit_image }} resizeMode="contain" accessibilityLabel={`Business permit for ${item.username}`} style={{ width: '100%', height: 220 }} /><Text style={{ color: '#C15656' }}>View full business permit</Text></Pressable>
+      <Pressable onPress={() => setPreview(item.business_permit_image)}><Text>{item.business_permit_name || 'Business permit'}</Text><Text style={{ color: '#C15656' }}>View full business permit</Text></Pressable>
       {item.status === 'pending' ? <>
         <TextInput accessibilityLabel={`Review note for ${item.username}`} placeholder="Review note (optional)" value={notes[item.id] || ''} maxLength={1000} onChangeText={value => setNotes(previous => ({ ...previous, [item.id]: value }))} multiline style={{ padding: 12, borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 12, backgroundColor: '#FAF7F3' }} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'flex-end' }}><Pressable disabled={busy !== null} style={[adminSurfaces.button, { backgroundColor: '#F5E8E3' }]} onPress={() => review(item, 'approve')}><Text style={{ color: '#257347', fontWeight: '700' }}>{busy === item.id ? 'Saving…' : 'Approve'}</Text></Pressable><Pressable disabled={busy !== null} style={[adminSurfaces.button, { borderWidth: 1, borderColor: '#DAB5AA' }]} onPress={() => review(item, 'reject')}><Text style={{ color: '#b00020', fontWeight: '700' }}>Reject</Text></Pressable></View>
       </> : !!item.review_note && <Text>Review note: {item.review_note}</Text>}
       </View>}
     </View>)}
-    <Modal visible={!!preview} onRequestClose={() => setPreview(null)}><View style={{ flex: 1, padding: 24 }}><Pressable onPress={() => setPreview(null)}><Text style={{ padding: 12 }}>Close permit</Text></Pressable><ScrollView contentContainerStyle={{ flexGrow: 1 }}>{preview && <Image source={{ uri: preview }} resizeMode="contain" style={{ width: '100%', height: 750 }} />}</ScrollView></View></Modal>
+    <Modal visible={!!preview} onRequestClose={() => setPreview(null)}><View style={{ flex: 1, padding: 24 }}><Pressable onPress={() => setPreview(null)}><Text style={{ padding: 12 }}>Close permit</Text></Pressable><ScrollView contentContainerStyle={{ flexGrow: 1 }}>{preview && <View style={{ height: 750 }}><PrivateDocumentPreview uri={preview} mime={preview.slice(5, preview.indexOf(';'))} label="Business permit" /></View>}</ScrollView></View></Modal>
   </View>;
 }

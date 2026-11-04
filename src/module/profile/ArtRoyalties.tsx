@@ -12,6 +12,7 @@ type License = { id: number; title: string; is_buyer: boolean; artist: string; b
 const date = (value: string | null) => value ? new Date(`${value}T00:00:00`).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Not started';
 const label = (value?: string) => value?.replaceAll('_', ' ') || 'Not specified';
 export default function ArtRoyalties({ onClose }: { onClose: () => void }) {
+  const [access, setAccess] = useState<{ royalty_enabled: boolean; status: string } | null>(null);
   const [licenses, setLicenses] = useState<License[]>([]);
   const [tab, setTab] = useState<'active' | 'expired'>('active');
   const [loading, setLoading] = useState(true);
@@ -21,17 +22,24 @@ export default function ArtRoyalties({ onClose }: { onClose: () => void }) {
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) throw Error('Please sign in to view your royalty licenses.');
-      const response = await fetch(`${API_URL}/api/users/royalties/`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await readApiResponse(response);
+      const headers = { Authorization: `Bearer ${token}` };
+      const [data, eligibility] = await Promise.all([fetch(`${API_URL}/api/users/royalties/`, { headers }).then(readApiResponse), fetch(`${API_URL}/auth/royalty/`, { headers }).then(readApiResponse)]);
+      setAccess(eligibility);
       setLicenses(data.agreements); setError('');
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
-  useEffect(() => { const stop = auth.onAuthStateChanged(user => { if (user) void load(); else { setLicenses([]); setLoading(false); setError('Please sign in to view your royalty licenses.'); } }); return stop; }, [load]);
+  useEffect(() => { const stop = auth.onAuthStateChanged(user => { if (user) void load(); else { setAccess(null); setLicenses([]); setLoading(false); setError('Please sign in to view your royalty licenses.'); } }); return stop; }, [load]);
   const visible = licenses.filter(item => item.license_status === tab);
   return <Modal visible animationType="slide" onRequestClose={onClose}><SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F4' }}>
     <TransactionHeader title="Art Royalties" onBack={onClose} onRefresh={() => { void load(); }} refreshing={loading} />
     <ScrollView contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
+      {!loading && !error && access && !access.royalty_enabled && <View style={[s.card, { padding: 24, gap: 14 }]}>
+        <Text style={{ fontSize: 22, fontFamily: 'LoraSemiBold', color: '#49372F' }}>{access.status === 'pending' ? 'Royalty payment application pending' : 'Royalty payments are not active'}</Text>
+        <Text style={{ fontSize: 16, lineHeight: 24, color: '#786862' }}>{access.status === 'pending' ? 'Your business permit is awaiting review. You can check your application status below.' : 'You have not availed of royalty payment options, or your permit needs renewal. Would you like to apply? Submit a valid business permit for review.'}</Text>
+        <Pressable accessibilityRole="button" onPress={() => { onClose(); router.push('/royalty-access'); }} style={[s.reportsButton, { alignSelf: 'flex-start', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 14, backgroundColor: '#C15656' }]}><Text style={{ fontSize: 16, fontWeight: '700', color: '#FFF' }}>{access.status === 'pending' ? 'View application' : access.status === 'approved' ? 'Renew royalty access' : 'Apply for royalty payments'}</Text></Pressable>
+        <Text style={s.meta}>Existing royalty licenses, reports and payments remain available below.</Text>
+      </View>}
       <Text style={{ color: '#81756D', lineHeight: 20 }}>Your royalty-bearing artwork and commission licenses, as buyer or artist.</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>{(['active', 'expired'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value)} style={{ flex: 1, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: tab === value ? '#E68A50' : '#E5DAD3', backgroundColor: tab === value ? '#FFF0E4' : '#FFFFFF' }}><Text style={{ textAlign: 'center', fontWeight: '700', color: '#70482F' }}>{value === 'active' ? 'Active' : 'Expired'} ({licenses.filter(item => item.license_status === value).length})</Text></Pressable>)}</View>
       <Text style={{ color: '#81756D', fontSize: 12, lineHeight: 19 }}>{tab === 'active' ? 'Includes accepted agreements awaiting signatures or final commission delivery. Each card shows its current status.' : 'Expiry ends the agreed term; outstanding reporting and payment obligations may remain due.'}</Text>

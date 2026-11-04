@@ -11,7 +11,7 @@ import PrivateDocumentPreview from '@/components/PrivateDocumentPreview';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-type Application = { id: number; username: string; name: string; tin_number: string; status: string; reviewed_at?: string; verified: boolean; review_note: string; bir_certificate_name: string; sworn_declaration_name: string };
+type Application = { business_permit_name?: string; permit_details?: Record<string, string>; id: number; username: string; name: string; tin_number: string; status: string; reviewed_at?: string; verified: boolean; review_note: string; bir_certificate_name: string; sworn_declaration_name: string };
 
 export default function ResellerApprovals({ workspace = false }: { workspace?: boolean }) {
   const [items, setItems] = useState<Application[]>([]);
@@ -53,7 +53,7 @@ export default function ResellerApprovals({ workspace = false }: { workspace?: b
     } catch (failure: any) { setError(failure.message); }
     finally { setBusy(false); }
   };
-  const document = async (item: Application, kind: 'bir_certificate' | 'sworn_declaration') => {
+  const document = async (item: Application, kind: 'bir_certificate' | 'sworn_declaration' | 'business_permit') => {
     releasePreview(); setPreview(null); setPreviewError(''); setPreviewOpen(true); setPreviewLoading(true);
     const current = ++generation.current;
     try {
@@ -64,7 +64,7 @@ export default function ResellerApprovals({ workspace = false }: { workspace?: b
       const blob = await response.blob();
       if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(blob.type)) throw Error('This document format cannot be previewed.');
       if (current !== generation.current) return;
-      const label = kind === 'bir_certificate' ? item.bir_certificate_name : item.sworn_declaration_name;
+      const label = kind === 'business_permit' ? item.business_permit_name || 'Business permit' : kind === 'bir_certificate' ? item.bir_certificate_name : item.sworn_declaration_name;
       if (Platform.OS === 'web') {
         const uri = URL.createObjectURL(blob);
         previewUrl.current = uri;
@@ -86,8 +86,9 @@ export default function ResellerApprovals({ workspace = false }: { workspace?: b
       <Text style={s.label}>{item.name} (@{item.username})</Text>
       <Text>Status: {item.status} · Application #{item.id}</Text>
       <ResellerBadge verified={item.verified} />
-      <Text>TIN: {item.tin_number}</Text>
-      <TouchableOpacity disabled={busy} onPress={() => document(item, 'bir_certificate')}><Text style={s.link}>View BIR certificate: {item.bir_certificate_name}</Text></TouchableOpacity>
+      {!!item.business_permit_name && <><Text style={s.label}>Business permit</Text>{Object.entries(item.permit_details || {}).map(([key, value]) => <Text key={key}>{key.replace(/_/g, ' ')}: {value}</Text>)}<TouchableOpacity onPress={() => document(item, 'business_permit')}><Text style={s.link}>View business permit: {item.business_permit_name}</Text></TouchableOpacity></>}
+      {!!item.tin_number && <Text>TIN: {item.tin_number}</Text>}
+      {!!item.bir_certificate_name && <TouchableOpacity disabled={busy} onPress={() => document(item, 'bir_certificate')}><Text style={s.link}>View BIR certificate: {item.bir_certificate_name}</Text></TouchableOpacity>}
       {!!item.sworn_declaration_name && <TouchableOpacity disabled={busy} onPress={() => document(item, 'sworn_declaration')}><Text style={s.link}>View sworn declaration: {item.sworn_declaration_name}</Text></TouchableOpacity>}
       {!!item.review_note && <Text>Last review: {item.review_note}</Text>}
       {['pending', 'approved'].includes(item.status) && <>

@@ -4,13 +4,14 @@ import { View, Pressable, Image } from "react-native";
 import CalendarDateField from '@/components/CalendarDateField';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/constants/colors";
+import { COLORS as defaultColors } from "@/constants/colors";
 import type {
   SignUpFormData,
   UpdateSignUpField,
 } from "@/module/auth/sign-up/types";
 
 type RoyaltyInfoProps = {
+  siteStyle?: boolean;
   formData: SignUpFormData;
   updateField: UpdateSignUpField;
 };
@@ -18,7 +19,9 @@ type RoyaltyInfoProps = {
 export default function RoyaltyInfo({
   formData,
   updateField,
+  siteStyle = false,
 }: RoyaltyInfoProps) {
+  const COLORS = siteStyle ? { ...defaultColors, textDark: '#695047', textMuted: '#786862', border: '#D9B5A9', creamLight: '#FCF9F6', red: '#C15656' } : defaultColors;
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   async function pickFile() {
@@ -48,7 +51,7 @@ export default function RoyaltyInfo({
       >
         Apply for royalty access?
       </Text>
-      <Text style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 16 }}>
+      <Text style={{ fontSize: siteStyle ? 16 : 12, color: COLORS.textMuted, marginBottom: 16 }}>
         You can use your account immediately. Royalty-based and hybrid commercial agreements require admin approval of your business permit. Access ends when the permit expires.
       </Text>
 
@@ -111,7 +114,7 @@ export default function RoyaltyInfo({
       {formData.wantsRoyalty === "yes" && (
         <View>
           <Text
-            style={{ fontSize: 13, color: COLORS.textDark, marginBottom: 8 }}
+            style={{ fontSize: siteStyle ? 16 : 13, color: COLORS.textDark, marginBottom: 8 }}
           >
             Business permit image (required). Upload a clear JPEG, PNG, or WebP image up to 5 MB. The reviewing admin can view your permit.
           </Text>
@@ -123,7 +126,7 @@ export default function RoyaltyInfo({
               borderWidth: 1,
               borderStyle: "dashed",
               borderColor: COLORS.border,
-              borderRadius: 8,
+              borderRadius: siteStyle ? 14 : 8,
               paddingVertical: 28,
               alignItems: "center",
               backgroundColor: COLORS.creamLight,
@@ -135,7 +138,7 @@ export default function RoyaltyInfo({
               color={COLORS.textMuted}
             />
             <Text
-              style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 8 }}
+              style={{ color: COLORS.textMuted, fontSize: siteStyle ? 16 : 12, marginTop: 8 }}
             >
               {formData.royaltyFileName
                 ? formData.royaltyFileName
@@ -155,7 +158,7 @@ export default function RoyaltyInfo({
               <Text
                 style={{
                   color: COLORS.textDark,
-                  fontSize: 12,
+                  fontSize: siteStyle ? 16 : 12,
                   fontWeight: "600",
                 }}
               >
