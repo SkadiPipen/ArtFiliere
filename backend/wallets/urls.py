@@ -1,3 +1,4 @@
+from .performance import AdminPerformanceView
 from django.urls import path
 from .management import (
     AccountActionsView,
@@ -21,6 +22,7 @@ from .moderation import AccountModerationView, ModeratorUsersView, TicketReturnR
 from .views import PlatformAdminPaymentsView, PaymentStatusView, AgreementCheckoutView, ActivityHistoryView, ArtworkCheckoutView, CancellationReturnRequestView, CustomerSupportRequestView, PlatformAdminRequestView, PlatformAdminUserView, WalletView, PlatformAdminWalletView, xendit_payment_session_webhook
 
 urlpatterns = [
+    path('admin/performance/', AdminPerformanceView.as_view()),
     path('account/restrictions/', RestrictionStatusView.as_view()),
     path('account/appeals/', RestrictionAppealsView.as_view()),
     path('account/appeal-attachments/<int:attachment_id>/', AppealAttachmentView.as_view()),

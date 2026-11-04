@@ -1,6 +1,8 @@
+import { router } from 'expo-router';
+import { ArrowUpRight } from 'lucide-react-native';
 import { adminType } from './adminDesign';
 import { Text } from '@/components/Typography';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 
 export type AdminAnalytics = {
   as_of: string; period: string;
@@ -10,55 +12,27 @@ export type AdminAnalytics = {
 };
 const money = (value?: string) => `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export default function AdminOverview({ data }: { data?: AdminAnalytics }) {
+export default function AdminOverview({ data, detailed = false }: { data?: AdminAnalytics; detailed?: boolean }) {
   if (!data) return null;
   const { artworks, revenue, activity } = data;
-  const artworkCards: [string, number][] = [
-    ['Total artwork listings', artworks.total], ['Digital artworks', artworks.digital],
-    ['Physical artworks', artworks.physical], ['Awaiting artwork review', artworks.pending],
-  ];
-  const priorities: [string, number][] = [
-    ['Open reports', activity.open_reports], ['Disputed commissions', activity.disputed_commissions],
-    ['Account approvals', activity.account_approvals], ['Awaiting artwork review', artworks.pending],
-    ['Artist applications', activity.artist_applications], ['Open support tickets', activity.open_support_tickets],
-    ['Awaiting driver', activity.pending_deliveries], ['Pending payments', activity.pending_payments],
-  ];
-  const operations: [string, number][] = [
-    ['Paid purchases', activity.paid_purchases], ['Active commissions', activity.active_commissions],
-    ['Completed commissions', activity.completed_commissions], ['Active deliveries', activity.active_deliveries],
-    ['Active auctions', activity.active_auctions], ['Registered users', activity.users], ['Artists', activity.artists],
-  ];
-  return <View style={s.section}>
-    <Text style={s.note}>All time · Updated {new Date(data.as_of).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} (Manila)</Text>
-    <Text style={s.heading}>Needs attention</Text>
-    <View style={s.grid}>{priorities.map(([label, value]) => <View key={label} style={s.card}><Text style={s.label}>{label}</Text><Text style={s.number}>{value.toLocaleString()}</Text></View>)}</View>
-    <Text style={s.heading}>Sales & royalty totals</Text>
-    <View style={s.grid}>{[
-      ['Buy n Sell', revenue.shop_collected, revenue.shop_platform_fees],
-      ['Commission', revenue.commission_collected, revenue.commission_platform_fees],
-      ['Artist royalties', revenue.artist_royalties, revenue.royalty_platform_fees],
-    ].map(([label, value, fee]) => <View style={s.card} key={label}>
-      <Text style={s.label}>{label}</Text>
-      <Text style={s.revenueAmount}>{money(value)}</Text>
-      <Text style={s.fee}>Platform fees: {money(fee)}</Text>
-    </View>)}</View>
-    <View style={s.grid}>{[
-      ['Shop refunds', revenue.shop_refunded], ['Commission refunds / wallet credits', revenue.commission_refunded],
-    ].map(([label, value]) => <View style={s.card} key={label}><Text style={s.label}>{label}</Text><Text style={s.amount}>{money(value)}</Text></View>)}</View>
-    <Text style={s.heading}>Artwork overview</Text>
-    <View style={s.grid}>{artworkCards.map(([label, value]) => <View key={label} style={s.card}>
-      <Text style={s.label}>{label}</Text><Text style={s.number}>{value.toLocaleString()}</Text>
-    </View>)}</View>
-    <Text style={s.note}>{artworks.approved} approved · {artworks.pending} pending · {artworks.declined} declined. Completed commission works are counted in Platform activity.</Text>
-    <Text style={s.heading}>Platform activity</Text>
-    <View style={s.grid}>{operations.map(([label, value]) => <View key={label} style={s.card}><Text style={s.label}>{label}</Text><Text style={s.number}>{value.toLocaleString()}</Text></View>)}</View>
+  const priorities: [string, number][] = [['Open reports', activity.open_reports], ['Disputed commissions', activity.disputed_commissions], ['Account approvals', activity.account_approvals], ['Artwork reviews', artworks.pending], ['Artist applications', activity.artist_applications], ['Support tickets', activity.open_support_tickets], ['Awaiting driver', activity.pending_deliveries], ['Pending payments', activity.pending_payments]];
+  const row = (label: string, value: string | number) => <View key={label} style={s.row}><Text style={adminType.body}>{label}</Text><Text style={adminType.cardTitle}>{typeof value === 'number' ? value.toLocaleString() : value}</Text></View>;
+  return <View style={{ gap: 24, marginTop: 12 }}>
+    {!detailed && <View style={s.pulse}><View style={{ flex: 1, gap: 8 }}><Text style={adminType.sectionTitle}>Platform pulse</Text><Text style={adminType.muted}>{activity.paid_purchases.toLocaleString()} paid purchases | {activity.active_commissions.toLocaleString()} active commissions | {activity.users.toLocaleString()} members</Text></View><Pressable accessibilityRole="button" onPress={() => router.push('/admin-performance')} style={s.link}><Text style={[adminType.button, { color: '#A74646' }]}>View performance</Text><ArrowUpRight size={18} color="#A74646" /></Pressable></View>}
+    <View style={s.columns}>
+      <View style={s.section}><Text style={adminType.sectionTitle}>Needs attention</Text><Text style={adminType.muted}>Current queue counts across the platform</Text>{priorities.map(([label, value]) => <View key={label} style={s.row}><Text style={adminType.body}>{label}</Text><View style={[s.count, value > 0 && { backgroundColor: '#F5E8E3' }]}><Text style={[adminType.button, { color: value > 0 ? '#A74646' : '#81756D' }]}>{value.toLocaleString()}</Text></View></View>)}</View>
+      {detailed && <View style={s.section}><Text style={adminType.sectionTitle}>Marketplace activity</Text><Text style={adminType.muted}>Current status and all-time counts</Text>{row('Paid purchases', activity.paid_purchases)}{row('Active commissions', activity.active_commissions)}{row('Completed commissions', activity.completed_commissions)}{row('Active deliveries', activity.active_deliveries)}{row('Active auctions', activity.active_auctions)}{row('Registered users', activity.users)}{row('Artists', activity.artists)}</View>}
+    </View>
+    {detailed && <View style={s.columns}>
+      <View style={s.section}><Text style={adminType.sectionTitle}>Revenue & royalties</Text><Text style={adminType.muted}>All time | Separate from the dated collection chart</Text>{row('Shop collections, excluding refunded purchases', money(revenue.shop_collected))}{row('Commission collections, less refunds', money(revenue.commission_collected))}{row('Artist royalties', money(revenue.artist_royalties))}{row('Shop platform fees', money(revenue.shop_platform_fees))}{row('Commission platform fees', money(revenue.commission_platform_fees))}{row('Royalty platform fees', money(revenue.royalty_platform_fees))}{row('Total platform fees', money(revenue.total_platform_fees))}{row('Shop refunds', money(revenue.shop_refunded))}{row('Commission refunds / wallet credits', money(revenue.commission_refunded))}</View>
+      <View style={s.section}><Text style={adminType.sectionTitle}>Artwork catalog</Text><Text style={adminType.muted}>Current listing status</Text>{row('Total listings', artworks.total)}{row('Digital', artworks.digital)}{row('Physical', artworks.physical)}{row('Approved', artworks.approved)}{row('Pending review', artworks.pending)}{row('Declined', artworks.declined)}<Text style={adminType.muted}>Commission deliverables are counted in marketplace activity.</Text></View>
+    </View>}
   </View>;
 }
 const s = StyleSheet.create({
-  section: { gap: 12, marginVertical: 20 }, heading: { ...adminType.sectionTitle, marginTop: 10 },
-  note: { ...adminType.muted, }, grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { flexGrow: 1, flexBasis: 210, padding: 17, borderWidth: 1, borderColor: '#E5DAD3', backgroundColor: '#FFF', borderRadius: 12 },
-  label: { ...adminType.label,  color: '#746865', }, number: { ...adminType.metric, marginTop: 8 },
-  amount: { ...adminType.metric, marginTop: 8 }, revenueAmount: { ...adminType.metric, marginTop: 10 },
-  fee: { ...adminType.muted, marginTop: 8 },
+  pulse: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E5DAD3', paddingVertical: 24 },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }, columns: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
+  section: { flexGrow: 1, flexShrink: 1, flexBasis: 340, gap: 14, minWidth: 0, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 16, padding: 24 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderColor: '#F2EAE5' },
+  count: { minWidth: 32, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignItems: 'center', backgroundColor: '#FAF7F3' },
 });

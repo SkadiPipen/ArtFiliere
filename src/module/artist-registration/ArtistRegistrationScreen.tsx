@@ -11,6 +11,7 @@ import Portfolio from "@/module/artist-registration/components/Portfolio";
 import SuccessModal from "@/module/artist-registration/components/SuccessModal";
 import {
   DocumentFile,
+  DocumentDetails,
   PortfolioItem,
 } from "@/module/artist-registration/types";
 import { auth } from "@/firebase/config";
@@ -20,6 +21,7 @@ export default function RegisterArtistScreen() {
   const user = auth.currentUser;
 
   const [step, setStep] = useState<1 | 2>(1);
+  const [details, setDetails] = useState<DocumentDetails>({ registered_name: '', rdo_code: '', registration_date: '', taxable_year: String(new Date().getFullYear()), notarized_date: '', bir_received_date: '', remittance_status: '', confirmed: false });
   const [stepError, setStepError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -49,7 +51,13 @@ export default function RegisterArtistScreen() {
       setStepError("Enter a valid default hourly rate greater than zero.");
       return;
     }
-    setStepError("");
+    const dates = [details.registration_date, details.notarized_date, details.bir_received_date];
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    if (!details.registered_name.trim() || !/^\d{3,4}$/.test(details.rdo_code) || dates.some(value => !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value)) || new Date(value).toISOString().slice(0, 10) !== value || value > today) || details.bir_received_date < details.notarized_date || details.taxable_year !== String(new Date().getFullYear()) || !details.remittance_status || !details.confirmed) {
+      setStepError('Complete all document details, use valid dates (YYYY-MM-DD), select the declared remittance status, and confirm accuracy. Dates cannot be in the future; BIR receipt must follow notarization.');
+      return;
+    }
+    setStepError('');
     setStep(2);
   };
 
@@ -77,6 +85,7 @@ export default function RegisterArtistScreen() {
           ? { name: swornDoc.name, data_uri: swornDoc.dataUri }
           : null,
         portfolio: portfolioList,
+        documentDetails: details,
       };
 
       // Change url when testing sa expo go
@@ -132,8 +141,9 @@ export default function RegisterArtistScreen() {
               }
             }}
           >
-            <ArrowLeft color="#fff" size={24} />
+            <ArrowLeft color="#A74C45" size={24} />
           </TouchableOpacity>
+          <Text style={{ fontFamily: "LoraSemiBold", fontSize: 26, color: "#3A2D2A" }}>Become an artist</Text>
         </View>
       </View>
 
@@ -141,9 +151,14 @@ export default function RegisterArtistScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <View style={{ width: '100%', maxWidth: 1100, flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+          {["1  Artist details", "2  Portfolio"].map((label, index) => <View key={label} style={{ flex: 1, padding: 12, borderBottomWidth: 2, borderColor: step === index + 1 ? '#BF5555' : '#E8D8D0' }}><Text style={{ color: step === index + 1 ? '#B74F4B' : '#897A73', fontSize: 14, fontWeight: '600' }}>{label}</Text></View>)}
+        </View>
         <View style={styles.formCard}>
           {step === 1 ? (
             <PersonalDocs
+              details={details}
+              setDetails={setDetails}
               hourlyRate={hourlyRate}
               setHourlyRate={setHourlyRate}
               tinNum={tinNum}
@@ -187,14 +202,15 @@ export default function RegisterArtistScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F4F5F7" },
+  container: { flex: 1, backgroundColor: "#FAF7F3" },
   topHeaderBar: {
-    backgroundColor: "#C15656",
-    height: 56,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1, borderBottomColor: "#E8D8D0",
+    height: 76,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerInner: { width: "100%", maxWidth: 800, paddingHorizontal: 16 },
+  headerInner: { width: "100%", maxWidth: 1140, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 18 },
   scrollContent: {
     alignItems: "center",
     paddingVertical: 20,
@@ -202,20 +218,15 @@ const styles = StyleSheet.create({
   },
   formCard: {
     width: "100%",
-    maxWidth: 800,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    elevation: 2,
+    maxWidth: 1100,
+    backgroundColor: "transparent",
   },
   footerTermsDisclaimerText: {
     textAlign: "center",
-    fontSize: 11,
-    color: "#666",
+    fontSize: 12,
+    color: "#786862",
     marginTop: 25,
-    lineHeight: 16,
+    lineHeight: 20,
   },
   redUnderlineText: {
     color: "#C15656",
