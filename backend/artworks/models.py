@@ -64,8 +64,11 @@ class Artwork(models.Model):
         null=True,
         help_text="Edge-only perceptual hash used to detect recoloured copies.",
     )
+    ai_screening = models.JSONField(default=dict, blank=True)
+    automated_block_reason = models.CharField(max_length=30, blank=True, default='')
 
     class Meta:
+        db_table = "artwork"
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -84,7 +87,23 @@ class ArtworkReviewLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "artwork_review_log"
         ordering = ["-created_at"]
+
+
+class ArtworkAIScan(models.Model):
+    """Private provider job state; never expose its queryable UUID to clients."""
+    cache_key = models.CharField(max_length=64, primary_key=True)
+    state = models.CharField(max_length=16, default='new')
+    job_id = models.CharField(max_length=64, blank=True, default='')
+    result = models.JSONField(default=dict, blank=True)
+    lease_until = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "artwork_ai_scan"
 
 
 class ArtworkSimilarityMatch(models.Model):
@@ -94,6 +113,7 @@ class ArtworkSimilarityMatch(models.Model):
         PENDING = "pending", "Pending review"
         CONFIRMED_COPY = "confirmed_copy", "Confirmed copy"
         NOT_A_COPY = "not_a_copy", "Not a copy"
+        AUTO_BLOCKED = "auto_blocked", "Automatically blocked similarity"
 
     artwork = models.ForeignKey(Artwork, on_delete=models.CASCADE, related_name="similarity_matches")
     reference_artwork = models.ForeignKey(Artwork, on_delete=models.CASCADE, related_name="referenced_by_similarity_matches")
@@ -110,5 +130,6 @@ class ArtworkSimilarityMatch(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        db_table = "artwork_similarity_match"
         ordering = ["-confidence_score", "-created_at"]
         constraints = [models.UniqueConstraint(fields=["artwork", "reference_artwork"], name="unique_artwork_similarity_match")]

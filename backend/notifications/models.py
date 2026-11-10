@@ -12,6 +12,7 @@ class AdminRequestRead(models.Model):
     read_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "admin_request_read"
         constraints = [models.UniqueConstraint(fields=['user', 'request_key'], name='unique_admin_request_read')]
 
 
@@ -37,6 +38,7 @@ class UserNotification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "notification"
         ordering = ["-created_at"]
 
     def __str__(self):

@@ -2,6 +2,8 @@ import { Text, TextInput } from '@/components/Typography';
 import ArtistRecordReviews from './ArtistRecordReviews';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
+import ArtworkHistoryPanel from '@/module/blockchain/ArtworkHistoryPanel';
+import { screeningScoreLabel, type ScreeningScore } from '@/services/artworkScreening';
 import AgreementDocument from "@/module/messages/components/AgreementDocument";
 import AgreementPaper from '@/module/messages/components/AgreementPaper';
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -24,7 +26,7 @@ type Match = {
   edge_hash_distance: number;
   feature_match_score: number;
   color_similarity_score: number;
-  review_status: "pending" | "confirmed_copy" | "not_a_copy";
+  review_status: "pending" | "confirmed_copy" | "not_a_copy" | "auto_blocked";
 };
 type Artwork = {
   id: number;
@@ -47,6 +49,8 @@ type Artwork = {
   auction_request?: any;
   status: "pending" | "approved" | "declined";
   decline_reason?: string;
+  automated_block_reason?: string;
+  ai_screening?: ScreeningScore & { threshold: number; review_status: string; review_note?: string; images?: (ScreeningScore & { image_index: number })[] } | null;
   similarity_matches: Match[];
 };
 const label = (value: string) => value.replace("_", " ");
@@ -55,12 +59,14 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
   const { artworkId } = useLocalSearchParams<{ artworkId?: string }>();
   const openedArtwork = useRef<string | undefined>(undefined);
   const [items, setItems] = useState<Artwork[]>([]);
-  const [activeTab, setActiveTab] = useState<Artwork["status"]>("pending");
+  const [activeTab, setActiveTab] = useState<Artwork["status"] | 'auto_blocked'>("pending");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Artwork | null>(null);
   const [viewingAgreement, setViewingAgreement] = useState(false);
   useEffect(() => { setViewingAgreement(false); }, [selected?.id]);
   const [reason, setReason] = useState("");
+  const [aiNote, setAiNote] = useState('');
+  useEffect(() => { setAiNote(''); }, [selected?.id]);
   const [declining, setDeclining] = useState(false);
   const [saving, setSaving] = useState(false);
   const token = async () => {
@@ -106,10 +112,10 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
       Alert.alert("Artwork review", "This artwork is unavailable. Refresh the artwork list.");
       return;
     }
-    setActiveTab(artwork.status); setSelected(artwork);
+    setActiveTab(artwork.automated_block_reason ? 'auto_blocked' : artwork.status); setSelected(artwork);
     setDeclining(false); setReason("");
   }, [loading, items, artworkId]);
-  const visibleItems = items.filter((artwork) => artwork.status === activeTab);
+  const visibleItems = items.filter((artwork) => activeTab === 'auto_blocked' ? !!artwork.automated_block_reason : artwork.status === activeTab && !artwork.automated_block_reason);
   const pendingCount = items.filter(
     (artwork) => artwork.status === "pending",
   ).length;
@@ -150,6 +156,20 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
     } finally {
       setSaving(false);
     }
+  };
+  const clearAIFlag = async () => {
+    if (!selected || aiNote.trim().length < 20 || saving) return;
+    try {
+      setSaving(true);
+      const response = await fetch(`${API_URL}/api/users/artworks/${selected.id}/ai-review/`, {
+        method: 'PATCH', headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: aiNote.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      replaceArtwork(data);
+    } catch (error: any) { Alert.alert('AI screening review', error.message || 'Unable to record review.'); }
+    finally { setSaving(false); }
   };
   const reviewArtwork = async (status: "approved" | "declined") => {
     if (!selected || (status === "declined" && !reason.trim())) return;
@@ -211,7 +231,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
         <TouchableOpacity onPress={() => router.push('/attribution-reviews' as any)}><Text style={{ color: '#B74F50', fontWeight: '700', paddingVertical: 12 }}>Attribution & ownership reviews</Text></TouchableOpacity>
         </>}
         <Text style={s.lead}>
-          Review pending work and reconsider declined artwork from artist appeals.
+          Review pending work and artist appeals. Automatic publication blocks are retained as read-only evidence.
         </Text>
         {!embedded && <>
         <TouchableOpacity accessibilityRole="button" style={[s.tab, { alignSelf: "flex-start", marginBottom: 16 }]} onPress={() => router.push("/moderator-dashboard")}>
@@ -241,9 +261,10 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
           </TouchableOpacity>
           <TouchableOpacity style={[s.tab, activeTab === "declined" && s.tabActive]} onPress={() => setActiveTab("declined")}>
             <Text style={[s.tabText, activeTab === "declined" && s.tabTextActive]}>
-              Declined ({items.filter(item => item.status === "declined").length})
+              Declined ({items.filter(item => item.status === "declined" && !item.automated_block_reason).length})
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[s.tab, activeTab === 'auto_blocked' && s.tabActive]} onPress={() => setActiveTab('auto_blocked')}><Text style={[s.tabText, activeTab === 'auto_blocked' && s.tabTextActive]}>Auto-blocked ({items.filter(item => !!item.automated_block_reason).length})</Text></TouchableOpacity>
         </View>
         {loading ? (
           <ActivityIndicator size="large" color="#C15656" style={s.loader} />
@@ -279,6 +300,8 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                       {pending(item).length === 1 ? "" : "es"} to review
                     </Text>
                   )}
+                  {!!item.automated_block_reason && <Text style={[s.badge, s.alert]}>Auto-blocked · view only</Text>}
+                  {(item.ai_screening?.status === 'auto_blocked' || (item.ai_screening?.status === 'review_required' && item.ai_screening.review_status !== 'cleared')) && <Text style={[s.badge, s.alert]}>AI flag</Text>}
                 </View>
               </View>
             </TouchableOpacity>
@@ -325,6 +348,8 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                   </Text>
                   <Text style={s.category}>{selected.category}</Text>
                   <Text style={s.description}>{selected.description}</Text>
+                  <ArtworkHistoryPanel artworkId={selected.id} />
+                  {!!selected.automated_block_reason && <View style={s.match}><Text style={s.copyResolved}>Automatically blocked · read-only evidence</Text><Text style={s.detailText}>{selected.automated_block_reason === 'high_ai_score' ? 'The AI model score reached the automatic block threshold. This artwork was not published; no moderator decision is required. The score does not prove artwork origin.' : 'This submission was not published. The submitted image and matched artwork are retained for reference. A similarity score does not establish copyright infringement.'}</Text></View>}
                   {selected.status === "declined" && !!selected.decline_reason && <Text style={s.copyResolved}>Rejection reason: {selected.decline_reason}</Text>}
                   <Text style={s.detailTitle}>Submitted details</Text>
                   <Text style={s.detailText}>Sale type: {selected.sale_type || "Direct Sell"}</Text>
@@ -349,6 +374,17 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                       </TouchableOpacity>
                     </View>
                   )}
+                  {!!selected.ai_screening && <View style={s.match}>
+                    <Text style={s.sectionTitle}>AI image screening</Text>
+                    <Text style={s.detailText}>{selected.ai_screening.provider_name ? `${selected.ai_screening.provider_name}: ` : ''}{screeningScoreLabel(selected.ai_screening)}</Text>
+                    <Text style={s.detailText}>{selected.ai_screening.status === 'auto_blocked' ? 'Automatic block' : 'Screening'} threshold: {(selected.ai_screening.threshold * 100).toFixed(1)}%. The score is not proof of origin.</Text>
+                    {selected.ai_screening.images?.map(image => <Text key={image.image_index} style={s.detailText}>{image.image_index === 0 ? 'Cover' : `Additional image ${image.image_index}`}: {screeningScoreLabel(image)} · {image.status !== 'clear' ? 'Flagged' : 'No AI flag'}</Text>)}
+                    {selected.ai_screening.review_status === 'cleared' ? <Text style={s.detailText}>Flag cleared after evidence review: {selected.ai_screening.review_note}</Text> : selected.ai_screening.status === 'review_required' && !selected.automated_block_reason && <>
+                      <Text style={s.detailText}>Review the artist’s process files, sketches or other supporting evidence before clearing this flag. You can decline the artwork using the normal decision controls.</Text>
+                      <TextInput accessibilityLabel="Evidence reviewed for AI flag" placeholder="Describe the process evidence reviewed (at least 20 characters)" value={aiNote} onChangeText={setAiNote} maxLength={1000} multiline style={s.reason} />
+                      <TouchableOpacity accessibilityRole="button" disabled={saving || aiNote.trim().length < 20} onPress={clearAIFlag} style={[s.notCopy, (saving || aiNote.trim().length < 20) && s.disabled]}><Text style={s.notCopyText}>Record evidence and clear AI flag</Text></TouchableOpacity>
+                    </>}
+                  </View>}
                   <View style={s.sectionHeader}>
                     <ShieldAlert size={18} color="#A86868" />
                     <View>
@@ -372,8 +408,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                         <View style={s.matchTop}>
                           <Text style={s.matchTitle}>Possible match · {label(match.review_status)}</Text>
                           <Text style={s.confidence}>
-                            {Math.round(match.confidence_score * 100)}% visual
-                            confidence
+                            {Math.round(match.confidence_score * 100)}% visual similarity
                           </Text>
                         </View>
                         <View style={s.matchBody}>
@@ -398,7 +433,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                             </Text>
                           </View>
                         </View>
-                        {match.review_status === "pending" || selected.status === "declined" ? (
+                        {!selected.automated_block_reason && (match.review_status === "pending" || selected.status === "declined") ? (
                           <View style={s.matchActions}>
                             <TouchableOpacity
                               disabled={saving}
@@ -431,7 +466,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                       </View>
                     ))
                   )}
-                  {(selected.status === "pending" || selected.status === "declined") && (
+                  {!selected.automated_block_reason && (selected.status === "pending" || selected.status === "declined") && (
                     <View style={s.decision}>
                       <Text style={s.sectionTitle}>{selected.status === "declined" ? "Reconsider artwork" : "Artwork decision"}</Text>
                       {declining && (
@@ -484,8 +519,8 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                               <Text style={s.buttonText}>Decline</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                              disabled={saving}
-                              style={s.approve}
+                              disabled={saving || (selected.ai_screening?.status === 'review_required' && selected.ai_screening.review_status !== 'cleared') || !!pending(selected).length || selected.similarity_matches.some(match => match.review_status === 'confirmed_copy')}
+                              style={[s.approve, ((selected.ai_screening?.status === 'review_required' && selected.ai_screening.review_status !== 'cleared') || !!pending(selected).length || selected.similarity_matches.some(match => match.review_status === 'confirmed_copy')) && s.disabled]}
                               onPress={() => reviewArtwork("approved")}
                             >
                               <CheckCircle2 color="#fff" size={16} />

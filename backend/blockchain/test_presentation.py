@@ -77,7 +77,8 @@ class PublicEntitlementTests(TestCase):
         text = str(result.data)
         for secret in (self.buyer.username, 'private agreement with address', 'private-existing-license@example.com', 'private-reservation@example.com'):
             self.assertNotIn(secret, text)
-        self.assertTrue(result.data['entitlements'][0]['holder']['label'].startswith('Holder '))
+        self.assertEqual(result.data['entitlements'], [])
+        self.assertEqual(result.data['history'], [])
         self.assertEqual(self.summary(self.buyer)['entitlements'][0]['holder']['label'], 'You')
 
     def test_expiry_and_refund_do_not_erase_history(self):

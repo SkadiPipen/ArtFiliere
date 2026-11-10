@@ -24,7 +24,9 @@ class ArtworkBlockchainView(AuthenticatedAPIView):
             item.transaction_hash, item.block_number, item.status, item.confirmed_at = result["transaction_hash"], result["block_number"], "confirmed", timezone.now(); item.save()
             return Response({"artwork_id": artwork.id, "transaction_hash": item.transaction_hash, "block_number": item.block_number, "network": item.network, "status": item.status}, status=201)
         except BlockchainError as error:
-            item.status, item.error_message = "failed", str(error); item.save(); return Response({"error": str(error)}, status=503)
+            from .proofs import _save_failed
+            _save_failed(item, error)
+            return Response({"error": str(error)}, status=503)
 
     def get(self, request, artwork_id, action):
         artwork = Artwork.objects.filter(id=artwork_id).first()

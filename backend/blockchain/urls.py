@@ -1,8 +1,12 @@
 from django.urls import path
 from .views import AgreementBlockchainProofView, ArtworkBlockchainView, PublicVerificationView, SaleBlockchainProofView
-from .provenance_views import ProvenanceView, ProvenanceResaleView, ProvenanceReviewView, ProvenanceRetryView, FileIntegrityView, ProvenanceReviewQueueView, ProvenanceOriginalView
+from .provenance_views import ProvenanceView, ProvenanceResaleView, ProvenanceReviewView, ProvenanceRetryView, FileIntegrityView, ProvenanceReviewQueueView, ProvenanceOriginalView, CreatorAttributionView, ArtworkHistoryView
 
 urlpatterns = [
+    path('artworks/<int:artwork_id>/creator/', CreatorAttributionView.as_view()),
+    path('records/<uuid:artwork_id>/creator/', CreatorAttributionView.as_view()),
+    path('artworks/<int:artwork_id>/history/', ArtworkHistoryView.as_view()),
+    path('records/<uuid:artwork_id>/history/', ArtworkHistoryView.as_view()),
     path('artworks/<int:artwork_id>/original/', ProvenanceOriginalView.as_view()),
     path('records/<uuid:artwork_id>/original/', ProvenanceOriginalView.as_view()),
     path('attribution-reviews/', ProvenanceReviewQueueView.as_view()),

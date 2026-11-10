@@ -43,12 +43,12 @@ saved at checkout so later edits to the listing cannot replace the purchased fil
 Buyers use Profile > **My Purchases** to see payment/delivery status, continue
 pending payments, download digital PNGs, preview agreements, and rate both the
 artist and artwork once payment is confirmed. Both ratings are stored in
-`fulfillment_purchasereview`, linked to the buyer's payment. Refunded purchases
+`purchase_review`, linked to the buyer's payment. Refunded purchases
 cannot download or submit new ratings.
 
-PostgreSQL stores `fulfillment_deliveryroute`, `fulfillment_deliveryorder`, and
-`fulfillment_purchasereview`. Existing `wallets_paymentsession` stores payment
-state, checkout URL, and the PNG snapshot; `messaging_agreement` stores the
+PostgreSQL stores `delivery_route`, `delivery_order`, and
+`purchase_review`. Existing `payment` stores payment
+state, checkout URL, and the PNG snapshot; `agreement` stores the
 delivery quote and addresses. Shipping fees are excluded from artist earnings
 and platform commission. No automated driver payout is implemented.
 
@@ -75,7 +75,7 @@ and progress display are integrated. Their APIs now use Firebase Bearer tokens
 and the existing fulfillment orders; no second delivery/order database is created.
 Old `/delivery-orders` links redirect into the rider portal. Rider profiles,
 clock times, and the latest explicitly shared GPS position are stored in
-`fulfillment_riderprofile`, linked to the existing `users_user` driver.
+`rider_profile`, linked to the existing `user` driver.
 Proof images are validated, reduced to JPEG, and stored privately on the delivery
 order with server timestamps. Only its assigned rider can upload/read those proofs
 through the rider API. Completed history is scoped to that rider.

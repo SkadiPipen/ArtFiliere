@@ -20,6 +20,7 @@ class DirectMessage(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "direct_message"
         ordering = ["created_at"]
 
     def __str__(self):
@@ -38,6 +39,9 @@ class Conversation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = "conversation"
+
 
 class ConversationParticipant(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="participants")
@@ -46,6 +50,7 @@ class ConversationParticipant(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "conversation_participant"
         constraints = [models.UniqueConstraint(fields=["conversation", "user"], name="unique_conversation_participant")]
 
 
@@ -55,6 +60,9 @@ class PlatformDefaults(models.Model):
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = "platform_setting"
+
 
 class AgreementTemplate(models.Model):
     wording = models.JSONField(default=dict, blank=True)
@@ -63,6 +71,9 @@ class AgreementTemplate(models.Model):
     is_active = models.BooleanField(default=True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="edited_agreement_templates")
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "agreement_template"
 
 
 class Agreement(models.Model):
@@ -121,6 +132,9 @@ class Agreement(models.Model):
                     raise ValidationError('The artist-signed auction license terms and winning bid are fixed.')
         super().save(*args, **kwargs)
 
+    class Meta:
+        db_table = "agreement"
+
 
 class Message(models.Model):
     class Type(models.TextChoices):
@@ -136,6 +150,7 @@ class Message(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "message"
         ordering = ["created_at"]
 
 
@@ -158,6 +173,7 @@ class RoyaltyPeriod(models.Model):
     paid_at = models.DateTimeField(null=True)
 
     class Meta:
+        db_table = "royalty_period"
         constraints = [models.UniqueConstraint(fields=['agreement', 'starts_on'], name='unique_royalty_period')]
 
 
@@ -171,6 +187,9 @@ class RoyaltyMandate(models.Model):
     reference = models.CharField(max_length=64, unique=True)
     checkout_url = models.URLField(max_length=1000, blank=True)
 
+    class Meta:
+        db_table = "royalty_mandate"
+
 
 class RoyaltyReceipt(models.Model):
     platform_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -178,6 +197,9 @@ class RoyaltyReceipt(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     provider_payment_id = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "royalty_receipt"
 
 
 class RoyaltyFunding(models.Model):
@@ -193,3 +215,6 @@ class RoyaltyFunding(models.Model):
     reviewed_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name='royalty_fund_reviews')
     review_note = models.CharField(max_length=1000, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "royalty_funding"

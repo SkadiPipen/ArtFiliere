@@ -18,6 +18,7 @@ class ModeratorApplication(models.Model):
     version = models.PositiveIntegerField(default=1)
 
     class Meta:
+        db_table = "moderator_application"
         ordering = ['-submitted_at']
         constraints = [
             models.UniqueConstraint(fields=['user'], condition=models.Q(status__in=['pending', 'under_review', 'sent_to_admin', 'approved']), name='one_open_moderator_application'),
@@ -33,6 +34,7 @@ class ModeratorApplicationReview(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "moderator_application_review"
         ordering = ['created_at', 'pk']
 
 
@@ -139,6 +141,9 @@ class User(models.Model):
     def __str__(self):
         return self.email
 
+    class Meta:
+        db_table = "user"
+
 
 class RoyaltyApplication(models.Model):
     permit_details = models.JSONField(default=dict, blank=True)
@@ -156,6 +161,9 @@ class RoyaltyApplication(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='royalty_reviews')
     review_note = models.CharField(max_length=1000, blank=True, default='')
+
+    class Meta:
+        db_table = "royalty_application"
 
 
 class ResellerApplication(models.Model):
@@ -176,6 +184,7 @@ class ResellerApplication(models.Model):
     review_note = models.CharField(max_length=1000, blank=True)
 
     class Meta:
+        db_table = "reseller_application"
         constraints = [models.UniqueConstraint(fields=['user'], condition=models.Q(status__in=['pending', 'approved']), name='one_active_reseller_application')]
 
 
@@ -185,6 +194,9 @@ class ResellerReview(models.Model):
     action = models.CharField(max_length=12)
     note = models.CharField(max_length=1000, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "reseller_application_review"
 
 
 class Address(models.Model):
@@ -206,6 +218,7 @@ class Address(models.Model):
     street = models.CharField(max_length=255)
 
     class Meta:
+        db_table = "user_address"
         constraints = [models.UniqueConstraint(fields=['user'], condition=models.Q(is_default=True), name='one_default_address_per_user')]
 
     def __str__(self):
@@ -222,6 +235,7 @@ class ActivityLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "user_activity_log"
         ordering = ["-created_at"]
 
 

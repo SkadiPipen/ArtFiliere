@@ -23,7 +23,9 @@ def decode_image_data(image_data: str) -> bytes:
     lets the caller return a clean 400 instead of a raw 500 on malformed
     input.
     """
-    match = DATA_URL_PATTERN.match((image_data or "").strip())
+    if not isinstance(image_data, str):
+        raise ValueError('image_data must be a base64 data URL string.')
+    match = DATA_URL_PATTERN.match(image_data.strip())
     if not match:
         raise ValueError("image_data is not a valid base64 data URL.")
 

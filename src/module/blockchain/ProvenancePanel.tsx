@@ -59,7 +59,7 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
   };
   if (!artworkId && !recordId) return null;
   return <>
-    <TouchableOpacity accessibilityRole="button" onPress={() => setOpen(true)}><Text style={s.link}>View creator & ownership history</Text></TouchableOpacity>
+    <TouchableOpacity accessibilityRole="button" onPress={() => setOpen(true)}><Text style={s.link}>Creator attribution and review</Text></TouchableOpacity>
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
       <View style={s.overlay}><View style={s.card}>
         <View style={s.heading}><Text style={s.title}>Creator & artwork history</Text><TouchableOpacity onPress={() => setOpen(false)}><Text style={s.link}>Close</Text></TouchableOpacity></View>
@@ -90,7 +90,7 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
               {data.entitlements.map((entry: any) => <RightsSummary key={entry.key} entry={entry} />)}
               <Text style={s.id}>Full signed agreements are private. Review the rights offered in the current listing before purchasing.</Text>
             </>}
-            {!data.entitlements?.length && <Text>No purchases or rights transfers recorded yet.</Text>}
+            {!data.entitlements?.length && <Text>{data.can_review ? 'No acquired rights recorded yet.' : 'Detailed sale and licence history is available in the moderator workspace.'}</Text>}
             {data.can_admin && showDetails && <>
             <Text style={s.label}>Administrative transaction history</Text>
             {data.history.map((entry: any) => <View key={entry.id} style={s.section}>

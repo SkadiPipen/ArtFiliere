@@ -39,8 +39,21 @@ class ProvenanceView(AuthenticatedAPIView):
         data['can_download_original'] = bool(user and record.registered_at and record.current_owner_id == user.pk)
         data['original_filename'] = record.commission_asset.submission.filename if record.commission_asset_id else f'artwork-{record.pk}.' + {'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/webp': 'webp'}.get(record.original_artwork.image_data.split(';', 1)[0].removeprefix('data:'), 'png')
         response = Response(enrich(record, data, user))
+        if not user or user.role not in ('platform_admin', 'creative_moderator', 'customer_support'):
+            # Creator credit is public. Other holders' transactions/licences are
+            # available through the audited staff dossier, not the buyer page.
+            owner = bool(user and record.current_owner_id == user.pk)
+            allowed = ('artwork_id', 'created_by', 'claimed_creator', 'creator_verification', 'disputed',
+                       'attribution_review_pending', 'can_review', 'can_admin', 'can_resell', 'seller_verified',
+                       'can_download_original', 'creation_date', 'first_listed_at')
+            response.data = {key: response.data.get(key) for key in allowed}
+            response.data.update({'history': [], 'entitlements': [],
+                                  'rights': data.get('rights') if owner else None})
+            if owner:
+                response.data['original_filename'] = data.get('original_filename')
         response['Cache-Control'] = 'private, no-store'
         return response
+
 
     def post(self, request, artwork_id):
         import uuid
@@ -51,7 +64,40 @@ class ProvenanceView(AuthenticatedAPIView):
         if not user or not artwork or artwork.artist_id != user.pk:
             raise PermissionDenied('Only the approved listing owner can request registration.')
         record = ensure_artwork(artwork)
-        return Response(enrich(record, public_record(record), user), status=202)
+        response = self.get(request, artwork_id)
+        response.status_code = 202
+        return response
+
+
+class CreatorAttributionView(AuthenticatedAPIView):
+    def get(self, request, artwork_id):
+        from .artwork_history import creator_record
+        response = Response(creator_record(artwork_id, self.get_request_user(request)))
+        response['Cache-Control'] = 'private, no-store'
+        return response
+
+
+class ArtworkHistoryView(AuthenticatedAPIView):
+    def get(self, request, artwork_id):
+        from .artwork_history import STAFF_ROLES, dossier
+        user = self.get_request_user(request)
+        if not user or user.role not in STAFF_ROLES:
+            raise PermissionDenied('Creative moderator, support or administrator access is required.')
+        try:
+            page = int(request.query_params.get('page', '1'))
+            if not 1 <= page <= 1000000:
+                raise ValueError()
+        except (TypeError, ValueError):
+            raise ValidationError('Choose a valid history page.')
+        data = dossier(artwork_id, page)
+        if page == 1:
+            from users.models import ActivityLog
+            ActivityLog.objects.create(user=user, action='artwork_history_view',
+                description='Viewed private artwork history.', reference_type='artwork', reference_id=data['artwork_id'])
+        response = Response(data)
+        response['Cache-Control'] = 'private, no-store'
+        return response
+
 
 
 class FileIntegrityView(AuthenticatedAPIView):

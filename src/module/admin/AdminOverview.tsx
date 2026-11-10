@@ -3,12 +3,14 @@ import { ArrowUpRight } from 'lucide-react-native';
 import { adminType } from './adminDesign';
 import { Text } from '@/components/Typography';
 import { StyleSheet, Pressable, View } from 'react-native';
+import ArtworkSalesChart, { type ArtworkSales } from './ArtworkSalesChart';
 
 export type AdminAnalytics = {
   as_of: string; period: string;
   artworks: Record<string, number>;
   revenue: Record<string, string>;
   activity: Record<string, number>;
+  artwork_sales?: ArtworkSales;
 };
 const money = (value?: string) => `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -18,6 +20,7 @@ export default function AdminOverview({ data, detailed = false }: { data?: Admin
   const priorities: [string, number][] = [['Open reports', activity.open_reports], ['Disputed commissions', activity.disputed_commissions], ['Account approvals', activity.account_approvals], ['Artwork reviews', artworks.pending], ['Artist applications', activity.artist_applications], ['Support tickets', activity.open_support_tickets], ['Awaiting driver', activity.pending_deliveries], ['Pending payments', activity.pending_payments]];
   const row = (label: string, value: string | number) => <View key={label} style={s.row}><Text style={adminType.body}>{label}</Text><Text style={adminType.cardTitle}>{typeof value === 'number' ? value.toLocaleString() : value}</Text></View>;
   return <View style={{ gap: 24, marginTop: 12 }}>
+    <ArtworkSalesChart data={data.artwork_sales} />
     {!detailed && <View style={s.pulse}><View style={{ flex: 1, gap: 8 }}><Text style={adminType.sectionTitle}>Platform pulse</Text><Text style={adminType.muted}>{activity.paid_purchases.toLocaleString()} paid purchases | {activity.active_commissions.toLocaleString()} active commissions | {activity.users.toLocaleString()} members</Text></View><Pressable accessibilityRole="button" onPress={() => router.push('/admin-performance')} style={s.link}><Text style={[adminType.button, { color: '#A74646' }]}>View performance</Text><ArrowUpRight size={18} color="#A74646" /></Pressable></View>}
     <View style={s.columns}>
       <View style={s.section}><Text style={adminType.sectionTitle}>Needs attention</Text><Text style={adminType.muted}>Current queue counts across the platform</Text>{priorities.map(([label, value]) => <View key={label} style={s.row}><Text style={adminType.body}>{label}</Text><View style={[s.count, value > 0 && { backgroundColor: '#F5E8E3' }]}><Text style={[adminType.button, { color: value > 0 ? '#A74646' : '#81756D' }]}>{value.toLocaleString()}</Text></View></View>)}</View>

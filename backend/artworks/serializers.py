@@ -16,6 +16,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
     provenance = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
+    ai_screening = serializers.SerializerMethodField()
 
     def get_seller_reseller_verified(self, artwork):
         return artwork.artist.reseller_verified
@@ -70,6 +71,8 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "provenance",
             "average_rating",
             "review_count",
+            "ai_screening",
+            "automated_block_reason",
         ]
         extra_kwargs = {
             'sale_type': {'required': False},
@@ -77,7 +80,12 @@ class ArtworkSerializer(serializers.ModelSerializer):
             'starting_time': {'required': False},
             'end_time': {'required': False},
         }
-        read_only_fields = ["id", "artist_id", "status", "decline_reason", "created_at"]
+        read_only_fields = ["id", "artist_id", "status", "decline_reason", "created_at", "automated_block_reason"]
+
+    def get_ai_screening(self, artwork):
+        if not (self.context.get('include_screening') or self.context.get('include_similarity')):
+            return None
+        return artwork.ai_screening or None
 
     def get_categories(self, artwork):
         return [key for key in artwork.categories if key in CATEGORIES] if artwork.categories else category_ids(artwork.category)

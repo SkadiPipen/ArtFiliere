@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ArtFiliere Complete ERD</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px Arial,sans-serif;color:#172b3a;background:#f4f7fa}header{background:#143d59;color:white;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}h1{font-size:21px;margin:0 0 5px;font-weight:600}header p{margin:0;color:#dce8f0;font-size:13px}.toolbar{padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:white;border-bottom:1px solid #d4dee7}label{display:flex;align-items:center;gap:7px}select,input,button{font:inherit;padding:8px 10px;border:1px solid #b8c7d3;border-radius:5px;background:white;color:#172b3a}button{cursor:pointer}button:hover{background:#edf3f7}select{max-width:330px}input{width:230px}main{display:grid;grid-template-columns:minmax(0,1fr) 300px;height:calc(100vh - 168px);min-height:480px}#canvas{background:white;overflow:hidden;touch-action:none;cursor:grab;position:relative}#canvas:active{cursor:grabbing}#canvas svg{display:block;width:100%;height:100%}#canvas .node{cursor:pointer}#canvas .node.selected polygon{stroke:#d97706;stroke-width:3}#canvas .dim{opacity:.13}aside{padding:18px;background:#f8fafc;border-left:1px solid #d4dee7;overflow:auto}h2{font-size:16px;overflow-wrap:anywhere;margin:0 0 12px}h3{font-size:13px;margin:20px 0 8px}aside p{line-height:1.5;font-size:13px}aside ul{padding-left:18px}aside li{font-size:12px;line-height:1.5;margin-bottom:10px;overflow-wrap:anywhere}code{font-size:12px}.legend{font-size:12px;line-height:1.8;color:#475569}#status{font-size:12px;margin-left:auto;color:#475569}.help{position:absolute;bottom:12px;left:16px;background:#fffffff2;padding:7px 10px;border:1px solid #d4dee7;border-radius:4px;font-size:12px;color:#475569;pointer-events:none}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #d97706;outline-offset:2px}@media(max-width:850px){main{grid-template-columns:1fr;height:auto}#canvas{height:70vh;min-height:400px}aside{border-left:0;border-top:1px solid #d4dee7}header{padding:14px}.toolbar{padding:10px}#status{margin-left:0}select{max-width:260px}}@media print{.toolbar,.help{display:none}main{display:block;height:auto}#canvas{height:90vh}aside{display:none}}
+</style></head><body>
+<header><div><h1>ArtFiliere Complete ERD</h1><p>73 application tables · 805 fields · 171 foreign keys · 1 referenced framework table</p></div></header>
+<div class="toolbar"><label>Diagram <select id="view" aria-label="Diagram"></select></label><label>Find table <input id="search" list="tables" placeholder="e.g. payment" aria-label="Find table"></label><datalist id="tables"></datalist><button id="find">Find</button><button id="plus" aria-label="Zoom in">+</button><button id="minus" aria-label="Zoom out">−</button><button id="fit">Fit diagram</button><span id="status" aria-live="polite"></span></div>
+<main><div id="canvas" aria-label="Entity relationship diagram"><div class="help">Drag to pan · Scroll to zoom · Click a table for its relationships</div></div><aside><h2 id="selected">Relationship guide</h2><div class="legend"><b>1</b> = exactly one<br><b>0..1</b> = optional, at most one<br><b>0..*</b> = zero or many<br><b>PK</b> = primary key · <b>FK</b> = foreign key<br><b>UQ</b> = unique · <b>?</b> = allows NULL</div><div id="detail"><p>Choose a module for a readable view. The complete diagram includes every table and relationship.</p><p>Connectors run from the parent key to the child foreign key. Each connector is labeled with the foreign key name.</p><p>Gray tables are references from another module. The legacy rider points to Django <code>auth_user</code>, separately from the application's <code>user</code> table.</p></div></aside></main>
+<script>
+const views=__VIEWS__;
+const schema=__SCHEMA__;
+const relations=__RELATIONS__;
+const canvas=document.getElementById('canvas'), view=document.getElementById('view'), search=document.getElementById('search'), detail=document.getElementById('detail'), status=document.getElementById('status');
+const escapeText=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let svg,base,box,drag;
+views.forEach(v=>view.add(new Option(v.title,v.id)));
+schema.forEach(t=>{const o=document.createElement('option');o.value=t.table;document.getElementById('tables').append(o)});
+function apply(){svg.setAttribute('viewBox',box.join(' '));status.textContent=Math.round(base[2]/box[2]*100)+'%';}
+function fit(){box=[...base];apply();svg.querySelectorAll('.dim,.selected').forEach(n=>n.classList.remove('dim','selected'));}
+function load(id){
+ document.getElementById('selected').textContent='Relationship guide';detail.innerHTML='<p>Click a table to see its relationships. Gray tables are references from another module.</p>';search.value='';
+ const old=canvas.querySelector('svg');if(old)old.remove();
+ canvas.insertAdjacentHTML('afterbegin',views.find(v=>v.id===id).svg);
+ svg=canvas.querySelector('svg');svg.removeAttribute('width');svg.removeAttribute('height');base=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);box=[...base];
+ svg.querySelectorAll('.node').forEach(n=>n.addEventListener('click',()=>focus(n.id.replace('table-',''))));
+ apply();
+}
+function zoom(factor,x=.5,y=.5){const w=box[2]*factor,h=box[3]*factor;box=[box[0]+(box[2]-w)*x,box[1]+(box[3]-h)*y,w,h];apply()}
+function focus(name){
+ if(!schema.some(t=>t.table===name)){status.textContent='Choose a table from the list.';return}
+ let node=svg.querySelector('[id="table-'+name+'"]');
+ if(!node){view.value='complete';load('complete');node=svg.querySelector('[id="table-'+name+'"]')}
+ const b=node.getBBox(),matrix=svg.getCTM().inverse().multiply(node.getCTM());
+ const p=new DOMPoint(b.x,b.y).matrixTransform(matrix),p2=new DOMPoint(b.x+b.width,b.y+b.height).matrixTransform(matrix);
+ const w=Math.max(Math.abs(p2.x-p.x)*2.7,900),h=Math.max(Math.abs(p2.y-p.y)*1.4,550);
+ const ratio=canvas.clientWidth/canvas.clientHeight;
+ const W=Math.max(w,h*ratio),H=W/ratio;
+ box=[(p.x+p2.x-W)/2,(p.y+p2.y-H)/2,W,H];apply();
+ const linked=relations.filter(r=>r.parent===name||r.child===name),neighbors=new Set([name,...linked.flatMap(r=>[r.parent,r.child])]);
+ svg.querySelectorAll('.node').forEach(n=>{n.classList.toggle('dim',!neighbors.has(n.id.replace('table-','')));n.classList.toggle('selected',n===node)});
+ svg.querySelectorAll('.edge').forEach(n=>{const title=n.querySelector('title')?.textContent||'';n.classList.toggle('dim',!title.includes(name+':'))});
+ document.getElementById('selected').textContent=name;
+ const t=schema.find(t=>t.table===name);
+ detail.innerHTML='<p>'+t.fields.length+' columns'+(t.external?' · framework reference':'')+'</p>'+(linked.length?'<h3>Connections</h3><ul>'+linked.map(r=>'<li><b>'+escapeText(r.parent)+'</b> '+(r.nullable?'0..1':'1')+' → '+(r.unique?'0..1':'0..*')+' <b>'+escapeText(r.child)+'</b><br><code>'+escapeText(r.child+'.'+r.fk)+' → '+escapeText(r.parent+'.'+r.pk)+'</code><br>'+(r.unique?'One-to-one':'One-to-many')+'</li>').join('')+'</ul>':'<p>No declared foreign key connections.</p>');
+ search.value=name;
+}
+view.addEventListener('change',()=>load(view.value));document.getElementById('find').onclick=()=>focus(search.value.trim());search.onkeydown=e=>{if(e.key==='Enter')focus(search.value.trim())};
+document.getElementById('plus').onclick=()=>zoom(.75);document.getElementById('minus').onclick=()=>zoom(1.33);document.getElementById('fit').onclick=fit;
+canvas.addEventListener('wheel',e=>{e.preventDefault();const rect=canvas.getBoundingClientRect();zoom(e.deltaY>0?1.15:.87,(e.clientX-rect.left)/rect.width,(e.clientY-rect.top)/rect.height)},{passive:false});
+canvas.addEventListener('pointerdown',e=>{if(e.target.closest('.node'))return;drag={x:e.clientX,y:e.clientY,b:[...box]};canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;const scale=Math.max(drag.b[2]/canvas.clientWidth,drag.b[3]/canvas.clientHeight);box=[drag.b[0]-(e.clientX-drag.x)*scale,drag.b[1]-(e.clientY-drag.y)*scale,drag.b[2],drag.b[3]];apply()});
+canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+load('complete');
+</script></body></html>

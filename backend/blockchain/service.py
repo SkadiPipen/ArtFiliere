@@ -5,7 +5,11 @@ from web3 import Web3
 from .utils import artwork_hash_bytes32
 
 
-class BlockchainError(Exception): pass
+class BlockchainError(Exception):
+    def __init__(self, message, transaction_hash='', block_number=None):
+        super().__init__(message)
+        self.transaction_hash = transaction_hash
+        self.block_number = block_number
 
 
 def contract():
@@ -33,12 +37,41 @@ def _send(function):
         tx = function(registry).build_transaction({"from": account.address,"nonce": nonce,"chainId": settings.BLOCKCHAIN_CHAIN_ID,"gas": 250000,"gasPrice": w3.eth.gas_price})
         signed = account.sign_transaction(tx); tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-    if receipt.status != 1: raise BlockchainError("Transaction reverted.")
+    if receipt.status != 1:
+        raise BlockchainError("Transaction reverted.", tx_hash.hex(), receipt.blockNumber)
     return {"transaction_hash": tx_hash.hex(), "block_number": receipt.blockNumber}
 
 
+def artwork_registry_key(artwork_id, artwork_hash):
+    """Content-bound identity prevents restored database IDs overwriting old history."""
+    from .utils import sha256_bytes
+    return int(sha256_bytes(f'artfiliere:artwork:v1:{artwork_id}:{artwork_hash.lower()}'.encode()), 16)
+
+
+def _artwork_record(registry, artwork_id, artwork_hash):
+    legacy = registry.functions.getArtwork(artwork_id).call()
+    if legacy[3] and bytes(legacy[0]).hex() == artwork_hash.lower():
+        return artwork_id, legacy
+    key = artwork_registry_key(artwork_id, artwork_hash)
+    return key, registry.functions.getArtwork(key).call()
+
+
 def register_artwork(artwork_id, artwork_hash):
-    return _send(lambda registry: registry.functions.registerArtwork(artwork_id, artwork_hash_bytes32(artwork_hash)))
+    fingerprint = artwork_hash_bytes32(artwork_hash)
+    w3, registry = contract()
+    key, stored = _artwork_record(registry, artwork_id, artwork_hash)
+    if stored[3]:
+        if bytes(stored[0]) != fingerprint:
+            raise BlockchainError('Artwork registry identity conflicts with the approved file.')
+        logs = registry.events.ArtworkRegistered().get_logs(
+            from_block=0, to_block='latest', argument_filters={'artworkId': key})
+        if len(logs) != 1:
+            raise BlockchainError('Existing artwork registration receipt could not be recovered.')
+        receipt = w3.eth.get_transaction_receipt(logs[0]['transactionHash'])
+        if receipt.status != 1:
+            raise BlockchainError('Existing artwork registration is not confirmed.')
+        return {'transaction_hash': logs[0]['transactionHash'].hex(), 'block_number': receipt.blockNumber}
+    return _send(lambda registry: registry.functions.registerArtwork(key, fingerprint))
 
 
 def record_license(agreement_id, document_hash):
@@ -50,8 +83,9 @@ def record_sale(payment_id, sale_hash):
 
 
 def verify_artwork(artwork_id, artwork_hash):
-    _, registry = contract(); record = registry.functions.getArtwork(artwork_id).call()
-    return bytes(record[0]).hex() == artwork_hash.lower(), record
+    _, registry = contract()
+    _, record = _artwork_record(registry, artwork_id, artwork_hash)
+    return bool(record[3] and bytes(record[0]).hex() == artwork_hash.lower()), record
 
 
 def verify_license(agreement_id, document_hash):

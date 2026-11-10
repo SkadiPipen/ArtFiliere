@@ -30,6 +30,8 @@ from .hashing import (
 from datetime import timedelta
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.conf import settings
+from .ai_detector import DetectorUnavailable, ScreeningPending, screen_upload, screening_configuration
 
 
 class ArtworkView(AuthenticatedAPIView):
@@ -44,7 +46,10 @@ class ArtworkView(AuthenticatedAPIView):
                 artwork = Artwork.objects.select_related("artist").get(id=artwork_id)
                 user = self.get_request_user(request)
                 include_sim = bool(user and user.role == User.Role.CREATIVE_MODERATOR)
-                return Response(ArtworkSerializer(artwork, context={"include_similarity": include_sim}).data)
+                owner = bool(user and user.id == artwork.artist_id)
+                if artwork.status != Artwork.Status.APPROVED and not (include_sim or owner):
+                    return Response({'error': 'Artwork not found.'}, status=404)
+                return Response(ArtworkSerializer(artwork, context={"include_similarity": include_sim, 'include_screening': owner}).data)
             except Artwork.DoesNotExist:
                 return Response({"error": "Artwork not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -67,7 +72,7 @@ class ArtworkView(AuthenticatedAPIView):
 
         return Response(ArtworkSerializer(
             artworks, many=True,
-            context={"include_similarity": bool(user and user.role == User.Role.CREATIVE_MODERATOR)},
+            context={"include_similarity": bool(user and user.role == User.Role.CREATIVE_MODERATOR), 'include_screening': mine},
         ).data)
 
     def patch(self, request, artwork_id=None):
@@ -75,6 +80,8 @@ class ArtworkView(AuthenticatedAPIView):
         artwork = Artwork.objects.filter(pk=artwork_id, artist=user).first()
         if not artwork:
             return Response({'error': 'Artwork not found.'}, status=404)
+        if artwork.automated_block_reason:
+            return Response({'error': 'Automatically blocked submissions are read-only.'}, status=409)
         if set(request.data) != {'categories'}:
             return Response({'error': 'This action updates artwork categories only.'}, status=400)
         try:
@@ -86,6 +93,7 @@ class ArtworkView(AuthenticatedAPIView):
         artwork.save(update_fields=['categories', 'category', 'updated_at'])
         return Response(ArtworkSerializer(artwork).data)
 
+    @transaction.atomic
     def post(self, request):
         user = self.get_request_user(request)
         required = ["title", "description", "price", "image_data"]
@@ -237,43 +245,45 @@ class ArtworkView(AuthenticatedAPIView):
             .select_related("artist")
             .first()
         )
-        if duplicate:
-            return Response(
-                {
-                    "error": "This exact image has already been uploaded to the platform.",
-                    "duplicate_artwork_id": duplicate.id,
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
+        try:
+            ai_screening = screen_upload(request.data['image_data'], additional_images)
+        except (ValueError, TypeError) as error:
+            return Response({'error': str(error)}, status=400)
+        except DetectorUnavailable as error:
+            return Response({'error': str(error)}, status=503)
 
         bid_increment = request.data.get("bid_increment") or 100.00
         starting_time = auction_start_time if sale_type == "Auction" else request.data.get("starting_time") or None
         end_time = auction_end_time if sale_type == "Auction" else request.data.get("end_time") or None
 
         try:
-            artwork = Artwork.objects.create(
-                artist=user,
-                title=request.data["title"].strip(),
-                description=request.data["description"].strip(),
-                category=CATEGORIES[selected_categories[0]]['label'],
-                categories=selected_categories,
-                tags=final_tags,
-                price=listing_price,
-                hours=hours,
-                hourly_rate=rate,
-                material_cost=materials,
-                art_type=art_type,
-                image_data=request.data["image_data"],
-                additional_images=additional_images,
-                sha256_hash=sha256_hash,
-                perceptual_hash=perceptual_hash,
-                difference_hash=difference_hash,
-                edge_hash=edge_hash,
-                sale_type=sale_type,
-                bid_increment=bid_increment,
-                starting_time=starting_time,
-                end_time=end_time,
-            )
+            with transaction.atomic():
+                artwork = Artwork.objects.create(
+                    artist=user,
+                    title=request.data["title"].strip(),
+                    description=request.data["description"].strip(),
+                    category=CATEGORIES[selected_categories[0]]['label'],
+                    categories=selected_categories,
+                    tags=final_tags,
+                    price=listing_price,
+                    hours=hours,
+                    hourly_rate=rate,
+                    material_cost=materials,
+                    art_type=art_type,
+                    image_data=request.data["image_data"],
+                    additional_images=additional_images,
+                    # Retain duplicate attempts as private evidence without taking
+                    # over the original's unique fingerprint / provenance identity.
+                    sha256_hash=None if duplicate else sha256_hash,
+                    ai_screening=ai_screening,
+                    perceptual_hash=perceptual_hash,
+                    difference_hash=difference_hash,
+                    edge_hash=edge_hash,
+                    sale_type=sale_type,
+                    bid_increment=bid_increment,
+                    starting_time=starting_time,
+                    end_time=end_time,
+                )
         except IntegrityError:
             return Response(
                 {
@@ -337,12 +347,39 @@ class ArtworkView(AuthenticatedAPIView):
                 },
             )
 
-        _create_similarity_matches(artwork)
+        if duplicate:
+            ArtworkSimilarityMatch.objects.create(
+                artwork=artwork, reference_artwork=duplicate, phash_distance=0,
+                dhash_distance=0, edge_hash_distance=0, feature_match_score=1,
+                color_similarity_score=1, confidence_score=1,
+                review_status=ArtworkSimilarityMatch.ReviewStatus.AUTO_BLOCKED,
+                review_note='Identical file fingerprint. Automatic publication block.',
+                reviewed_at=timezone.now(),
+            )
+            artwork.automated_block_reason = 'exact_duplicate'
+        else:
+            _create_similarity_matches(artwork)
+            if artwork.similarity_matches.filter(confidence_score__gte=settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD).exists():
+                artwork.automated_block_reason = 'high_similarity'
+        if artwork.automated_block_reason:
+            artwork.status = Artwork.Status.DECLINED
+            strongest = artwork.similarity_matches.order_by('-confidence_score').first()
+            artwork.decline_reason = ('Identical file already submitted (100% file match).' if duplicate else f'Visual similarity score {strongest.confidence_score:.1%} reached the {settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD:.0%} automatic publication-block threshold.') + ' This submission was not published. The score is a screening signal, not proof of infringement.'
+            artwork.save(update_fields=['status', 'decline_reason', 'automated_block_reason', 'updated_at'])
+            artwork.auction_listings.filter(status='PENDING_APPROVAL').update(status='CANCELLED')
+            from notifications.models import UserNotification
+            UserNotification.objects.create(user=user, artwork=artwork, title='Artwork automatically blocked', message=artwork.decline_reason)
         ArtworkReviewLog.objects.create(
-            artwork=artwork, actor=user, action="submitted", new_status=artwork.status
+            artwork=artwork, actor=None if artwork.automated_block_reason else user,
+            action='auto_blocked' if artwork.automated_block_reason else 'submitted',
+            new_status=artwork.status, reason=artwork.decline_reason,
         )
-        payload = ArtworkSerializer(artwork, context={"include_similarity": True}).data
-        if artwork.similarity_matches.filter(review_status=ArtworkSimilarityMatch.ReviewStatus.PENDING).exists():
+        payload = ArtworkSerializer(artwork, context={'include_screening': True}).data
+        if artwork.automated_block_reason:
+            payload['message'] = artwork.decline_reason
+        elif ai_screening['status'] == 'review_required':
+            payload['message'] = 'Potentially AI-generated imagery detected. Your submission is held for moderator review and is not published.'
+        elif artwork.similarity_matches.filter(review_status=ArtworkSimilarityMatch.ReviewStatus.PENDING).exists():
             payload["similarity_review_required"] = True
             payload["message"] = "Your artwork was submitted and is awaiting similarity review before it can be approved."
         return Response(payload, status=status.HTTP_201_CREATED)
@@ -447,6 +484,12 @@ class ArtworkReviewView(AuthenticatedAPIView):
                 {"error": "Artwork not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        if artwork.automated_block_reason:
+            return Response({'error': 'Automatically blocked submissions are read-only evidence and cannot be approved or changed.'}, status=409)
+        screening = artwork.ai_screening
+        if review_status == Artwork.Status.APPROVED and screening.get('status') == 'review_required' and screening.get('review_status') != 'cleared':
+            return Response({'error': 'Review the AI flag and record supporting evidence before approving this artwork.'}, status=409)
+
         if review_status == Artwork.Status.APPROVED:
             matches = artwork.similarity_matches.all()
             if matches.filter(review_status=ArtworkSimilarityMatch.ReviewStatus.CONFIRMED_COPY).exists():
@@ -496,9 +539,8 @@ class ArtworkReviewView(AuthenticatedAPIView):
                     proof.save()
                     blockchain_result = {"status": "confirmed", **result}
                 except BlockchainError as error:
-                    proof.status = BlockchainTransaction.Status.FAILED
-                    proof.error_message = str(error)
-                    proof.save()
+                    from blockchain.proofs import _save_failed
+                    _save_failed(proof, error)
                     blockchain_result = {"status": "failed", "error": str(error)}
 
         # Live auction upon approval
@@ -590,6 +632,7 @@ class ArtworkReviewView(AuthenticatedAPIView):
 class ArtworkSimilarityReviewView(AuthenticatedAPIView):
     permission_classes = [IsCreativeModerator]
 
+    @transaction.atomic
     def patch(self, request, match_id):
         review_status = request.data.get("review_status")
         if review_status not in {
@@ -598,9 +641,12 @@ class ArtworkSimilarityReviewView(AuthenticatedAPIView):
         }:
             return Response({"error": "review_status must be confirmed_copy or not_a_copy."}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            match = ArtworkSimilarityMatch.objects.get(id=match_id)
+            match = ArtworkSimilarityMatch.objects.select_related('artwork').get(id=match_id)
         except ArtworkSimilarityMatch.DoesNotExist:
             return Response({"error": "Similarity match not found."}, status=status.HTTP_404_NOT_FOUND)
+        artwork = Artwork.objects.select_for_update().get(pk=match.artwork_id)
+        if artwork.automated_block_reason:
+            return Response({'error': 'Automatically blocked similarity evidence is read-only.'}, status=409)
         match.review_status = review_status
         match.review_note = (request.data.get("review_note") or "").strip()[:500]
         match.reviewed_by = self.get_request_user(request)
@@ -615,7 +661,7 @@ def _create_similarity_matches(artwork):
     This runs synchronously for the project-scale catalogue. Move it to a job
     queue before the catalogue becomes large.
     """
-    references = Artwork.objects.exclude(id=artwork.id).exclude(perceptual_hash__isnull=True).exclude(difference_hash__isnull=True).exclude(edge_hash__isnull=True)
+    references = Artwork.objects.filter(status=Artwork.Status.APPROVED, automated_block_reason='').exclude(id=artwork.id).exclude(perceptual_hash__isnull=True).exclude(difference_hash__isnull=True).exclude(edge_hash__isnull=True)
     for reference in references.iterator():
         try:
             phash_distance = calculate_phash_distance(artwork.perceptual_hash, reference.perceptual_hash)
@@ -640,5 +686,61 @@ def _create_similarity_matches(artwork):
                     "feature_match_score": feature_score,
                     "color_similarity_score": color_score,
                     "confidence_score": confidence,
+                    'review_status': ArtworkSimilarityMatch.ReviewStatus.AUTO_BLOCKED if confidence >= settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD else ArtworkSimilarityMatch.ReviewStatus.PENDING,
+                    'review_note': 'Automatic publication block; similarity is not proof of infringement.' if confidence >= settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD else '',
                 },
             )
+
+
+class ArtworkImageScreenView(AuthenticatedAPIView):
+    permission_classes = [IsArtist]
+
+    def get(self, request):
+        try:
+            response = Response(screening_configuration())
+            response['Cache-Control'] = 'private, no-store'
+            return response
+        except DetectorUnavailable as error:
+            return Response({'error': str(error)}, status=503)
+
+    def post(self, request):
+        gallery = request.data.get('additional_images', [])
+        if not isinstance(gallery, list) or len(gallery) > 3:
+            return Response({'error': 'Upload up to three additional artwork images.'}, status=400)
+        try:
+            result = screen_upload(request.data.get('image_data', ''), gallery)
+        except ScreeningPending:
+            response = Response({'status': 'processing', 'retry_after': 2}, status=202)
+            response['Cache-Control'] = 'private, no-store'
+            response['Retry-After'] = '2'
+            return response
+        except (ValueError, TypeError):
+            return Response({'error': 'The uploaded image could not be processed.'}, status=400)
+        except DetectorUnavailable as error:
+            return Response({'error': str(error)}, status=503)
+        response = Response(result)
+        response['Cache-Control'] = 'private, no-store'
+        return response
+
+
+class ArtworkAIReviewView(AuthenticatedAPIView):
+    permission_classes = [IsCreativeModerator]
+
+    @transaction.atomic
+    def patch(self, request, artwork_id):
+        artwork = Artwork.objects.select_for_update().filter(pk=artwork_id).first()
+        if not artwork:
+            return Response({'error': 'Artwork not found.'}, status=404)
+        if artwork.automated_block_reason:
+            return Response({'error': 'Automatically blocked submissions are read-only.'}, status=409)
+        note = request.data.get('note', '')
+        if not isinstance(note, str) or not 20 <= len(note.strip()) <= 1000:
+            return Response({'error': 'Describe the process evidence reviewed in 20–1,000 characters.'}, status=400)
+        if artwork.ai_screening.get('status') != 'review_required' or artwork.ai_screening.get('review_status') == 'cleared':
+            return Response({'error': 'No unresolved AI flag exists for this artwork.'}, status=409)
+        artwork.ai_screening = {**artwork.ai_screening, 'review_status': 'cleared',
+                                'review_note': note.strip(), 'reviewed_by': self.get_request_user(request).pk,
+                                'reviewed_at': timezone.now().isoformat()}
+        artwork.save(update_fields=['ai_screening', 'updated_at'])
+        ArtworkReviewLog.objects.create(artwork=artwork, actor=self.get_request_user(request), action='ai_flag_cleared', previous_status=artwork.status, new_status=artwork.status, reason=note.strip()[:500])
+        return Response(ArtworkSerializer(artwork, context={'include_similarity': True}).data)

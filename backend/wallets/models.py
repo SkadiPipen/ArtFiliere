@@ -35,6 +35,7 @@ class SupportTicket(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = "support_ticket"
         ordering = ['-updated_at', '-pk']
 
 
@@ -45,6 +46,7 @@ class SupportReply(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "support_reply"
         ordering = ['created_at', 'pk']
 
 
@@ -65,6 +67,7 @@ class AccountModerationRequest(models.Model):
     reversal_reason = models.TextField(blank=True)
 
     class Meta:
+        db_table = "account_moderation_request"
         ordering = ['-created_at']
         constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_moderation_request')]
 
@@ -77,6 +80,9 @@ class WalletAccount(models.Model):
     available_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     paid_out_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "wallet"
 
 
 class PaymentSession(models.Model):
@@ -103,6 +109,9 @@ class PaymentSession(models.Model):
     paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     verification_code = models.CharField(max_length=24, unique=True, default=sale_verification_code, editable=False)
+
+    class Meta:
+        db_table = "payment"
 
 
 class CancellationReturnRequest(models.Model):
@@ -131,6 +140,7 @@ class CancellationReturnRequest(models.Model):
     responded_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        db_table = "payment_return_request"
         ordering = ["-created_at"]
         constraints = [models.UniqueConstraint(fields=["payment_session", "requester", "request_type"], condition=Q(status="pending"), name="unique_open_request_type")]
 
@@ -149,6 +159,9 @@ class IncidentReport(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = "incident_report"
+
 
 class ReportAttachment(models.Model):
     report = models.ForeignKey(IncidentReport, on_delete=models.CASCADE, related_name='attachments', null=True, blank=True)
@@ -157,6 +170,9 @@ class ReportAttachment(models.Model):
     content_type = models.CharField(max_length=100)
     content = models.BinaryField()
     size = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = "report_attachment"
 
 
 class AccountActionRequest(models.Model):
@@ -177,6 +193,7 @@ class AccountActionRequest(models.Model):
     reversal_reason = models.TextField(blank=True)
 
     class Meta:
+        db_table = "account_action_request"
         constraints = [models.UniqueConstraint(fields=['target'], condition=Q(status='pending'), name='one_pending_incident_account_action')]
 
 
@@ -196,6 +213,7 @@ class RestrictionAppeal(models.Model):
     decided_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        db_table = "restriction_appeal"
         constraints = [models.UniqueConstraint(fields=['user', 'source', 'restriction_id'], condition=Q(status__in=['pending', 'recommended']), name='one_open_restriction_appeal')]
 
 
@@ -209,6 +227,9 @@ class FinancialAuthorization(models.Model):
     reason = models.TextField()
     status = models.CharField(max_length=20, default='authorized')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "financial_authorization"
 
 
 class WalletLedgerEntry(models.Model):
@@ -225,5 +246,6 @@ class WalletLedgerEntry(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "wallet_entry"
         ordering = ["-created_at"]
         constraints = [models.UniqueConstraint(fields=["payment_session", "entry_type"], name="unique_wallet_payment_entry")]

@@ -1,0 +1,2200 @@
+{
+  "name": "ERD",
+  "directed": true,
+  "strict": false,
+  "_draw_": 
+  [
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#fffffe00"
+    },
+    {
+      "op": "C",
+      "grad": "none",
+      "color": "#ffffff"
+    },
+    {
+      "op": "P",
+      "points": [[-28.800,-28.800],[-28.800,597.800],[666.460,597.800],[666.460,-28.800]]
+    }
+  ],
+  "_ldraw_": 
+  [
+    {
+      "op": "F",
+      "size": 18.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [248.300,549.800],
+      "align": "l",
+      "width": 141.060,
+      "text": "Artist applications"
+    },
+    {
+      "op": "F",
+      "size": 10.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [139.390,539.000],
+      "align": "l",
+      "width": 358.880,
+      "text": "Parent: 1 or 0..1 | Child: 0..* or 0..1 | PK primary key | FK foreign key | UQ unique"
+    }
+  ],
+  "bb": "0,0,637.66,569",
+  "bgcolor": "white",
+  "concentrate": "false",
+  "fontname": "Arial",
+  "fontsize": "12",
+  "label": "<FONT POINT-SIZE=\"18\">Artist applications<\/FONT><BR\/><FONT POINT-SIZE=\"10\">Parent: 1 or 0..1 | Child: 0..* or 0..1 | PK primary key | FK foreign key | UQ unique<\/FONT>",
+  "labelloc": "t",
+  "lheight": "0.39",
+  "lp": "318.83,551",
+  "lwidth": "4.98",
+  "nodesep": "0.65",
+  "pad": "0.4",
+  "rankdir": "LR",
+  "ranksep": "1.5",
+  "splines": "ortho",
+  "xdotversion": "1.7",
+  "_subgraph_cnt": 0,
+  "objects": [
+    {
+      "_gvid": 0,
+      "name": "artist_application",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[198.470,377.000],[198.470,397.000],[354.760,397.000],[354.760,377.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[198.470,377.000],[354.760,377.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [221.890,385.000],
+          "align": "l",
+          "width": 109.450,
+          "text": "ARTIST_APPLICATION"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,357.000],[237.020,377.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [202.470,363.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,363.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,337.000],[237.020,357.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [202.470,343.000],
+          "align": "l",
+          "width": 30.560,
+          "text": "FK UQ"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,343.000],
+          "align": "l",
+          "width": 32.800,
+          "text": "user_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,319.000],[237.020,337.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,324.000],
+          "align": "l",
+          "width": 50.030,
+          "text": "hourly_rate"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,301.000],[237.020,319.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,306.000],
+          "align": "l",
+          "width": 50.030,
+          "text": "tin_number"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,283.000],[237.020,301.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,288.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "bio"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,265.000],[237.020,283.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,270.000],
+          "align": "l",
+          "width": 59.470,
+          "text": "bir_certificate"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,247.000],[237.020,265.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,252.000],
+          "align": "l",
+          "width": 90.040,
+          "text": "bir_certificate_name"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,229.000],[237.020,247.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,234.000],
+          "align": "l",
+          "width": 65.600,
+          "text": "bir_expires_on"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,211.000],[237.020,229.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,216.000],
+          "align": "l",
+          "width": 81.160,
+          "text": "sworn_declaration"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,193.000],[237.020,211.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,198.000],
+          "align": "l",
+          "width": 111.730,
+          "text": "sworn_declaration_name"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,175.000],[237.020,193.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,180.000],
+          "align": "l",
+          "width": 78.380,
+          "text": "document_details"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,157.000],[237.020,175.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,162.000],
+          "align": "l",
+          "width": 35.580,
+          "text": "portfolio"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,139.000],[237.020,157.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,144.000],
+          "align": "l",
+          "width": 26.680,
+          "text": "status"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,121.000],[237.020,139.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,126.000],
+          "align": "l",
+          "width": 73.940,
+          "text": "rejection_reason"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,103.000],[237.020,121.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,108.000],
+          "align": "l",
+          "width": 57.260,
+          "text": "submitted_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[237.020,85.000],[237.020,103.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [240.020,90.000],
+          "align": "l",
+          "width": 50.050,
+          "text": "updated_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[209.470,84.000],[209.470,84.000],[343.760,84.000],[343.760,84.000],[349.760,84.000],[355.760,90.000],[355.760,96.000],[355.760,96.000],[355.760,386.000],[355.760,386.000],[355.760,392.000],[349.760,398.000],[343.760,398.000],[343.760,398.000],[209.470,398.000],[209.470,398.000],[203.470,398.000],[197.470,392.000],[197.470,386.000],[197.470,386.000],[197.470,96.000],[197.470,96.000],[197.470,90.000],[203.470,84.000],[209.470,84.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "4.3611",
+      "id": "table-artist_application",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>ARTIST_APPLICATION<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><TR><TD PORT=\"in_user_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK UQ<\/TD><TD PORT=\"out_user_id\" ALIGN=\"LEFT\">user_id<\/TD><\/TR><TR><TD PORT=\"in_hourly_rate\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_hourly_rate\" ALIGN=\"LEFT\">hourly_rate<\/TD><\/TR><TR><TD PORT=\"in_tin_number\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_tin_number\" ALIGN=\"LEFT\">tin_number<\/TD><\/TR><TR><TD PORT=\"in_bio\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_bio\" ALIGN=\"LEFT\">bio<\/TD><\/TR><TR><TD PORT=\"in_bir_certificate\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_bir_certificate\" ALIGN=\"LEFT\">bir_certificate<\/TD><\/TR><TR><TD PORT=\"in_bir_certificate_name\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_bir_certificate_name\" ALIGN=\"LEFT\">bir_certificate_name<\/TD><\/TR><TR><TD PORT=\"in_bir_expires_on\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_bir_expires_on\" ALIGN=\"LEFT\">bir_expires_on<\/TD><\/TR><TR><TD PORT=\"in_sworn_declaration\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_sworn_declaration\" ALIGN=\"LEFT\">sworn_declaration<\/TD><\/TR><TR><TD PORT=\"in_sworn_declaration_name\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_sworn_declaration_name\" ALIGN=\"LEFT\">sworn_declaration_name<\/TD><\/TR><TR><TD PORT=\"in_document_details\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_document_details\" ALIGN=\"LEFT\">document_details<\/TD><\/TR><TR><TD PORT=\"in_portfolio\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_portfolio\" ALIGN=\"LEFT\">portfolio<\/TD><\/TR><TR><TD PORT=\"in_status\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_status\" ALIGN=\"LEFT\">status<\/TD><\/TR><TR><TD PORT=\"in_rejection_reason\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_rejection_reason\" ALIGN=\"LEFT\">rejection_reason<\/TD><\/TR><TR><TD PORT=\"in_submitted_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_submitted_at\" ALIGN=\"LEFT\">submitted_at<\/TD><\/TR><TR><TD PORT=\"in_updated_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_updated_at\" ALIGN=\"LEFT\">updated_at<\/TD><\/TR><\/TABLE>",
+      "pos": "276.61,241",
+      "shape": "plain",
+      "width": "2.1985"
+    },
+    {
+      "_gvid": 1,
+      "name": "artist_registration_update",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[464.760,512.000],[464.760,532.000],[636.660,532.000],[636.660,512.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[464.760,512.000],[636.660,512.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [468.760,520.000],
+          "align": "l",
+          "width": 163.900,
+          "text": "ARTIST_REGISTRATION_UPDATE"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,492.000],[521.960,512.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [468.760,498.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,498.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,472.000],[521.960,492.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [468.760,478.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,478.000],
+          "align": "l",
+          "width": 61.160,
+          "text": "application_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,454.000],[521.960,472.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,459.000],
+          "align": "l",
+          "width": 50.030,
+          "text": "tin_number"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,436.000],[521.960,454.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,441.000],
+          "align": "l",
+          "width": 72.830,
+          "text": "evidence_image"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,418.000],[521.960,436.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,423.000],
+          "align": "l",
+          "width": 48.920,
+          "text": "expires_on"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,400.000],[521.960,418.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,405.000],
+          "align": "l",
+          "width": 71.700,
+          "text": "previous_record"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,382.000],[521.960,400.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,387.000],
+          "align": "l",
+          "width": 26.680,
+          "text": "status"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,364.000],[521.960,382.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,369.000],
+          "align": "l",
+          "width": 53.920,
+          "text": "review_note"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,344.000],[521.960,364.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [468.760,350.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,350.000],
+          "align": "l",
+          "width": 69.490,
+          "text": "reviewed_by_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,326.000],[521.960,344.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,331.000],
+          "align": "l",
+          "width": 57.260,
+          "text": "submitted_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[521.960,308.000],[521.960,326.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [524.960,313.000],
+          "align": "l",
+          "width": 53.920,
+          "text": "reviewed_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[475.760,307.000],[475.760,307.000],[625.660,307.000],[625.660,307.000],[631.660,307.000],[637.660,313.000],[637.660,319.000],[637.660,319.000],[637.660,521.000],[637.660,521.000],[637.660,527.000],[631.660,533.000],[625.660,533.000],[625.660,533.000],[475.760,533.000],[475.760,533.000],[469.760,533.000],[463.760,527.000],[463.760,521.000],[463.760,521.000],[463.760,319.000],[463.760,319.000],[463.760,313.000],[469.760,307.000],[475.760,307.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "3.1389",
+      "id": "table-artist_registration_update",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>ARTIST_REGISTRATION_UPDATE<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><TR><TD PORT=\"in_application_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_application_id\" ALIGN=\"LEFT\">application_id<\/TD><\/TR><TR><TD PORT=\"in_tin_number\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_tin_number\" ALIGN=\"LEFT\">tin_number<\/TD><\/TR><TR><TD PORT=\"in_evidence_image\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_evidence_image\" ALIGN=\"LEFT\">evidence_image<\/TD><\/TR><TR><TD PORT=\"in_expires_on\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_expires_on\" ALIGN=\"LEFT\">expires_on<\/TD><\/TR><TR><TD PORT=\"in_previous_record\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_previous_record\" ALIGN=\"LEFT\">previous_record<\/TD><\/TR><TR><TD PORT=\"in_status\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_status\" ALIGN=\"LEFT\">status<\/TD><\/TR><TR><TD PORT=\"in_review_note\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_review_note\" ALIGN=\"LEFT\">review_note<\/TD><\/TR><TR><TD PORT=\"in_reviewed_by_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_reviewed_by_id\" ALIGN=\"LEFT\">reviewed_by_id<\/TD><\/TR><TR><TD PORT=\"in_submitted_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_submitted_at\" ALIGN=\"LEFT\">submitted_at<\/TD><\/TR><TR><TD PORT=\"in_reviewed_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_reviewed_at\" ALIGN=\"LEFT\">reviewed_at<\/TD><\/TR><\/TABLE>",
+      "pos": "550.71,420",
+      "shape": "plain",
+      "width": "2.4153"
+    },
+    {
+      "_gvid": 2,
+      "name": "artist_application_log",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[478.370,151.000],[478.370,171.000],[623.050,171.000],[623.050,151.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[478.370,151.000],[623.050,151.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [482.370,159.000],
+          "align": "l",
+          "width": 136.670,
+          "text": "ARTIST_APPLICATION_LOG"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[523.360,131.000],[523.360,151.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [482.370,137.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [526.360,137.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[523.360,111.000],[523.360,131.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [482.370,117.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [526.360,117.000],
+          "align": "l",
+          "width": 61.160,
+          "text": "application_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[523.360,91.000],[523.360,111.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [482.370,97.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [526.360,97.000],
+          "align": "l",
+          "width": 35.580,
+          "text": "actor_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[523.360,73.000],[523.360,91.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [526.360,78.000],
+          "align": "l",
+          "width": 26.680,
+          "text": "action"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[523.360,55.000],[523.360,73.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [526.360,60.000],
+          "align": "l",
+          "width": 70.040,
+          "text": "previous_status"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[523.360,37.000],[523.360,55.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [526.360,42.000],
+          "align": "l",
+          "width": 50.590,
+          "text": "new_status"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[523.360,19.000],[523.360,37.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [526.360,24.000],
+          "align": "l",
+          "width": 30.580,
+          "text": "reason"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[523.360,1.000],[523.360,19.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [526.360,6.000],
+          "align": "l",
+          "width": 47.260,
+          "text": "created_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[489.370,0.000],[489.370,0.000],[612.050,0.000],[612.050,0.000],[618.050,0.000],[624.050,6.000],[624.050,12.000],[624.050,12.000],[624.050,160.000],[624.050,160.000],[624.050,166.000],[618.050,172.000],[612.050,172.000],[612.050,172.000],[489.370,172.000],[489.370,172.000],[483.370,172.000],[477.370,166.000],[477.370,160.000],[477.370,160.000],[477.370,12.000],[477.370,12.000],[477.370,6.000],[483.370,0.000],[489.370,0.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "2.3889",
+      "id": "table-artist_application_log",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>ARTIST_APPLICATION_LOG<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><TR><TD PORT=\"in_application_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_application_id\" ALIGN=\"LEFT\">application_id<\/TD><\/TR><TR><TD PORT=\"in_actor_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_actor_id\" ALIGN=\"LEFT\">actor_id<\/TD><\/TR><TR><TD PORT=\"in_action\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_action\" ALIGN=\"LEFT\">action<\/TD><\/TR><TR><TD PORT=\"in_previous_status\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_previous_status\" ALIGN=\"LEFT\">previous_status<\/TD><\/TR><TR><TD PORT=\"in_new_status\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_new_status\" ALIGN=\"LEFT\">new_status<\/TD><\/TR><TR><TD PORT=\"in_reason\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_reason\" ALIGN=\"LEFT\">reason<\/TD><\/TR><TR><TD PORT=\"in_created_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_created_at\" ALIGN=\"LEFT\">created_at<\/TD><\/TR><\/TABLE>",
+      "pos": "550.71,86",
+      "shape": "plain",
+      "width": "2.0372"
+    },
+    {
+      "_gvid": 3,
+      "name": "user",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[1.000,357.000],[1.000,377.000],[88.470,377.000],[88.470,357.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[1.000,357.000],[88.470,357.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [5.000,365.000],
+          "align": "l",
+          "width": 27.780,
+          "text": "USER"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [32.780,365.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[48.510,337.000],[48.510,357.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [5.000,343.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [51.510,343.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[12.000,336.000],[12.000,336.000],[77.470,336.000],[77.470,336.000],[83.470,336.000],[89.470,342.000],[89.470,348.000],[89.470,348.000],[89.470,366.000],[89.470,366.000],[89.470,372.000],[83.470,378.000],[77.470,378.000],[77.470,378.000],[12.000,378.000],[12.000,378.000],[6.000,378.000],[0.000,372.000],[0.000,366.000],[0.000,366.000],[0.000,348.000],[0.000,348.000],[0.000,342.000],[6.000,336.000],[12.000,336.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.58333",
+      "id": "table-user",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>USER<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><\/TABLE>",
+      "pos": "44.734,357",
+      "shape": "plain",
+      "width": "1.2426"
+    }
+  ],
+  "edges": [
+    {
+      "_gvid": 2,
+      "tail": 3,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[91.970,357.000],[91.970,357.000],[188.370,357.000],[188.370,357.000]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [195.170,357.000,2.800,2.800]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[191.170,353.500],[191.170,360.500],[189.770,360.500],[189.770,353.500]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[191.870,357.000],[188.370,357.000]]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[89.170,360.500],[89.170,353.500],[90.570,353.500],[90.570,360.500]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[88.470,357.000],[91.970,357.000]]
+        }
+      ],
+      "arrowhead": "odottee",
+      "arrowsize": "0.7",
+      "arrowtail": "tee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_user_id:w",
+      "id": "relationship-0",
+      "labeldistance": "2.4",
+      "pos": "s,88.468,357 e,198.47,357 91.968,357 91.968,357 188.37,357 188.37,357",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → artist_application.user_id | one-to-one | parent 1 child 0..1"
+    },
+    {
+      "_gvid": 0,
+      "tail": 0,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[358.260,352.500],[358.260,352.500],[450.720,352.500],[450.720,352.500]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[457.420,352.500],[464.420,355.650],[461.260,352.500],[464.090,352.500],[464.090,352.500],[464.090,352.500],[461.260,352.500],[464.420,349.350]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [452.900,352.500,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[355.460,356.000],[355.460,349.000],[356.860,349.000],[356.860,356.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[354.760,352.500],[358.260,352.500]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "tee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_application_id:w",
+      "id": "relationship-1",
+      "labeldistance": "2.4",
+      "pos": "s,354.76,352.5 e,464.76,352.5 358.26,352.5 358.26,352.5 450.72,352.5 450.72,352.5",
+      "tailport": "out_id:e",
+      "tooltip": "artist_application.id → artist_registration_update.application_id | one-to-many | parent 1 child 0..*"
+    },
+    {
+      "_gvid": 3,
+      "tail": 3,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[44.660,357.100],[44.660,357.100],[44.660,465.500],[44.660,465.500],[44.660,465.500],[450.720,465.500],[450.720,465.500]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[457.420,465.500],[464.420,468.650],[461.260,465.500],[464.090,465.500],[464.090,465.500],[464.090,465.500],[461.260,465.500],[464.420,462.350]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [452.900,465.500,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [44.660,350.300,2.800,2.800]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[41.160,354.300],[48.160,354.300],[48.160,355.700],[41.160,355.700]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[44.660,353.600],[44.660,357.100]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "odottee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_reviewed_by_id:w",
+      "id": "relationship-2",
+      "labeldistance": "2.4",
+      "pos": "s,44.659,347 e,464.76,465.5 44.659,357.1 44.659,357.1 44.659,465.5 44.659,465.5 44.659,465.5 450.72,465.5 450.72,465.5",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → artist_registration_update.reviewed_by_id | one-to-many | parent 0..1 child 0..*"
+    },
+    {
+      "_gvid": 1,
+      "tail": 0,
+      "head": 2,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[358.260,128.000],[358.260,128.000],[464.330,128.000],[464.330,128.000]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[471.040,128.000],[478.040,131.150],[474.870,128.000],[477.700,128.000],[477.700,128.000],[477.700,128.000],[474.870,128.000],[478.040,124.850]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [466.520,128.000,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[355.460,131.500],[355.460,124.500],[356.860,124.500],[356.860,131.500]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[354.760,128.000],[358.260,128.000]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "tee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_application_id:w",
+      "id": "relationship-3",
+      "labeldistance": "2.4",
+      "pos": "s,354.76,128 e,478.37,128 358.26,128 358.26,128 464.33,128 464.33,128",
+      "tailport": "out_id:e",
+      "tooltip": "artist_application.id → artist_application_log.application_id | one-to-many | parent 1 child 0..*"
+    },
+    {
+      "_gvid": 4,
+      "tail": 3,
+      "head": 2,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[44.660,336.900],[44.660,336.900],[44.660,42.000],[44.660,42.000],[44.660,42.000],[464.330,42.000],[464.330,42.000]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[471.040,42.000],[478.040,45.150],[474.870,42.000],[477.700,42.000],[477.700,42.000],[477.700,42.000],[474.870,42.000],[478.040,38.850]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [466.520,42.000,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [44.660,343.700,2.800,2.800]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[48.160,339.700],[41.160,339.700],[41.160,338.300],[48.160,338.300]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[44.660,340.400],[44.660,336.900]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "odottee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_actor_id:w",
+      "id": "relationship-4",
+      "labeldistance": "2.4",
+      "pos": "s,44.659,347 e,478.37,42 44.659,336.9 44.659,336.9 44.659,42 44.659,42 44.659,42 464.33,42 464.33,42",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → artist_application_log.actor_id | one-to-many | parent 0..1 child 0..*"
+    }
+  ]
+}

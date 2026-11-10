@@ -16,6 +16,7 @@ class DownloadFingerprint(models.Model):
     issued_at = models.DateTimeField(null=True, editable=False)
 
     class Meta:
+        db_table = "download_fingerprint"
         constraints = [models.UniqueConstraint(fields=['source_key', 'source_sha256'], name='unique_download_source_version')]
 
 
@@ -25,6 +26,7 @@ class DeliveryChat(models.Model):
     conversation = models.OneToOneField('messaging.Conversation', on_delete=models.PROTECT, related_name='delivery_chat')
 
     class Meta:
+        db_table = "delivery_chat"
         constraints = [models.UniqueConstraint(fields=['order', 'contact'], name='unique_delivery_chat_contact')]
 
 
@@ -37,6 +39,7 @@ class CertificateOfAuthenticity(models.Model):
     issued_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "authenticity_certificate"
         constraints = [models.CheckConstraint(condition=(models.Q(payment__isnull=False, commission__isnull=True) | models.Q(payment__isnull=True, commission__isnull=False)), name='certificate_has_one_purchase')]
 
 
@@ -55,6 +58,9 @@ class DeliveryRoute(models.Model):
 
     def __str__(self):
         return f'{self.pickup_city} to {self.destination_city}'
+
+    class Meta:
+        db_table = "delivery_route"
 
 
 class DeliveryOrder(models.Model):
@@ -82,6 +88,7 @@ class DeliveryOrder(models.Model):
     delivered_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        db_table = "delivery_order"
         constraints = [models.CheckConstraint(condition=(models.Q(payment__isnull=False, commission__isnull=True) | models.Q(payment__isnull=True, commission__isnull=False)), name='delivery_has_one_purchase')]
 
 
@@ -96,6 +103,7 @@ class PurchaseReview(models.Model):
     images = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
+        db_table = "purchase_review"
         constraints = [
             models.CheckConstraint(condition=(models.Q(payment__isnull=False, commission__isnull=True) | models.Q(payment__isnull=True, commission__isnull=False)), name='review_has_one_purchase'),
             models.CheckConstraint(condition=models.Q(artist_rating__gte=1, artist_rating__lte=5), name='valid_artist_rating'),
@@ -111,3 +119,6 @@ class RiderProfile(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     location_updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "rider_profile"

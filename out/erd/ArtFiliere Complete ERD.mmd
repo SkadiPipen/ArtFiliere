@@ -1,0 +1,1126 @@
+erDiagram
+    moderator_application {
+        bigint id PK
+        bigint user_id FK "nullable"
+        varchar_254_ email
+        varchar_30_ requested_role
+        jsonb application_details
+        varchar_250_ education
+        text motivation
+        jsonb profile_snapshot
+        jsonb documents
+        varchar_20_ status
+        bigint assigned_to_id FK "nullable"
+        bigint submitted_by_id FK
+        timestamp_with_time_zone submitted_at
+        timestamp_with_time_zone updated_at
+        integer version
+    }
+    moderator_application_review {
+        bigint id PK
+        bigint application_id FK
+        bigint actor_id FK
+        varchar_30_ action
+        text note
+        timestamp_with_time_zone created_at
+    }
+    user {
+        bigint id PK
+        varchar_128_ firebase_uid UK
+        varchar_254_ email UK
+        varchar_150_ username UK
+        varchar_150_ first_name
+        varchar_150_ middle_name
+        varchar_150_ last_name
+        date date_of_birth "nullable"
+        varchar_20_ contact_number
+        text profile_image
+        text cover_image
+        text bio "nullable"
+        boolean is_banned
+        boolean driver_deactivated
+        timestamp_with_time_zone suspended_until "nullable"
+        varchar_3_ wants_royalty
+        varchar_100_ royalty_proof "nullable"
+        timestamp_with_time_zone created_at
+        varchar_20_ role
+        boolean is_accepting_commissions
+    }
+    royalty_application {
+        bigint id PK
+        jsonb permit_details
+        varchar_180_ business_permit_name
+        bigint user_id FK,UK
+        text business_permit_image
+        date permit_expires_on
+        varchar_12_ status
+        timestamp_with_time_zone submitted_at
+        timestamp_with_time_zone reviewed_at "nullable"
+        bigint reviewed_by_id FK "nullable"
+        varchar_1000_ review_note
+    }
+    reseller_application {
+        bigint id PK
+        text business_permit
+        varchar_180_ business_permit_name
+        jsonb permit_details
+        date permit_expires_on "nullable"
+        bigint user_id FK
+        varchar_12_ tin_number
+        text bir_certificate
+        varchar_180_ bir_certificate_name
+        text sworn_declaration
+        varchar_180_ sworn_declaration_name
+        varchar_12_ status
+        timestamp_with_time_zone submitted_at
+        timestamp_with_time_zone reviewed_at "nullable"
+        bigint reviewed_by_id FK "nullable"
+        varchar_1000_ review_note
+    }
+    reseller_application_review {
+        bigint id PK
+        bigint application_id FK
+        bigint actor_id FK
+        varchar_12_ action
+        varchar_1000_ note
+        timestamp_with_time_zone created_at
+    }
+    user_address {
+        bigint id PK
+        double_precision latitude "nullable"
+        double_precision longitude "nullable"
+        bigint user_id FK
+        varchar_50_ label
+        boolean is_default
+        varchar_150_ region
+        varchar_150_ province
+        varchar_150_ city
+        varchar_10_ postal_code
+        varchar_150_ barangay
+        varchar_255_ street
+    }
+    user_activity_log {
+        bigint id PK
+        bigint user_id FK
+        varchar_80_ action
+        varchar_255_ description
+        varchar_50_ reference_type
+        integer reference_id "nullable"
+        timestamp_with_time_zone created_at
+    }
+    artist_application {
+        bigint id PK
+        bigint user_id FK,UK
+        numeric_10__2_ hourly_rate
+        varchar_20_ tin_number "nullable"
+        text bio "nullable"
+        text bir_certificate
+        varchar_255_ bir_certificate_name
+        date bir_expires_on "nullable"
+        text sworn_declaration
+        varchar_255_ sworn_declaration_name
+        jsonb document_details
+        jsonb portfolio
+        varchar_20_ status
+        varchar_500_ rejection_reason
+        timestamp_with_time_zone submitted_at
+        timestamp_with_time_zone updated_at
+    }
+    artist_registration_update {
+        bigint id PK
+        bigint application_id FK
+        varchar_20_ tin_number
+        text evidence_image
+        date expires_on "nullable"
+        jsonb previous_record
+        varchar_12_ status
+        varchar_1000_ review_note
+        bigint reviewed_by_id FK "nullable"
+        timestamp_with_time_zone submitted_at
+        timestamp_with_time_zone reviewed_at "nullable"
+    }
+    artist_application_log {
+        bigint id PK
+        bigint application_id FK
+        bigint actor_id FK "nullable"
+        varchar_20_ action
+        varchar_20_ previous_status
+        varchar_20_ new_status
+        varchar_500_ reason
+        timestamp_with_time_zone created_at
+    }
+    artwork {
+        bigint id PK
+        bigint artist_id FK
+        varchar_200_ title
+        text description
+        varchar_100_ category
+        jsonb categories
+        jsonb tags
+        numeric_10__2_ price
+        numeric_8__2_ hours "nullable"
+        numeric_10__2_ hourly_rate "nullable"
+        numeric_10__2_ material_cost
+        varchar_10_ art_type
+        text image_data
+        jsonb additional_images
+        varchar_20_ status
+        varchar_500_ decline_reason
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+        varchar_50_ sale_type
+        numeric_10__2_ bid_increment "nullable"
+        timestamp_with_time_zone starting_time "nullable"
+        timestamp_with_time_zone end_time "nullable"
+        varchar_64_ sha256_hash UK "nullable"
+        varchar_64_ perceptual_hash "nullable"
+        varchar_64_ difference_hash "nullable"
+        varchar_64_ edge_hash "nullable"
+        jsonb ai_screening
+        varchar_30_ automated_block_reason
+    }
+    artwork_review_log {
+        bigint id PK
+        bigint artwork_id FK
+        bigint actor_id FK "nullable"
+        varchar_20_ action
+        varchar_20_ previous_status
+        varchar_20_ new_status
+        varchar_500_ reason
+        timestamp_with_time_zone created_at
+    }
+    artwork_ai_scan {
+        varchar_64_ cache_key PK
+        varchar_16_ state
+        varchar_64_ job_id
+        jsonb result
+        timestamp_with_time_zone lease_until "nullable"
+        timestamp_with_time_zone expires_at "nullable"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+    artwork_similarity_match {
+        bigint id PK
+        bigint artwork_id FK
+        bigint reference_artwork_id FK
+        smallint phash_distance
+        smallint dhash_distance
+        smallint edge_hash_distance
+        double_precision feature_match_score
+        double_precision color_similarity_score
+        double_precision confidence_score
+        varchar_20_ review_status
+        bigint reviewed_by_id FK "nullable"
+        varchar_500_ review_note
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone reviewed_at "nullable"
+    }
+    direct_message {
+        bigint id PK
+        bigint sender_id FK
+        bigint recipient_id FK
+        text body
+        boolean is_read
+        timestamp_with_time_zone created_at
+    }
+    conversation {
+        bigint id PK
+        bigint artwork_id FK "nullable"
+        varchar_20_ status
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+    conversation_participant {
+        bigint id PK
+        bigint conversation_id FK
+        bigint user_id FK
+        timestamp_with_time_zone last_read_at "nullable"
+        timestamp_with_time_zone joined_at
+    }
+    platform_setting {
+        bigint id PK
+        jsonb values
+        integer revision
+        bigint updated_by_id FK "nullable"
+        timestamp_with_time_zone updated_at
+    }
+    agreement_template {
+        bigint id PK
+        jsonb wording
+        varchar_120_ name UK
+        text body
+        boolean is_active
+        bigint updated_by_id FK "nullable"
+        timestamp_with_time_zone updated_at
+    }
+    agreement {
+        bigint id PK
+        jsonb wording_snapshot
+        jsonb platform_defaults_snapshot
+        bigint conversation_id FK
+        bigint template_id FK
+        bigint artwork_id FK "nullable"
+        bigint buyer_id FK
+        bigint artist_id FK
+        numeric_12__2_ price
+        text terms_snapshot
+        text document_snapshot
+        jsonb license_scope
+        jsonb pricing_terms
+        text artist_presigned_document
+        text artist_signature_image
+        text buyer_signature_image
+        varchar_200_ artist_signature
+        varchar_200_ buyer_signature
+        timestamp_with_time_zone artist_signed_at "nullable"
+        timestamp_with_time_zone buyer_signed_at "nullable"
+        numeric_10__2_ delivery_fee
+        jsonb delivery_details
+        date delivery_date "nullable"
+        smallint revision_limit
+        varchar_30_ license_type
+        varchar_30_ exclusivity
+        varchar_30_ delivery_type
+        varchar_30_ compensation_type
+        jsonb compensation_terms
+        bigint revision_of_id FK "nullable"
+        varchar_36_ negotiation_key
+        varchar_20_ closure_reason
+        bigint cancelled_by_id FK "nullable"
+        timestamp_with_time_zone cancelled_at "nullable"
+        varchar_20_ status
+        timestamp_with_time_zone buyer_accepted_at "nullable"
+        timestamp_with_time_zone artist_accepted_at "nullable"
+        timestamp_with_time_zone created_at
+        varchar_24_ verification_code UK
+    }
+    message {
+        bigint id PK
+        bigint conversation_id FK
+        bigint sender_id FK "nullable"
+        text body
+        varchar_20_ message_type
+        bigint agreement_id FK "nullable"
+        timestamp_with_time_zone created_at
+    }
+    royalty_period {
+        bigint id PK
+        bigint agreement_id FK
+        date starts_on
+        date ends_on
+        date due_on
+        jsonb terms
+        jsonb metrics
+        jsonb evidence
+        jsonb history
+        numeric_12__2_ amount "nullable"
+        varchar_20_ status
+        varchar_1000_ review_note
+        timestamp_with_time_zone submitted_at "nullable"
+        timestamp_with_time_zone approved_at "nullable"
+        varchar_100_ provider_request_id
+        varchar_250_ collection_error
+        timestamp_with_time_zone paid_at "nullable"
+    }
+    royalty_mandate {
+        bigint id PK
+        bigint agreement_id FK,UK
+        varchar_100_ session_id
+        varchar_100_ token_id
+        varchar_20_ status
+        timestamp_with_time_zone consented_at "nullable"
+        timestamp_with_time_zone revoked_at "nullable"
+        varchar_64_ reference UK
+        varchar_1000_ checkout_url
+    }
+    royalty_receipt {
+        bigint id PK
+        numeric_12__2_ platform_fee
+        bigint period_id FK,UK
+        numeric_12__2_ amount
+        varchar_100_ provider_payment_id UK
+        timestamp_with_time_zone created_at
+    }
+    royalty_funding {
+        bigint id PK
+        bigint period_id FK,UK
+        varchar_80_ reference UK
+        varchar_100_ session_id
+        varchar_1000_ checkout_url
+        numeric_12__2_ amount
+        varchar_20_ status
+        timestamp_with_time_zone paid_at "nullable"
+        timestamp_with_time_zone released_at "nullable"
+        bigint reviewed_by_id FK "nullable"
+        varchar_1000_ review_note
+        timestamp_with_time_zone created_at
+    }
+    admin_request_read {
+        bigint id PK
+        bigint user_id FK
+        varchar_160_ request_key
+        timestamp_with_time_zone read_at
+    }
+    notification {
+        bigint id PK
+        bigint user_id FK
+        bigint agreement_id FK "nullable"
+        bigint application_id FK "nullable"
+        bigint artwork_id FK "nullable"
+        bigint commission_id FK "nullable"
+        varchar_200_ title
+        text message
+        boolean is_read
+        timestamp_with_time_zone created_at
+    }
+    support_ticket {
+        bigint id PK
+        bigint requester_id FK
+        bigint assigned_to_id FK "nullable"
+        bigint transfer_to_id FK "nullable"
+        varchar_60_ concern
+        bigint reported_user_id FK "nullable"
+        varchar_150_ reported_username
+        bigint payment_id FK "nullable"
+        bigint artwork_id FK "nullable"
+        bigint commission_id FK "nullable"
+        bigint auction_id FK "nullable"
+        text details
+        text evidence
+        text image_data
+        varchar_24_ status
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+    support_reply {
+        bigint id PK
+        bigint ticket_id FK
+        bigint sender_id FK
+        text message
+        timestamp_with_time_zone created_at
+    }
+    account_moderation_request {
+        bigint id PK
+        bigint ticket_id FK
+        bigint target_id FK
+        bigint requested_by_id FK
+        varchar_12_ action
+        smallint duration_days "nullable"
+        text reason
+        varchar_12_ status
+        bigint reviewed_by_id FK "nullable"
+        text review_note
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone reviewed_at "nullable"
+        timestamp_with_time_zone revoked_at "nullable"
+        bigint revoked_by_id FK "nullable"
+        text reversal_reason
+    }
+    wallet {
+        bigint id PK
+        bigint user_id FK,UK
+        varchar_3_ currency
+        numeric_12__2_ pending_balance
+        numeric_12__2_ available_balance
+        numeric_12__2_ paid_out_balance
+        timestamp_with_time_zone updated_at
+    }
+    payment {
+        bigint id PK
+        varchar_64_ reference_id UK
+        bigint buyer_id FK
+        bigint artist_id FK
+        bigint artwork_id FK
+        bigint agreement_id FK "nullable"
+        numeric_12__2_ gross_amount
+        numeric_12__2_ platform_fee
+        numeric_12__2_ artist_amount
+        boolean is_simulated
+        bytea artwork_png "nullable"
+        varchar_2000_ checkout_url
+        varchar_80_ xendit_session_id
+        varchar_80_ xendit_payment_id
+        varchar_20_ status
+        timestamp_with_time_zone paid_at "nullable"
+        timestamp_with_time_zone created_at
+        varchar_24_ verification_code UK
+    }
+    payment_return_request {
+        bigint id PK
+        bigint payment_session_id FK
+        bigint requester_id FK
+        varchar_20_ request_type
+        text reason
+        varchar_20_ status
+        text admin_note
+        bigint reviewed_by_id FK "nullable"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone reviewed_at "nullable"
+        varchar_12_ counterpart_decision
+        text counterpart_note
+        bigint responded_by_id FK "nullable"
+        timestamp_with_time_zone responded_at "nullable"
+    }
+    incident_report {
+        bigint id PK
+        bigint reporter_id FK
+        bigint reported_user_id FK "nullable"
+        bigint payment_id FK "nullable"
+        varchar_20_ category
+        varchar_150_ title
+        text description
+        text evidence
+        varchar_20_ status
+        text resolution
+        bigint reviewed_by_id FK "nullable"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+    report_attachment {
+        bigint id PK
+        bigint report_id FK "nullable"
+        bigint appeal_id FK "nullable"
+        varchar_200_ name
+        varchar_100_ content_type
+        bytea content
+        integer size
+    }
+    account_action_request {
+        bigint id PK
+        bigint report_id FK
+        bigint target_id FK
+        bigint initiated_by_id FK
+        varchar_12_ action
+        text reason
+        smallint duration_days "nullable"
+        varchar_12_ status
+        bigint reviewed_by_id FK "nullable"
+        text review_note
+        timestamp_with_time_zone reviewed_at "nullable"
+        timestamp_with_time_zone expires_at "nullable"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone revoked_at "nullable"
+        bigint revoked_by_id FK "nullable"
+        text reversal_reason
+    }
+    restriction_appeal {
+        bigint id PK
+        bigint user_id FK
+        varchar_10_ source
+        integer restriction_id
+        text explanation
+        jsonb links
+        varchar_20_ status
+        varchar_20_ recommendation
+        text moderator_note
+        bigint recommended_by_id FK "nullable"
+        text decision_note
+        bigint decided_by_id FK "nullable"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone decided_at "nullable"
+    }
+    financial_authorization {
+        bigint id PK
+        bigint report_id FK
+        bigint payment_id FK
+        bigint recipient_id FK
+        bigint authorized_by_id FK
+        varchar_20_ kind
+        numeric_12__2_ amount
+        text reason
+        varchar_20_ status
+        timestamp_with_time_zone created_at
+    }
+    wallet_entry {
+        bigint id PK
+        bigint wallet_id FK
+        bigint payment_session_id FK
+        varchar_30_ entry_type
+        numeric_12__2_ amount
+        timestamp_with_time_zone created_at
+    }
+    legacy_rider_profile {
+        bigint id PK
+        integer user_id FK,UK
+        varchar_20_ phone
+        boolean is_clocked_in
+        timestamp_with_time_zone clock_in_time "nullable"
+        timestamp_with_time_zone clock_out_time "nullable"
+        double_precision current_latitude "nullable"
+        double_precision current_longitude "nullable"
+    }
+    legacy_delivery_order {
+        bigint id PK
+        bigint payment_id FK "nullable"
+        varchar_100_ buyerId
+        varchar_150_ buyer_name
+        varchar_30_ buyer_phone
+        varchar_255_ address
+        double_precision delivery_latitude
+        double_precision delivery_longitude
+        varchar_150_ artist_name
+        varchar_30_ artist_phone
+        varchar_255_ pickup_address
+        double_precision pickup_latitude
+        double_precision pickup_longitude
+        varchar_200_ item_name
+        integer items_count
+        varchar_50_ distance
+        varchar_50_ estimatedTime
+        numeric_10__2_ delivery_fee
+        boolean is_priority
+        varchar_20_ paymentMethod
+        varchar_30_ status
+        bigint assigned_rider_id FK "nullable"
+        text pickup_proof "nullable"
+        text delivery_proof "nullable"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+    auction {
+        bigint id PK
+        jsonb platform_defaults_snapshot
+        bigint artist_id FK "nullable"
+        bigint artwork_id FK
+        numeric_12__2_ starting_bid
+        numeric_12__2_ current_bid
+        numeric_10__2_ bid_increment
+        timestamp_with_time_zone start_time
+        timestamp_with_time_zone end_time
+        varchar_20_ status
+        bigint highest_bidder_id FK "nullable"
+        boolean is_physical
+        varchar_30_ license_type
+        varchar_30_ exclusivity
+        varchar_30_ delivery_type
+        text terms_snapshot
+        text signed_document
+        varchar_64_ signed_document_hash
+        varchar_200_ artist_signature
+        text artist_signature_image
+        timestamp_with_time_zone artist_signed_at "nullable"
+        bigint agreement_template_id FK "nullable"
+        timestamp_with_time_zone payment_deadline "nullable"
+        numeric_12__2_ winning_bid "nullable"
+        timestamp_with_time_zone winner_forfeited_at "nullable"
+        bigint backup_bidder_id FK "nullable"
+        timestamp_with_time_zone backup_offer_expires_at "nullable"
+        timestamp_with_time_zone created_at
+    }
+    auction_bid {
+        bigint id PK
+        bigint auction_id FK
+        bigint bidder_id FK
+        numeric_12__2_ amount
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone terms_accepted_at "nullable"
+    }
+    cart {
+        integer cart_id PK
+        bigint buyer_id FK,UK
+    }
+    cart_item {
+        integer cart_item_id PK
+        integer cart_id FK
+        bigint listing_id FK
+        integer quantity
+    }
+    download_fingerprint {
+        bigint id PK
+        varchar_24_ transaction_code UK "nullable"
+        bigint blockchain_proof_id FK "nullable"
+        jsonb license_snapshot
+        varchar_61_ token UK
+        varchar_150_ source_key
+        varchar_64_ source_sha256
+        bigint buyer_id FK
+        bigint artist_id FK
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone issued_at "nullable"
+    }
+    delivery_chat {
+        bigint id PK
+        bigint order_id FK
+        varchar_6_ contact
+        bigint conversation_id FK,UK
+    }
+    authenticity_certificate {
+        bigint id PK
+        bigint payment_id FK,UK "nullable"
+        bigint commission_id FK,UK "nullable"
+        varchar_40_ code UK
+        jsonb snapshot
+        bytea pdf
+        timestamp_with_time_zone issued_at
+    }
+    delivery_route {
+        bigint id PK
+        varchar_150_ pickup_city
+        varchar_150_ destination_city
+        numeric_7__2_ distance_km
+        numeric_9__2_ base_fare
+        numeric_9__2_ per_km
+        boolean active
+    }
+    delivery_order {
+        bigint id PK
+        bigint payment_id FK,UK "nullable"
+        bigint commission_id FK,UK "nullable"
+        bigint driver_id FK "nullable"
+        varchar_20_ status
+        text pickup_proof
+        text delivery_proof
+        jsonb timeline
+        jsonb route_details
+        text pickup_address
+        text delivery_address
+        numeric_10__2_ fee
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone delivered_at "nullable"
+    }
+    purchase_review {
+        bigint id PK
+        bigint payment_id FK,UK "nullable"
+        bigint commission_id FK,UK "nullable"
+        smallint artist_rating
+        smallint artwork_rating
+        text comment
+        text artist_comment
+        text artwork_comment
+        jsonb images
+        timestamp_with_time_zone created_at
+    }
+    rider_profile {
+        bigint id PK
+        bigint user_id FK,UK
+        boolean is_clocked_in
+        timestamp_with_time_zone clock_in_time "nullable"
+        timestamp_with_time_zone clock_out_time "nullable"
+        double_precision latitude "nullable"
+        double_precision longitude "nullable"
+        timestamp_with_time_zone location_updated_at "nullable"
+    }
+    commission {
+        bigint commission_req_id PK
+        bigint buyer_id FK
+        bigint artist_id FK
+        varchar_100_ title
+        varchar_200_ subject
+        varchar_80_ style
+        text description "nullable"
+        varchar_20_ art_type
+        varchar_255_ tags "nullable"
+        numeric_12__2_ time_duration
+        timestamp_with_time_zone deadline
+        boolean is_rush_job
+        timestamp_with_time_zone created_at
+        varchar_20_ status
+        timestamp_with_time_zone accepted_at "nullable"
+        smallint flow_version
+        bigint agreement_id FK,UK "nullable"
+        jsonb locked_terms
+        timestamp_with_time_zone funding_due_at "nullable"
+        timestamp_with_time_zone funded_at "nullable"
+        varchar_100_ funding_reference
+        varchar_100_ funding_provider_id
+        text funding_url
+        jsonb funding_payload
+        numeric_12__2_ held_amount
+        numeric_12__2_ platform_fee
+        boolean disputed
+        varchar_500_ courier_tracking
+        timestamp_with_time_zone delivered_at "nullable"
+        varchar_255_ cancel_reason "nullable"
+        text cancel_feedback "nullable"
+        numeric_12__2_ refund_amount
+        integer cancelled_at_stage "nullable"
+    }
+    commission_milestone {
+        bigint milestone_id PK
+        bigint commission_req_id FK
+        integer milestone_number
+        varchar_50_ stage_label
+        varchar_20_ status
+        integer percentage
+        numeric_12__2_ amount
+        timestamp_with_time_zone paid_at "nullable"
+        timestamp_with_time_zone approved_at "nullable"
+        timestamp_with_time_zone review_due_at "nullable"
+        timestamp_with_time_zone delivery_ready_at "nullable"
+        text revision_comment
+        timestamp_with_time_zone revision_requested_at "nullable"
+        text revision_reply
+        timestamp_with_time_zone revision_replied_at "nullable"
+        varchar_100_ payout_reference
+        varchar_100_ payout_provider_id
+        varchar_30_ payout_status
+        jsonb payout_payload
+        text payout_error
+    }
+    commission_photo {
+        bigint photo_id PK
+        bigint commission_req_id FK
+        text image_url
+        varchar_20_ photo_type
+        integer stage_number
+        integer progress_percentage
+        varchar_255_ caption "nullable"
+        timestamp_with_time_zone uploaded_at
+    }
+    commission_message {
+        bigint id PK
+        bigint commission_id FK
+        bigint sender_id FK
+        text body
+        timestamp_with_time_zone created_at
+    }
+    commission_access_decision {
+        bigint id PK
+        bigint commission_id FK
+        varchar_255_ restriction_key
+        boolean approved
+        text note
+        bigint reviewed_by_id FK
+        timestamp_with_time_zone created_at
+    }
+    commission_proposal {
+        bigint id PK
+        bigint commission_id FK
+        bigint proposer_id FK
+        integer version
+        jsonb terms
+        varchar_20_ status
+        timestamp_with_time_zone created_at
+    }
+    commission_submission {
+        bigint id PK
+        bigint milestone_id FK
+        bigint uploader_id FK
+        varchar_200_ filename
+        varchar_100_ content_type
+        bytea content
+        varchar_64_ sha256
+        varchar_200_ cid
+        text caption
+        boolean final_original
+        timestamp_with_time_zone uploaded_at
+    }
+    commission_payout_profile {
+        bigint id PK
+        bigint artist_id FK,UK
+        jsonb recipient
+        timestamp_with_time_zone updated_at
+    }
+    commission_entry {
+        bigint id PK
+        bigint commission_id FK
+        varchar_120_ reference UK
+        varchar_30_ kind
+        numeric_12__2_ amount
+        timestamp_with_time_zone created_at
+    }
+    commission_asset {
+        bigint id PK
+        bigint commission_id FK,UK
+        bigint original_artist_id FK
+        bigint owner_id FK
+        bigint submission_id FK
+        jsonb license_terms
+        varchar_64_ record_hash
+        timestamp_with_time_zone created_at
+    }
+    commission_resale {
+        bigint id PK
+        bigint asset_id FK
+        bigint artwork_id FK,UK
+        bigint seller_id FK
+        numeric_12__2_ royalty_amount
+        bigint payment_id FK,UK "nullable"
+        timestamp_with_time_zone settled_at "nullable"
+        varchar_100_ payout_reference
+        varchar_100_ payout_provider_id
+        varchar_30_ payout_status
+        jsonb payout_payload
+    }
+    commission_refund {
+        bigint id PK
+        bigint commission_id FK
+        bigint authorized_by_id FK
+        numeric_12__2_ amount
+        text reason
+        varchar_100_ reference UK
+        varchar_100_ provider_id
+        varchar_30_ status
+        timestamp_with_time_zone created_at
+    }
+    commission_proof {
+        bigint id PK
+        bigint commission_id FK
+        bigint submission_id FK,UK "nullable"
+        bigint asset_id FK,UK "nullable"
+        varchar_64_ record_hash
+        varchar_78_ registry_id UK
+        varchar_66_ transaction_hash
+        bigint block_number "nullable"
+        varchar_20_ status
+        text error
+    }
+    blockchain_transaction {
+        bigint id PK
+        bigint artwork_id FK
+        varchar_30_ operation
+        varchar_30_ entity_type
+        bigint entity_id "nullable"
+        varchar_64_ proof_hash
+        varchar_66_ transaction_hash
+        bigint block_number "nullable"
+        varchar_30_ network
+        varchar_12_ status
+        text error_message
+        timestamp_with_time_zone confirmed_at "nullable"
+        timestamp_with_time_zone created_at
+    }
+    provenance_artwork {
+        uuid id PK
+        bigint original_artwork_id FK,UK "nullable"
+        bigint commission_asset_id FK,UK "nullable"
+        varchar_64_ file_hash
+        bigint claimed_creator_id FK
+        bigint credited_creator_id FK
+        bigint initial_owner_id FK
+        bigint current_owner_id FK
+        boolean creator_verified
+        boolean disputed
+        timestamp_with_time_zone registered_at "nullable"
+        timestamp_with_time_zone created_at
+    }
+    provenance_listing {
+        bigint id PK
+        bigint artwork_id FK,UK
+        uuid record_id FK
+        bigint reserved_payment_id FK,UK "nullable"
+        jsonb reserved_rights
+    }
+    provenance_event {
+        uuid id PK
+        uuid record_id FK
+        varchar_15_ kind
+        varchar_100_ reference UK
+        bigint payment_id FK,UK "nullable"
+        bigint previous_owner_id FK "nullable"
+        bigint new_owner_id FK "nullable"
+        jsonb payload
+        varchar_64_ record_hash
+        varchar_12_ status
+        varchar_66_ transaction_hash
+        text signed_transaction
+        bigint nonce "nullable"
+        varchar_42_ sender
+        jsonb previous_attempts
+        bigint chain_id "nullable"
+        varchar_42_ contract_address
+        bigint block_number "nullable"
+        text error
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone confirmed_at "nullable"
+    }
+    provenance_review {
+        bigint id PK
+        uuid record_id FK
+        bigint requested_by_id FK
+        bigint proposed_creator_id FK "nullable"
+        text reason
+        jsonb evidence_links
+        varchar_20_ status
+        bigint reviewed_by_id FK "nullable"
+        text decision_note
+        uuid event_id FK,UK "nullable"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone reviewed_at "nullable"
+    }
+    provenance_signer {
+        varchar_100_ key PK
+    }
+    sale_terms_snapshot {
+        bigint id PK
+        bigint payment_id FK,UK
+        bigint agreement_id FK "nullable"
+        jsonb terms
+        varchar_64_ document_hash
+        varchar_20_ source
+        timestamp_with_time_zone created_at
+    }
+    auth_user {
+        integer id PK
+    }
+    user |o--o{ moderator_application : "user_id"
+    user |o--o{ moderator_application : "assigned_to_id"
+    user ||--o{ moderator_application : "submitted_by_id"
+    moderator_application ||--o{ moderator_application_review : "application_id"
+    user ||--o{ moderator_application_review : "actor_id"
+    user ||--o| royalty_application : "user_id"
+    user |o--o{ royalty_application : "reviewed_by_id"
+    user ||--o{ reseller_application : "user_id"
+    user |o--o{ reseller_application : "reviewed_by_id"
+    reseller_application ||--o{ reseller_application_review : "application_id"
+    user ||--o{ reseller_application_review : "actor_id"
+    user ||--o{ user_address : "user_id"
+    user ||--o{ user_activity_log : "user_id"
+    user ||--o| artist_application : "user_id"
+    artist_application ||--o{ artist_registration_update : "application_id"
+    user |o--o{ artist_registration_update : "reviewed_by_id"
+    artist_application ||--o{ artist_application_log : "application_id"
+    user |o--o{ artist_application_log : "actor_id"
+    user ||--o{ artwork : "artist_id"
+    artwork ||--o{ artwork_review_log : "artwork_id"
+    user |o--o{ artwork_review_log : "actor_id"
+    artwork ||--o{ artwork_similarity_match : "artwork_id"
+    artwork ||--o{ artwork_similarity_match : "reference_artwork_id"
+    user |o--o{ artwork_similarity_match : "reviewed_by_id"
+    user ||--o{ direct_message : "sender_id"
+    user ||--o{ direct_message : "recipient_id"
+    artwork |o--o{ conversation : "artwork_id"
+    conversation ||--o{ conversation_participant : "conversation_id"
+    user ||--o{ conversation_participant : "user_id"
+    user |o--o{ platform_setting : "updated_by_id"
+    user |o--o{ agreement_template : "updated_by_id"
+    conversation ||--o{ agreement : "conversation_id"
+    agreement_template ||--o{ agreement : "template_id"
+    artwork |o--o{ agreement : "artwork_id"
+    user ||--o{ agreement : "buyer_id"
+    user ||--o{ agreement : "artist_id"
+    agreement |o--o{ agreement : "revision_of_id"
+    user |o--o{ agreement : "cancelled_by_id"
+    conversation ||--o{ message : "conversation_id"
+    user |o--o{ message : "sender_id"
+    agreement |o--o{ message : "agreement_id"
+    agreement ||--o{ royalty_period : "agreement_id"
+    agreement ||--o| royalty_mandate : "agreement_id"
+    royalty_period ||--o| royalty_receipt : "period_id"
+    royalty_period ||--o| royalty_funding : "period_id"
+    user |o--o{ royalty_funding : "reviewed_by_id"
+    user ||--o{ admin_request_read : "user_id"
+    user ||--o{ notification : "user_id"
+    agreement |o--o{ notification : "agreement_id"
+    artist_application |o--o{ notification : "application_id"
+    artwork |o--o{ notification : "artwork_id"
+    commission |o--o{ notification : "commission_id"
+    user ||--o{ support_ticket : "requester_id"
+    user |o--o{ support_ticket : "assigned_to_id"
+    user |o--o{ support_ticket : "transfer_to_id"
+    user |o--o{ support_ticket : "reported_user_id"
+    payment |o--o{ support_ticket : "payment_id"
+    artwork |o--o{ support_ticket : "artwork_id"
+    commission |o--o{ support_ticket : "commission_id"
+    auction |o--o{ support_ticket : "auction_id"
+    support_ticket ||--o{ support_reply : "ticket_id"
+    user ||--o{ support_reply : "sender_id"
+    support_ticket ||--o{ account_moderation_request : "ticket_id"
+    user ||--o{ account_moderation_request : "target_id"
+    user ||--o{ account_moderation_request : "requested_by_id"
+    user |o--o{ account_moderation_request : "reviewed_by_id"
+    user |o--o{ account_moderation_request : "revoked_by_id"
+    user ||--o| wallet : "user_id"
+    user ||--o{ payment : "buyer_id"
+    user ||--o{ payment : "artist_id"
+    artwork ||--o{ payment : "artwork_id"
+    agreement |o--o{ payment : "agreement_id"
+    payment ||--o{ payment_return_request : "payment_session_id"
+    user ||--o{ payment_return_request : "requester_id"
+    user |o--o{ payment_return_request : "reviewed_by_id"
+    user |o--o{ payment_return_request : "responded_by_id"
+    user ||--o{ incident_report : "reporter_id"
+    user |o--o{ incident_report : "reported_user_id"
+    payment |o--o{ incident_report : "payment_id"
+    user |o--o{ incident_report : "reviewed_by_id"
+    incident_report |o--o{ report_attachment : "report_id"
+    restriction_appeal |o--o{ report_attachment : "appeal_id"
+    incident_report ||--o{ account_action_request : "report_id"
+    user ||--o{ account_action_request : "target_id"
+    user ||--o{ account_action_request : "initiated_by_id"
+    user |o--o{ account_action_request : "reviewed_by_id"
+    user |o--o{ account_action_request : "revoked_by_id"
+    user ||--o{ restriction_appeal : "user_id"
+    user |o--o{ restriction_appeal : "recommended_by_id"
+    user |o--o{ restriction_appeal : "decided_by_id"
+    incident_report ||--o{ financial_authorization : "report_id"
+    payment ||--o{ financial_authorization : "payment_id"
+    user ||--o{ financial_authorization : "recipient_id"
+    user ||--o{ financial_authorization : "authorized_by_id"
+    wallet ||--o{ wallet_entry : "wallet_id"
+    payment ||--o{ wallet_entry : "payment_session_id"
+    auth_user ||--o| legacy_rider_profile : "user_id"
+    payment |o--o{ legacy_delivery_order : "payment_id"
+    legacy_rider_profile |o--o{ legacy_delivery_order : "assigned_rider_id"
+    user |o--o{ auction : "artist_id"
+    artwork ||--o{ auction : "artwork_id"
+    user |o--o{ auction : "highest_bidder_id"
+    agreement_template |o--o{ auction : "agreement_template_id"
+    user |o--o{ auction : "backup_bidder_id"
+    auction ||--o{ auction_bid : "auction_id"
+    user ||--o{ auction_bid : "bidder_id"
+    user ||--o| cart : "buyer_id"
+    cart ||--o{ cart_item : "cart_id"
+    artwork ||--o{ cart_item : "listing_id"
+    blockchain_transaction |o--o{ download_fingerprint : "blockchain_proof_id"
+    user ||--o{ download_fingerprint : "buyer_id"
+    user ||--o{ download_fingerprint : "artist_id"
+    delivery_order ||--o{ delivery_chat : "order_id"
+    conversation ||--o| delivery_chat : "conversation_id"
+    payment |o--o| authenticity_certificate : "payment_id"
+    commission |o--o| authenticity_certificate : "commission_id"
+    payment |o--o| delivery_order : "payment_id"
+    commission |o--o| delivery_order : "commission_id"
+    user |o--o{ delivery_order : "driver_id"
+    payment |o--o| purchase_review : "payment_id"
+    commission |o--o| purchase_review : "commission_id"
+    user ||--o| rider_profile : "user_id"
+    user ||--o{ commission : "buyer_id"
+    user ||--o{ commission : "artist_id"
+    agreement |o--o| commission : "agreement_id"
+    commission ||--o{ commission_milestone : "commission_req_id"
+    commission ||--o{ commission_photo : "commission_req_id"
+    commission ||--o{ commission_message : "commission_id"
+    user ||--o{ commission_message : "sender_id"
+    commission ||--o{ commission_access_decision : "commission_id"
+    user ||--o{ commission_access_decision : "reviewed_by_id"
+    commission ||--o{ commission_proposal : "commission_id"
+    user ||--o{ commission_proposal : "proposer_id"
+    commission_milestone ||--o{ commission_submission : "milestone_id"
+    user ||--o{ commission_submission : "uploader_id"
+    user ||--o| commission_payout_profile : "artist_id"
+    commission ||--o{ commission_entry : "commission_id"
+    commission ||--o| commission_asset : "commission_id"
+    user ||--o{ commission_asset : "original_artist_id"
+    user ||--o{ commission_asset : "owner_id"
+    commission_submission ||--o{ commission_asset : "submission_id"
+    commission_asset ||--o{ commission_resale : "asset_id"
+    artwork ||--o| commission_resale : "artwork_id"
+    user ||--o{ commission_resale : "seller_id"
+    payment |o--o| commission_resale : "payment_id"
+    commission ||--o{ commission_refund : "commission_id"
+    user ||--o{ commission_refund : "authorized_by_id"
+    commission ||--o{ commission_proof : "commission_id"
+    commission_submission |o--o| commission_proof : "submission_id"
+    commission_asset |o--o| commission_proof : "asset_id"
+    artwork ||--o{ blockchain_transaction : "artwork_id"
+    artwork |o--o| provenance_artwork : "original_artwork_id"
+    commission_asset |o--o| provenance_artwork : "commission_asset_id"
+    user ||--o{ provenance_artwork : "claimed_creator_id"
+    user ||--o{ provenance_artwork : "credited_creator_id"
+    user ||--o{ provenance_artwork : "initial_owner_id"
+    user ||--o{ provenance_artwork : "current_owner_id"
+    artwork ||--o| provenance_listing : "artwork_id"
+    provenance_artwork ||--o{ provenance_listing : "record_id"
+    payment |o--o| provenance_listing : "reserved_payment_id"
+    provenance_artwork ||--o{ provenance_event : "record_id"
+    payment |o--o| provenance_event : "payment_id"
+    user |o--o{ provenance_event : "previous_owner_id"
+    user |o--o{ provenance_event : "new_owner_id"
+    provenance_artwork ||--o{ provenance_review : "record_id"
+    user ||--o{ provenance_review : "requested_by_id"
+    user |o--o{ provenance_review : "proposed_creator_id"
+    user |o--o{ provenance_review : "reviewed_by_id"
+    provenance_event |o--o| provenance_review : "event_id"
+    payment ||--o| sale_terms_snapshot : "payment_id"
+    agreement |o--o{ sale_terms_snapshot : "agreement_id"

@@ -1,0 +1,806 @@
+﻿TABLE NAME,ATTRIBUTE NAME,TYPE,FORMAT,RANGE,REQUIRED,PK or FK,REFERENCED TABLE
+moderator_application,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+moderator_application,user_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+moderator_application,email,character varying (254),email@domain.com,NA,TRUE,,
+moderator_application,requested_role,character varying (30),Xxxxxxx,"'creative_moderator', 'customer_support', 'driver'",TRUE,,
+moderator_application,application_details,jsonb,JSON object/array/value,NA,TRUE,,
+moderator_application,education,character varying (250),Xxxxxxx,NA,TRUE,,
+moderator_application,motivation,text,Xxxxxxx,NA,TRUE,,
+moderator_application,profile_snapshot,jsonb,JSON object/array/value,NA,TRUE,,
+moderator_application,documents,jsonb,JSON object/array/value,NA,TRUE,,
+moderator_application,status,character varying (20),Xxxxxxx,"'pending', 'under_review', 'sent_to_admin', 'approved', 'rejected'",TRUE,,
+moderator_application,assigned_to_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+moderator_application,submitted_by_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+moderator_application,submitted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+moderator_application,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+moderator_application,version,integer(32),######,0-2147483647,TRUE,,
+moderator_application_review,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+moderator_application_review,application_id,bigint(64),######,1-9223372036854775807,TRUE,FK,moderator_application
+moderator_application_review,actor_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+moderator_application_review,action,character varying (30),Xxxxxxx,NA,TRUE,,
+moderator_application_review,note,text,Xxxxxxx,NA,TRUE,,
+moderator_application_review,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+reseller_application,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+reseller_application,business_permit,text,Xxxxxxx,NA,TRUE,,
+reseller_application,business_permit_name,character varying (180),Xxxxxxx,NA,TRUE,,
+reseller_application,permit_details,jsonb,JSON object/array/value,NA,TRUE,,
+reseller_application,permit_expires_on,date,YYYY-MM-DD,NA,FALSE,,
+reseller_application,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+reseller_application,tin_number,character varying (12),Xxxxxxx,NA,TRUE,,
+reseller_application,bir_certificate,text,Xxxxxxx,NA,TRUE,,
+reseller_application,bir_certificate_name,character varying (180),Xxxxxxx,NA,TRUE,,
+reseller_application,sworn_declaration,text,Xxxxxxx,NA,TRUE,,
+reseller_application,sworn_declaration_name,character varying (180),Xxxxxxx,NA,TRUE,,
+reseller_application,status,character varying (12),Xxxxxxx,"'pending', 'approved', 'rejected', 'revoked'",TRUE,,
+reseller_application,submitted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+reseller_application,reviewed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+reseller_application,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+reseller_application,review_note,character varying (1000),Xxxxxxx,NA,TRUE,,
+reseller_application_review,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+reseller_application_review,application_id,bigint(64),######,1-9223372036854775807,TRUE,FK,reseller_application
+reseller_application_review,actor_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+reseller_application_review,action,character varying (12),Xxxxxxx,NA,TRUE,,
+reseller_application_review,note,character varying (1000),Xxxxxxx,NA,TRUE,,
+reseller_application_review,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+royalty_application,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+royalty_application,permit_details,jsonb,JSON object/array/value,NA,TRUE,,
+royalty_application,business_permit_name,character varying (180),Xxxxxxx,NA,TRUE,,
+royalty_application,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+royalty_application,business_permit_image,text,Xxxxxxx,NA,TRUE,,
+royalty_application,permit_expires_on,date,YYYY-MM-DD,NA,TRUE,,
+royalty_application,status,character varying (12),Xxxxxxx,"'pending', 'approved', 'rejected'",TRUE,,
+royalty_application,submitted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+royalty_application,reviewed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+royalty_application,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+royalty_application,review_note,character varying (1000),Xxxxxxx,NA,TRUE,,
+user,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+user,firebase_uid,character varying (128),Xxxxxxx,NA,TRUE,,
+user,email,character varying (254),email@domain.com,NA,TRUE,,
+user,username,character varying (150),Xxxxxxx,NA,TRUE,,
+user,first_name,character varying (150),Xxxxxxx,NA,TRUE,,
+user,middle_name,character varying (150),Xxxxxxx,NA,TRUE,,
+user,last_name,character varying (150),Xxxxxxx,NA,TRUE,,
+user,date_of_birth,date,YYYY-MM-DD,NA,FALSE,,
+user,contact_number,character varying (20),###########,NA,TRUE,,
+user,profile_image,text,Xxxxxxx,NA,TRUE,,
+user,cover_image,text,Xxxxxxx,NA,TRUE,,
+user,bio,text,Xxxxxxx,NA,FALSE,,
+user,is_banned,boolean,TRUE/FALSE,NA,TRUE,,
+user,driver_deactivated,boolean,TRUE/FALSE,NA,TRUE,,
+user,suspended_until,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+user,wants_royalty,character varying (3),Xxxxxxx,"'yes', 'no'",TRUE,,
+user,royalty_proof,character varying (100),File path,NA,FALSE,,
+user,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+user,role,character varying (20),Xxxxxxx,"'driver', 'customer_support', 'buyer', 'artist', 'hr', 'creative_moderator', 'platform_admin'",TRUE,,
+user,is_accepting_commissions,boolean,TRUE/FALSE,NA,TRUE,,
+user_activity_log,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+user_activity_log,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+user_activity_log,action,character varying (80),Xxxxxxx,NA,TRUE,,
+user_activity_log,description,character varying (255),Xxxxxxx,NA,TRUE,,
+user_activity_log,reference_type,character varying (50),Xxxxxxx,NA,TRUE,,
+user_activity_log,reference_id,integer(32),######,0-2147483647,FALSE,,
+user_activity_log,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+user_address,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+user_address,latitude,double precision(64),######.######,NA,FALSE,,
+user_address,longitude,double precision(64),######.######,NA,FALSE,,
+user_address,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+user_address,label,character varying (50),Xxxxxxx,NA,TRUE,,
+user_address,is_default,boolean,TRUE/FALSE,NA,TRUE,,
+user_address,region,character varying (150),Xxxxxxx,NA,TRUE,,
+user_address,province,character varying (150),Xxxxxxx,NA,TRUE,,
+user_address,city,character varying (150),Xxxxxxx,NA,TRUE,,
+user_address,postal_code,character varying (10),Xxxxxxx,NA,TRUE,,
+user_address,barangay,character varying (150),Xxxxxxx,NA,TRUE,,
+user_address,street,character varying (255),Xxxxxxx,NA,TRUE,,
+artist_application,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+artist_application,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+artist_application,hourly_rate,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,TRUE,,
+artist_application,tin_number,character varying (20),Xxxxxxx,NA,FALSE,,
+artist_application,bio,text,Xxxxxxx,NA,FALSE,,
+artist_application,bir_certificate,text,Xxxxxxx,NA,TRUE,,
+artist_application,bir_certificate_name,character varying (255),Xxxxxxx,NA,TRUE,,
+artist_application,bir_expires_on,date,YYYY-MM-DD,NA,FALSE,,
+artist_application,sworn_declaration,text,Xxxxxxx,NA,TRUE,,
+artist_application,sworn_declaration_name,character varying (255),Xxxxxxx,NA,TRUE,,
+artist_application,document_details,jsonb,JSON object/array/value,NA,TRUE,,
+artist_application,portfolio,jsonb,JSON object/array/value,NA,TRUE,,
+artist_application,status,character varying (20),Xxxxxxx,"'pending', 'approved', 'rejected'",TRUE,,
+artist_application,rejection_reason,character varying (500),Xxxxxxx,NA,TRUE,,
+artist_application,submitted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artist_application,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artist_application_log,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+artist_application_log,application_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artist_application
+artist_application_log,actor_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+artist_application_log,action,character varying (20),Xxxxxxx,"'submitted', 'approved', 'rejected'",TRUE,,
+artist_application_log,previous_status,character varying (20),Xxxxxxx,NA,TRUE,,
+artist_application_log,new_status,character varying (20),Xxxxxxx,NA,TRUE,,
+artist_application_log,reason,character varying (500),Xxxxxxx,NA,TRUE,,
+artist_application_log,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artist_registration_update,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+artist_registration_update,application_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artist_application
+artist_registration_update,tin_number,character varying (20),Xxxxxxx,NA,TRUE,,
+artist_registration_update,evidence_image,text,Xxxxxxx,NA,TRUE,,
+artist_registration_update,expires_on,date,YYYY-MM-DD,NA,FALSE,,
+artist_registration_update,previous_record,jsonb,JSON object/array/value,NA,TRUE,,
+artist_registration_update,status,character varying (12),Xxxxxxx,"'pending', 'approved', 'rejected'",TRUE,,
+artist_registration_update,review_note,character varying (1000),Xxxxxxx,NA,TRUE,,
+artist_registration_update,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+artist_registration_update,submitted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artist_registration_update,reviewed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+artwork,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+artwork,artist_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+artwork,title,character varying (200),Xxxxxxx,NA,TRUE,,
+artwork,description,text,Xxxxxxx,NA,TRUE,,
+artwork,category,character varying (100),Xxxxxxx,NA,TRUE,,
+artwork,categories,jsonb,JSON object/array/value,NA,TRUE,,
+artwork,tags,jsonb,JSON object/array/value,NA,TRUE,,
+artwork,price,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,TRUE,,
+artwork,hours,"numeric (8, 2)",######.##,-999999.99 to 999999.99,FALSE,,
+artwork,hourly_rate,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,FALSE,,
+artwork,material_cost,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,TRUE,,
+artwork,art_type,character varying (10),Xxxxxxx,NA,TRUE,,
+artwork,image_data,text,Xxxxxxx,NA,TRUE,,
+artwork,additional_images,jsonb,JSON object/array/value,NA,TRUE,,
+artwork,status,character varying (20),Xxxxxxx,"'pending', 'approved', 'declined'",TRUE,,
+artwork,decline_reason,character varying (500),Xxxxxxx,NA,TRUE,,
+artwork,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artwork,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artwork,sale_type,character varying (50),Xxxxxxx,NA,TRUE,,
+artwork,bid_increment,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,FALSE,,
+artwork,starting_time,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+artwork,end_time,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+artwork,sha256_hash,character varying (64),Xxxxxxx,NA,FALSE,,
+artwork,perceptual_hash,character varying (64),Xxxxxxx,NA,FALSE,,
+artwork,difference_hash,character varying (64),Xxxxxxx,NA,FALSE,,
+artwork,edge_hash,character varying (64),Xxxxxxx,NA,FALSE,,
+artwork,ai_screening,jsonb,JSON object/array/value,NA,TRUE,,
+artwork,automated_block_reason,character varying (30),Xxxxxxx,NA,TRUE,,
+artwork_ai_scan,cache_key,character varying (64),Xxxxxxx,NA,TRUE,PK,
+artwork_ai_scan,state,character varying (16),Xxxxxxx,NA,TRUE,,
+artwork_ai_scan,job_id,character varying (64),Xxxxxxx,NA,TRUE,,
+artwork_ai_scan,result,jsonb,JSON object/array/value,NA,TRUE,,
+artwork_ai_scan,lease_until,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+artwork_ai_scan,expires_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+artwork_ai_scan,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artwork_ai_scan,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artwork_review_log,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+artwork_review_log,artwork_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+artwork_review_log,actor_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+artwork_review_log,action,character varying (20),Xxxxxxx,NA,TRUE,,
+artwork_review_log,previous_status,character varying (20),Xxxxxxx,NA,TRUE,,
+artwork_review_log,new_status,character varying (20),Xxxxxxx,NA,TRUE,,
+artwork_review_log,reason,character varying (500),Xxxxxxx,NA,TRUE,,
+artwork_review_log,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artwork_similarity_match,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+artwork_similarity_match,artwork_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+artwork_similarity_match,reference_artwork_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+artwork_similarity_match,phash_distance,smallint(16),######,0-32767,TRUE,,
+artwork_similarity_match,dhash_distance,smallint(16),######,0-32767,TRUE,,
+artwork_similarity_match,edge_hash_distance,smallint(16),######,0-32767,TRUE,,
+artwork_similarity_match,feature_match_score,double precision(64),######.######,NA,TRUE,,
+artwork_similarity_match,color_similarity_score,double precision(64),######.######,NA,TRUE,,
+artwork_similarity_match,confidence_score,double precision(64),######.######,NA,TRUE,,
+artwork_similarity_match,review_status,character varying (20),Xxxxxxx,"'pending', 'confirmed_copy', 'not_a_copy', 'auto_blocked'",TRUE,,
+artwork_similarity_match,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+artwork_similarity_match,review_note,character varying (500),Xxxxxxx,NA,TRUE,,
+artwork_similarity_match,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+artwork_similarity_match,reviewed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+cart,cart_id,integer(32),######,1-2147483647,TRUE,PK,
+cart,buyer_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+cart_item,cart_item_id,integer(32),######,1-2147483647,TRUE,PK,
+cart_item,cart_id,integer(32),######,1-2147483647,TRUE,FK,cart
+cart_item,listing_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+cart_item,quantity,integer(32),######,0-2147483647,TRUE,,
+auction,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+auction,platform_defaults_snapshot,jsonb,JSON object/array/value,NA,TRUE,,
+auction,artist_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+auction,artwork_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+auction,starting_bid,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+auction,current_bid,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+auction,bid_increment,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,TRUE,,
+auction,start_time,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+auction,end_time,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+auction,status,character varying (20),Xxxxxxx,"'PENDING_APPROVAL', 'ACTIVE', 'SCHEDULED', 'ENDED', 'SETTLED', 'PAYMENT_PENDING', 'BACKUP_OFFER', 'FORFEITED', 'CANCELLED'",TRUE,,
+auction,highest_bidder_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+auction,is_physical,boolean,TRUE/FALSE,NA,TRUE,,
+auction,license_type,character varying (30),Xxxxxxx,NA,TRUE,,
+auction,exclusivity,character varying (30),Xxxxxxx,NA,TRUE,,
+auction,delivery_type,character varying (30),Xxxxxxx,NA,TRUE,,
+auction,terms_snapshot,text,Xxxxxxx,NA,TRUE,,
+auction,signed_document,text,Xxxxxxx,NA,TRUE,,
+auction,signed_document_hash,character varying (64),Xxxxxxx,NA,TRUE,,
+auction,artist_signature,character varying (200),Xxxxxxx,NA,TRUE,,
+auction,artist_signature_image,text,Xxxxxxx,NA,TRUE,,
+auction,artist_signed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+auction,agreement_template_id,bigint(64),######,1-9223372036854775807,FALSE,FK,agreement_template
+auction,payment_deadline,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+auction,winning_bid,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,FALSE,,
+auction,winner_forfeited_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+auction,backup_bidder_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+auction,backup_offer_expires_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+auction,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+auction_bid,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+auction_bid,auction_id,bigint(64),######,1-9223372036854775807,TRUE,FK,auction
+auction_bid,bidder_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+auction_bid,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+auction_bid,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+auction_bid,terms_accepted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+agreement,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+agreement,wording_snapshot,jsonb,JSON object/array/value,NA,TRUE,,
+agreement,platform_defaults_snapshot,jsonb,JSON object/array/value,NA,TRUE,,
+agreement,conversation_id,bigint(64),######,1-9223372036854775807,TRUE,FK,conversation
+agreement,template_id,bigint(64),######,1-9223372036854775807,TRUE,FK,agreement_template
+agreement,artwork_id,bigint(64),######,1-9223372036854775807,FALSE,FK,artwork
+agreement,buyer_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+agreement,artist_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+agreement,price,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+agreement,terms_snapshot,text,Xxxxxxx,NA,TRUE,,
+agreement,document_snapshot,text,Xxxxxxx,NA,TRUE,,
+agreement,license_scope,jsonb,JSON object/array/value,NA,TRUE,,
+agreement,pricing_terms,jsonb,JSON object/array/value,NA,TRUE,,
+agreement,artist_presigned_document,text,Xxxxxxx,NA,TRUE,,
+agreement,artist_signature_image,text,Xxxxxxx,NA,TRUE,,
+agreement,buyer_signature_image,text,Xxxxxxx,NA,TRUE,,
+agreement,artist_signature,character varying (200),Xxxxxxx,NA,TRUE,,
+agreement,buyer_signature,character varying (200),Xxxxxxx,NA,TRUE,,
+agreement,artist_signed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+agreement,buyer_signed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+agreement,delivery_fee,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,TRUE,,
+agreement,delivery_details,jsonb,JSON object/array/value,NA,TRUE,,
+agreement,delivery_date,date,YYYY-MM-DD,NA,FALSE,,
+agreement,revision_limit,smallint(16),######,0-32767,TRUE,,
+agreement,license_type,character varying (30),Xxxxxxx,NA,TRUE,,
+agreement,exclusivity,character varying (30),Xxxxxxx,NA,TRUE,,
+agreement,delivery_type,character varying (30),Xxxxxxx,NA,TRUE,,
+agreement,compensation_type,character varying (30),Xxxxxxx,NA,TRUE,,
+agreement,compensation_terms,jsonb,JSON object/array/value,NA,TRUE,,
+agreement,revision_of_id,bigint(64),######,1-9223372036854775807,FALSE,FK,agreement
+agreement,negotiation_key,character varying (36),Xxxxxxx,NA,TRUE,,
+agreement,closure_reason,character varying (20),Xxxxxxx,NA,TRUE,,
+agreement,cancelled_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+agreement,cancelled_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+agreement,status,character varying (20),Xxxxxxx,"'proposed', 'accepted', 'cancelled'",TRUE,,
+agreement,buyer_accepted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+agreement,artist_accepted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+agreement,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+agreement,verification_code,character varying (24),Xxxxxxx,NA,TRUE,,
+agreement_template,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+agreement_template,wording,jsonb,JSON object/array/value,NA,TRUE,,
+agreement_template,name,character varying (120),Xxxxxxx,NA,TRUE,,
+agreement_template,body,text,Xxxxxxx,NA,TRUE,,
+agreement_template,is_active,boolean,TRUE/FALSE,NA,TRUE,,
+agreement_template,updated_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+agreement_template,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+conversation,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+conversation,artwork_id,bigint(64),######,1-9223372036854775807,FALSE,FK,artwork
+conversation,status,character varying (20),Xxxxxxx,"'open', 'agreed', 'cancelled', 'completed'",TRUE,,
+conversation,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+conversation,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+conversation_participant,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+conversation_participant,conversation_id,bigint(64),######,1-9223372036854775807,TRUE,FK,conversation
+conversation_participant,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+conversation_participant,last_read_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+conversation_participant,joined_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+direct_message,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+direct_message,sender_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+direct_message,recipient_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+direct_message,body,text,Xxxxxxx,NA,TRUE,,
+direct_message,is_read,boolean,TRUE/FALSE,NA,TRUE,,
+direct_message,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+message,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+message,conversation_id,bigint(64),######,1-9223372036854775807,TRUE,FK,conversation
+message,sender_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+message,body,text,Xxxxxxx,NA,TRUE,,
+message,message_type,character varying (20),Xxxxxxx,"'text', 'agreement', 'system'",TRUE,,
+message,agreement_id,bigint(64),######,1-9223372036854775807,FALSE,FK,agreement
+message,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+platform_setting,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+platform_setting,values,jsonb,JSON object/array/value,NA,TRUE,,
+platform_setting,revision,integer(32),######,0-2147483647,TRUE,,
+platform_setting,updated_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+platform_setting,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+royalty_funding,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+royalty_funding,period_id,bigint(64),######,1-9223372036854775807,TRUE,FK,royalty_period
+royalty_funding,reference,character varying (80),Xxxxxxx,NA,TRUE,,
+royalty_funding,session_id,character varying (100),Xxxxxxx,NA,TRUE,,
+royalty_funding,checkout_url,character varying (1000),URL,NA,TRUE,,
+royalty_funding,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+royalty_funding,status,character varying (20),Xxxxxxx,NA,TRUE,,
+royalty_funding,paid_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+royalty_funding,released_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+royalty_funding,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+royalty_funding,review_note,character varying (1000),Xxxxxxx,NA,TRUE,,
+royalty_funding,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+royalty_mandate,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+royalty_mandate,agreement_id,bigint(64),######,1-9223372036854775807,TRUE,FK,agreement
+royalty_mandate,session_id,character varying (100),Xxxxxxx,NA,TRUE,,
+royalty_mandate,token_id,character varying (100),Xxxxxxx,NA,TRUE,,
+royalty_mandate,status,character varying (20),Xxxxxxx,NA,TRUE,,
+royalty_mandate,consented_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+royalty_mandate,revoked_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+royalty_mandate,reference,character varying (64),Xxxxxxx,NA,TRUE,,
+royalty_mandate,checkout_url,character varying (1000),URL,NA,TRUE,,
+royalty_period,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+royalty_period,agreement_id,bigint(64),######,1-9223372036854775807,TRUE,FK,agreement
+royalty_period,starts_on,date,YYYY-MM-DD,NA,TRUE,,
+royalty_period,ends_on,date,YYYY-MM-DD,NA,TRUE,,
+royalty_period,due_on,date,YYYY-MM-DD,NA,TRUE,,
+royalty_period,terms,jsonb,JSON object/array/value,NA,TRUE,,
+royalty_period,metrics,jsonb,JSON object/array/value,NA,TRUE,,
+royalty_period,evidence,jsonb,JSON object/array/value,NA,TRUE,,
+royalty_period,history,jsonb,JSON object/array/value,NA,TRUE,,
+royalty_period,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,FALSE,,
+royalty_period,status,character varying (20),Xxxxxxx,NA,TRUE,,
+royalty_period,review_note,character varying (1000),Xxxxxxx,NA,TRUE,,
+royalty_period,submitted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+royalty_period,approved_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+royalty_period,provider_request_id,character varying (100),Xxxxxxx,NA,TRUE,,
+royalty_period,collection_error,character varying (250),Xxxxxxx,NA,TRUE,,
+royalty_period,paid_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+royalty_receipt,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+royalty_receipt,platform_fee,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+royalty_receipt,period_id,bigint(64),######,1-9223372036854775807,TRUE,FK,royalty_period
+royalty_receipt,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+royalty_receipt,provider_payment_id,character varying (100),Xxxxxxx,NA,TRUE,,
+royalty_receipt,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+account_action_request,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+account_action_request,report_id,bigint(64),######,1-9223372036854775807,TRUE,FK,incident_report
+account_action_request,target_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+account_action_request,initiated_by_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+account_action_request,action,character varying (12),Xxxxxxx,NA,TRUE,,
+account_action_request,reason,text,Xxxxxxx,NA,TRUE,,
+account_action_request,duration_days,smallint(16),######,0-32767,FALSE,,
+account_action_request,status,character varying (12),Xxxxxxx,NA,TRUE,,
+account_action_request,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+account_action_request,review_note,text,Xxxxxxx,NA,TRUE,,
+account_action_request,reviewed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+account_action_request,expires_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+account_action_request,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+account_action_request,revoked_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+account_action_request,revoked_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+account_action_request,reversal_reason,text,Xxxxxxx,NA,TRUE,,
+account_moderation_request,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+account_moderation_request,ticket_id,bigint(64),######,1-9223372036854775807,TRUE,FK,support_ticket
+account_moderation_request,target_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+account_moderation_request,requested_by_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+account_moderation_request,action,character varying (12),Xxxxxxx,"'suspend', 'ban', 'restore'",TRUE,,
+account_moderation_request,duration_days,smallint(16),######,0-32767,FALSE,,
+account_moderation_request,reason,text,Xxxxxxx,NA,TRUE,,
+account_moderation_request,status,character varying (12),Xxxxxxx,"'pending', 'approved', 'rejected'",TRUE,,
+account_moderation_request,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+account_moderation_request,review_note,text,Xxxxxxx,NA,TRUE,,
+account_moderation_request,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+account_moderation_request,reviewed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+account_moderation_request,revoked_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+account_moderation_request,revoked_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+account_moderation_request,reversal_reason,text,Xxxxxxx,NA,TRUE,,
+financial_authorization,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+financial_authorization,report_id,bigint(64),######,1-9223372036854775807,TRUE,FK,incident_report
+financial_authorization,payment_id,bigint(64),######,1-9223372036854775807,TRUE,FK,payment
+financial_authorization,recipient_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+financial_authorization,authorized_by_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+financial_authorization,kind,character varying (20),Xxxxxxx,"'refund', 'wallet_credit'",TRUE,,
+financial_authorization,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+financial_authorization,reason,text,Xxxxxxx,NA,TRUE,,
+financial_authorization,status,character varying (20),Xxxxxxx,NA,TRUE,,
+financial_authorization,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+incident_report,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+incident_report,reporter_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+incident_report,reported_user_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+incident_report,payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+incident_report,category,character varying (20),Xxxxxxx,NA,TRUE,,
+incident_report,title,character varying (150),Xxxxxxx,NA,TRUE,,
+incident_report,description,text,Xxxxxxx,NA,TRUE,,
+incident_report,evidence,text,Xxxxxxx,NA,TRUE,,
+incident_report,status,character varying (20),Xxxxxxx,NA,TRUE,,
+incident_report,resolution,text,Xxxxxxx,NA,TRUE,,
+incident_report,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+incident_report,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+incident_report,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+payment,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+payment,reference_id,character varying (64),Xxxxxxx,NA,TRUE,,
+payment,buyer_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+payment,artist_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+payment,artwork_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+payment,agreement_id,bigint(64),######,1-9223372036854775807,FALSE,FK,agreement
+payment,gross_amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+payment,platform_fee,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+payment,artist_amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+payment,is_simulated,boolean,TRUE/FALSE,NA,TRUE,,
+payment,artwork_png,bytea,Binary data,NA,FALSE,,
+payment,checkout_url,character varying (2000),URL,NA,TRUE,,
+payment,xendit_session_id,character varying (80),Xxxxxxx,NA,TRUE,,
+payment,xendit_payment_id,character varying (80),Xxxxxxx,NA,TRUE,,
+payment,status,character varying (20),Xxxxxxx,"'pending', 'paid', 'expired', 'refunded'",TRUE,,
+payment,paid_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+payment,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+payment,verification_code,character varying (24),Xxxxxxx,NA,TRUE,,
+payment_return_request,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+payment_return_request,payment_session_id,bigint(64),######,1-9223372036854775807,TRUE,FK,payment
+payment_return_request,requester_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+payment_return_request,request_type,character varying (20),Xxxxxxx,"'refund', 'cancellation', 'return'",TRUE,,
+payment_return_request,reason,text,Xxxxxxx,NA,TRUE,,
+payment_return_request,status,character varying (20),Xxxxxxx,"'pending', 'approved', 'declined'",TRUE,,
+payment_return_request,admin_note,text,Xxxxxxx,NA,TRUE,,
+payment_return_request,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+payment_return_request,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+payment_return_request,reviewed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+payment_return_request,counterpart_decision,character varying (12),Xxxxxxx,NA,TRUE,,
+payment_return_request,counterpart_note,text,Xxxxxxx,NA,TRUE,,
+payment_return_request,responded_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+payment_return_request,responded_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+report_attachment,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+report_attachment,report_id,bigint(64),######,1-9223372036854775807,FALSE,FK,incident_report
+report_attachment,appeal_id,bigint(64),######,1-9223372036854775807,FALSE,FK,restriction_appeal
+report_attachment,name,character varying (200),Xxxxxxx,NA,TRUE,,
+report_attachment,content_type,character varying (100),Xxxxxxx,NA,TRUE,,
+report_attachment,content,bytea,Binary data,NA,TRUE,,
+report_attachment,size,integer(32),######,0-2147483647,TRUE,,
+restriction_appeal,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+restriction_appeal,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+restriction_appeal,source,character varying (10),Xxxxxxx,NA,TRUE,,
+restriction_appeal,restriction_id,integer(32),######,0-2147483647,TRUE,,
+restriction_appeal,explanation,text,Xxxxxxx,NA,TRUE,,
+restriction_appeal,links,jsonb,JSON object/array/value,NA,TRUE,,
+restriction_appeal,status,character varying (20),Xxxxxxx,NA,TRUE,,
+restriction_appeal,recommendation,character varying (20),Xxxxxxx,NA,TRUE,,
+restriction_appeal,moderator_note,text,Xxxxxxx,NA,TRUE,,
+restriction_appeal,recommended_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+restriction_appeal,decision_note,text,Xxxxxxx,NA,TRUE,,
+restriction_appeal,decided_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+restriction_appeal,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+restriction_appeal,decided_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+support_reply,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+support_reply,ticket_id,bigint(64),######,1-9223372036854775807,TRUE,FK,support_ticket
+support_reply,sender_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+support_reply,message,text,Xxxxxxx,NA,TRUE,,
+support_reply,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+support_ticket,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+support_ticket,requester_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+support_ticket,assigned_to_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+support_ticket,transfer_to_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+support_ticket,concern,character varying (60),Xxxxxxx,NA,TRUE,,
+support_ticket,reported_user_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+support_ticket,reported_username,character varying (150),Xxxxxxx,NA,TRUE,,
+support_ticket,payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+support_ticket,artwork_id,bigint(64),######,1-9223372036854775807,FALSE,FK,artwork
+support_ticket,commission_id,bigint(64),######,1-9223372036854775807,FALSE,FK,commission
+support_ticket,auction_id,bigint(64),######,1-9223372036854775807,FALSE,FK,auction
+support_ticket,details,text,Xxxxxxx,NA,TRUE,,
+support_ticket,evidence,text,Xxxxxxx,NA,TRUE,,
+support_ticket,image_data,text,Xxxxxxx,NA,TRUE,,
+support_ticket,status,character varying (24),Xxxxxxx,"'open', 'in_progress', 'awaiting_customer', 'resolved', 'closed'",TRUE,,
+support_ticket,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+support_ticket,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+wallet,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+wallet,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+wallet,currency,character varying (3),Xxxxxxx,NA,TRUE,,
+wallet,pending_balance,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+wallet,available_balance,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+wallet,paid_out_balance,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+wallet,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+wallet_entry,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+wallet_entry,wallet_id,bigint(64),######,1-9223372036854775807,TRUE,FK,wallet
+wallet_entry,payment_session_id,bigint(64),######,1-9223372036854775807,TRUE,FK,payment
+wallet_entry,entry_type,character varying (30),Xxxxxxx,"'sale_held', 'sale_available', 'payout', 'refund_reversal'",TRUE,,
+wallet_entry,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+wallet_entry,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+authenticity_certificate,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+authenticity_certificate,payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+authenticity_certificate,commission_id,bigint(64),######,1-9223372036854775807,FALSE,FK,commission
+authenticity_certificate,code,character varying (40),Xxxxxxx,NA,TRUE,,
+authenticity_certificate,snapshot,jsonb,JSON object/array/value,NA,TRUE,,
+authenticity_certificate,pdf,bytea,Binary data,NA,TRUE,,
+authenticity_certificate,issued_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+delivery_chat,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+delivery_chat,order_id,bigint(64),######,1-9223372036854775807,TRUE,FK,delivery_order
+delivery_chat,contact,character varying (6),Xxxxxxx,"'buyer', 'artist'",TRUE,,
+delivery_chat,conversation_id,bigint(64),######,1-9223372036854775807,TRUE,FK,conversation
+delivery_order,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+delivery_order,payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+delivery_order,commission_id,bigint(64),######,1-9223372036854775807,FALSE,FK,commission
+delivery_order,driver_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+delivery_order,status,character varying (20),Xxxxxxx,"'pending', 'accepted', 'arrived_at_artist', 'picked_up', 'arrived_at_buyer', 'in_transit', 'delivered'",TRUE,,
+delivery_order,pickup_proof,text,Xxxxxxx,NA,TRUE,,
+delivery_order,delivery_proof,text,Xxxxxxx,NA,TRUE,,
+delivery_order,timeline,jsonb,JSON object/array/value,NA,TRUE,,
+delivery_order,route_details,jsonb,JSON object/array/value,NA,TRUE,,
+delivery_order,pickup_address,text,Xxxxxxx,NA,TRUE,,
+delivery_order,delivery_address,text,Xxxxxxx,NA,TRUE,,
+delivery_order,fee,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,TRUE,,
+delivery_order,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+delivery_order,delivered_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+delivery_route,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+delivery_route,pickup_city,character varying (150),Xxxxxxx,NA,TRUE,,
+delivery_route,destination_city,character varying (150),Xxxxxxx,NA,TRUE,,
+delivery_route,distance_km,"numeric (7, 2)",######.##,0.01 to 99999.99,TRUE,,
+delivery_route,base_fare,"numeric (9, 2)",######.##,0 to 9999999.99,TRUE,,
+delivery_route,per_km,"numeric (9, 2)",######.##,0 to 9999999.99,TRUE,,
+delivery_route,active,boolean,TRUE/FALSE,NA,TRUE,,
+download_fingerprint,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+download_fingerprint,transaction_code,character varying (24),Xxxxxxx,NA,FALSE,,
+download_fingerprint,blockchain_proof_id,bigint(64),######,1-9223372036854775807,FALSE,FK,blockchain_transaction
+download_fingerprint,license_snapshot,jsonb,JSON object/array/value,NA,TRUE,,
+download_fingerprint,token,character varying (61),Xxxxxxx,NA,TRUE,,
+download_fingerprint,source_key,character varying (150),Xxxxxxx,NA,TRUE,,
+download_fingerprint,source_sha256,character varying (64),Xxxxxxx,NA,TRUE,,
+download_fingerprint,buyer_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+download_fingerprint,artist_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+download_fingerprint,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+download_fingerprint,issued_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+purchase_review,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+purchase_review,payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+purchase_review,commission_id,bigint(64),######,1-9223372036854775807,FALSE,FK,commission
+purchase_review,artist_rating,smallint(16),######,1-5,TRUE,,
+purchase_review,artwork_rating,smallint(16),######,1-5,TRUE,,
+purchase_review,comment,text,Xxxxxxx,NA,TRUE,,
+purchase_review,artist_comment,text,Xxxxxxx,NA,TRUE,,
+purchase_review,artwork_comment,text,Xxxxxxx,NA,TRUE,,
+purchase_review,images,jsonb,JSON object/array/value,NA,TRUE,,
+purchase_review,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+rider_profile,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+rider_profile,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+rider_profile,is_clocked_in,boolean,TRUE/FALSE,NA,TRUE,,
+rider_profile,clock_in_time,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+rider_profile,clock_out_time,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+rider_profile,latitude,double precision(64),######.######,NA,FALSE,,
+rider_profile,longitude,double precision(64),######.######,NA,FALSE,,
+rider_profile,location_updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission,commission_req_id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission,buyer_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission,artist_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission,title,character varying (100),Xxxxxxx,NA,TRUE,,
+commission,subject,character varying (200),Xxxxxxx,NA,TRUE,,
+commission,style,character varying (80),Xxxxxxx,NA,TRUE,,
+commission,description,text,Xxxxxxx,NA,FALSE,,
+commission,art_type,character varying (20),Xxxxxxx,NA,TRUE,,
+commission,tags,character varying (255),Xxxxxxx,NA,FALSE,,
+commission,time_duration,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+commission,deadline,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission,is_rush_job,boolean,TRUE/FALSE,NA,TRUE,,
+commission,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission,status,character varying (20),Xxxxxxx,"'NEGOTIATING', 'SIGNING', 'AWAITING_FUNDS', 'PENDING', 'IN_PROGRESS', 'STAGE_1', 'STAGE_2', 'STAGE_3', 'COMPLETE', 'CANCELLED'",TRUE,,
+commission,accepted_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission,flow_version,smallint(16),######,0-32767,TRUE,,
+commission,agreement_id,bigint(64),######,1-9223372036854775807,FALSE,FK,agreement
+commission,locked_terms,jsonb,JSON object/array/value,NA,TRUE,,
+commission,funding_due_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission,funded_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission,funding_reference,character varying (100),Xxxxxxx,NA,TRUE,,
+commission,funding_provider_id,character varying (100),Xxxxxxx,NA,TRUE,,
+commission,funding_url,text,URL,NA,TRUE,,
+commission,funding_payload,jsonb,JSON object/array/value,NA,TRUE,,
+commission,held_amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+commission,platform_fee,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+commission,disputed,boolean,TRUE/FALSE,NA,TRUE,,
+commission,courier_tracking,character varying (500),Xxxxxxx,NA,TRUE,,
+commission,delivered_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission,cancel_reason,character varying (255),Xxxxxxx,NA,FALSE,,
+commission,cancel_feedback,text,Xxxxxxx,NA,FALSE,,
+commission,refund_amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+commission,cancelled_at_stage,integer(32),######,-2147483648-2147483647,FALSE,,
+commission_access_decision,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_access_decision,commission_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_access_decision,restriction_key,character varying (255),Xxxxxxx,NA,TRUE,,
+commission_access_decision,approved,boolean,TRUE/FALSE,NA,TRUE,,
+commission_access_decision,note,text,Xxxxxxx,NA,TRUE,,
+commission_access_decision,reviewed_by_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_access_decision,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission_asset,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_asset,commission_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_asset,original_artist_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_asset,owner_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_asset,submission_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission_submission
+commission_asset,license_terms,jsonb,JSON object/array/value,NA,TRUE,,
+commission_asset,record_hash,character varying (64),Xxxxxxx,NA,TRUE,,
+commission_asset,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission_entry,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_entry,commission_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_entry,reference,character varying (120),Xxxxxxx,NA,TRUE,,
+commission_entry,kind,character varying (30),Xxxxxxx,NA,TRUE,,
+commission_entry,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+commission_entry,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission_message,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_message,commission_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_message,sender_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_message,body,text,Xxxxxxx,NA,TRUE,,
+commission_message,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission_milestone,milestone_id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_milestone,commission_req_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_milestone,milestone_number,integer(32),######,-2147483648-2147483647,TRUE,,
+commission_milestone,stage_label,character varying (50),Xxxxxxx,NA,TRUE,,
+commission_milestone,status,character varying (20),Xxxxxxx,NA,TRUE,,
+commission_milestone,percentage,integer(32),######,-2147483648-2147483647,TRUE,,
+commission_milestone,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+commission_milestone,paid_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission_milestone,approved_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission_milestone,review_due_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission_milestone,delivery_ready_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission_milestone,revision_comment,text,Xxxxxxx,NA,TRUE,,
+commission_milestone,revision_requested_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission_milestone,revision_reply,text,Xxxxxxx,NA,TRUE,,
+commission_milestone,revision_replied_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission_milestone,payout_reference,character varying (100),Xxxxxxx,NA,TRUE,,
+commission_milestone,payout_provider_id,character varying (100),Xxxxxxx,NA,TRUE,,
+commission_milestone,payout_status,character varying (30),Xxxxxxx,NA,TRUE,,
+commission_milestone,payout_payload,jsonb,JSON object/array/value,NA,TRUE,,
+commission_milestone,payout_error,text,Xxxxxxx,NA,TRUE,,
+commission_payout_profile,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_payout_profile,artist_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_payout_profile,recipient,jsonb,JSON object/array/value,NA,TRUE,,
+commission_payout_profile,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission_photo,photo_id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_photo,commission_req_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_photo,image_url,text,URL,NA,TRUE,,
+commission_photo,photo_type,character varying (20),Xxxxxxx,"'REFERENCE', 'PROGRESS'",TRUE,,
+commission_photo,stage_number,integer(32),######,-2147483648-2147483647,TRUE,,
+commission_photo,progress_percentage,integer(32),######,-2147483648-2147483647,TRUE,,
+commission_photo,caption,character varying (255),Xxxxxxx,NA,FALSE,,
+commission_photo,uploaded_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission_proof,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_proof,commission_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_proof,submission_id,bigint(64),######,1-9223372036854775807,FALSE,FK,commission_submission
+commission_proof,asset_id,bigint(64),######,1-9223372036854775807,FALSE,FK,commission_asset
+commission_proof,record_hash,character varying (64),Xxxxxxx,NA,TRUE,,
+commission_proof,registry_id,character varying (78),Xxxxxxx,NA,TRUE,,
+commission_proof,transaction_hash,character varying (66),Xxxxxxx,NA,TRUE,,
+commission_proof,block_number,bigint(64),######,0-9223372036854775807,FALSE,,
+commission_proof,status,character varying (20),Xxxxxxx,NA,TRUE,,
+commission_proof,error,text,Xxxxxxx,NA,TRUE,,
+commission_proposal,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_proposal,commission_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_proposal,proposer_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_proposal,version,integer(32),######,0-2147483647,TRUE,,
+commission_proposal,terms,jsonb,JSON object/array/value,NA,TRUE,,
+commission_proposal,status,character varying (20),Xxxxxxx,NA,TRUE,,
+commission_proposal,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission_refund,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_refund,commission_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission
+commission_refund,authorized_by_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_refund,amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+commission_refund,reason,text,Xxxxxxx,NA,TRUE,,
+commission_refund,reference,character varying (100),Xxxxxxx,NA,TRUE,,
+commission_refund,provider_id,character varying (100),Xxxxxxx,NA,TRUE,,
+commission_refund,status,character varying (30),Xxxxxxx,NA,TRUE,,
+commission_refund,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+commission_resale,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_resale,asset_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission_asset
+commission_resale,artwork_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+commission_resale,seller_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_resale,royalty_amount,"numeric (12, 2)",######.##,-9999999999.99 to 9999999999.99,TRUE,,
+commission_resale,payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+commission_resale,settled_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+commission_resale,payout_reference,character varying (100),Xxxxxxx,NA,TRUE,,
+commission_resale,payout_provider_id,character varying (100),Xxxxxxx,NA,TRUE,,
+commission_resale,payout_status,character varying (30),Xxxxxxx,NA,TRUE,,
+commission_resale,payout_payload,jsonb,JSON object/array/value,NA,TRUE,,
+commission_submission,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+commission_submission,milestone_id,bigint(64),######,1-9223372036854775807,TRUE,FK,commission_milestone
+commission_submission,uploader_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+commission_submission,filename,character varying (200),Xxxxxxx,NA,TRUE,,
+commission_submission,content_type,character varying (100),Xxxxxxx,NA,TRUE,,
+commission_submission,content,bytea,Binary data,NA,TRUE,,
+commission_submission,sha256,character varying (64),Xxxxxxx,NA,TRUE,,
+commission_submission,cid,character varying (200),Xxxxxxx,NA,TRUE,,
+commission_submission,caption,text,Xxxxxxx,NA,TRUE,,
+commission_submission,final_original,boolean,TRUE/FALSE,NA,TRUE,,
+commission_submission,uploaded_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+blockchain_transaction,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+blockchain_transaction,artwork_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+blockchain_transaction,operation,character varying (30),Xxxxxxx,NA,TRUE,,
+blockchain_transaction,entity_type,character varying (30),Xxxxxxx,NA,TRUE,,
+blockchain_transaction,entity_id,bigint(64),######,0-9223372036854775807,FALSE,,
+blockchain_transaction,proof_hash,character varying (64),Xxxxxxx,NA,TRUE,,
+blockchain_transaction,transaction_hash,character varying (66),Xxxxxxx,NA,TRUE,,
+blockchain_transaction,block_number,bigint(64),######,0-9223372036854775807,FALSE,,
+blockchain_transaction,network,character varying (30),Xxxxxxx,NA,TRUE,,
+blockchain_transaction,status,character varying (12),Xxxxxxx,"'pending', 'confirmed', 'failed'",TRUE,,
+blockchain_transaction,error_message,text,Xxxxxxx,NA,TRUE,,
+blockchain_transaction,confirmed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+blockchain_transaction,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+provenance_artwork,id,uuid,UUID,NA,TRUE,PK,
+provenance_artwork,original_artwork_id,bigint(64),######,1-9223372036854775807,FALSE,FK,artwork
+provenance_artwork,commission_asset_id,bigint(64),######,1-9223372036854775807,FALSE,FK,commission_asset
+provenance_artwork,file_hash,character varying (64),Xxxxxxx,NA,TRUE,,
+provenance_artwork,claimed_creator_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+provenance_artwork,credited_creator_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+provenance_artwork,initial_owner_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+provenance_artwork,current_owner_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+provenance_artwork,creator_verified,boolean,TRUE/FALSE,NA,TRUE,,
+provenance_artwork,disputed,boolean,TRUE/FALSE,NA,TRUE,,
+provenance_artwork,registered_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+provenance_artwork,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+provenance_event,id,uuid,UUID,NA,TRUE,PK,
+provenance_event,record_id,uuid,UUID,NA,TRUE,FK,provenance_artwork
+provenance_event,kind,character varying (15),Xxxxxxx,"'registration', 'transfer', 'review'",TRUE,,
+provenance_event,reference,character varying (100),Xxxxxxx,NA,TRUE,,
+provenance_event,payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+provenance_event,previous_owner_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+provenance_event,new_owner_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+provenance_event,payload,jsonb,JSON object/array/value,NA,TRUE,,
+provenance_event,record_hash,character varying (64),Xxxxxxx,NA,TRUE,,
+provenance_event,status,character varying (12),Xxxxxxx,"'pending', 'confirmed', 'failed'",TRUE,,
+provenance_event,transaction_hash,character varying (66),Xxxxxxx,NA,TRUE,,
+provenance_event,signed_transaction,text,Xxxxxxx,NA,TRUE,,
+provenance_event,nonce,bigint(64),######,0-9223372036854775807,FALSE,,
+provenance_event,sender,character varying (42),Xxxxxxx,NA,TRUE,,
+provenance_event,previous_attempts,jsonb,JSON object/array/value,NA,TRUE,,
+provenance_event,chain_id,bigint(64),######,0-9223372036854775807,FALSE,,
+provenance_event,contract_address,character varying (42),Xxxxxxx,NA,TRUE,,
+provenance_event,block_number,bigint(64),######,0-9223372036854775807,FALSE,,
+provenance_event,error,text,Xxxxxxx,NA,TRUE,,
+provenance_event,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+provenance_event,confirmed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+provenance_listing,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+provenance_listing,artwork_id,bigint(64),######,1-9223372036854775807,TRUE,FK,artwork
+provenance_listing,record_id,uuid,UUID,NA,TRUE,FK,provenance_artwork
+provenance_listing,reserved_payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+provenance_listing,reserved_rights,jsonb,JSON object/array/value,NA,TRUE,,
+provenance_review,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+provenance_review,record_id,uuid,UUID,NA,TRUE,FK,provenance_artwork
+provenance_review,requested_by_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+provenance_review,proposed_creator_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+provenance_review,reason,text,Xxxxxxx,NA,TRUE,,
+provenance_review,evidence_links,jsonb,JSON object/array/value,NA,TRUE,,
+provenance_review,status,character varying (20),Xxxxxxx,NA,TRUE,,
+provenance_review,reviewed_by_id,bigint(64),######,1-9223372036854775807,FALSE,FK,user
+provenance_review,decision_note,text,Xxxxxxx,NA,TRUE,,
+provenance_review,event_id,uuid,UUID,NA,FALSE,FK,provenance_event
+provenance_review,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+provenance_review,reviewed_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+provenance_signer,key,character varying (100),Xxxxxxx,NA,TRUE,PK,
+sale_terms_snapshot,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+sale_terms_snapshot,payment_id,bigint(64),######,1-9223372036854775807,TRUE,FK,payment
+sale_terms_snapshot,agreement_id,bigint(64),######,1-9223372036854775807,FALSE,FK,agreement
+sale_terms_snapshot,terms,jsonb,JSON object/array/value,NA,TRUE,,
+sale_terms_snapshot,document_hash,character varying (64),Xxxxxxx,NA,TRUE,,
+sale_terms_snapshot,source,character varying (20),Xxxxxxx,NA,TRUE,,
+sale_terms_snapshot,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+admin_request_read,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+admin_request_read,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+admin_request_read,request_key,character varying (160),Xxxxxxx,NA,TRUE,,
+admin_request_read,read_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+notification,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+notification,user_id,bigint(64),######,1-9223372036854775807,TRUE,FK,user
+notification,agreement_id,bigint(64),######,1-9223372036854775807,FALSE,FK,agreement
+notification,application_id,bigint(64),######,1-9223372036854775807,FALSE,FK,artist_application
+notification,artwork_id,bigint(64),######,1-9223372036854775807,FALSE,FK,artwork
+notification,commission_id,bigint(64),######,1-9223372036854775807,FALSE,FK,commission
+notification,title,character varying (200),Xxxxxxx,NA,TRUE,,
+notification,message,text,Xxxxxxx,NA,TRUE,,
+notification,is_read,boolean,TRUE/FALSE,NA,TRUE,,
+notification,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+legacy_delivery_order,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+legacy_delivery_order,payment_id,bigint(64),######,1-9223372036854775807,FALSE,FK,payment
+legacy_delivery_order,buyerId,character varying (100),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,buyer_name,character varying (150),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,buyer_phone,character varying (30),###########,NA,TRUE,,
+legacy_delivery_order,address,character varying (255),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,delivery_latitude,double precision(64),######.######,NA,TRUE,,
+legacy_delivery_order,delivery_longitude,double precision(64),######.######,NA,TRUE,,
+legacy_delivery_order,artist_name,character varying (150),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,artist_phone,character varying (30),###########,NA,TRUE,,
+legacy_delivery_order,pickup_address,character varying (255),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,pickup_latitude,double precision(64),######.######,NA,TRUE,,
+legacy_delivery_order,pickup_longitude,double precision(64),######.######,NA,TRUE,,
+legacy_delivery_order,item_name,character varying (200),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,items_count,integer(32),######,-2147483648-2147483647,TRUE,,
+legacy_delivery_order,distance,character varying (50),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,estimatedTime,character varying (50),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,delivery_fee,"numeric (10, 2)",######.##,-99999999.99 to 99999999.99,TRUE,,
+legacy_delivery_order,is_priority,boolean,TRUE/FALSE,NA,TRUE,,
+legacy_delivery_order,paymentMethod,character varying (20),Xxxxxxx,NA,TRUE,,
+legacy_delivery_order,status,character varying (30),Xxxxxxx,"'PENDING', 'ACCEPTED', 'ARRIVED_AT_ARTIST', 'PICKED_UP', 'IN_TRANSIT', 'ARRIVED_AT_BUYER', 'DELIVERED', 'CANCELED'",TRUE,,
+legacy_delivery_order,assigned_rider_id,bigint(64),######,1-9223372036854775807,FALSE,FK,legacy_rider_profile
+legacy_delivery_order,pickup_proof,text,Xxxxxxx,NA,FALSE,,
+legacy_delivery_order,delivery_proof,text,Xxxxxxx,NA,FALSE,,
+legacy_delivery_order,created_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+legacy_delivery_order,updated_at,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,TRUE,,
+legacy_rider_profile,id,bigint(64),######,1-9223372036854775807,TRUE,PK,
+legacy_rider_profile,user_id,integer(32),######,1-2147483647,TRUE,FK,auth_user
+legacy_rider_profile,phone,character varying (20),###########,NA,TRUE,,
+legacy_rider_profile,is_clocked_in,boolean,TRUE/FALSE,NA,TRUE,,
+legacy_rider_profile,clock_in_time,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+legacy_rider_profile,clock_out_time,timestamp with time zone,MM-DD-YYYY HH:MM:SS,NA,FALSE,,
+legacy_rider_profile,current_latitude,double precision(64),######.######,NA,FALSE,,
+legacy_rider_profile,current_longitude,double precision(64),######.######,NA,FALSE,,

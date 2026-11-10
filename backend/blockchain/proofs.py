@@ -8,6 +8,15 @@ from .service import BlockchainError, contract, record_license, record_sale, reg
 from .utils import sha256_bytes, sha256_record
 
 
+def _save_failed(item, error):
+    item.status = BlockchainTransaction.Status.FAILED
+    item.error_message = str(error)
+    item.transaction_hash = getattr(error, 'transaction_hash', '')
+    item.block_number = getattr(error, 'block_number', None)
+    item.save(update_fields=['status', 'error_message', 'transaction_hash', 'block_number'])
+    return item
+
+
 def _save_confirmed(item, result):
     item.transaction_hash = result["transaction_hash"]
     item.block_number = result["block_number"]
@@ -73,10 +82,7 @@ def record_agreement_proof(agreement):
     try:
         return _save_confirmed(item, record_license(agreement.id, proof_hash))
     except (BlockchainError, ValueError) as error:
-        item.status = BlockchainTransaction.Status.FAILED
-        item.error_message = str(error)
-        item.save(update_fields=["status", "error_message"])
-        return item
+        return _save_failed(item, error)
 
 
 def record_artwork_proof(artwork):
@@ -105,14 +111,12 @@ def record_artwork_proof(artwork):
     try:
         return _save_confirmed(item, register_artwork(artwork.id, artwork.sha256_hash))
     except (BlockchainError, ValueError) as error:
-        item.status = BlockchainTransaction.Status.FAILED
-        item.error_message = str(error)
-        item.save(update_fields=["status", "error_message"])
-        return item
+        return _save_failed(item, error)
 
 
 def record_sale_proof(payment):
     """Record an immutable receipt fingerprint after the platform marks payment paid."""
+    from .sale_terms import capture_sale_terms
     existing = BlockchainTransaction.objects.filter(
         operation="sale_record", entity_type="payment", entity_id=payment.id,
         status=BlockchainTransaction.Status.CONFIRMED,
@@ -127,12 +131,14 @@ def record_sale_proof(payment):
                                  'getSale', 'ArtworkSold', 'paymentId')
     if recovered:
         return recovered
+    # Do not backdate a snapshot when merely reading/recovering an old proof.
+    terms = capture_sale_terms(payment)
     proof_hash = sha256_record({
         "payment_id": payment.id,
         "buyer_id": payment.buyer_id,
         "artist_id": payment.artist_id,
-        "agreement_id": payment.agreement_id,
-        "license_document_hash": sha256_bytes((payment.agreement.document_snapshot or payment.agreement.terms_snapshot).encode('utf-8')) if payment.agreement else None,
+        "agreement_id": terms.agreement_id,
+        "license_document_hash": terms.document_hash or None,
         "artwork_id": payment.artwork_id,
         "gross_amount": str(payment.gross_amount),
         "currency": "PHP",
@@ -151,7 +157,4 @@ def record_sale_proof(payment):
     try:
         return _save_confirmed(item, record_sale(payment.id, proof_hash))
     except (BlockchainError, ValueError) as error:
-        item.status = BlockchainTransaction.Status.FAILED
-        item.error_message = str(error)
-        item.save(update_fields=["status", "error_message"])
-        return item
+        return _save_failed(item, error)

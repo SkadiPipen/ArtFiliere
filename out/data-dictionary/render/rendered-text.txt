@@ -1,0 +1,2138 @@
+ArtFiliere Data Dictionary  |  1 
+ArtFiliere Data Dictionary  
+Database reference for the ArtFiliere system ERD 
+7 November 2026 
+This dictionary describes 73 application tables and 805 columns, using the current table names and PostgreSQL data types. 
+REQUIRED is TRUE when the column cannot contain SQL NULL. A TRUE value does not mean a user must enter the value: IDs, timestamps and defaults may be supplied automatically, and some text fields permit 
+empty strings. PK means primary key and FK means foreign key. A unique FK represents a one-to-one relationship. 
+RANGE lists declared choices, length limits, numeric capacity or field validators. Choices and validators may be enforced by the application rather than a database constraint. N/A means no specific range or 
+referenced table applies. The legacy rider table refers to Django auth_user; framework tables are outside this application dictionary. JSON contents and text-based identifiers do not create foreign key relationships. 
+Users and account applications 
+moderator application 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+moderator_application id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+moderator_application user_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+moderator_application email character 
+varying(254) name@domain.com Up to 254 characters TRUE  N/A 
+moderator_application requested_role character varying(30) Text creative_moderator, customer_
+support, driver TRUE  N/A 
+moderator_application application_details jsonb Valid JSON value N/A TRUE  N/A 
+moderator_application education character 
+varying(250) Text Up to 250 characters TRUE  N/A 
+moderator_application motivation text Text N/A TRUE  N/A 
+moderator_application profile_snapshot jsonb Valid JSON value N/A TRUE  N/A 
+moderator_application documents jsonb Valid JSON value N/A TRUE  N/A 
+moderator_application status character varying(20) Text pending, under_review, sent_to_
+admin, approved, rejected TRUE  N/A 
+moderator_application assigned_to_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+moderator_application submitted_by_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+moderator_application submitted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ArtFiliere Data Dictionary  |  2 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+moderator_application updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+moderator_application version integer Whole number 0 to 2^31 - 1 TRUE  N/A 
+ 
+moderator application review 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+moderator_application_
+review id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+moderator_application_
+review application_id bigint Existing key value Existing referenced record TRUE FK moderator_application(id) 
+moderator_application_
+review actor_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+moderator_application_
+review action character varying(30) Text Up to 30 characters TRUE  N/A 
+moderator_application_
+review note text Text N/A TRUE  N/A 
+moderator_application_
+review created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+reseller application 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+reseller_application id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+reseller_application business_permit text Text N/A TRUE  N/A 
+reseller_application business_permit_name character 
+varying(180) Text Up to 180 characters TRUE  N/A 
+reseller_application permit_details jsonb Valid JSON value N/A TRUE  N/A 
+reseller_application permit_expires_on date YYYY-MM-DD N/A FALSE  N/A 
+reseller_application user_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+ArtFiliere Data Dictionary  |  3 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+reseller_application tin_number character varying(12) Text Up to 12 characters TRUE  N/A 
+reseller_application bir_certificate text Text N/A TRUE  N/A 
+reseller_application bir_certificate_name character 
+varying(180) Text Up to 180 characters TRUE  N/A 
+reseller_application sworn_declaration text Text N/A TRUE  N/A 
+reseller_application sworn_declaration_name character 
+varying(180) Text Up to 180 characters TRUE  N/A 
+reseller_application status character varying(12) Text pending, approved, rejected, revoked TRUE  N/A 
+reseller_application submitted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+reseller_application reviewed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+reseller_application reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+reseller_application review_note character 
+varying(1000) Text Up to 1000 characters TRUE  N/A 
+ 
+reseller application review 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+reseller_application_
+review id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+reseller_application_
+review application_id bigint Existing key value Existing referenced record TRUE FK reseller_application(id) 
+reseller_application_
+review actor_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+reseller_application_
+review action character varying(12) Text Up to 12 characters TRUE  N/A 
+reseller_application_
+review note character 
+varying(1000) Text Up to 1000 characters TRUE  N/A 
+reseller_application_
+review created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  4 
+royalty application 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+royalty_application id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+royalty_application permit_details jsonb Valid JSON value N/A TRUE  N/A 
+royalty_application business_permit_name character 
+varying(180) Text Up to 180 characters TRUE  N/A 
+royalty_application user_id bigint Existing key value Existing referenced record; unique TRUE FK user(id) 
+royalty_application business_permit_image text Text N/A TRUE  N/A 
+royalty_application permit_expires_on date YYYY-MM-DD N/A TRUE  N/A 
+royalty_application status character varying(12) Text pending, approved, rejected TRUE  N/A 
+royalty_application submitted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+royalty_application reviewed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+royalty_application reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+royalty_application review_note character 
+varying(1000) Text Up to 1000 characters TRUE  N/A 
+ 
+user 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+user id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+user firebase_uid character 
+varying(128) Text Up to 128 characters; unique TRUE  N/A 
+user email character 
+varying(254) name@domain.com Up to 254 characters; unique TRUE  N/A 
+user username character 
+varying(150) Text Up to 150 characters; unique TRUE  N/A 
+user first_name character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  5 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+user middle_name character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+user last_name character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+user date_of_birth date YYYY-MM-DD N/A FALSE  N/A 
+user contact_number character varying(20) Text Up to 20 characters TRUE  N/A 
+user profile_image text Text N/A TRUE  N/A 
+user cover_image text Text N/A TRUE  N/A 
+user bio text Text N/A FALSE  N/A 
+user is_banned boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+user driver_deactivated boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+user suspended_until timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+user wants_royalty character varying(3) Text yes, no TRUE  N/A 
+user royalty_proof character 
+varying(100) Stored file path Up to 100 characters FALSE  N/A 
+user created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+user role character varying(20) Text 
+driver, customer_support, buyer, 
+artist, hr, creative_moderator, 
+platform_admin 
+TRUE  N/A 
+user is_accepting_commissions boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+ 
+user activity log 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+user_activity_log id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+user_activity_log user_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+user_activity_log action character varying(80) Text Up to 80 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  6 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+user_activity_log description character 
+varying(255) Text Up to 255 characters TRUE  N/A 
+user_activity_log reference_type character varying(50) Text Up to 50 characters TRUE  N/A 
+user_activity_log reference_id integer Whole number 0 to 2^31 - 1 FALSE  N/A 
+user_activity_log created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+user address 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+user_address id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+user_address latitude double precision Floating point number Double precision FALSE  N/A 
+user_address longitude double precision Floating point number Double precision FALSE  N/A 
+user_address user_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+user_address label character varying(50) Text Up to 50 characters TRUE  N/A 
+user_address is_default boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+user_address region character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+user_address province character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+user_address city character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+user_address postal_code character varying(10) Text Up to 10 characters TRUE  N/A 
+user_address barangay character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+user_address street character 
+varying(255) Text Up to 255 characters TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  7 
+Artist applications 
+artist application 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artist_application id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+artist_application user_id bigint Existing key value Existing referenced record; unique TRUE FK user(id) 
+artist_application hourly_rate numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 TRUE  N/A 
+artist_application tin_number character varying(20) Text Up to 20 characters FALSE  N/A 
+artist_application bio text Text N/A FALSE  N/A 
+artist_application bir_certificate text Text N/A TRUE  N/A 
+artist_application bir_certificate_name character 
+varying(255) Text Up to 255 characters TRUE  N/A 
+artist_application bir_expires_on date YYYY-MM-DD N/A FALSE  N/A 
+artist_application sworn_declaration text Text N/A TRUE  N/A 
+artist_application sworn_declaration_name character 
+varying(255) Text Up to 255 characters TRUE  N/A 
+artist_application document_details jsonb Valid JSON value N/A TRUE  N/A 
+artist_application portfolio jsonb Valid JSON value N/A TRUE  N/A 
+artist_application status character varying(20) Text pending, approved, rejected TRUE  N/A 
+artist_application rejection_reason character 
+varying(500) Text Up to 500 characters TRUE  N/A 
+artist_application submitted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+artist_application updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  8 
+artist application log 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artist_application_log id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+artist_application_log application_id bigint Existing key value Existing referenced record TRUE FK artist_application(id) 
+artist_application_log actor_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+artist_application_log action character varying(20) Text submitted, approved, rejected TRUE  N/A 
+artist_application_log previous_status character varying(20) Text Up to 20 characters TRUE  N/A 
+artist_application_log new_status character varying(20) Text Up to 20 characters TRUE  N/A 
+artist_application_log reason character 
+varying(500) Text Up to 500 characters TRUE  N/A 
+artist_application_log created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+artist registration update 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artist_registration_update id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+artist_registration_update application_id bigint Existing key value Existing referenced record TRUE FK artist_application(id) 
+artist_registration_update tin_number character varying(20) Text Up to 20 characters TRUE  N/A 
+artist_registration_update evidence_image text Text N/A TRUE  N/A 
+artist_registration_update expires_on date YYYY-MM-DD N/A FALSE  N/A 
+artist_registration_update previous_record jsonb Valid JSON value N/A TRUE  N/A 
+artist_registration_update status character varying(12) Text pending, approved, rejected TRUE  N/A 
+artist_registration_update review_note character 
+varying(1000) Text Up to 1000 characters TRUE  N/A 
+artist_registration_update reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+artist_registration_update submitted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ArtFiliere Data Dictionary  |  9 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artist_registration_update reviewed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+Artworks 
+artwork 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artwork id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+artwork artist_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+artwork title character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+artwork description text Text N/A TRUE  N/A 
+artwork category character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+artwork categories jsonb Valid JSON value N/A TRUE  N/A 
+artwork tags jsonb Valid JSON value N/A TRUE  N/A 
+artwork price numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 TRUE  N/A 
+artwork hours numeric(8, 2) 8 total digits, 2 decimal 
+places -999999.99 to 999999.99 FALSE  N/A 
+artwork hourly_rate numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 FALSE  N/A 
+artwork material_cost numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 TRUE  N/A 
+artwork art_type character varying(10) Text Up to 10 characters TRUE  N/A 
+artwork image_data text Text N/A TRUE  N/A 
+artwork additional_images jsonb Valid JSON value N/A TRUE  N/A 
+artwork status character varying(20) Text pending, approved, declined TRUE  N/A 
+artwork decline_reason character 
+varying(500) Text Up to 500 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  10 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artwork created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+artwork updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+artwork sale_type character varying(50) Text Up to 50 characters TRUE  N/A 
+artwork bid_increment numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 FALSE  N/A 
+artwork starting_time timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+artwork end_time timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+artwork sha256_hash character varying(64) Text Up to 64 characters; unique FALSE  N/A 
+artwork perceptual_hash character varying(64) Text Up to 64 characters FALSE  N/A 
+artwork difference_hash character varying(64) Text Up to 64 characters FALSE  N/A 
+artwork edge_hash character varying(64) Text Up to 64 characters FALSE  N/A 
+artwork ai_screening jsonb Valid JSON value N/A TRUE  N/A 
+artwork automated_block_reason character varying(30) Text Up to 30 characters TRUE  N/A 
+ 
+artwork ai scan 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artwork_ai_scan cache_key character varying(64) Text Up to 64 characters TRUE PK N/A 
+artwork_ai_scan state character varying(16) Text Up to 16 characters TRUE  N/A 
+artwork_ai_scan job_id character varying(64) Text Up to 64 characters TRUE  N/A 
+artwork_ai_scan result jsonb Valid JSON value N/A TRUE  N/A 
+artwork_ai_scan lease_until timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ArtFiliere Data Dictionary  |  11 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artwork_ai_scan expires_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+artwork_ai_scan created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+artwork_ai_scan updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+artwork review log 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artwork_review_log id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+artwork_review_log artwork_id bigint Existing key value Existing referenced record TRUE FK artwork(id) 
+artwork_review_log actor_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+artwork_review_log action character varying(20) Text Up to 20 characters TRUE  N/A 
+artwork_review_log previous_status character varying(20) Text Up to 20 characters TRUE  N/A 
+artwork_review_log new_status character varying(20) Text Up to 20 characters TRUE  N/A 
+artwork_review_log reason character 
+varying(500) Text Up to 500 characters TRUE  N/A 
+artwork_review_log created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+artwork similarity match 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artwork_similarity_match id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+artwork_similarity_match artwork_id bigint Existing key value Existing referenced record TRUE FK artwork(id) 
+artwork_similarity_match reference_artwork_id bigint Existing key value Existing referenced record TRUE FK artwork(id) 
+ArtFiliere Data Dictionary  |  12 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+artwork_similarity_match phash_distance smallint Whole number 0 to 2^15 - 1 TRUE  N/A 
+artwork_similarity_match dhash_distance smallint Whole number 0 to 2^15 - 1 TRUE  N/A 
+artwork_similarity_match edge_hash_distance smallint Whole number 0 to 2^15 - 1 TRUE  N/A 
+artwork_similarity_match feature_match_score double precision Floating point number Double precision TRUE  N/A 
+artwork_similarity_match color_similarity_score double precision Floating point number Double precision TRUE  N/A 
+artwork_similarity_match confidence_score double precision Floating point number Double precision TRUE  N/A 
+artwork_similarity_match review_status character varying(20) Text pending, confirmed_copy, not_a_
+copy, auto_blocked TRUE  N/A 
+artwork_similarity_match reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+artwork_similarity_match review_note character 
+varying(500) Text Up to 500 characters TRUE  N/A 
+artwork_similarity_match created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+artwork_similarity_match reviewed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+Shopping carts 
+cart 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+cart cart_id integer System generated 
+integer 1 to 2^31 - 1 TRUE PK N/A 
+cart buyer_id bigint Existing key value Existing referenced record; unique TRUE FK user(id) 
+ 
+cart item 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+cart_item cart_item_id integer System generated 
+integer 1 to 2^31 - 1 TRUE PK N/A 
+ArtFiliere Data Dictionary  |  13 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+cart_item cart_id integer Existing key value Existing referenced record TRUE FK cart(cart_id) 
+cart_item listing_id bigint Existing key value Existing referenced record TRUE FK artwork(id) 
+cart_item quantity integer Whole number 0 to 2^31 - 1 TRUE  N/A 
+ 
+Auctions 
+auction 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+auction id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+auction platform_defaults_snapshot jsonb Valid JSON value N/A TRUE  N/A 
+auction artist_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+auction artwork_id bigint Existing key value Existing referenced record TRUE FK artwork(id) 
+auction starting_bid numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+auction current_bid numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+auction bid_increment numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 TRUE  N/A 
+auction start_time timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+auction end_time timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+auction status character varying(20) Text 
+PENDING_APPROVAL, ACTIVE, 
+SCHEDULED, ENDED, SETTLED, 
+PAYMENT_PENDING, BACKUP_
+OFFER, FORFEITED, 
+CANCELLED 
+TRUE  N/A 
+auction highest_bidder_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+auction is_physical boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+auction license_type character varying(30) Text Up to 30 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  14 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+auction exclusivity character varying(30) Text Up to 30 characters TRUE  N/A 
+auction delivery_type character varying(30) Text Up to 30 characters TRUE  N/A 
+auction terms_snapshot text Text N/A TRUE  N/A 
+auction signed_document text Text N/A TRUE  N/A 
+auction signed_document_hash character varying(64) Text Up to 64 characters TRUE  N/A 
+auction artist_signature character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+auction artist_signature_image text Text N/A TRUE  N/A 
+auction artist_signed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+auction agreement_template_id bigint Existing key value Existing referenced record FALSE FK agreement_template(id) 
+auction payment_deadline timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+auction winning_bid numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 FALSE  N/A 
+auction winner_forfeited_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+auction backup_bidder_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+auction backup_offer_expires_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+auction created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+auction bid 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+auction_bid id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+auction_bid auction_id bigint Existing key value Existing referenced record TRUE FK auction(id) 
+ArtFiliere Data Dictionary  |  15 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+auction_bid bidder_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+auction_bid amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+auction_bid created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+auction_bid terms_accepted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+Messaging agreements and royalties 
+agreement 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+agreement id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+agreement wording_snapshot jsonb Valid JSON value N/A TRUE  N/A 
+agreement platform_defaults_snapshot jsonb Valid JSON value N/A TRUE  N/A 
+agreement conversation_id bigint Existing key value Existing referenced record TRUE FK conversation(id) 
+agreement template_id bigint Existing key value Existing referenced record TRUE FK agreement_template(id) 
+agreement artwork_id bigint Existing key value Existing referenced record FALSE FK artwork(id) 
+agreement buyer_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+agreement artist_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+agreement price numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+agreement terms_snapshot text Text N/A TRUE  N/A 
+agreement document_snapshot text Text N/A TRUE  N/A 
+agreement license_scope jsonb Valid JSON value N/A TRUE  N/A 
+agreement pricing_terms jsonb Valid JSON value N/A TRUE  N/A 
+agreement artist_presigned_document text Text N/A TRUE  N/A 
+agreement artist_signature_image text Text N/A TRUE  N/A 
+ArtFiliere Data Dictionary  |  16 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+agreement buyer_signature_image text Text N/A TRUE  N/A 
+agreement artist_signature character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+agreement buyer_signature character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+agreement artist_signed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+agreement buyer_signed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+agreement delivery_fee numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 TRUE  N/A 
+agreement delivery_details jsonb Valid JSON value N/A TRUE  N/A 
+agreement delivery_date date YYYY-MM-DD N/A FALSE  N/A 
+agreement revision_limit smallint Whole number 0 to 2^15 - 1 TRUE  N/A 
+agreement license_type character varying(30) Text Up to 30 characters TRUE  N/A 
+agreement exclusivity character varying(30) Text Up to 30 characters TRUE  N/A 
+agreement delivery_type character varying(30) Text Up to 30 characters TRUE  N/A 
+agreement compensation_type character varying(30) Text Up to 30 characters TRUE  N/A 
+agreement compensation_terms jsonb Valid JSON value N/A TRUE  N/A 
+agreement revision_of_id bigint Existing key value Existing referenced record FALSE FK agreement(id) 
+agreement negotiation_key character varying(36) Text Up to 36 characters TRUE  N/A 
+agreement closure_reason character varying(20) Text Up to 20 characters TRUE  N/A 
+agreement cancelled_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+agreement cancelled_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+agreement status character varying(20) Text proposed, accepted, cancelled TRUE  N/A 
+agreement buyer_accepted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ArtFiliere Data Dictionary  |  17 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+agreement artist_accepted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+agreement created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+agreement verification_code character varying(24) Text Up to 24 characters; unique TRUE  N/A 
+ 
+agreement template 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+agreement_template id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+agreement_template wording jsonb Valid JSON value N/A TRUE  N/A 
+agreement_template name character 
+varying(120) Text Up to 120 characters; unique TRUE  N/A 
+agreement_template body text Text N/A TRUE  N/A 
+agreement_template is_active boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+agreement_template updated_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+agreement_template updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+conversation 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+conversation id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+conversation artwork_id bigint Existing key value Existing referenced record FALSE FK artwork(id) 
+conversation status character varying(20) Text open, agreed, cancelled, completed TRUE  N/A 
+conversation created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ArtFiliere Data Dictionary  |  18 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+conversation updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+conversation participant 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+conversation_participant id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+conversation_participant conversation_id bigint Existing key value Existing referenced record TRUE FK conversation(id) 
+conversation_participant user_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+conversation_participant last_read_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+conversation_participant joined_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+direct message 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+direct_message id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+direct_message sender_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+direct_message recipient_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+direct_message body text Text N/A TRUE  N/A 
+direct_message is_read boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+direct_message created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  19 
+message 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+message id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+message conversation_id bigint Existing key value Existing referenced record TRUE FK conversation(id) 
+message sender_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+message body text Text N/A TRUE  N/A 
+message message_type character varying(20) Text text, agreement, system TRUE  N/A 
+message agreement_id bigint Existing key value Existing referenced record FALSE FK agreement(id) 
+message created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+platform setting 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+platform_setting id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+platform_setting values jsonb Valid JSON value N/A TRUE  N/A 
+platform_setting revision integer Whole number 0 to 2^31 - 1 TRUE  N/A 
+platform_setting updated_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+platform_setting updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+royalty funding 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+royalty_funding id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+royalty_funding period_id bigint Existing key value Existing referenced record; unique TRUE FK royalty_period(id) 
+royalty_funding reference character varying(80) Text Up to 80 characters; unique TRUE  N/A 
+ArtFiliere Data Dictionary  |  20 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+royalty_funding session_id character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+royalty_funding checkout_url character 
+varying(1000) URL text Up to 1000 characters TRUE  N/A 
+royalty_funding amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+royalty_funding status character varying(20) Text Up to 20 characters TRUE  N/A 
+royalty_funding paid_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+royalty_funding released_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+royalty_funding reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+royalty_funding review_note character 
+varying(1000) Text Up to 1000 characters TRUE  N/A 
+royalty_funding created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+royalty mandate 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+royalty_mandate id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+royalty_mandate agreement_id bigint Existing key value Existing referenced record; unique TRUE FK agreement(id) 
+royalty_mandate session_id character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+royalty_mandate token_id character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+royalty_mandate status character varying(20) Text Up to 20 characters TRUE  N/A 
+royalty_mandate consented_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ArtFiliere Data Dictionary  |  21 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+royalty_mandate revoked_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+royalty_mandate reference character varying(64) Text Up to 64 characters; unique TRUE  N/A 
+royalty_mandate checkout_url character 
+varying(1000) URL text Up to 1000 characters TRUE  N/A 
+ 
+royalty period 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+royalty_period id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+royalty_period agreement_id bigint Existing key value Existing referenced record TRUE FK agreement(id) 
+royalty_period starts_on date YYYY-MM-DD N/A TRUE  N/A 
+royalty_period ends_on date YYYY-MM-DD N/A TRUE  N/A 
+royalty_period due_on date YYYY-MM-DD N/A TRUE  N/A 
+royalty_period terms jsonb Valid JSON value N/A TRUE  N/A 
+royalty_period metrics jsonb Valid JSON value N/A TRUE  N/A 
+royalty_period evidence jsonb Valid JSON value N/A TRUE  N/A 
+royalty_period history jsonb Valid JSON value N/A TRUE  N/A 
+royalty_period amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 FALSE  N/A 
+royalty_period status character varying(20) Text Up to 20 characters TRUE  N/A 
+royalty_period review_note character 
+varying(1000) Text Up to 1000 characters TRUE  N/A 
+royalty_period submitted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+royalty_period approved_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+royalty_period provider_request_id character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  22 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+royalty_period collection_error character 
+varying(250) Text Up to 250 characters TRUE  N/A 
+royalty_period paid_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+royalty receipt 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+royalty_receipt id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+royalty_receipt platform_fee numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+royalty_receipt period_id bigint Existing key value Existing referenced record; unique TRUE FK royalty_period(id) 
+royalty_receipt amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+royalty_receipt provider_payment_id character 
+varying(100) Text Up to 100 characters; unique TRUE  N/A 
+royalty_receipt created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+Payments wallets and support 
+account action request 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+account_action_request id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+account_action_request report_id bigint Existing key value Existing referenced record TRUE FK incident_report(id) 
+account_action_request target_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+account_action_request initiated_by_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+account_action_request action character varying(12) Text Up to 12 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  23 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+account_action_request reason text Text N/A TRUE  N/A 
+account_action_request duration_days smallint Whole number 0 to 2^15 - 1 FALSE  N/A 
+account_action_request status character varying(12) Text Up to 12 characters TRUE  N/A 
+account_action_request reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+account_action_request review_note text Text N/A TRUE  N/A 
+account_action_request reviewed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+account_action_request expires_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+account_action_request created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+account_action_request revoked_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+account_action_request revoked_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+account_action_request reversal_reason text Text N/A TRUE  N/A 
+ 
+account moderation request 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+account_moderation_
+request id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+account_moderation_
+request ticket_id bigint Existing key value Existing referenced record TRUE FK support_ticket(id) 
+account_moderation_
+request target_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+account_moderation_
+request requested_by_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+account_moderation_
+request action character varying(12) Text suspend, ban, restore TRUE  N/A 
+ArtFiliere Data Dictionary  |  24 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+account_moderation_
+request duration_days smallint Whole number 0 to 2^15 - 1 FALSE  N/A 
+account_moderation_
+request reason text Text N/A TRUE  N/A 
+account_moderation_
+request status character varying(12) Text pending, approved, rejected TRUE  N/A 
+account_moderation_
+request reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+account_moderation_
+request review_note text Text N/A TRUE  N/A 
+account_moderation_
+request created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+account_moderation_
+request reviewed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+account_moderation_
+request revoked_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+account_moderation_
+request revoked_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+account_moderation_
+request reversal_reason text Text N/A TRUE  N/A 
+ 
+financial authorization 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+financial_authorization id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+financial_authorization report_id bigint Existing key value Existing referenced record TRUE FK incident_report(id) 
+financial_authorization payment_id bigint Existing key value Existing referenced record TRUE FK payment(id) 
+financial_authorization recipient_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+financial_authorization authorized_by_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+financial_authorization kind character varying(20) Text refund, wallet_credit TRUE  N/A 
+ArtFiliere Data Dictionary  |  25 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+financial_authorization amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+financial_authorization reason text Text N/A TRUE  N/A 
+financial_authorization status character varying(20) Text Up to 20 characters TRUE  N/A 
+financial_authorization created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+incident report 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+incident_report id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+incident_report reporter_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+incident_report reported_user_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+incident_report payment_id bigint Existing key value Existing referenced record FALSE FK payment(id) 
+incident_report category character varying(20) Text Up to 20 characters TRUE  N/A 
+incident_report title character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+incident_report description text Text N/A TRUE  N/A 
+incident_report evidence text Text N/A TRUE  N/A 
+incident_report status character varying(20) Text Up to 20 characters TRUE  N/A 
+incident_report resolution text Text N/A TRUE  N/A 
+incident_report reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+incident_report created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+incident_report updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  26 
+payment 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+payment id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+payment reference_id character varying(64) Text Up to 64 characters; unique TRUE  N/A 
+payment buyer_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+payment artist_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+payment artwork_id bigint Existing key value Existing referenced record TRUE FK artwork(id) 
+payment agreement_id bigint Existing key value Existing referenced record FALSE FK agreement(id) 
+payment gross_amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+payment platform_fee numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+payment artist_amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+payment is_simulated boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+payment artwork_png bytea Binary bytes N/A FALSE  N/A 
+payment checkout_url character 
+varying(2000) URL text Up to 2000 characters TRUE  N/A 
+payment xendit_session_id character varying(80) Text Up to 80 characters TRUE  N/A 
+payment xendit_payment_id character varying(80) Text Up to 80 characters TRUE  N/A 
+payment status character varying(20) Text pending, paid, expired, refunded TRUE  N/A 
+payment paid_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+payment created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+payment verification_code character varying(24) Text Up to 24 characters; unique TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  27 
+payment return request 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+payment_return_request id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+payment_return_request payment_session_id bigint Existing key value Existing referenced record TRUE FK payment(id) 
+payment_return_request requester_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+payment_return_request request_type character varying(20) Text refund, cancellation, return TRUE  N/A 
+payment_return_request reason text Text N/A TRUE  N/A 
+payment_return_request status character varying(20) Text pending, approved, declined TRUE  N/A 
+payment_return_request admin_note text Text N/A TRUE  N/A 
+payment_return_request reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+payment_return_request created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+payment_return_request reviewed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+payment_return_request counterpart_decision character varying(12) Text Up to 12 characters TRUE  N/A 
+payment_return_request counterpart_note text Text N/A TRUE  N/A 
+payment_return_request responded_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+payment_return_request responded_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+report attachment 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+report_attachment id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+report_attachment report_id bigint Existing key value Existing referenced record FALSE FK incident_report(id) 
+report_attachment appeal_id bigint Existing key value Existing referenced record FALSE FK restriction_appeal(id) 
+report_attachment name character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  28 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+report_attachment content_type character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+report_attachment content bytea Binary bytes N/A TRUE  N/A 
+report_attachment size integer Whole number 0 to 2^31 - 1 TRUE  N/A 
+ 
+restriction appeal 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+restriction_appeal id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+restriction_appeal user_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+restriction_appeal source character varying(10) Text Up to 10 characters TRUE  N/A 
+restriction_appeal restriction_id integer Whole number 0 to 2^31 - 1 TRUE  N/A 
+restriction_appeal explanation text Text N/A TRUE  N/A 
+restriction_appeal links jsonb Valid JSON value N/A TRUE  N/A 
+restriction_appeal status character varying(20) Text Up to 20 characters TRUE  N/A 
+restriction_appeal recommendation character varying(20) Text Up to 20 characters TRUE  N/A 
+restriction_appeal moderator_note text Text N/A TRUE  N/A 
+restriction_appeal recommended_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+restriction_appeal decision_note text Text N/A TRUE  N/A 
+restriction_appeal decided_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+restriction_appeal created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+restriction_appeal decided_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+ArtFiliere Data Dictionary  |  29 
+support reply 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+support_reply id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+support_reply ticket_id bigint Existing key value Existing referenced record TRUE FK support_ticket(id) 
+support_reply sender_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+support_reply message text Text N/A TRUE  N/A 
+support_reply created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+support ticket 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+support_ticket id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+support_ticket requester_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+support_ticket assigned_to_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+support_ticket transfer_to_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+support_ticket concern character varying(60) Text Up to 60 characters TRUE  N/A 
+support_ticket reported_user_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+support_ticket reported_username character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+support_ticket payment_id bigint Existing key value Existing referenced record FALSE FK payment(id) 
+support_ticket artwork_id bigint Existing key value Existing referenced record FALSE FK artwork(id) 
+support_ticket commission_id bigint Existing key value Existing referenced record FALSE FK commission(commission_req_id) 
+support_ticket auction_id bigint Existing key value Existing referenced record FALSE FK auction(id) 
+support_ticket details text Text N/A TRUE  N/A 
+support_ticket evidence text Text N/A TRUE  N/A 
+support_ticket image_data text Text N/A TRUE  N/A 
+support_ticket status character varying(24) Text open, in_progress, awaiting_
+customer, resolved, closed TRUE  N/A 
+ArtFiliere Data Dictionary  |  30 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+support_ticket created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+support_ticket updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+wallet 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+wallet id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+wallet user_id bigint Existing key value Existing referenced record; unique TRUE FK user(id) 
+wallet currency character varying(3) Text Up to 3 characters TRUE  N/A 
+wallet pending_balance numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+wallet available_balance numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+wallet paid_out_balance numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+wallet updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+wallet entry 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+wallet_entry id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+wallet_entry wallet_id bigint Existing key value Existing referenced record TRUE FK wallet(id) 
+wallet_entry payment_session_id bigint Existing key value Existing referenced record TRUE FK payment(id) 
+wallet_entry entry_type character varying(30) Text sale_held, sale_available, payout, 
+refund_reversal TRUE  N/A 
+ArtFiliere Data Dictionary  |  31 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+wallet_entry amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+wallet_entry created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+Delivery and fulfillment 
+authenticity certificate 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+authenticity_certificate id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+authenticity_certificate payment_id bigint Existing key value Existing referenced record; unique FALSE FK payment(id) 
+authenticity_certificate commission_id bigint Existing key value Existing referenced record; unique FALSE FK commission(commission_req_id) 
+authenticity_certificate code character varying(40) Text Up to 40 characters; unique TRUE  N/A 
+authenticity_certificate snapshot jsonb Valid JSON value N/A TRUE  N/A 
+authenticity_certificate pdf bytea Binary bytes N/A TRUE  N/A 
+authenticity_certificate issued_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+delivery chat 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+delivery_chat id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+delivery_chat order_id bigint Existing key value Existing referenced record TRUE FK delivery_order(id) 
+delivery_chat contact character varying(6) Text buyer, artist TRUE  N/A 
+delivery_chat conversation_id bigint Existing key value Existing referenced record; unique TRUE FK conversation(id) 
+ 
+ArtFiliere Data Dictionary  |  32 
+delivery order 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+delivery_order id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+delivery_order payment_id bigint Existing key value Existing referenced record; unique FALSE FK payment(id) 
+delivery_order commission_id bigint Existing key value Existing referenced record; unique FALSE FK commission(commission_req_id) 
+delivery_order driver_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+delivery_order status character varying(20) Text 
+pending, accepted, arrived_at_artist, 
+picked_up, arrived_at_buyer, in_
+transit, delivered 
+TRUE  N/A 
+delivery_order pickup_proof text Text N/A TRUE  N/A 
+delivery_order delivery_proof text Text N/A TRUE  N/A 
+delivery_order timeline jsonb Valid JSON value N/A TRUE  N/A 
+delivery_order route_details jsonb Valid JSON value N/A TRUE  N/A 
+delivery_order pickup_address text Text N/A TRUE  N/A 
+delivery_order delivery_address text Text N/A TRUE  N/A 
+delivery_order fee numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 TRUE  N/A 
+delivery_order created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+delivery_order delivered_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+delivery route 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+delivery_route id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+delivery_route pickup_city character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+delivery_route destination_city character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  33 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+delivery_route distance_km numeric(7, 2) 7 total digits, 2 decimal 
+places 
+Minimum 0.01; -99999.99 to 
+99999.99 TRUE  N/A 
+delivery_route base_fare numeric(9, 2) 9 total digits, 2 decimal 
+places 
+Minimum 0; -9999999.99 to 
+9999999.99 TRUE  N/A 
+delivery_route per_km numeric(9, 2) 9 total digits, 2 decimal 
+places 
+Minimum 0; -9999999.99 to 
+9999999.99 TRUE  N/A 
+delivery_route active boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+ 
+download fingerprint 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+download_fingerprint id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+download_fingerprint transaction_code character varying(24) Text Up to 24 characters; unique FALSE  N/A 
+download_fingerprint blockchain_proof_id bigint Existing key value Existing referenced record FALSE FK blockchain_transaction(id) 
+download_fingerprint license_snapshot jsonb Valid JSON value N/A TRUE  N/A 
+download_fingerprint token character varying(61) Text Up to 61 characters; unique TRUE  N/A 
+download_fingerprint source_key character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+download_fingerprint source_sha256 character varying(64) Text Up to 64 characters TRUE  N/A 
+download_fingerprint buyer_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+download_fingerprint artist_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+download_fingerprint created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+download_fingerprint issued_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+ArtFiliere Data Dictionary  |  34 
+purchase review 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+purchase_review id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+purchase_review payment_id bigint Existing key value Existing referenced record; unique FALSE FK payment(id) 
+purchase_review commission_id bigint Existing key value Existing referenced record; unique FALSE FK commission(commission_req_id) 
+purchase_review artist_rating smallint Whole number Minimum 1; Maximum 5 TRUE  N/A 
+purchase_review artwork_rating smallint Whole number Minimum 1; Maximum 5 TRUE  N/A 
+purchase_review comment text Text N/A TRUE  N/A 
+purchase_review artist_comment text Text N/A TRUE  N/A 
+purchase_review artwork_comment text Text N/A TRUE  N/A 
+purchase_review images jsonb Valid JSON value N/A TRUE  N/A 
+purchase_review created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+rider profile 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+rider_profile id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+rider_profile user_id bigint Existing key value Existing referenced record; unique TRUE FK user(id) 
+rider_profile is_clocked_in boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+rider_profile clock_in_time timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+rider_profile clock_out_time timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+rider_profile latitude double precision Floating point number Double precision FALSE  N/A 
+rider_profile longitude double precision Floating point number Double precision FALSE  N/A 
+ArtFiliere Data Dictionary  |  35 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+rider_profile location_updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+Commissions 
+commission 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission commission_req_id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission buyer_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission artist_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission title character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+commission subject character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+commission style character varying(80) Text Up to 80 characters TRUE  N/A 
+commission description text Text N/A FALSE  N/A 
+commission art_type character varying(20) Text Up to 20 characters TRUE  N/A 
+commission tags character 
+varying(255) Text Up to 255 characters FALSE  N/A 
+commission time_duration numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+commission deadline timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+commission is_rush_job boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+commission created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ArtFiliere Data Dictionary  |  36 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission status character varying(20) Text 
+NEGOTIATING, SIGNING, 
+AWAITING_FUNDS, PENDING, 
+IN_PROGRESS, STAGE_1, 
+STAGE_2, STAGE_3, COMPLETE, 
+CANCELLED 
+TRUE  N/A 
+commission accepted_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission flow_version smallint Whole number 0 to 2^15 - 1 TRUE  N/A 
+commission agreement_id bigint Existing key value Existing referenced record; unique FALSE FK agreement(id) 
+commission locked_terms jsonb Valid JSON value N/A TRUE  N/A 
+commission funding_due_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission funded_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission funding_reference character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+commission funding_provider_id character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+commission funding_url text URL text N/A TRUE  N/A 
+commission funding_payload jsonb Valid JSON value N/A TRUE  N/A 
+commission held_amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+commission platform_fee numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+commission disputed boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+commission courier_tracking character 
+varying(500) Text Up to 500 characters TRUE  N/A 
+commission delivered_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission cancel_reason character 
+varying(255) Text Up to 255 characters FALSE  N/A 
+ArtFiliere Data Dictionary  |  37 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission cancel_feedback text Text N/A FALSE  N/A 
+commission refund_amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+commission cancelled_at_stage integer Whole number -2^31 to 2^31 - 1 FALSE  N/A 
+ 
+commission access decision 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_access_
+decision id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_access_
+decision commission_id bigint Existing key value Existing referenced record TRUE FK commission(commission_req_id) 
+commission_access_
+decision restriction_key character 
+varying(255) Text Up to 255 characters TRUE  N/A 
+commission_access_
+decision approved boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+commission_access_
+decision note text Text N/A TRUE  N/A 
+commission_access_
+decision reviewed_by_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission_access_
+decision created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+commission asset 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_asset id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_asset commission_id bigint Existing key value Existing referenced record; unique TRUE FK commission(commission_req_id) 
+commission_asset original_artist_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission_asset owner_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission_asset submission_id bigint Existing key value Existing referenced record TRUE FK commission_submission(id) 
+ArtFiliere Data Dictionary  |  38 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_asset license_terms jsonb Valid JSON value N/A TRUE  N/A 
+commission_asset record_hash character varying(64) Text Up to 64 characters TRUE  N/A 
+commission_asset created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+commission entry 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_entry id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_entry commission_id bigint Existing key value Existing referenced record TRUE FK commission(commission_req_id) 
+commission_entry reference character 
+varying(120) Text Up to 120 characters; unique TRUE  N/A 
+commission_entry kind character varying(30) Text Up to 30 characters TRUE  N/A 
+commission_entry amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+commission_entry created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+commission message 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_message id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_message commission_id bigint Existing key value Existing referenced record TRUE FK commission(commission_req_id) 
+commission_message sender_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission_message body text Text N/A TRUE  N/A 
+commission_message created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  39 
+commission milestone 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_milestone milestone_id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_milestone commission_req_id bigint Existing key value Existing referenced record TRUE FK commission(commission_req_id) 
+commission_milestone milestone_number integer Whole number -2^31 to 2^31 - 1 TRUE  N/A 
+commission_milestone stage_label character varying(50) Text Up to 50 characters TRUE  N/A 
+commission_milestone status character varying(20) Text Up to 20 characters TRUE  N/A 
+commission_milestone percentage integer Whole number -2^31 to 2^31 - 1 TRUE  N/A 
+commission_milestone amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+commission_milestone paid_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission_milestone approved_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission_milestone review_due_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission_milestone delivery_ready_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission_milestone revision_comment text Text N/A TRUE  N/A 
+commission_milestone revision_requested_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission_milestone revision_reply text Text N/A TRUE  N/A 
+commission_milestone revision_replied_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission_milestone payout_reference character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+commission_milestone payout_provider_id character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+commission_milestone payout_status character varying(30) Text Up to 30 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  40 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_milestone payout_payload jsonb Valid JSON value N/A TRUE  N/A 
+commission_milestone payout_error text Text N/A TRUE  N/A 
+ 
+commission payout profile 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_payout_
+profile id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_payout_
+profile artist_id bigint Existing key value Existing referenced record; unique TRUE FK user(id) 
+commission_payout_
+profile recipient jsonb Valid JSON value N/A TRUE  N/A 
+commission_payout_
+profile updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+commission photo 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_photo photo_id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_photo commission_req_id bigint Existing key value Existing referenced record TRUE FK commission(commission_req_id) 
+commission_photo image_url text URL text N/A TRUE  N/A 
+commission_photo photo_type character varying(20) Text REFERENCE, PROGRESS TRUE  N/A 
+commission_photo stage_number integer Whole number -2^31 to 2^31 - 1 TRUE  N/A 
+commission_photo progress_percentage integer Whole number -2^31 to 2^31 - 1 TRUE  N/A 
+commission_photo caption character 
+varying(255) Text Up to 255 characters FALSE  N/A 
+commission_photo uploaded_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  41 
+commission proof 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_proof id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_proof commission_id bigint Existing key value Existing referenced record TRUE FK commission(commission_req_id) 
+commission_proof submission_id bigint Existing key value Existing referenced record; unique FALSE FK commission_submission(id) 
+commission_proof asset_id bigint Existing key value Existing referenced record; unique FALSE FK commission_asset(id) 
+commission_proof record_hash character varying(64) Text Up to 64 characters TRUE  N/A 
+commission_proof registry_id character varying(78) Text Up to 78 characters; unique TRUE  N/A 
+commission_proof transaction_hash character varying(66) Text Up to 66 characters TRUE  N/A 
+commission_proof block_number bigint Whole number 0 to 2^63 - 1 FALSE  N/A 
+commission_proof status character varying(20) Text Up to 20 characters TRUE  N/A 
+commission_proof error text Text N/A TRUE  N/A 
+ 
+commission proposal 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_proposal id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_proposal commission_id bigint Existing key value Existing referenced record TRUE FK commission(commission_req_id) 
+commission_proposal proposer_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission_proposal version integer Whole number 0 to 2^31 - 1 TRUE  N/A 
+commission_proposal terms jsonb Valid JSON value N/A TRUE  N/A 
+commission_proposal status character varying(20) Text Up to 20 characters TRUE  N/A 
+commission_proposal created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  42 
+commission refund 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_refund id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_refund commission_id bigint Existing key value Existing referenced record TRUE FK commission(commission_req_id) 
+commission_refund authorized_by_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission_refund amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+commission_refund reason text Text N/A TRUE  N/A 
+commission_refund reference character 
+varying(100) Text Up to 100 characters; unique TRUE  N/A 
+commission_refund provider_id character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+commission_refund status character varying(30) Text Up to 30 characters TRUE  N/A 
+commission_refund created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+commission resale 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_resale id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_resale asset_id bigint Existing key value Existing referenced record TRUE FK commission_asset(id) 
+commission_resale artwork_id bigint Existing key value Existing referenced record; unique TRUE FK artwork(id) 
+commission_resale seller_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission_resale royalty_amount numeric(12, 2) 12 total digits, 2 
+decimal places -9999999999.99 to 9999999999.99 TRUE  N/A 
+commission_resale payment_id bigint Existing key value Existing referenced record; unique FALSE FK payment(id) 
+commission_resale settled_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+commission_resale payout_reference character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  43 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_resale payout_provider_id character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+commission_resale payout_status character varying(30) Text Up to 30 characters TRUE  N/A 
+commission_resale payout_payload jsonb Valid JSON value N/A TRUE  N/A 
+ 
+commission submission 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+commission_submission id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+commission_submission milestone_id bigint Existing key value Existing referenced record TRUE FK commission_milestone(milestone_
+id) 
+commission_submission uploader_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+commission_submission filename character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+commission_submission content_type character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+commission_submission content bytea Binary bytes N/A TRUE  N/A 
+commission_submission sha256 character varying(64) Text Up to 64 characters TRUE  N/A 
+commission_submission cid character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+commission_submission caption text Text N/A TRUE  N/A 
+commission_submission final_original boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+commission_submission uploaded_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  44 
+Blockchain and provenance 
+blockchain transaction 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+blockchain_transaction id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+blockchain_transaction artwork_id bigint Existing key value Existing referenced record TRUE FK artwork(id) 
+blockchain_transaction operation character varying(30) Text Up to 30 characters TRUE  N/A 
+blockchain_transaction entity_type character varying(30) Text Up to 30 characters TRUE  N/A 
+blockchain_transaction entity_id bigint Whole number 0 to 2^63 - 1 FALSE  N/A 
+blockchain_transaction proof_hash character varying(64) Text Up to 64 characters TRUE  N/A 
+blockchain_transaction transaction_hash character varying(66) Text Up to 66 characters TRUE  N/A 
+blockchain_transaction block_number bigint Whole number 0 to 2^63 - 1 FALSE  N/A 
+blockchain_transaction network character varying(30) Text Up to 30 characters TRUE  N/A 
+blockchain_transaction status character varying(12) Text pending, confirmed, failed TRUE  N/A 
+blockchain_transaction error_message text Text N/A TRUE  N/A 
+blockchain_transaction confirmed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+blockchain_transaction created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+provenance artwork 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+provenance_artwork id uuid xxxxxxxx-xxxx-xxxx-
+xxxx-xxxxxxxxxxxx N/A TRUE PK N/A 
+provenance_artwork original_artwork_id bigint Existing key value Existing referenced record; unique FALSE FK artwork(id) 
+provenance_artwork commission_asset_id bigint Existing key value Existing referenced record; unique FALSE FK commission_asset(id) 
+provenance_artwork file_hash character varying(64) Text Up to 64 characters TRUE  N/A 
+provenance_artwork claimed_creator_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+ArtFiliere Data Dictionary  |  45 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+provenance_artwork credited_creator_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+provenance_artwork initial_owner_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+provenance_artwork current_owner_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+provenance_artwork creator_verified boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+provenance_artwork disputed boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+provenance_artwork registered_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+provenance_artwork created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+provenance event 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+provenance_event id uuid xxxxxxxx-xxxx-xxxx-
+xxxx-xxxxxxxxxxxx N/A TRUE PK N/A 
+provenance_event record_id uuid Existing key value Existing referenced record TRUE FK provenance_artwork(id) 
+provenance_event kind character varying(15) Text registration, transfer, review TRUE  N/A 
+provenance_event reference character 
+varying(100) Text Up to 100 characters; unique TRUE  N/A 
+provenance_event payment_id bigint Existing key value Existing referenced record; unique FALSE FK payment(id) 
+provenance_event previous_owner_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+provenance_event new_owner_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+provenance_event payload jsonb Valid JSON value N/A TRUE  N/A 
+provenance_event record_hash character varying(64) Text Up to 64 characters TRUE  N/A 
+provenance_event status character varying(12) Text pending, confirmed, failed TRUE  N/A 
+provenance_event transaction_hash character varying(66) Text Up to 66 characters TRUE  N/A 
+provenance_event signed_transaction text Text N/A TRUE  N/A 
+provenance_event nonce bigint Whole number 0 to 2^63 - 1 FALSE  N/A 
+provenance_event sender character varying(42) Text Up to 42 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  46 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+provenance_event previous_attempts jsonb Valid JSON value N/A TRUE  N/A 
+provenance_event chain_id bigint Whole number 0 to 2^63 - 1 FALSE  N/A 
+provenance_event contract_address character varying(42) Text Up to 42 characters TRUE  N/A 
+provenance_event block_number bigint Whole number 0 to 2^63 - 1 FALSE  N/A 
+provenance_event error text Text N/A TRUE  N/A 
+provenance_event created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+provenance_event confirmed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+provenance listing 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+provenance_listing id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+provenance_listing artwork_id bigint Existing key value Existing referenced record; unique TRUE FK artwork(id) 
+provenance_listing record_id uuid Existing key value Existing referenced record TRUE FK provenance_artwork(id) 
+provenance_listing reserved_payment_id bigint Existing key value Existing referenced record; unique FALSE FK payment(id) 
+provenance_listing reserved_rights jsonb Valid JSON value N/A TRUE  N/A 
+ 
+provenance review 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+provenance_review id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+provenance_review record_id uuid Existing key value Existing referenced record TRUE FK provenance_artwork(id) 
+provenance_review requested_by_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+provenance_review proposed_creator_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+provenance_review reason text Text N/A TRUE  N/A 
+ArtFiliere Data Dictionary  |  47 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+provenance_review evidence_links jsonb Valid JSON value N/A TRUE  N/A 
+provenance_review status character varying(20) Text Up to 20 characters TRUE  N/A 
+provenance_review reviewed_by_id bigint Existing key value Existing referenced record FALSE FK user(id) 
+provenance_review decision_note text Text N/A TRUE  N/A 
+provenance_review event_id uuid Existing key value Existing referenced record; unique FALSE FK provenance_event(id) 
+provenance_review created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+provenance_review reviewed_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+ 
+provenance signer 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+provenance_signer key character 
+varying(100) Text Up to 100 characters TRUE PK N/A 
+ 
+sale terms snapshot 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+sale_terms_snapshot id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+sale_terms_snapshot payment_id bigint Existing key value Existing referenced record; unique TRUE FK payment(id) 
+sale_terms_snapshot agreement_id bigint Existing key value Existing referenced record FALSE FK agreement(id) 
+sale_terms_snapshot terms jsonb Valid JSON value N/A TRUE  N/A 
+sale_terms_snapshot document_hash character varying(64) Text Up to 64 characters TRUE  N/A 
+sale_terms_snapshot source character varying(20) Text Up to 20 characters TRUE  N/A 
+sale_terms_snapshot created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  48 
+Notifications 
+admin request read 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+admin_request_read id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+admin_request_read user_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+admin_request_read request_key character 
+varying(160) Text Up to 160 characters TRUE  N/A 
+admin_request_read read_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+notification 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+notification id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+notification user_id bigint Existing key value Existing referenced record TRUE FK user(id) 
+notification agreement_id bigint Existing key value Existing referenced record FALSE FK agreement(id) 
+notification application_id bigint Existing key value Existing referenced record FALSE FK artist_application(id) 
+notification artwork_id bigint Existing key value Existing referenced record FALSE FK artwork(id) 
+notification commission_id bigint Existing key value Existing referenced record FALSE FK commission(commission_req_id) 
+notification title character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+notification message text Text N/A TRUE  N/A 
+notification is_read boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+notification created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+ArtFiliere Data Dictionary  |  49 
+Legacy delivery 
+legacy delivery order 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+legacy_delivery_order id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+legacy_delivery_order payment_id bigint Existing key value Existing referenced record FALSE FK payment(id) 
+legacy_delivery_order buyerId character 
+varying(100) Text Up to 100 characters TRUE  N/A 
+legacy_delivery_order buyer_name character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+legacy_delivery_order buyer_phone character varying(30) Text Up to 30 characters TRUE  N/A 
+legacy_delivery_order address character 
+varying(255) Text Up to 255 characters TRUE  N/A 
+legacy_delivery_order delivery_latitude double precision Floating point number Double precision TRUE  N/A 
+legacy_delivery_order delivery_longitude double precision Floating point number Double precision TRUE  N/A 
+legacy_delivery_order artist_name character 
+varying(150) Text Up to 150 characters TRUE  N/A 
+legacy_delivery_order artist_phone character varying(30) Text Up to 30 characters TRUE  N/A 
+legacy_delivery_order pickup_address character 
+varying(255) Text Up to 255 characters TRUE  N/A 
+legacy_delivery_order pickup_latitude double precision Floating point number Double precision TRUE  N/A 
+legacy_delivery_order pickup_longitude double precision Floating point number Double precision TRUE  N/A 
+legacy_delivery_order item_name character 
+varying(200) Text Up to 200 characters TRUE  N/A 
+legacy_delivery_order items_count integer Whole number -2^31 to 2^31 - 1 TRUE  N/A 
+legacy_delivery_order distance character varying(50) Text Up to 50 characters TRUE  N/A 
+legacy_delivery_order estimatedTime character varying(50) Text Up to 50 characters TRUE  N/A 
+legacy_delivery_order delivery_fee numeric(10, 2) 10 total digits, 2 
+decimal places -99999999.99 to 99999999.99 TRUE  N/A 
+legacy_delivery_order is_priority boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+legacy_delivery_order paymentMethod character varying(20) Text Up to 20 characters TRUE  N/A 
+ArtFiliere Data Dictionary  |  50 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+legacy_delivery_order status character varying(30) Text 
+PENDING, ACCEPTED, 
+ARRIVED_AT_ARTIST, PICKED_
+UP, IN_TRANSIT, ARRIVED_AT_
+BUYER, DELIVERED, 
+CANCELED 
+TRUE  N/A 
+legacy_delivery_order assigned_rider_id bigint Existing key value Existing referenced record FALSE FK legacy_rider_profile(id) 
+legacy_delivery_order pickup_proof text Text N/A FALSE  N/A 
+legacy_delivery_order delivery_proof text Text N/A FALSE  N/A 
+legacy_delivery_order created_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+legacy_delivery_order updated_at timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A TRUE  N/A 
+ 
+legacy rider profile 
+TABLE NAME ATTRIBUTE NAME TYPE FORMAT RANGE REQUIRED PK or 
+FK REFERENCED TABLE 
+legacy_rider_profile id bigint System generated 
+integer 1 to 2^63 - 1 TRUE PK N/A 
+legacy_rider_profile user_id integer Existing key value Existing referenced record; unique TRUE FK auth_user(id) 
+legacy_rider_profile phone character varying(20) Text Up to 20 characters TRUE  N/A 
+legacy_rider_profile is_clocked_in boolean TRUE / FALSE TRUE, FALSE TRUE  N/A 
+legacy_rider_profile clock_in_time timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+legacy_rider_profile clock_out_time timestamp with time 
+zone 
+YYYY-MM-DD 
+HH:MM:SS with time 
+zone 
+N/A FALSE  N/A 
+legacy_rider_profile current_latitude double precision Floating point number Double precision FALSE  N/A 
+legacy_rider_profile current_longitude double precision Floating point number Double precision FALSE  N/A 
+ 

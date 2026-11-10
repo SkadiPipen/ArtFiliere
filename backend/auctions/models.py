@@ -65,6 +65,9 @@ class AuctionListing(models.Model):
     def __str__(self):
         return f"Auction #{self.id} - {self.artwork.title} (Current: Php{self.current_bid})"
 
+    class Meta:
+        db_table = "auction"
+
 
 class Bid(models.Model):
     auction = models.ForeignKey(AuctionListing, on_delete=models.CASCADE, related_name='bids')
@@ -74,6 +77,7 @@ class Bid(models.Model):
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        db_table = "auction_bid"
         ordering = ['-amount', '-created_at']
 
     def __str__(self):

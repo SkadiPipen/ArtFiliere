@@ -31,6 +31,11 @@ class CategoryValidationTests(SimpleTestCase):
 class CategoryPostingTests(TestCase):
     def setUp(self):
         self.artist = User.objects.create(firebase_uid='category-artist', username='category-artist', email='category@artist.test', role='artist')
+        # Category behaviour must not depend on paid image screening or weights.
+        scanner = patch('artworks.views.screen_upload', return_value={
+            'score': .1, 'threshold': .8, 'status': 'clear', 'review_status': 'not_required', 'images': []})
+        scanner.start()
+        self.addCleanup(scanner.stop)
 
     def post(self, extra):
         data = {'title': 'Mixed artwork', 'description': 'A painted illustration with collage.', 'price': '110',

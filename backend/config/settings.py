@@ -20,6 +20,14 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+TRUTHSCAN_API_KEY = os.getenv('TRUTHSCAN_API_KEY', '').strip()
+TRUTHSCAN_REQUEST_TIMEOUT = 15
+TRUTHSCAN_UPLOAD_TIMEOUT = 40
+TRUTHSCAN_RESULT_CACHE_SECONDS = 7 * 24 * 60 * 60
+ARTWORK_AUTO_SIMILARITY_THRESHOLD = 0.80
+# Legacy setting name: high AI scores now require evidence review, not automatic rejection.
+ARTWORK_AUTO_AI_THRESHOLD = 0.80
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 

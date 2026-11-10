@@ -6,6 +6,7 @@ import { categoryLabel, MAX_ARTWORK_CATEGORIES } from '@/services/artworkCategor
 import Toast from "@/components/Toast";
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
+import { screeningScoreLabel, type ScreeningScore } from '@/services/artworkScreening';
 import AgreementPaper from '@/module/messages/components/AgreementPaper';
 import SignaturePad, { Strokes } from '@/module/chat-negotiations/SignaturePad';
 import { purchaseRequest } from '@/services/purchases';
@@ -20,6 +21,7 @@ import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, Style
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const ART_TYPES = ["Physical", "Digital"];
+type ImageScreening = ScreeningScore & { status: 'clear' | 'review_required'; threshold: number; image_index: number };
 
 type ToastState = {
   visible: boolean;
@@ -31,11 +33,70 @@ export default function ArtistPostScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [imageData, setImageData] = useState("");
+  const [screening, setScreening] = useState<ImageScreening | null>(null);
+  const [screeningBusy, setScreeningBusy] = useState(false);
+  const [screeningError, setScreeningError] = useState('');
+  const [screeningRetry, setScreeningRetry] = useState(0);
+  const [screeningConfig, setScreeningConfig] = useState<{ provider_name: string; external_service: boolean } | null>(null);
+  const [screeningConfigError, setScreeningConfigError] = useState('');
+  useEffect(() => {
+    const controller = new AbortController();
+    setScreeningConfigError('');
+    (async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) throw new Error('Please log in again.');
+        const response = await fetch(`${API_URL}/api/users/artworks/screen-image/`, {
+          signal: controller.signal, headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Unable to load screening settings.');
+        if (!controller.signal.aborted) setScreeningConfig(data);
+      } catch (error: any) {
+        if (!controller.signal.aborted) setScreeningConfigError(error.message || 'Unable to load screening settings.');
+      }
+    })();
+    return () => controller.abort();
+  }, [screeningRetry]);
+  const [submissionResult, setSubmissionResult] = useState<{ blocked: boolean; message: string } | null>(null);
   const [additionalImages, setAdditionalImages] = useState<string[]>([
     "",
     "",
     "",
   ]);
+  useEffect(() => {
+    setScreening(null); setScreeningError('');
+    if (!imageData || !screeningConfig) { setScreeningBusy(!!imageData); return; }
+    let active = true;
+    const controller = new AbortController();
+    setScreeningBusy(true);
+    const timer = setTimeout(async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) throw new Error('Please log in again.');
+        const token = await user.getIdToken();
+        const started = Date.now();
+        while (active && !controller.signal.aborted) {
+          const response = await fetch(`${API_URL}/api/users/artworks/screen-image/`, {
+            method: 'POST', signal: controller.signal,
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_data: imageData, additional_images: additionalImages.filter(Boolean) }),
+          });
+          const data = await response.json();
+          if (response.status === 202) {
+            if (Date.now() - started > 120000) throw new Error('Screening is taking longer than usual. Retry shortly; your existing scan will be reused.');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+          if (!response.ok) throw new Error(data.error || 'Image screening failed.');
+          if (active) setScreening(data);
+          break;
+        }
+      } catch (error: any) { if (active) setScreeningError(error.message || 'Unable to check the image.'); }
+      finally { if (active) setScreeningBusy(false); }
+    }, 400);
+    return () => { active = false; clearTimeout(timer); controller.abort(); };
+  }, [imageData, additionalImages, screeningRetry, screeningConfig]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
@@ -327,6 +388,8 @@ export default function ArtistPostScreen() {
   };
 
   const submit = async () => {
+    if (saving || submissionResult) return;
+    if (screeningBusy || !screening) return showToast(screeningError || 'Wait for image screening to finish before submitting.', 'error');
     if (!categories.length || categories.length > MAX_ARTWORK_CATEGORIES) {
       return showToast(`Choose 1–${MAX_ARTWORK_CATEGORIES} artwork categories.`, 'error');
     }
@@ -426,6 +489,10 @@ export default function ArtistPostScreen() {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
+      if (data.automated_block_reason || data.ai_screening?.status === 'review_required') {
+        setSubmissionResult({ blocked: !!data.automated_block_reason, message: data.message || 'Your submission is held for review and is not published.' });
+        return;
+      }
       showToast(
         data.similarity_review_required
           ? "Submitted and held for similarity review before approval."
@@ -446,6 +513,13 @@ export default function ArtistPostScreen() {
 
   return (
     <SafeAreaView style={styles.page}>
+      <Modal visible={!!submissionResult} transparent animationType="fade" onRequestClose={() => { setSubmissionResult(null); router.replace('/(home)'); }}>
+        <View style={{ flex: 1, backgroundColor: '#0006', alignItems: 'center', justifyContent: 'center', padding: 24 }}><View style={{ width: '100%', maxWidth: 500, backgroundColor: '#FFFDF8', borderRadius: 16, padding: 24, gap: 18 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#A74646' }}>{submissionResult?.blocked ? 'Artwork not published' : 'Held for AI review'}</Text>
+          <Text>{submissionResult?.message}</Text><Text>The submission is saved privately in your artwork history.</Text>
+          <Pressable accessibilityRole="button" onPress={() => { setSubmissionResult(null); router.replace('/(home)'); }} style={{ padding: 14, borderRadius: 10, backgroundColor: '#B95353' }}><Text style={{ color: '#FFF', fontWeight: '700', textAlign: 'center' }}>Done</Text></Pressable>
+        </View></View>
+      </Modal>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack}>
           <ArrowLeft color="#D75B5C" size={24} />
@@ -458,6 +532,8 @@ export default function ArtistPostScreen() {
           <View style={[styles.assetsPanel, width < 700 && styles.panelMobile]}>
             <Text style={styles.panelTitle}>ASSET PHOTOS</Text>
             <Text style={styles.label}>Upload Asset Images:</Text>
+            <Text style={styles.helper}>Uploaded images are sent to TruthScan for AI screening. Its results can be wrong and do not prove authorship.</Text>
+            {!!screeningConfigError && <View><Text style={{ color: '#A74646' }}>{screeningConfigError}</Text><Pressable onPress={() => setScreeningRetry(value => value + 1)}><Text>Retry screening setup</Text></Pressable></View>}
             <View style={styles.photoRow}>
               <TouchableOpacity
                 style={styles.primaryPhoto}
@@ -492,6 +568,14 @@ export default function ArtistPostScreen() {
             <Text style={styles.helper}>
               Your first image is used as the artwork cover.
             </Text>
+            {!!imageData && <View accessibilityLiveRegion="polite" style={{ marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: screening?.status === 'review_required' ? '#FFF1E7' : '#F4F1EB', gap: 8 }}>
+              <Text style={{ fontWeight: '800', color: '#6D4D45' }}>AI image screening{screening?.provider_name ? ` · ${screening.provider_name}` : ''}</Text>
+              {screeningBusy ? <View style={{ flexDirection: 'row', gap: 8 }}><ActivityIndicator color="#B95353" /><Text>Checking uploaded images…</Text></View> : screeningError ? <><Text style={{ color: '#A74646' }}>{screeningError}</Text><Pressable accessibilityRole="button" onPress={() => setScreeningRetry(value => value + 1)} style={{ paddingVertical: 10 }}><Text style={{ color: '#A74646', fontWeight: '700' }}>Retry screening</Text></Pressable></> : screening && <>
+                <Text style={{ fontWeight: '700', color: '#6D4D45' }}>{screeningScoreLabel(screening)}</Text>
+                <Text>{screening.image_index === 0 ? 'Cover image' : `Additional image ${screening.image_index}`}. {screening.status === 'review_required' ? `An AI-generation or AI-editing score reaches the ${(screening.threshold * 100).toFixed(0)}% review threshold. You can submit for evidence review; it will remain unpublished until the flag is resolved.` : 'No AI flag triggered. You can continue with normal artwork review.'}</Text>
+                <Text style={styles.helper}>Confidence is not the percentage of the artwork made by AI. A Real classification or low score does not certify human authorship.</Text>
+              </>}
+            </View>}
             <View style={styles.rule} />
             <Text style={styles.soldTitle}>SOLD VIA</Text>
             <View style={styles.saleRow}>
@@ -848,7 +932,7 @@ export default function ArtistPostScreen() {
 
             <TouchableOpacity
               style={styles.submit}
-              disabled={saving}
+              disabled={saving || screeningBusy || !screening || !!submissionResult}
               onPress={submit}
             >
               {saving ? (

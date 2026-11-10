@@ -1,0 +1,2729 @@
+{
+  "name": "ERD",
+  "directed": true,
+  "strict": false,
+  "_draw_": 
+  [
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#fffffe00"
+    },
+    {
+      "op": "C",
+      "grad": "none",
+      "color": "#ffffff"
+    },
+    {
+      "op": "P",
+      "points": [[-28.800,-28.800],[-28.800,808.800],[1130.830,808.800],[1130.830,-28.800]]
+    }
+  ],
+  "_ldraw_": 
+  [
+    {
+      "op": "F",
+      "size": 18.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [516.500,760.800],
+      "align": "l",
+      "width": 69.040,
+      "text": "Auctions"
+    },
+    {
+      "op": "F",
+      "size": 10.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [371.580,750.000],
+      "align": "l",
+      "width": 358.880,
+      "text": "Parent: 1 or 0..1 | Child: 0..* or 0..1 | PK primary key | FK foreign key | UQ unique"
+    }
+  ],
+  "bb": "0,0,1102,780",
+  "bgcolor": "white",
+  "concentrate": "false",
+  "fontname": "Arial",
+  "fontsize": "12",
+  "label": "<FONT POINT-SIZE=\"18\">Auctions<\/FONT><BR\/><FONT POINT-SIZE=\"10\">Parent: 1 or 0..1 | Child: 0..* or 0..1 | PK primary key | FK foreign key | UQ unique<\/FONT>",
+  "labelloc": "t",
+  "lheight": "0.39",
+  "lp": "551.02,762",
+  "lwidth": "4.98",
+  "nodesep": "0.4",
+  "pad": "0.4",
+  "rankdir": "LR",
+  "ranksep": "2.0",
+  "splines": "spline",
+  "xdotversion": "1.7",
+  "_subgraph_cnt": 0,
+  "objects": [
+    {
+      "_gvid": 0,
+      "name": "auction",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#143d59"
+        },
+        {
+          "op": "P",
+          "points": [[390.000,721.000],[390.000,743.000],[669.010,743.000],[669.010,721.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [511.730,730.000],
+          "align": "l",
+          "width": 35.560,
+          "text": "auction"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [395.000,706.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,706.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,706.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,684.000],
+          "align": "l",
+          "width": 122.860,
+          "text": "platform_defaults_snapshot"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,684.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "jsonb"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [395.000,662.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,662.000],
+          "align": "l",
+          "width": 43.350,
+          "text": "artist_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,662.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [395.000,640.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,640.000],
+          "align": "l",
+          "width": 46.130,
+          "text": "artwork_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,640.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,618.000],
+          "align": "l",
+          "width": 51.700,
+          "text": "starting_bid"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,618.000],
+          "align": "l",
+          "width": 64.470,
+          "text": "numeric(12, 2)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,596.000],
+          "align": "l",
+          "width": 50.030,
+          "text": "current_bid"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,596.000],
+          "align": "l",
+          "width": 64.470,
+          "text": "numeric(12, 2)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,574.000],
+          "align": "l",
+          "width": 62.810,
+          "text": "bid_increment"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,574.000],
+          "align": "l",
+          "width": 64.470,
+          "text": "numeric(10, 2)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,552.000],
+          "align": "l",
+          "width": 43.900,
+          "text": "start_time"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,552.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,530.000],
+          "align": "l",
+          "width": 41.140,
+          "text": "end_time"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,530.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,508.000],
+          "align": "l",
+          "width": 26.680,
+          "text": "status"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,508.000],
+          "align": "l",
+          "width": 51.130,
+          "text": "varchar(20)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [395.000,486.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,486.000],
+          "align": "l",
+          "width": 87.290,
+          "text": "highest_bidder_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,486.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,464.000],
+          "align": "l",
+          "width": 48.910,
+          "text": "is_physical"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,464.000],
+          "align": "l",
+          "width": 35.590,
+          "text": "boolean"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,442.000],
+          "align": "l",
+          "width": 55.590,
+          "text": "license_type"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,442.000],
+          "align": "l",
+          "width": 51.130,
+          "text": "varchar(30)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,420.000],
+          "align": "l",
+          "width": 45.570,
+          "text": "exclusivity"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,420.000],
+          "align": "l",
+          "width": 51.130,
+          "text": "varchar(30)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,398.000],
+          "align": "l",
+          "width": 58.920,
+          "text": "delivery_type"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,398.000],
+          "align": "l",
+          "width": 51.130,
+          "text": "varchar(30)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,376.000],
+          "align": "l",
+          "width": 71.150,
+          "text": "terms_snapshot"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,376.000],
+          "align": "l",
+          "width": 16.120,
+          "text": "text"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,354.000],
+          "align": "l",
+          "width": 78.950,
+          "text": "signed_document"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,354.000],
+          "align": "l",
+          "width": 16.120,
+          "text": "text"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,332.000],
+          "align": "l",
+          "width": 106.190,
+          "text": "signed_document_hash"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,332.000],
+          "align": "l",
+          "width": 51.130,
+          "text": "varchar(64)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,310.000],
+          "align": "l",
+          "width": 68.370,
+          "text": "artist_signature"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,310.000],
+          "align": "l",
+          "width": 56.690,
+          "text": "varchar(200)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,288.000],
+          "align": "l",
+          "width": 101.170,
+          "text": "artist_signature_image"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,288.000],
+          "align": "l",
+          "width": 16.120,
+          "text": "text"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,266.000],
+          "align": "l",
+          "width": 78.940,
+          "text": "artist_signed_at ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,266.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [395.000,244.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,244.000],
+          "align": "l",
+          "width": 113.410,
+          "text": "agreement_template_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,244.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,222.000],
+          "align": "l",
+          "width": 90.070,
+          "text": "payment_deadline ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,222.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,200.000],
+          "align": "l",
+          "width": 61.160,
+          "text": "winning_bid ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,200.000],
+          "align": "l",
+          "width": 64.470,
+          "text": "numeric(12, 2)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,178.000],
+          "align": "l",
+          "width": 93.390,
+          "text": "winner_forfeited_at ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,178.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [395.000,156.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,156.000],
+          "align": "l",
+          "width": 87.290,
+          "text": "backup_bidder_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,156.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,134.000],
+          "align": "l",
+          "width": 117.860,
+          "text": "backup_offer_expires_at ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,134.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [418.340,112.000],
+          "align": "l",
+          "width": 47.260,
+          "text": "created_at"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [551.200,112.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[389.000,104.000],[389.000,744.000],[670.010,744.000],[670.010,104.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "8.8889",
+      "id": "table-auction",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#143d59\"><FONT COLOR=\"white\"><B>auction<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_platform_defaults_snapshot\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">platform_defaults_snapshot<\/TD><TD PORT=\"out_platform_defaults_snapshot\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">jsonb<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artist_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">artist_id ?<\/TD><TD PORT=\"out_artist_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artwork_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">artwork_id<\/TD><TD PORT=\"out_artwork_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_starting_bid\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">starting_bid<\/TD><TD PORT=\"out_starting_bid\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">numeric(12, 2)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_current_bid\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">current_bid<\/TD><TD PORT=\"out_current_bid\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">numeric(12, 2)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_bid_increment\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">bid_increment<\/TD><TD PORT=\"out_bid_increment\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">numeric(10, 2)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_start_time\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">start_time<\/TD><TD PORT=\"out_start_time\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_end_time\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">end_time<\/TD><TD PORT=\"out_end_time\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_status\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">status<\/TD><TD PORT=\"out_status\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">varchar(20)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_highest_bidder_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">highest_bidder_id ?<\/TD><TD PORT=\"out_highest_bidder_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_is_physical\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">is_physical<\/TD><TD PORT=\"out_is_physical\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">boolean<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_license_type\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">license_type<\/TD><TD PORT=\"out_license_type\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">varchar(30)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_exclusivity\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">exclusivity<\/TD><TD PORT=\"out_exclusivity\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">varchar(30)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_delivery_type\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">delivery_type<\/TD><TD PORT=\"out_delivery_type\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">varchar(30)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_terms_snapshot\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">terms_snapshot<\/TD><TD PORT=\"out_terms_snapshot\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">text<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_signed_document\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">signed_document<\/TD><TD PORT=\"out_signed_document\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">text<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_signed_document_hash\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">signed_document_hash<\/TD><TD PORT=\"out_signed_document_hash\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">varchar(64)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artist_signature\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">artist_signature<\/TD><TD PORT=\"out_artist_signature\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">varchar(200)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artist_signature_image\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">artist_signature_image<\/TD><TD PORT=\"out_artist_signature_image\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">text<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artist_signed_at\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">artist_signed_at ?<\/TD><TD PORT=\"out_artist_signed_at\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_agreement_template_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">agreement_template_id ?<\/TD><TD PORT=\"out_agreement_template_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_payment_deadline\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">payment_deadline ?<\/TD><TD PORT=\"out_payment_deadline\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_winning_bid\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">winning_bid ?<\/TD><TD PORT=\"out_winning_bid\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">numeric(12, 2)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_winner_forfeited_at\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">winner_forfeited_at ?<\/TD><TD PORT=\"out_winner_forfeited_at\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_backup_bidder_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">backup_bidder_id ?<\/TD><TD PORT=\"out_backup_bidder_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_backup_offer_expires_at\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">backup_offer_expires_at ?<\/TD><TD PORT=\"out_backup_offer_expires_at\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_created_at\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">created_at<\/TD><TD PORT=\"out_created_at\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "529.51,424",
+      "shape": "plain",
+      "width": "3.903"
+    },
+    {
+      "_gvid": 1,
+      "name": "auction_bid",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#143d59"
+        },
+        {
+          "op": "P",
+          "points": [[851.490,133.000],[851.490,155.000],[1101.030,155.000],[1101.030,133.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [948.200,142.000],
+          "align": "l",
+          "width": 56.110,
+          "text": "auction_bid"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [856.490,118.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [879.830,118.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [983.210,118.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [856.490,96.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [879.830,96.000],
+          "align": "l",
+          "width": 45.590,
+          "text": "auction_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [983.210,96.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [856.490,74.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [879.830,74.000],
+          "align": "l",
+          "width": 41.140,
+          "text": "bidder_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [983.210,74.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [879.830,52.000],
+          "align": "l",
+          "width": 33.350,
+          "text": "amount"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [983.210,52.000],
+          "align": "l",
+          "width": 64.470,
+          "text": "numeric(12, 2)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [879.830,30.000],
+          "align": "l",
+          "width": 47.260,
+          "text": "created_at"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [983.210,30.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [879.830,8.000],
+          "align": "l",
+          "width": 93.390,
+          "text": "terms_accepted_at ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [983.210,8.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[850.490,0.000],[850.490,156.000],[1102.030,156.000],[1102.030,0.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "2.1667",
+      "id": "table-auction_bid",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#143d59\"><FONT COLOR=\"white\"><B>auction_bid<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_auction_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">auction_id<\/TD><TD PORT=\"out_auction_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_bidder_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">bidder_id<\/TD><TD PORT=\"out_bidder_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_amount\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">amount<\/TD><TD PORT=\"out_amount\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">numeric(12, 2)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_created_at\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">created_at<\/TD><TD PORT=\"out_created_at\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_terms_accepted_at\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">terms_accepted_at ?<\/TD><TD PORT=\"out_terms_accepted_at\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "976.26,78",
+      "shape": "plain",
+      "width": "3.4937"
+    },
+    {
+      "_gvid": 2,
+      "name": "user",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e2e8f0"
+        },
+        {
+          "op": "P",
+          "points": [[39.070,376.000],[39.070,398.000],[121.880,398.000],[121.880,376.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [44.070,385.000],
+          "align": "l",
+          "width": 21.120,
+          "text": "user"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [65.190,385.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [44.070,361.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [70.000,361.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [90.380,361.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[38.070,353.000],[38.070,399.000],[122.880,399.000],[122.880,353.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.63889",
+      "id": "table-user",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#e2e8f0\"><FONT COLOR=\"#172b3a\"><B>user<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "80.473,376",
+      "shape": "plain",
+      "width": "1.1779"
+    },
+    {
+      "_gvid": 3,
+      "name": "artwork",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e2e8f0"
+        },
+        {
+          "op": "P",
+          "points": [[29.340,633.000],[29.340,655.000],[131.600,655.000],[131.600,633.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [36.570,642.000],
+          "align": "l",
+          "width": 36.120,
+          "text": "artwork"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [72.690,642.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [34.340,618.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [57.680,618.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [102.700,618.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [34.340,596.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [57.680,596.000],
+          "align": "l",
+          "width": 35.010,
+          "text": "artist_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [102.700,596.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[28.340,588.000],[28.340,656.000],[132.600,656.000],[132.600,588.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.94444",
+      "id": "table-artwork",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#e2e8f0\"><FONT COLOR=\"#172b3a\"><B>artwork<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artist_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">artist_id<\/TD><TD PORT=\"out_artist_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "80.473,622",
+      "shape": "plain",
+      "width": "1.4481"
+    },
+    {
+      "_gvid": 4,
+      "name": "agreement_template",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e2e8f0"
+        },
+        {
+          "op": "P",
+          "points": [[1.000,259.000],[1.000,281.000],[159.950,281.000],[159.950,259.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [6.000,268.000],
+          "align": "l",
+          "width": 97.260,
+          "text": "agreement_template"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [103.260,268.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [6.000,244.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [35.250,244.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [125.120,244.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [6.000,222.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [35.250,222.000],
+          "align": "l",
+          "width": 73.960,
+          "text": "updated_by_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [125.120,222.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[0.000,214.000],[0.000,282.000],[160.950,282.000],[160.950,214.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.94444",
+      "id": "table-agreement_template",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#e2e8f0\"><FONT COLOR=\"#172b3a\"><B>agreement_template<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_updated_by_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">updated_by_id ?<\/TD><TD PORT=\"out_updated_by_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "80.473,248",
+      "shape": "plain",
+      "width": "2.2354"
+    }
+  ],
+  "edges": [
+    {
+      "_gvid": 1,
+      "tail": 2,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[122.880,365.000],[251.640,365.000],[134.030,550.570],[232.950,633.000],[287.410,678.380],[318.110,666.000],[389.000,666.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [367.400,674.070],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [274.970,669.760],
+          "align": "c",
+          "width": 28.010,
+          "text": "artist_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [146.000,356.170],
+          "align": "c",
+          "width": 13.340,
+          "text": "0..1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "367.4,676.47",
+      "headlabel": "0..*",
+      "headport": "in_artist_id:w",
+      "id": "relationship-0",
+      "label": "artist_id",
+      "labeldistance": "2.4",
+      "lp": "274.97,672.16",
+      "pos": "122.88,365 251.64,365 134.03,550.57 232.95,633 287.41,678.38 318.11,666 389,666",
+      "tail_lp": "146,358.57",
+      "taillabel": "0..1",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → auction.artist_id | one-to-many"
+    },
+    {
+      "_gvid": 5,
+      "tail": 3,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[132.600,622.000],[214.560,622.000],[235.930,610.410],[317.000,622.400],[350.050,627.290],[355.590,644.000],[389.000,644.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [366.760,650.620],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [274.970,624.800],
+          "align": "c",
+          "width": 36.900,
+          "text": "artwork_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [154.210,609.160],
+          "align": "c",
+          "width": 4.450,
+          "text": "1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "366.76,653.02",
+      "headlabel": "0..*",
+      "headport": "in_artwork_id:w",
+      "id": "relationship-1",
+      "label": "artwork_id",
+      "labeldistance": "2.4",
+      "lp": "274.97,627.2",
+      "pos": "132.6,622 214.56,622 235.93,610.41 317,622.4 350.05,627.29 355.59,644 389,644",
+      "tail_lp": "154.21,611.56",
+      "taillabel": "1",
+      "tailport": "out_id:e",
+      "tooltip": "artwork.id → auction.artwork_id | one-to-many"
+    },
+    {
+      "_gvid": 2,
+      "tail": 2,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[122.880,365.000],[253.550,365.000],[258.330,490.000],[389.000,490.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [366.360,495.570],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [274.970,474.260],
+          "align": "c",
+          "width": 63.160,
+          "text": "highest_bidder_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [145.510,354.630],
+          "align": "c",
+          "width": 13.340,
+          "text": "0..1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "366.36,497.97",
+      "headlabel": "0..*",
+      "headport": "in_highest_bidder_id:w",
+      "id": "relationship-2",
+      "label": "highest_bidder_id",
+      "labeldistance": "2.4",
+      "lp": "274.97,476.66",
+      "pos": "122.88,365 253.55,365 258.33,490 389,490",
+      "tail_lp": "145.51,357.03",
+      "taillabel": "0..1",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → auction.highest_bidder_id | one-to-many"
+    },
+    {
+      "_gvid": 6,
+      "tail": 4,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[160.950,248.000],[262.300,248.000],[287.640,248.000],[389.000,248.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [367.250,255.740],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [274.970,250.400],
+          "align": "c",
+          "width": 84.050,
+          "text": "agreement_template_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [182.700,235.460],
+          "align": "c",
+          "width": 13.340,
+          "text": "0..1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "367.25,258.14",
+      "headlabel": "0..*",
+      "headport": "in_agreement_template_id:w",
+      "id": "relationship-3",
+      "label": "agreement_template_id",
+      "labeldistance": "2.4",
+      "lp": "274.97,252.8",
+      "pos": "160.95,248 262.3,248 287.64,248 389,248",
+      "tail_lp": "182.7,237.86",
+      "taillabel": "0..1",
+      "tailport": "out_id:e",
+      "tooltip": "agreement_template.id → auction.agreement_template_id | one-to-many"
+    },
+    {
+      "_gvid": 3,
+      "tail": 2,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[122.880,365.000],[210.140,365.000],[161.950,253.140],[232.950,202.400],[291.420,160.610],[317.130,160.000],[389.000,160.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [367.280,167.810],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [274.970,204.800],
+          "align": "c",
+          "width": 63.160,
+          "text": "backup_bidder_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [142.980,349.490],
+          "align": "c",
+          "width": 13.340,
+          "text": "0..1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "367.28,170.21",
+      "headlabel": "0..*",
+      "headport": "in_backup_bidder_id:w",
+      "id": "relationship-4",
+      "label": "backup_bidder_id",
+      "labeldistance": "2.4",
+      "lp": "274.97,207.2",
+      "pos": "122.88,365 210.14,365 161.95,253.14 232.95,202.4 291.42,160.61 317.13,160 389,160",
+      "tail_lp": "142.98,351.89",
+      "taillabel": "0..1",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → auction.backup_bidder_id | one-to-many"
+    },
+    {
+      "_gvid": 0,
+      "tail": 0,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[670.010,710.000],[952.740,710.000],[567.760,100.000],[850.490,100.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [831.960,112.860],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [760.250,688.160],
+          "align": "c",
+          "width": 36.470,
+          "text": "auction_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [688.540,692.340],
+          "align": "c",
+          "width": 4.450,
+          "text": "1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "831.96,115.26",
+      "headlabel": "0..*",
+      "headport": "in_auction_id:w",
+      "id": "relationship-5",
+      "label": "auction_id",
+      "labeldistance": "2.4",
+      "lp": "760.25,690.56",
+      "pos": "670.01,710 952.74,710 567.76,100 850.49,100",
+      "tail_lp": "688.54,694.74",
+      "taillabel": "1",
+      "tailport": "out_id:e",
+      "tooltip": "auction.id → auction_bid.auction_id | one-to-many"
+    },
+    {
+      "_gvid": 4,
+      "tail": 2,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[122.880,365.000],[227.470,365.000],[158.490,230.450],[232.950,157.000],[288.090,102.600],[313.620,97.230],[389.000,79.400],[588.600,32.190],[645.380,78.000],[850.490,78.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [828.520,85.270],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [529.510,81.800],
+          "align": "c",
+          "width": 32.910,
+          "text": "bidder_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [142.950,349.440],
+          "align": "c",
+          "width": 4.450,
+          "text": "1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "828.52,87.672",
+      "headlabel": "0..*",
+      "headport": "in_bidder_id:w",
+      "id": "relationship-6",
+      "label": "bidder_id",
+      "labeldistance": "2.4",
+      "lp": "529.51,84.2",
+      "pos": "122.88,365 227.47,365 158.49,230.45 232.95,157 288.09,102.6 313.62,97.228 389,79.4 588.6,32.192 645.38,78 850.49,78",
+      "tail_lp": "142.95,351.84",
+      "taillabel": "1",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → auction_bid.bidder_id | one-to-many"
+    }
+  ]
+}

@@ -71,6 +71,9 @@ class CommissionRequest(models.Model):
     def __str__(self):
         return f"Commission #{self.commission_req_id} - {self.title}"
 
+    class Meta:
+        db_table = "commission"
+
 
 class CommissionMilestone(models.Model):
     milestone_id = models.BigAutoField(primary_key=True)
@@ -95,6 +98,7 @@ class CommissionMilestone(models.Model):
     payout_error = models.TextField(blank=True)
 
     class Meta:
+        db_table = "commission_milestone"
         constraints = [models.UniqueConstraint(fields=['commission_req', 'milestone_number'], name='unique_commission_stage')]
 
 
@@ -113,12 +117,18 @@ class CommissionPhoto(models.Model):
     caption = models.CharField(max_length=255, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = "commission_photo"
+
 
 class CommissionMessage(models.Model):
     commission = models.ForeignKey(CommissionRequest, on_delete=models.CASCADE, related_name='workspace_messages')
     sender = models.ForeignKey('users.User', on_delete=models.PROTECT)
     body = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "commission_message"
 
 
 class CommissionAccessDecision(models.Model):
@@ -128,6 +138,9 @@ class CommissionAccessDecision(models.Model):
     note = models.TextField()
     reviewed_by = models.ForeignKey('users.User', on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "commission_access_decision"
 
 
 class CommissionProposal(models.Model):
@@ -147,6 +160,7 @@ class CommissionProposal(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
+        db_table = "commission_proposal"
         constraints = [models.UniqueConstraint(fields=['commission', 'version'], name='unique_commission_proposal_version')]
 
 
@@ -162,11 +176,17 @@ class CommissionSubmission(models.Model):
     final_original = models.BooleanField(default=False)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = "commission_submission"
+
 
 class CommissionPayoutProfile(models.Model):
     artist = models.OneToOneField('users.User', on_delete=models.PROTECT)
     recipient = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "commission_payout_profile"
 
 
 class CommissionLedger(models.Model):
@@ -175,6 +195,9 @@ class CommissionLedger(models.Model):
     kind = models.CharField(max_length=30)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "commission_entry"
 
 
 class CommissionAsset(models.Model):
@@ -185,6 +208,9 @@ class CommissionAsset(models.Model):
     license_terms = models.JSONField()
     record_hash = models.CharField(max_length=64)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "commission_asset"
 
 
 class CommissionResale(models.Model):
@@ -199,6 +225,9 @@ class CommissionResale(models.Model):
     payout_status = models.CharField(max_length=30, default='NOT_REQUESTED')
     payout_payload = models.JSONField(default=dict, blank=True)
 
+    class Meta:
+        db_table = "commission_resale"
+
 
 class CommissionRefund(models.Model):
     commission = models.ForeignKey(CommissionRequest, on_delete=models.PROTECT, related_name='refunds')
@@ -209,6 +238,9 @@ class CommissionRefund(models.Model):
     provider_id = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=30, default='AUTHORIZED')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "commission_refund"
 
 
 class CommissionProof(models.Model):
@@ -221,3 +253,6 @@ class CommissionProof(models.Model):
     block_number = models.PositiveBigIntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, default='PENDING')
     error = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "commission_proof"

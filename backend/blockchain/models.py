@@ -22,6 +22,9 @@ class BlockchainTransaction(models.Model):
     confirmed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = "blockchain_transaction"
+
 
 class ProvenanceArtwork(models.Model):
     """One permanent identity, shared by every listing of this work."""
@@ -45,6 +48,9 @@ class ProvenanceArtwork(models.Model):
             raise ValidationError('The original provenance claim is immutable. Append a reviewed correction.')
         super().save(*args, **kwargs)
 
+    class Meta:
+        db_table = "provenance_artwork"
+
 
 class ProvenanceListing(models.Model):
     artwork = models.OneToOneField(Artwork, on_delete=models.PROTECT, related_name='provenance_listing')
@@ -52,6 +58,9 @@ class ProvenanceListing(models.Model):
     # A reservation survives an uncertain checkout until provider expiry is verified.
     reserved_payment = models.OneToOneField('wallets.PaymentSession', null=True, blank=True, on_delete=models.PROTECT, related_name='+')
     reserved_rights = models.JSONField(default=dict)
+
+    class Meta:
+        db_table = "provenance_listing"
 
 
 class ProvenanceEvent(models.Model):
@@ -83,6 +92,7 @@ class ProvenanceEvent(models.Model):
             raise ValidationError('Provenance history is immutable. Append a new event.')
         super().save(*args, **kwargs)
     class Meta:
+        db_table = "provenance_event"
         ordering = ['created_at', 'id']
         constraints = [models.UniqueConstraint(fields=['record'], condition=Q(kind='registration'), name='one_provenance_registration')]
 
@@ -100,7 +110,34 @@ class ProvenanceReview(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True)
 
+    class Meta:
+        db_table = "provenance_review"
+
 
 class ProvenanceSigner(models.Model):
     """Serializes nonce allocation across processes using this chain's operator."""
     key = models.CharField(max_length=100, primary_key=True)
+
+    class Meta:
+        db_table = "provenance_signer"
+
+
+class SaleTermsSnapshot(models.Model):
+    """Immutable purchase-time licence projection, without addresses/signatures."""
+    payment = models.OneToOneField('wallets.PaymentSession', on_delete=models.PROTECT, related_name='sale_terms_snapshot')
+    agreement = models.ForeignKey('messaging.Agreement', null=True, on_delete=models.PROTECT)
+    terms = models.JSONField(default=dict)
+    document_hash = models.CharField(max_length=64, blank=True)
+    source = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        original = type(self).objects.filter(pk=self.pk).first() if self.pk else None
+        if original and any(getattr(original, key) != getattr(self, key) for key in
+                            ('payment_id', 'agreement_id', 'terms', 'document_hash', 'source')):
+            from django.core.exceptions import ValidationError
+            raise ValidationError('Purchase terms are immutable; preserve the original snapshot.')
+        super().save(*args, **kwargs)
+
+    class Meta:
+        db_table = "sale_terms_snapshot"

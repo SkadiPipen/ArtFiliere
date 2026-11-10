@@ -3,9 +3,9 @@ import ProductImage from '@/components/ProductImage';
 import ResellerBadge from '@/components/ResellerBadge';
 import { Text } from '@/components/Typography';
 import { useCart } from "@/context/CartContext";
-import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
+import CreatorAttribution from '@/module/blockchain/CreatorAttribution';
 import { auth } from "@/firebase/config";
-import { Watermark } from "@/module/artwork/components/Watermark";
+import ZoomableArtwork from "@/module/artwork/components/ZoomableArtwork";
 import AppDialog, { AppDialogProps } from "@/components/AppDialog";
 import AppToast from "@/components/AppToast";
 import API_URL from "@/services/api";
@@ -14,9 +14,7 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
   Gavel,
-  ShieldCheck,
   ShoppingCart,
   Star,
   X,
@@ -27,7 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ViewPostPage() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height: windowHeight } = useWindowDimensions();
   const isDesktop = width >= 768;
   const { addToCart } = useCart();
 
@@ -40,8 +38,6 @@ export default function ViewPostPage() {
   const [loadingArtwork, setLoadingArtwork] = useState(true);
   const [isOwnArtwork, setIsOwnArtwork] = useState(false);
   const [checkingOwner, setCheckingOwner] = useState(true);
-  const [proof, setProof] = useState<any>(null);
-  const [showProof, setShowProof] = useState(false);
   const [reviews, setReviews] = useState<{
     average_rating: number | null;
     review_count: number;
@@ -123,26 +119,7 @@ export default function ViewPostPage() {
       .catch(() => undefined);
   }, [artworkId]);
 
-  useEffect(() => {
-    if (!artworkId) return;
-    const loadProof = async () => {
-      try {
-        const token = auth.currentUser
-          ? await auth.currentUser.getIdToken()
-          : "";
-        const response = await fetch(
-          `${API_URL}/api/blockchain/artworks/${artworkId}/proof/`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          },
-        );
-        if (response.ok) setProof(await response.json());
-      } catch {
-        /* The marketplace remains usable if proof data is temporarily unavailable. */
-      }
-    };
-    loadProof();
-  }, [artworkId]);
+
 
   const title = artworkData?.title || params.title;
   const price = artworkData?.price || params.price;
@@ -298,21 +275,12 @@ export default function ViewPostPage() {
           <View
             style={[styles.imageHeader, isDesktop && styles.desktopImageHeader]}
           >
-            <TouchableOpacity
-              activeOpacity={0.96}
-              onPress={() => setShowGallery(true)}
-            >
-              <Watermark
-                uri={
-                  (displayedImage as string) ||
-                  "https://picsum.photos/seed/view/800/1200"
-                }
-                height={isDesktop ? 550 : 350}
-              />
-              <View style={styles.expandHint} pointerEvents="none">
-                <Text style={styles.expandHintText}>Tap to view larger</Text>
-              </View>
-            </TouchableOpacity>
+            <ZoomableArtwork
+              key={`preview-${artworkId}-${activeImageIndex}-${displayedImage}`}
+              uri={String(displayedImage || "https://picsum.photos/seed/view/800/1200")}
+              height={isDesktop ? 550 : 350}
+              onOpen={() => setShowGallery(true)}
+            />
             <TouchableOpacity style={styles.backButton} onPress={handleBack}>
               <ArrowLeft color="white" size={22} />
             </TouchableOpacity>
@@ -346,7 +314,7 @@ export default function ViewPostPage() {
             <Text style={styles.title}>{title}</Text>
 
             {/* Artist Profile */}
-            {!!artworkData?.category_labels?.length && <Text style={{ color: '#75655F', fontSize: 13, lineHeight: 19, marginBottom: 12 }}>Categories: {artworkData.category_labels.join(' · ')}</Text>}
+            {!!artworkData?.category_labels?.length && <Text style={{ color: '#75655F', fontSize: 13, lineHeight: 19, marginBottom: 12 }}>Categories: {artworkData.category_labels.join(' Â· ')}</Text>}
             <TouchableOpacity
               onPress={() =>
                 router.push({
@@ -361,7 +329,7 @@ export default function ViewPostPage() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push({ pathname: '/artist-profile', params: { artistId: resolvedArtistId } })}>
-              <Text style={{ color: '#625550', marginTop: 8 }}>Sold by {artistName} · View seller profile</Text>
+              <Text style={{ color: '#625550', marginTop: 8 }}>Sold by {artistName} Â· View seller profile</Text>
             </TouchableOpacity>
             <ResellerBadge verified={artworkData?.seller_reseller_verified} />
             <View style={styles.badge}>
@@ -370,28 +338,7 @@ export default function ViewPostPage() {
               </Text>
             </View>
 
-            {proof?.status === "confirmed" && (
-              <TouchableOpacity
-                style={styles.verifiedBadge}
-                onPress={() => setShowProof(true)}
-              >
-                <ShieldCheck color="#357A47" size={17} />
-                <View>
-                  <Text style={styles.verifiedTitle}>
-                    File registration recorded
-                  </Text>
-                  <Text style={styles.verifiedHint}>
-                    Registered by ArtFiliere · View proof
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            <ProvenancePanel artworkId={artworkId} />
-            {!!artworkData?.provenance && <View style={{ gap: 4, marginVertical: 10 }}>
-              <Text>Created by @{artworkData.provenance.created_by} · {artworkData.provenance.creator_verified ? 'Reviewed attribution' : 'Claimed attribution'}</Text>
-              <Text>Open provenance to view the rights granted and holder history.</Text>
-            </View>}
+            <CreatorAttribution artworkId={artworkId} />
 
             <View style={styles.detailsSection}>
               <Text style={styles.detailsHeader}>About the Art</Text>
@@ -402,9 +349,9 @@ export default function ViewPostPage() {
                 {isDigital ? "Digital" : (medium as string) || "Oil on Canvas"}
                 {"\n"}
                 {Array.isArray(artworkData?.tags) && artworkData.tags.length
-                  ? `Tags: ${artworkData.tags.join(" · ").replace(/_/g, " ")}\n`
+                  ? `Tags: ${artworkData.tags.join(" Â· ").replace(/_/g, " ")}\n`
                   : ""}
-                License: Standard Personal License{"\n"}
+                License: Terms are agreed during purchase.{"\n"}
                 Dimensions: 2000 x 3000 px
               </Text>
             </View>
@@ -542,7 +489,7 @@ export default function ViewPostPage() {
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.verifiedBuyer}>✓ Verified purchase</Text>
+                <Text style={styles.verifiedBuyer}>âœ“ Verified purchase</Text>
                 {review.comment ? (
                   <Text style={styles.reviewComment}>{review.comment}</Text>
                 ) : (
@@ -580,12 +527,11 @@ export default function ViewPostPage() {
             </TouchableOpacity>
           </View>
           <View style={styles.galleryViewer}>
-            <Watermark
-              uri={
-                (displayedImage as string) ||
-                "https://picsum.photos/seed/view/800/1200"
-              }
-              height={isDesktop ? 680 : 500}
+            <ZoomableArtwork
+              key={`gallery-${artworkId}-${activeImageIndex}-${displayedImage}-${showGallery}`}
+              uri={String(displayedImage || "https://picsum.photos/seed/view/800/1200")}
+              height={Math.max(120, Math.min(isDesktop ? 680 : 500, windowHeight - 270))}
+              interactive
             />
             {galleryImages.length > 1 && (
               <>
@@ -635,35 +581,6 @@ export default function ViewPostPage() {
           )}
         </View>
       </Modal>
-      {showProof && proof && (
-        <View style={styles.proofOverlay}>
-          <View style={styles.proofCard}>
-            <View style={styles.proofIcon}>
-              <CheckCircle2 color="#357A47" size={30} />
-            </View>
-            <Text style={styles.proofTitle}>File registration proof</Text>
-            <Text style={styles.proofText}>
-              This record confirms a registered file fingerprint. Registration alone
-              does not prove authorship, transfer copyright, or prevent copying.
-              View provenance for creator attribution and confirmed ownership history.
-            </Text>
-            <View style={styles.proofStatus}>
-              <Text style={styles.proofStatusText}>
-                ✓ Registration confirmed
-              </Text>
-            </View>
-            <Text style={styles.proofDate}>
-              Registration proof is securely recorded by ArtFiliere.
-            </Text>
-            <TouchableOpacity
-              style={styles.closeProof}
-              onPress={() => setShowProof(false)}
-            >
-              <Text style={styles.closeProofText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
       {dialog && (
         <AppDialog
           visible
@@ -740,16 +657,6 @@ const styles = StyleSheet.create({
   },
   galleryThumbnailActive: { borderColor: "#D75B5C" },
   galleryThumbnailImage: { width: "100%", height: "100%" },
-  expandHint: {
-    position: "absolute",
-    right: 12,
-    bottom: 12,
-    backgroundColor: "rgba(0,0,0,0.58)",
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  expandHintText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
   galleryModal: {
     flex: 1,
     backgroundColor: "rgba(12,12,12,0.97)",

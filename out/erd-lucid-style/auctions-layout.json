@@ -1,0 +1,2704 @@
+{
+  "name": "ERD",
+  "directed": true,
+  "strict": false,
+  "_draw_": 
+  [
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#fffffe00"
+    },
+    {
+      "op": "C",
+      "grad": "none",
+      "color": "#ffffff"
+    },
+    {
+      "op": "P",
+      "points": [[-28.800,-28.800],[-28.800,620.800],[696.410,620.800],[696.410,-28.800]]
+    }
+  ],
+  "_ldraw_": 
+  [
+    {
+      "op": "F",
+      "size": 18.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [299.290,572.800],
+      "align": "l",
+      "width": 69.040,
+      "text": "Auctions"
+    },
+    {
+      "op": "F",
+      "size": 10.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [154.360,562.000],
+      "align": "l",
+      "width": 358.880,
+      "text": "Parent: 1 or 0..1 | Child: 0..* or 0..1 | PK primary key | FK foreign key | UQ unique"
+    }
+  ],
+  "bb": "0,0,667.61,592",
+  "bgcolor": "white",
+  "concentrate": "false",
+  "fontname": "Arial",
+  "fontsize": "12",
+  "label": "<FONT POINT-SIZE=\"18\">Auctions<\/FONT><BR\/><FONT POINT-SIZE=\"10\">Parent: 1 or 0..1 | Child: 0..* or 0..1 | PK primary key | FK foreign key | UQ unique<\/FONT>",
+  "labelloc": "t",
+  "lheight": "0.39",
+  "lp": "333.8,574",
+  "lwidth": "4.98",
+  "nodesep": "0.65",
+  "pad": "0.4",
+  "rankdir": "LR",
+  "ranksep": "1.5",
+  "splines": "ortho",
+  "xdotversion": "1.7",
+  "_subgraph_cnt": 0,
+  "objects": [
+    {
+      "_gvid": 0,
+      "name": "auction",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[294.020,535.000],[294.020,555.000],[444.220,555.000],[444.220,535.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[294.020,535.000],[444.220,535.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [346.350,543.000],
+          "align": "l",
+          "width": 45.550,
+          "text": "AUCTION"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,515.000],[315.360,535.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [298.020,521.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,521.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,497.000],[315.360,515.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,502.000],
+          "align": "l",
+          "width": 122.860,
+          "text": "platform_defaults_snapshot"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,477.000],[315.360,497.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [298.020,483.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,483.000],
+          "align": "l",
+          "width": 35.010,
+          "text": "artist_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,457.000],[315.360,477.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [298.020,463.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,463.000],
+          "align": "l",
+          "width": 46.130,
+          "text": "artwork_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,439.000],[315.360,457.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,444.000],
+          "align": "l",
+          "width": 51.700,
+          "text": "starting_bid"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,421.000],[315.360,439.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,426.000],
+          "align": "l",
+          "width": 50.030,
+          "text": "current_bid"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,403.000],[315.360,421.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,408.000],
+          "align": "l",
+          "width": 62.810,
+          "text": "bid_increment"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,385.000],[315.360,403.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,390.000],
+          "align": "l",
+          "width": 43.900,
+          "text": "start_time"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,367.000],[315.360,385.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,372.000],
+          "align": "l",
+          "width": 41.140,
+          "text": "end_time"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,349.000],[315.360,367.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,354.000],
+          "align": "l",
+          "width": 26.680,
+          "text": "status"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,329.000],[315.360,349.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [298.020,335.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,335.000],
+          "align": "l",
+          "width": 78.950,
+          "text": "highest_bidder_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,311.000],[315.360,329.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,316.000],
+          "align": "l",
+          "width": 48.910,
+          "text": "is_physical"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,293.000],[315.360,311.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,298.000],
+          "align": "l",
+          "width": 55.590,
+          "text": "license_type"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,275.000],[315.360,293.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,280.000],
+          "align": "l",
+          "width": 45.570,
+          "text": "exclusivity"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,257.000],[315.360,275.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,262.000],
+          "align": "l",
+          "width": 58.920,
+          "text": "delivery_type"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,239.000],[315.360,257.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,244.000],
+          "align": "l",
+          "width": 71.150,
+          "text": "terms_snapshot"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,221.000],[315.360,239.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,226.000],
+          "align": "l",
+          "width": 78.950,
+          "text": "signed_document"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,203.000],[315.360,221.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,208.000],
+          "align": "l",
+          "width": 106.190,
+          "text": "signed_document_hash"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,185.000],[315.360,203.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,190.000],
+          "align": "l",
+          "width": 68.370,
+          "text": "artist_signature"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,167.000],[315.360,185.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,172.000],
+          "align": "l",
+          "width": 101.170,
+          "text": "artist_signature_image"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,149.000],[315.360,167.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,154.000],
+          "align": "l",
+          "width": 70.600,
+          "text": "artist_signed_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,129.000],[315.360,149.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [298.020,135.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,135.000],
+          "align": "l",
+          "width": 105.070,
+          "text": "agreement_template_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,111.000],[315.360,129.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,116.000],
+          "align": "l",
+          "width": 81.730,
+          "text": "payment_deadline"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,93.000],[315.360,111.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,98.000],
+          "align": "l",
+          "width": 52.820,
+          "text": "winning_bid"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,75.000],[315.360,93.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,80.000],
+          "align": "l",
+          "width": 85.050,
+          "text": "winner_forfeited_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,55.000],[315.360,75.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [298.020,61.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,61.000],
+          "align": "l",
+          "width": 78.950,
+          "text": "backup_bidder_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,37.000],[315.360,55.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,42.000],
+          "align": "l",
+          "width": 109.520,
+          "text": "backup_offer_expires_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[315.360,19.000],[315.360,37.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [318.360,24.000],
+          "align": "l",
+          "width": 47.260,
+          "text": "created_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[305.020,18.000],[305.020,18.000],[433.220,18.000],[433.220,18.000],[439.220,18.000],[445.220,24.000],[445.220,30.000],[445.220,30.000],[445.220,544.000],[445.220,544.000],[445.220,550.000],[439.220,556.000],[433.220,556.000],[433.220,556.000],[305.020,556.000],[305.020,556.000],[299.020,556.000],[293.020,550.000],[293.020,544.000],[293.020,544.000],[293.020,30.000],[293.020,30.000],[293.020,24.000],[299.020,18.000],[305.020,18.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "7.4722",
+      "id": "table-auction",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>AUCTION<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><TR><TD PORT=\"in_platform_defaults_snapshot\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_platform_defaults_snapshot\" ALIGN=\"LEFT\">platform_defaults_snapshot<\/TD><\/TR><TR><TD PORT=\"in_artist_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_artist_id\" ALIGN=\"LEFT\">artist_id<\/TD><\/TR><TR><TD PORT=\"in_artwork_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_artwork_id\" ALIGN=\"LEFT\">artwork_id<\/TD><\/TR><TR><TD PORT=\"in_starting_bid\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_starting_bid\" ALIGN=\"LEFT\">starting_bid<\/TD><\/TR><TR><TD PORT=\"in_current_bid\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_current_bid\" ALIGN=\"LEFT\">current_bid<\/TD><\/TR><TR><TD PORT=\"in_bid_increment\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_bid_increment\" ALIGN=\"LEFT\">bid_increment<\/TD><\/TR><TR><TD PORT=\"in_start_time\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_start_time\" ALIGN=\"LEFT\">start_time<\/TD><\/TR><TR><TD PORT=\"in_end_time\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_end_time\" ALIGN=\"LEFT\">end_time<\/TD><\/TR><TR><TD PORT=\"in_status\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_status\" ALIGN=\"LEFT\">status<\/TD><\/TR><TR><TD PORT=\"in_highest_bidder_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_highest_bidder_id\" ALIGN=\"LEFT\">highest_bidder_id<\/TD><\/TR><TR><TD PORT=\"in_is_physical\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_is_physical\" ALIGN=\"LEFT\">is_physical<\/TD><\/TR><TR><TD PORT=\"in_license_type\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_license_type\" ALIGN=\"LEFT\">license_type<\/TD><\/TR><TR><TD PORT=\"in_exclusivity\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_exclusivity\" ALIGN=\"LEFT\">exclusivity<\/TD><\/TR><TR><TD PORT=\"in_delivery_type\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_delivery_type\" ALIGN=\"LEFT\">delivery_type<\/TD><\/TR><TR><TD PORT=\"in_terms_snapshot\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_terms_snapshot\" ALIGN=\"LEFT\">terms_snapshot<\/TD><\/TR><TR><TD PORT=\"in_signed_document\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_signed_document\" ALIGN=\"LEFT\">signed_document<\/TD><\/TR><TR><TD PORT=\"in_signed_document_hash\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_signed_document_hash\" ALIGN=\"LEFT\">signed_document_hash<\/TD><\/TR><TR><TD PORT=\"in_artist_signature\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_artist_signature\" ALIGN=\"LEFT\">artist_signature<\/TD><\/TR><TR><TD PORT=\"in_artist_signature_image\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_artist_signature_image\" ALIGN=\"LEFT\">artist_signature_image<\/TD><\/TR><TR><TD PORT=\"in_artist_signed_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_artist_signed_at\" ALIGN=\"LEFT\">artist_signed_at<\/TD><\/TR><TR><TD PORT=\"in_agreement_template_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_agreement_template_id\" ALIGN=\"LEFT\">agreement_template_id<\/TD><\/TR><TR><TD PORT=\"in_payment_deadline\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_payment_deadline\" ALIGN=\"LEFT\">payment_deadline<\/TD><\/TR><TR><TD PORT=\"in_winning_bid\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_winning_bid\" ALIGN=\"LEFT\">winning_bid<\/TD><\/TR><TR><TD PORT=\"in_winner_forfeited_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_winner_forfeited_at\" ALIGN=\"LEFT\">winner_forfeited_at<\/TD><\/TR><TR><TD PORT=\"in_backup_bidder_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_backup_bidder_id\" ALIGN=\"LEFT\">backup_bidder_id<\/TD><\/TR><TR><TD PORT=\"in_backup_offer_expires_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_backup_offer_expires_at\" ALIGN=\"LEFT\">backup_offer_expires_at<\/TD><\/TR><TR><TD PORT=\"in_created_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_created_at\" ALIGN=\"LEFT\">created_at<\/TD><\/TR><\/TABLE>",
+      "pos": "369.12,287",
+      "shape": "plain",
+      "width": "2.1138"
+    },
+    {
+      "_gvid": 1,
+      "name": "auction_bid",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[554.220,276.000],[554.220,296.000],[666.610,296.000],[666.610,276.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[554.220,276.000],[666.610,276.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [576.250,284.000],
+          "align": "l",
+          "width": 68.330,
+          "text": "AUCTION_BID"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[575.560,256.000],[575.560,276.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [558.220,262.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [578.560,262.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[575.560,236.000],[575.560,256.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [558.220,242.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [578.560,242.000],
+          "align": "l",
+          "width": 45.590,
+          "text": "auction_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[575.560,216.000],[575.560,236.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [558.220,222.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [578.560,222.000],
+          "align": "l",
+          "width": 41.140,
+          "text": "bidder_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[575.560,198.000],[575.560,216.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [578.560,203.000],
+          "align": "l",
+          "width": 33.350,
+          "text": "amount"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[575.560,180.000],[575.560,198.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [578.560,185.000],
+          "align": "l",
+          "width": 47.260,
+          "text": "created_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[575.560,162.000],[575.560,180.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [578.560,167.000],
+          "align": "l",
+          "width": 85.050,
+          "text": "terms_accepted_at"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[565.220,161.000],[565.220,161.000],[655.610,161.000],[655.610,161.000],[661.610,161.000],[667.610,167.000],[667.610,173.000],[667.610,173.000],[667.610,285.000],[667.610,285.000],[667.610,291.000],[661.610,297.000],[655.610,297.000],[655.610,297.000],[565.220,297.000],[565.220,297.000],[559.220,297.000],[553.220,291.000],[553.220,285.000],[553.220,285.000],[553.220,173.000],[553.220,173.000],[553.220,167.000],[559.220,161.000],[565.220,161.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "1.8889",
+      "id": "table-auction_bid",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>AUCTION_BID<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><TR><TD PORT=\"in_auction_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_auction_id\" ALIGN=\"LEFT\">auction_id<\/TD><\/TR><TR><TD PORT=\"in_bidder_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_bidder_id\" ALIGN=\"LEFT\">bidder_id<\/TD><\/TR><TR><TD PORT=\"in_amount\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_amount\" ALIGN=\"LEFT\">amount<\/TD><\/TR><TR><TD PORT=\"in_created_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_created_at\" ALIGN=\"LEFT\">created_at<\/TD><\/TR><TR><TD PORT=\"in_terms_accepted_at\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\"><\/TD><TD PORT=\"out_terms_accepted_at\" ALIGN=\"LEFT\">terms_accepted_at<\/TD><\/TR><\/TABLE>",
+      "pos": "610.42,229",
+      "shape": "plain",
+      "width": "1.5887"
+    },
+    {
+      "_gvid": 2,
+      "name": "user",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[48.780,75.000],[48.780,95.000],[136.250,95.000],[136.250,75.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[48.780,75.000],[136.250,75.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [52.780,83.000],
+          "align": "l",
+          "width": 27.780,
+          "text": "USER"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [80.560,83.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[96.290,55.000],[96.290,75.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [52.780,61.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [99.290,61.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[59.780,54.000],[59.780,54.000],[125.250,54.000],[125.250,54.000],[131.250,54.000],[137.250,60.000],[137.250,66.000],[137.250,66.000],[137.250,84.000],[137.250,84.000],[137.250,90.000],[131.250,96.000],[125.250,96.000],[125.250,96.000],[59.780,96.000],[59.780,96.000],[53.780,96.000],[47.780,90.000],[47.780,84.000],[47.780,84.000],[47.780,66.000],[47.780,66.000],[47.780,60.000],[53.780,54.000],[59.780,54.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.58333",
+      "id": "table-user",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>USER<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><\/TABLE>",
+      "pos": "92.512,75",
+      "shape": "plain",
+      "width": "1.2426"
+    },
+    {
+      "_gvid": 3,
+      "name": "artwork",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[36.560,477.000],[36.560,497.000],[148.460,497.000],[148.460,477.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[36.560,477.000],[148.460,477.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [40.560,485.000],
+          "align": "l",
+          "width": 52.210,
+          "text": "ARTWORK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [92.780,485.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[82.670,457.000],[82.670,477.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.560,463.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [85.670,463.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[82.670,437.000],[82.670,457.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.560,443.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [85.670,443.000],
+          "align": "l",
+          "width": 35.010,
+          "text": "artist_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[47.560,436.000],[47.560,436.000],[137.460,436.000],[137.460,436.000],[143.460,436.000],[149.460,442.000],[149.460,448.000],[149.460,448.000],[149.460,486.000],[149.460,486.000],[149.460,492.000],[143.460,498.000],[137.460,498.000],[137.460,498.000],[47.560,498.000],[47.560,498.000],[41.560,498.000],[35.560,492.000],[35.560,486.000],[35.560,486.000],[35.560,448.000],[35.560,448.000],[35.560,442.000],[41.560,436.000],[47.560,436.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.86111",
+      "id": "table-artwork",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>ARTWORK<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><TR><TD PORT=\"in_artist_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_artist_id\" ALIGN=\"LEFT\">artist_id<\/TD><\/TR><\/TABLE>",
+      "pos": "92.512,467",
+      "shape": "plain",
+      "width": "1.5819"
+    },
+    {
+      "_gvid": 4,
+      "name": "agreement_template",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "P",
+          "points": [[1.000,184.000],[1.000,204.000],[184.020,204.000],[184.020,184.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[1.000,184.000],[184.020,184.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [5.000,192.000],
+          "align": "l",
+          "width": 123.340,
+          "text": "AGREEMENT_TEMPLATE"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#111111"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [128.340,192.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[67.370,164.000],[67.370,184.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [5.000,170.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [70.370,170.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "L",
+          "points": [[67.370,144.000],[67.370,164.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [5.000,150.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [70.370,150.000],
+          "align": "l",
+          "width": 65.620,
+          "text": "updated_by_id"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#666666"
+        },
+        {
+          "op": "b",
+          "points": [[12.000,143.000],[12.000,143.000],[173.020,143.000],[173.020,143.000],[179.020,143.000],[185.020,149.000],[185.020,155.000],[185.020,155.000],[185.020,193.000],[185.020,193.000],[185.020,199.000],[179.020,205.000],[173.020,205.000],[173.020,205.000],[12.000,205.000],[12.000,205.000],[6.000,205.000],[0.000,199.000],[0.000,193.000],[0.000,193.000],[0.000,155.000],[0.000,155.000],[0.000,149.000],[6.000,143.000],[12.000,143.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.86111",
+      "id": "table-agreement_template",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"3\" COLOR=\"#666666\" STYLE=\"ROUNDED\"><TR><TD COLSPAN=\"2\" BORDER=\"1\" SIDES=\"B\" BGCOLOR=\"#ffffff\"><FONT COLOR=\"#111111\"><B>AGREEMENT_TEMPLATE<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">PK<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\">id<\/TD><\/TR><TR><TD PORT=\"in_updated_by_id\" ALIGN=\"LEFT\" BORDER=\"1\" SIDES=\"R\">FK<\/TD><TD PORT=\"out_updated_by_id\" ALIGN=\"LEFT\">updated_by_id<\/TD><\/TR><\/TABLE>",
+      "pos": "92.512,174",
+      "shape": "plain",
+      "width": "2.5698"
+    }
+  ],
+  "edges": [
+    {
+      "_gvid": 1,
+      "tail": 2,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[146.350,75.000],[146.350,75.000],[279.980,75.000],[279.980,75.000]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[286.690,75.000],[293.690,78.150],[290.520,75.000],[293.360,75.000],[293.360,75.000],[293.360,75.000],[290.520,75.000],[293.690,71.850]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [282.170,75.000,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [139.550,75.000,2.800,2.800]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[143.550,78.500],[143.550,71.500],[144.950,71.500],[144.950,78.500]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[142.850,75.000],[146.350,75.000]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "odottee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_artist_id:w",
+      "id": "relationship-0",
+      "labeldistance": "2.4",
+      "pos": "s,136.25,75 e,294.02,75 146.35,75 146.35,75 279.98,75 279.98,75",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → auction.artist_id | one-to-many | parent 0..1 child 0..*"
+    },
+    {
+      "_gvid": 5,
+      "tail": 3,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[151.960,467.000],[151.960,467.000],[279.980,467.000],[279.980,467.000]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[286.690,467.000],[293.690,470.150],[290.520,467.000],[293.360,467.000],[293.360,467.000],[293.360,467.000],[290.520,467.000],[293.690,463.850]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [282.170,467.000,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[149.160,470.500],[149.160,463.500],[150.560,463.500],[150.560,470.500]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[148.460,467.000],[151.960,467.000]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "tee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_artwork_id:w",
+      "id": "relationship-1",
+      "labeldistance": "2.4",
+      "pos": "s,148.46,467 e,294.02,467 151.96,467 151.96,467 279.98,467 279.98,467",
+      "tailport": "out_id:e",
+      "tooltip": "artwork.id → auction.artwork_id | one-to-many | parent 1 child 0..*"
+    },
+    {
+      "_gvid": 2,
+      "tail": 2,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[146.350,85.500],[146.350,85.500],[279.980,85.500],[279.980,85.500]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[286.690,85.500],[293.690,88.650],[290.520,85.500],[293.360,85.500],[293.360,85.500],[293.360,85.500],[290.520,85.500],[293.690,82.350]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [282.170,85.500,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [139.550,85.500,2.800,2.800]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[143.550,89.000],[143.550,82.000],[144.950,82.000],[144.950,89.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[142.850,85.500],[146.350,85.500]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "odottee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_highest_bidder_id:w",
+      "id": "relationship-2",
+      "labeldistance": "2.4",
+      "pos": "s,136.25,85.5 e,294.02,85.5 146.35,85.5 146.35,85.5 279.98,85.5 279.98,85.5",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → auction.highest_bidder_id | one-to-many | parent 0..1 child 0..*"
+    },
+    {
+      "_gvid": 6,
+      "tail": 4,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[194.120,174.000],[194.120,174.000],[279.980,174.000],[279.980,174.000]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[286.690,174.000],[293.690,177.150],[290.520,174.000],[293.360,174.000],[293.360,174.000],[293.360,174.000],[290.520,174.000],[293.690,170.850]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [282.170,174.000,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [187.320,174.000,2.800,2.800]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[191.320,177.500],[191.320,170.500],[192.720,170.500],[192.720,177.500]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[190.620,174.000],[194.120,174.000]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "odottee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_agreement_template_id:w",
+      "id": "relationship-3",
+      "labeldistance": "2.4",
+      "pos": "s,184.02,174 e,294.02,174 194.12,174 194.12,174 279.98,174 279.98,174",
+      "tailport": "out_id:e",
+      "tooltip": "agreement_template.id → auction.agreement_template_id | one-to-many | parent 0..1 child 0..*"
+    },
+    {
+      "_gvid": 3,
+      "tail": 2,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[146.350,64.500],[146.350,64.500],[279.980,64.500],[279.980,64.500]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[286.690,64.500],[293.690,67.650],[290.520,64.500],[293.360,64.500],[293.360,64.500],[293.360,64.500],[290.520,64.500],[293.690,61.350]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [282.170,64.500,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [139.550,64.500,2.800,2.800]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[143.550,68.000],[143.550,61.000],[144.950,61.000],[144.950,68.000]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[142.850,64.500],[146.350,64.500]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "odottee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_backup_bidder_id:w",
+      "id": "relationship-4",
+      "labeldistance": "2.4",
+      "pos": "s,136.25,64.5 e,294.02,64.5 146.35,64.5 146.35,64.5 279.98,64.5 279.98,64.5",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → auction.backup_bidder_id | one-to-many | parent 0..1 child 0..*"
+    },
+    {
+      "_gvid": 0,
+      "tail": 0,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[447.720,229.000],[447.720,229.000],[540.180,229.000],[540.180,229.000]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[546.890,229.000],[553.890,232.150],[550.720,229.000],[553.550,229.000],[553.550,229.000],[553.550,229.000],[550.720,229.000],[553.890,225.850]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [542.370,229.000,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[444.920,232.500],[444.920,225.500],[446.320,225.500],[446.320,232.500]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[444.220,229.000],[447.720,229.000]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "tee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_auction_id:w",
+      "id": "relationship-5",
+      "labeldistance": "2.4",
+      "pos": "s,444.22,229 e,554.22,229 447.72,229 447.72,229 540.18,229 540.18,229",
+      "tailport": "out_id:e",
+      "tooltip": "auction.id → auction_bid.auction_id | one-to-many | parent 1 child 0..*"
+    },
+    {
+      "_gvid": 4,
+      "tail": 2,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[92.610,61.500],[92.610,61.500],[92.610,0.000],[92.610,0.000],[92.610,0.000],[610.610,0.000],[610.610,0.000],[610.610,0.000],[610.610,211.960],[610.610,211.960]]
+        }
+      ],
+      "_hdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[610.610,218.670],[607.460,225.670],[610.610,222.500],[610.610,225.330],[610.610,225.330],[610.610,225.330],[610.610,222.500],[613.760,225.670]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "e",
+          "rect": [610.610,214.150,2.800,2.800]
+        }
+      ],
+      "_tdraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "P",
+          "points": [[96.110,64.300],[89.110,64.300],[89.110,62.900],[96.110,62.900]]
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "L",
+          "points": [[92.610,65.000],[92.610,61.500]]
+        }
+      ],
+      "arrowhead": "crowodot",
+      "arrowsize": "0.7",
+      "arrowtail": "tee",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "headport": "in_bidder_id:w",
+      "id": "relationship-6",
+      "labeldistance": "2.4",
+      "pos": "s,92.609,65 e,610.61,226 92.609,61.5 92.609,61.5 92.609,0 92.609,0 92.609,0 610.61,0 610.61,0 610.61,0 610.61,211.96 610.61,211.96",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → auction_bid.bidder_id | one-to-many | parent 1 child 0..*"
+    }
+  ]
+}

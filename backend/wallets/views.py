@@ -146,6 +146,8 @@ class AgreementCheckoutView(AuthenticatedAPIView):
             artwork=agreement.artwork, agreement=agreement, gross_amount=gross,
             platform_fee=platform_fee, artist_amount=artwork_amount-platform_fee, artwork_png=artwork_png,
         )
+        from blockchain.sale_terms import capture_sale_terms
+        capture_sale_terms(session, source='checkout')
         if simulate:
             session.is_simulated = True
             session.status = PaymentSession.Status.PAID

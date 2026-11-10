@@ -11,8 +11,8 @@ class FingerprintLookupView(AuthenticatedAPIView):
 
     def post(self, request):
         actor = self.get_request_user(request)
-        if actor.role not in ('platform_admin', 'customer_support'):
-            return Response({'error': 'Admin or customer service access is required.'}, status=403)
+        if actor.role not in ('platform_admin', 'customer_support', 'creative_moderator'):
+            return Response({'error': 'Creative moderator, admin or customer support access is required.'}, status=403)
         try:
             record = find_code(request.data.get('code', ''))
         except ValueError:
@@ -37,14 +37,20 @@ class FingerprintLookupView(AuthenticatedAPIView):
             if source:
                 artwork = {'id': source.pk, 'title': source.title, 'kind': 'commission'}
         def person(user):
+            if actor.role == 'creative_moderator':
+                return {'id': user.pk, 'username': user.username}
             return {'id': user.pk, 'username': user.username,
                     'name': ' '.join(filter(None, [user.first_name, user.last_name]))}
         from users.models import ActivityLog
         ActivityLog.objects.create(user=actor, action='artwork_code_lookup',
             description='Looked up an issued artwork copy.', reference_type='download_fingerprint', reference_id=record.pk)
+        license_data = record.license_snapshot
+        if actor.role == 'creative_moderator':
+            license_data = {key: value for key, value in license_data.items()
+                            if key in ('reference', 'agreement_id', 'license_type', 'exclusivity', 'license_scope')}
         response = Response({'code': copy_code(record), 'source': record.source_key,
                              'artwork': artwork, 'buyer': person(record.buyer),
-                             'artist': person(record.artist), 'license': record.license_snapshot,
+                             'artist': person(record.artist), 'license': license_data,
                              'blockchain': proof_details(record),
                              'issued_at': record.issued_at.isoformat()})
         response['Cache-Control'] = 'private, no-store'

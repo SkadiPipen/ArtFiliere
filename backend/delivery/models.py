@@ -13,6 +13,9 @@ class RiderProfile(models.Model):
     def __str__(self):
         return f"Rider: {self.user.get_full_name() or self.user.username}"
 
+    class Meta:
+        db_table = "legacy_rider_profile"
+
 class Order(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending Request'),
@@ -64,3 +67,5 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} - {self.item_name} ({self.status})"
+    class Meta:
+        db_table = "legacy_delivery_order"

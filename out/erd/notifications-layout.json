@@ -1,0 +1,2723 @@
+{
+  "name": "ERD",
+  "directed": true,
+  "strict": false,
+  "_draw_": 
+  [
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#fffffe00"
+    },
+    {
+      "op": "C",
+      "grad": "none",
+      "color": "#ffffff"
+    },
+    {
+      "op": "P",
+      "points": [[-28.800,-28.800],[-28.800,705.800],[630.950,705.800],[630.950,-28.800]]
+    }
+  ],
+  "_ldraw_": 
+  [
+    {
+      "op": "F",
+      "size": 18.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [252.050,657.800],
+      "align": "l",
+      "width": 98.040,
+      "text": "Notifications"
+    },
+    {
+      "op": "F",
+      "size": 10.000,
+      "face": "Arial"
+    },
+    {
+      "op": "c",
+      "grad": "none",
+      "color": "#000000"
+    },
+    {
+      "op": "T",
+      "pt": [121.630,647.000],
+      "align": "l",
+      "width": 358.880,
+      "text": "Parent: 1 or 0..1 | Child: 0..* or 0..1 | PK primary key | FK foreign key | UQ unique"
+    }
+  ],
+  "bb": "0,0,602.15,677",
+  "bgcolor": "white",
+  "concentrate": "false",
+  "fontname": "Arial",
+  "fontsize": "12",
+  "label": "<FONT POINT-SIZE=\"18\">Notifications<\/FONT><BR\/><FONT POINT-SIZE=\"10\">Parent: 1 or 0..1 | Child: 0..* or 0..1 | PK primary key | FK foreign key | UQ unique<\/FONT>",
+  "labelloc": "t",
+  "lheight": "0.39",
+  "lp": "301.07,659",
+  "lwidth": "4.98",
+  "nodesep": "0.4",
+  "pad": "0.4",
+  "rankdir": "LR",
+  "ranksep": "2.0",
+  "splines": "spline",
+  "xdotversion": "1.7",
+  "_subgraph_cnt": 0,
+  "objects": [
+    {
+      "_gvid": 0,
+      "name": "admin_request_read",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#143d59"
+        },
+        {
+          "op": "P",
+          "points": [[380.510,618.000],[380.510,640.000],[591.150,640.000],[591.150,618.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [436.920,627.000],
+          "align": "l",
+          "width": 97.820,
+          "text": "admin_request_read"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [385.510,603.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [408.850,603.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [473.330,603.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [385.510,581.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [408.850,581.000],
+          "align": "l",
+          "width": 32.800,
+          "text": "user_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [473.330,581.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [408.850,559.000],
+          "align": "l",
+          "width": 54.480,
+          "text": "request_key"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [473.330,559.000],
+          "align": "l",
+          "width": 56.690,
+          "text": "varchar(160)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [408.850,537.000],
+          "align": "l",
+          "width": 33.920,
+          "text": "read_at"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [473.330,537.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[379.510,529.000],[379.510,641.000],[592.150,641.000],[592.150,529.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "1.5556",
+      "id": "table-admin_request_read",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#143d59\"><FONT COLOR=\"white\"><B>admin_request_read<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_user_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">user_id<\/TD><TD PORT=\"out_user_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_request_key\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">request_key<\/TD><TD PORT=\"out_request_key\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">varchar(160)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_read_at\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">read_at<\/TD><TD PORT=\"out_read_at\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "485.83,585",
+      "shape": "plain",
+      "width": "2.9533"
+    },
+    {
+      "_gvid": 1,
+      "name": "notification",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#143d59"
+        },
+        {
+          "op": "P",
+          "points": [[370.520,349.000],[370.520,371.000],[601.150,371.000],[601.150,349.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#ffffff"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [458.890,358.000],
+          "align": "l",
+          "width": 53.880,
+          "text": "notification"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [375.520,334.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,334.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,334.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [375.520,312.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,312.000],
+          "align": "l",
+          "width": 32.800,
+          "text": "user_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,312.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [375.520,290.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,290.000],
+          "align": "l",
+          "width": 69.490,
+          "text": "agreement_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,290.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [375.520,268.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,268.000],
+          "align": "l",
+          "width": 69.500,
+          "text": "application_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,268.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [375.520,246.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,246.000],
+          "align": "l",
+          "width": 54.470,
+          "text": "artwork_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,246.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [375.520,224.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,224.000],
+          "align": "l",
+          "width": 74.470,
+          "text": "commission_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,224.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,202.000],
+          "align": "l",
+          "width": 15.560,
+          "text": "title"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,202.000],
+          "align": "l",
+          "width": 56.690,
+          "text": "varchar(200)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,180.000],
+          "align": "l",
+          "width": 40.580,
+          "text": "message"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,180.000],
+          "align": "l",
+          "width": 16.120,
+          "text": "text"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,158.000],
+          "align": "l",
+          "width": 32.800,
+          "text": "is_read"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,158.000],
+          "align": "l",
+          "width": 35.590,
+          "text": "boolean"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [398.860,136.000],
+          "align": "l",
+          "width": 47.260,
+          "text": "created_at"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [483.330,136.000],
+          "align": "l",
+          "width": 112.820,
+          "text": "timestamp with time zone"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[369.520,128.000],[369.520,372.000],[602.150,372.000],[602.150,128.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "3.3889",
+      "id": "table-notification",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#143d59\"><FONT COLOR=\"white\"><B>notification<\/B><\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_user_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">user_id<\/TD><TD PORT=\"out_user_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_agreement_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">agreement_id ?<\/TD><TD PORT=\"out_agreement_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_application_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">application_id ?<\/TD><TD PORT=\"out_application_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artwork_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">artwork_id ?<\/TD><TD PORT=\"out_artwork_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_commission_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">commission_id ?<\/TD><TD PORT=\"out_commission_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_title\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">title<\/TD><TD PORT=\"out_title\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">varchar(200)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_message\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">message<\/TD><TD PORT=\"out_message\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">text<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_is_read\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">is_read<\/TD><TD PORT=\"out_is_read\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">boolean<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_created_at\" ALIGN=\"LEFT\"><\/TD><TD ALIGN=\"LEFT\">created_at<\/TD><TD PORT=\"out_created_at\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">timestamp with time zone<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "485.83,250",
+      "shape": "plain",
+      "width": "3.231"
+    },
+    {
+      "_gvid": 2,
+      "name": "user",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e2e8f0"
+        },
+        {
+          "op": "P",
+          "points": [[44.900,593.000],[44.900,615.000],[127.710,615.000],[127.710,593.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [49.900,602.000],
+          "align": "l",
+          "width": 21.120,
+          "text": "user"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [71.020,602.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [49.900,578.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [75.830,578.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [96.210,578.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[43.900,570.000],[43.900,616.000],[128.710,616.000],[128.710,570.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.63889",
+      "id": "table-user",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#e2e8f0\"><FONT COLOR=\"#172b3a\"><B>user<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "86.305,593",
+      "shape": "plain",
+      "width": "1.1779"
+    },
+    {
+      "_gvid": 3,
+      "name": "agreement",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e2e8f0"
+        },
+        {
+          "op": "P",
+          "points": [[12.650,512.000],[12.650,534.000],[159.960,534.000],[159.960,512.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [35.170,521.000],
+          "align": "l",
+          "width": 50.580,
+          "text": "agreement"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [85.750,521.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [17.650,497.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.990,497.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [131.050,497.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [17.650,475.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.990,475.000],
+          "align": "l",
+          "width": 70.040,
+          "text": "conversation_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [131.050,475.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [17.650,453.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.990,453.000],
+          "align": "l",
+          "width": 51.700,
+          "text": "template_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [131.050,453.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [17.650,431.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.990,431.000],
+          "align": "l",
+          "width": 54.470,
+          "text": "artwork_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [131.050,431.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [17.650,409.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.990,409.000],
+          "align": "l",
+          "width": 38.360,
+          "text": "buyer_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [131.050,409.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [17.650,387.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.990,387.000],
+          "align": "l",
+          "width": 35.010,
+          "text": "artist_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [131.050,387.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [17.650,365.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.990,365.000],
+          "align": "l",
+          "width": 70.040,
+          "text": "revision_of_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [131.050,365.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [17.650,343.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.990,343.000],
+          "align": "l",
+          "width": 80.060,
+          "text": "cancelled_by_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [131.050,343.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[11.650,335.000],[11.650,535.000],[160.960,535.000],[160.960,335.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "2.7778",
+      "id": "table-agreement",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#e2e8f0\"><FONT COLOR=\"#172b3a\"><B>agreement<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_conversation_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">conversation_id<\/TD><TD PORT=\"out_conversation_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_template_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">template_id<\/TD><TD PORT=\"out_template_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artwork_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">artwork_id ?<\/TD><TD PORT=\"out_artwork_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_buyer_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">buyer_id<\/TD><TD PORT=\"out_buyer_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artist_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">artist_id<\/TD><TD PORT=\"out_artist_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_revision_of_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">revision_of_id ?<\/TD><TD PORT=\"out_revision_of_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_cancelled_by_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">cancelled_by_id ?<\/TD><TD PORT=\"out_cancelled_by_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "86.305,435",
+      "shape": "plain",
+      "width": "2.0737"
+    },
+    {
+      "_gvid": 4,
+      "name": "artist_application",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e2e8f0"
+        },
+        {
+          "op": "P",
+          "points": [[14.060,283.000],[14.060,305.000],[158.550,305.000],[158.550,283.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [19.060,292.000],
+          "align": "l",
+          "width": 82.800,
+          "text": "artist_application"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [101.860,292.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [19.060,268.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [68.690,268.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [120.570,268.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [19.060,246.000],
+          "align": "l",
+          "width": 30.560,
+          "text": "FK UQ"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [68.690,246.000],
+          "align": "l",
+          "width": 32.800,
+          "text": "user_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [120.570,246.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[13.060,238.000],[13.060,306.000],[159.550,306.000],[159.550,238.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.94444",
+      "id": "table-artist_application",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#e2e8f0\"><FONT COLOR=\"#172b3a\"><B>artist_application<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_user_id\" ALIGN=\"LEFT\">FK UQ<\/TD><TD ALIGN=\"LEFT\">user_id<\/TD><TD PORT=\"out_user_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "86.305,272",
+      "shape": "plain",
+      "width": "2.0345"
+    },
+    {
+      "_gvid": 5,
+      "name": "artwork",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e2e8f0"
+        },
+        {
+          "op": "P",
+          "points": [[35.170,186.000],[35.170,208.000],[137.440,208.000],[137.440,186.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [42.400,195.000],
+          "align": "l",
+          "width": 36.120,
+          "text": "artwork"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [78.520,195.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.170,171.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [63.510,171.000],
+          "align": "l",
+          "width": 7.780,
+          "text": "id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [108.530,171.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [40.170,149.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [63.510,149.000],
+          "align": "l",
+          "width": 35.010,
+          "text": "artist_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [108.530,149.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[34.170,141.000],[34.170,209.000],[138.440,209.000],[138.440,141.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "0.94444",
+      "id": "table-artwork",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#e2e8f0\"><FONT COLOR=\"#172b3a\"><B>artwork<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">id<\/TD><TD PORT=\"out_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artist_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">artist_id<\/TD><TD PORT=\"out_artist_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "86.305,175",
+      "shape": "plain",
+      "width": "1.4481"
+    },
+    {
+      "_gvid": 6,
+      "name": "commission",
+      "_ldraw_": 
+      [
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#fffffe00"
+        },
+        {
+          "op": "C",
+          "grad": "none",
+          "color": "#e2e8f0"
+        },
+        {
+          "op": "P",
+          "points": [[1.000,89.000],[1.000,111.000],[171.610,111.000],[171.610,89.000]]
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 1
+        },
+        {
+          "op": "T",
+          "pt": [31.290,98.000],
+          "align": "l",
+          "width": 58.350,
+          "text": "commission"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#172b3a"
+        },
+        {
+          "op": "t",
+          "fontchar": 0
+        },
+        {
+          "op": "T",
+          "pt": [89.640,98.000],
+          "align": "l",
+          "width": 51.680,
+          "text": " (reference)"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [6.000,74.000],
+          "align": "l",
+          "width": 13.340,
+          "text": "PK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [46.560,74.000],
+          "align": "l",
+          "width": 86.150,
+          "text": "commission_req_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [142.700,74.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [6.000,52.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [46.560,52.000],
+          "align": "l",
+          "width": 38.360,
+          "text": "buyer_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [142.700,52.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [6.000,30.000],
+          "align": "l",
+          "width": 12.780,
+          "text": "FK"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [46.560,30.000],
+          "align": "l",
+          "width": 35.010,
+          "text": "artist_id"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [142.700,30.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [6.000,8.000],
+          "align": "l",
+          "width": 30.560,
+          "text": "FK UQ"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#000000"
+        },
+        {
+          "op": "T",
+          "pt": [46.560,8.000],
+          "align": "l",
+          "width": 69.490,
+          "text": "agreement_id ?"
+        },
+        {
+          "op": "F",
+          "size": 10.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#475569"
+        },
+        {
+          "op": "T",
+          "pt": [142.700,8.000],
+          "align": "l",
+          "width": 23.910,
+          "text": "bigint"
+        },
+        {
+          "op": "S",
+          "style": "solid"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#94a3b8"
+        },
+        {
+          "op": "p",
+          "points": [[0.000,0.000],[0.000,112.000],[172.610,112.000],[172.610,0.000]]
+        }
+      ],
+      "fontname": "Arial",
+      "fontsize": "10",
+      "height": "1.5556",
+      "id": "table-commission",
+      "label": "<TABLE BORDER=\"1\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"5\" COLOR=\"#94a3b8\"><TR><TD COLSPAN=\"3\" BGCOLOR=\"#e2e8f0\"><FONT COLOR=\"#172b3a\"><B>commission<\/B> (reference)<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_commission_req_id\" ALIGN=\"LEFT\">PK<\/TD><TD ALIGN=\"LEFT\">commission_req_id<\/TD><TD PORT=\"out_commission_req_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_buyer_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">buyer_id<\/TD><TD PORT=\"out_buyer_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_artist_id\" ALIGN=\"LEFT\">FK<\/TD><TD ALIGN=\"LEFT\">artist_id<\/TD><TD PORT=\"out_artist_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><TR><TD PORT=\"in_agreement_id\" ALIGN=\"LEFT\">FK UQ<\/TD><TD ALIGN=\"LEFT\">agreement_id ?<\/TD><TD PORT=\"out_agreement_id\" ALIGN=\"LEFT\"><FONT COLOR=\"#475569\">bigint<\/FONT><\/TD><\/TR><\/TABLE>",
+      "pos": "86.305,56",
+      "shape": "plain",
+      "width": "2.3974"
+    }
+  ],
+  "edges": [
+    {
+      "_gvid": 0,
+      "tail": 2,
+      "head": 0,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[128.710,582.000],[240.190,582.000],[268.040,585.000],[379.510,585.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [357.740,592.680],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [271.060,586.750],
+          "align": "c",
+          "width": 26.240,
+          "text": "user_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [150.490,569.520],
+          "align": "c",
+          "width": 4.450,
+          "text": "1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "357.74,595.08",
+      "headlabel": "0..*",
+      "headport": "in_user_id:w",
+      "id": "relationship-0",
+      "label": "user_id",
+      "labeldistance": "2.4",
+      "lp": "271.06,589.15",
+      "pos": "128.71,582 240.19,582 268.04,585 379.51,585",
+      "tail_lp": "150.49,571.92",
+      "taillabel": "1",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → admin_request_read.user_id | one-to-many"
+    },
+    {
+      "_gvid": 1,
+      "tail": 2,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[128.710,582.000],[220.760,582.000],[237.830,532.080],[297.520,462.000],[344.430,406.920],[297.170,316.000],[369.520,316.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [349.410,326.700],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [271.060,527.720],
+          "align": "c",
+          "width": 26.240,
+          "text": "user_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [149.840,568.220],
+          "align": "c",
+          "width": 4.450,
+          "text": "1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "349.41,329.1",
+      "headlabel": "0..*",
+      "headport": "in_user_id:w",
+      "id": "relationship-1",
+      "label": "user_id",
+      "labeldistance": "2.4",
+      "lp": "271.06,530.12",
+      "pos": "128.71,582 220.76,582 237.83,532.08 297.52,462 344.43,406.92 297.17,316 369.52,316",
+      "tail_lp": "149.84,570.62",
+      "taillabel": "1",
+      "tailport": "out_id:e",
+      "tooltip": "user.id → notification.user_id | one-to-many"
+    },
+    {
+      "_gvid": 2,
+      "tail": 3,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[160.960,501.000],[291.560,501.000],[238.920,294.000],[369.520,294.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [349.780,305.250],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [271.060,447.880],
+          "align": "c",
+          "width": 48.920,
+          "text": "agreement_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [180.700,484.950],
+          "align": "c",
+          "width": 13.340,
+          "text": "0..1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "349.78,307.65",
+      "headlabel": "0..*",
+      "headport": "in_agreement_id:w",
+      "id": "relationship-2",
+      "label": "agreement_id",
+      "labeldistance": "2.4",
+      "lp": "271.06,450.28",
+      "pos": "160.96,501 291.56,501 238.92,294 369.52,294",
+      "tail_lp": "180.7,487.35",
+      "taillabel": "0..1",
+      "tailport": "out_id:e",
+      "tooltip": "agreement.id → notification.agreement_id | one-to-many"
+    },
+    {
+      "_gvid": 3,
+      "tail": 4,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[159.550,272.000],[252.870,272.000],[276.200,272.000],[369.520,272.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [347.770,279.740],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [271.060,274.400],
+          "align": "c",
+          "width": 48.930,
+          "text": "application_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [181.300,259.460],
+          "align": "c",
+          "width": 13.340,
+          "text": "0..1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "347.77,282.14",
+      "headlabel": "0..*",
+      "headport": "in_application_id:w",
+      "id": "relationship-3",
+      "label": "application_id",
+      "labeldistance": "2.4",
+      "lp": "271.06,276.8",
+      "pos": "159.55,272 252.87,272 276.2,272 369.52,272",
+      "tail_lp": "181.3,261.86",
+      "taillabel": "0..1",
+      "tailport": "out_id:e",
+      "tooltip": "artist_application.id → notification.application_id | one-to-many"
+    },
+    {
+      "_gvid": 4,
+      "tail": 5,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[138.440,175.000],[246.410,175.000],[261.540,250.000],[369.520,250.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [347.110,256.190],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [271.060,238.050],
+          "align": "c",
+          "width": 36.900,
+          "text": "artwork_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [160.850,164.010],
+          "align": "c",
+          "width": 13.340,
+          "text": "0..1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "347.11,258.59",
+      "headlabel": "0..*",
+      "headport": "in_artwork_id:w",
+      "id": "relationship-4",
+      "label": "artwork_id",
+      "labeldistance": "2.4",
+      "lp": "271.06,240.45",
+      "pos": "138.44,175 246.41,175 261.54,250 369.52,250",
+      "tail_lp": "160.85,166.41",
+      "taillabel": "0..1",
+      "tailport": "out_id:e",
+      "tooltip": "artwork.id → notification.artwork_id | one-to-many"
+    },
+    {
+      "_gvid": 5,
+      "tail": 6,
+      "head": 1,
+      "_draw_": 
+      [
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#64748b"
+        },
+        {
+          "op": "b",
+          "points": [[172.610,78.000],[227.620,78.000],[314.510,228.000],[369.520,228.000]]
+        }
+      ],
+      "_hldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [345.990,230.350],
+          "align": "c",
+          "width": 12.010,
+          "text": "0..*"
+        }
+      ],
+      "_ldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [271.060,181.880],
+          "align": "c",
+          "width": 52.910,
+          "text": "commission_id"
+        }
+      ],
+      "_tldraw_": 
+      [
+        {
+          "op": "F",
+          "size": 8.000,
+          "face": "Arial"
+        },
+        {
+          "op": "c",
+          "grad": "none",
+          "color": "#334155"
+        },
+        {
+          "op": "T",
+          "pt": [196.130,70.850],
+          "align": "c",
+          "width": 13.340,
+          "text": "0..1"
+        }
+      ],
+      "arrowhead": "none",
+      "arrowsize": "0.7",
+      "arrowtail": "none",
+      "color": "#64748b",
+      "dir": "both",
+      "fontcolor": "#334155",
+      "fontname": "Arial",
+      "fontsize": "8",
+      "head_lp": "345.99,232.75",
+      "headlabel": "0..*",
+      "headport": "in_commission_id:w",
+      "id": "relationship-5",
+      "label": "commission_id",
+      "labeldistance": "2.4",
+      "lp": "271.06,184.28",
+      "pos": "172.61,78 227.62,78 314.51,228 369.52,228",
+      "tail_lp": "196.13,73.246",
+      "taillabel": "0..1",
+      "tailport": "out_commission_req_id:e",
+      "tooltip": "commission.commission_req_id → notification.commission_id | one-to-many"
+    }
+  ]
+}

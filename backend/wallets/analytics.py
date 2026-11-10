@@ -17,6 +17,7 @@ def amount(rows, field):
 
 
 def admin_analytics():
+    from .artwork_sales import artwork_sales
     paid = PaymentSession.objects.filter(status='paid', is_simulated=False)
     funded = CommissionRequest.objects.filter(flow_version=2, funded_at__isnull=False)
     refunds = amount(CommissionRefund.objects.filter(status__in=['SUCCEEDED', 'WALLET_CREDITED']), 'amount')
@@ -30,6 +31,7 @@ def admin_analytics():
     resale_royalties = amount(CommissionResale.objects.filter(payment__status='paid', payment__is_simulated=False), 'royalty_amount')
     artworks = Artwork.objects.all()
     return {
+        'artwork_sales': artwork_sales(),
         'as_of': timezone.now().isoformat(), 'period': 'All time',
         'artworks': {'total': artworks.count(), 'digital': artworks.filter(art_type__iexact='digital').count(),
                      'physical': artworks.filter(art_type__iexact='physical').count(),

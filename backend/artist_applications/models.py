@@ -46,6 +46,9 @@ class ArtistApplication(models.Model):
     def __str__(self):
         return f"Artist Application for {self.user.email} Status: ({self.status})"
 
+    class Meta:
+        db_table = "artist_application"
+
 
 class ArtistRegistrationUpdate(models.Model):
     application = models.ForeignKey(ArtistApplication, on_delete=models.PROTECT, related_name='record_updates')
@@ -60,6 +63,7 @@ class ArtistRegistrationUpdate(models.Model):
     reviewed_at = models.DateTimeField(null=True)
 
     class Meta:
+        db_table = "artist_registration_update"
         constraints = [models.UniqueConstraint(fields=['application'], condition=models.Q(status='pending'), name='one_pending_artist_record_update')]
 
 
@@ -82,4 +86,5 @@ class ArtistApplicationLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = "artist_application_log"
         ordering = ["-created_at"]
