@@ -5,7 +5,7 @@ from rest_framework.test import APIRequestFactory
 
 from users.models import User
 from .ai_detector import DetectorUnavailable, ScreeningPending, screen_upload
-from .models import Artwork, ArtworkSimilarityMatch
+from .models import Artwork, ArtworkReviewLog, ArtworkSimilarityMatch
 from .hashing import compute_sha256, compute_perceptual_hash, compute_difference_hash, compute_edge_hash
 from .tests import image_data_url
 from .views import ArtworkView, ArtworkReviewView, ArtworkSimilarityReviewView, ArtworkAIReviewView, ArtworkImageScreenView
@@ -120,16 +120,85 @@ class ArtworkScreeningTests(TestCase):
         self.assertNotIn(pk, [r['id'] for r in self.call(ArtworkView, None).data])
 
     @override_settings(ARTWORK_AUTO_SIMILARITY_THRESHOLD=.8)
-    def test_similarity_at_threshold_blocks_but_below_requires_review(self):
+    def test_similarity_at_threshold_is_assessed_but_final_decision_is_moderator(self):
         self.reference()
         with patch('artworks.views.similarity_confidence', return_value=.8):
-            blocked = self.submit(image_data=image_data_url(quality=55))
-        self.assertEqual(blocked.data['automated_block_reason'], 'high_similarity')
+            flagged = self.submit(image_data=image_data_url(quality=55))
+        self.assertEqual(flagged.data['status'], 'pending')
+        self.assertFalse(flagged.data['automated_block_reason'])
+        self.assertTrue(flagged.data['similarity_review_required'])
+        self.assertEqual(self.call(ArtworkView, None, artwork_id=flagged.data['id']).status_code, 404)
+        detail = self.call(ArtworkView, self.mod, artwork_id=flagged.data['id'])
+        self.assertEqual(detail.data['similarity_matches'][0]['automatic_assessment'], 'high_similarity')
+        self.assertEqual(detail.data['similarity_matches'][0]['assessment_threshold'], .8)
         with patch('artworks.views.similarity_confidence', return_value=.799):
             held = self.submit(image_data=image_data_url(quality=65))
         self.assertEqual(held.data['status'], 'pending')
         self.assertFalse(held.data['automated_block_reason'])
         self.assertTrue(held.data['similarity_review_required'])
+        detail = self.call(ArtworkView, self.mod, artwork_id=held.data['id'])
+        self.assertEqual(detail.data['similarity_matches'][0]['automatic_assessment'], 'possible_match')
+
+    def test_flagged_artwork_approval_requires_evidence_and_keeps_match_measurements(self):
+        reference = self.reference()
+        artwork = Artwork.objects.create(artist=self.artist, title='Flagged', price=10, image_data=image_data_url(quality=55))
+        match = ArtworkSimilarityMatch.objects.create(artwork=artwork, reference_artwork=reference,
+            phash_distance=2, dhash_distance=3, confidence_score=.92, review_status='pending')
+        response = self.call(ArtworkReviewView, self.mod, 'patch', {'status': 'approved'}, artwork_id=artwork.pk)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.call(ArtworkReviewView, self.artist, 'patch', {'status': 'approved', 'review_note': 'Verified permission from the credited artist.'}, artwork_id=artwork.pk).status_code, 403)
+        note = 'Verified permission from the credited artist and reviewed original process files.'
+        response = self.call(ArtworkReviewView, self.mod, 'patch', {'status': 'approved', 'review_note': note}, artwork_id=artwork.pk)
+        self.assertEqual(response.status_code, 200)
+        match.refresh_from_db()
+        self.assertEqual(match.review_status, 'pending')
+        self.assertEqual(match.confidence_score, .92)
+        self.assertEqual(ArtworkReviewLog.objects.get(artwork=artwork, action='approved').reason, note)
+
+    def test_similarity_flag_can_be_declined_without_classifying_each_match(self):
+        reference = self.reference()
+        artwork = Artwork.objects.create(artist=self.artist, title='Held', price=10, image_data=self.image)
+        ArtworkSimilarityMatch.objects.create(artwork=artwork, reference_artwork=reference,
+            phash_distance=2, dhash_distance=3, confidence_score=.92)
+        self.assertEqual(self.call(ArtworkReviewView, self.mod, 'patch', {'status': 'declined'}, artwork_id=artwork.pk).status_code, 400)
+        response = self.call(ArtworkReviewView, self.mod, 'patch', {'status': 'declined', 'decline_reason': 'Required ownership evidence was not supplied.'}, artwork_id=artwork.pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_legacy_high_similarity_block_can_be_reconsidered(self):
+        reference = self.reference()
+        artwork = Artwork.objects.create(artist=self.artist, title='Legacy block', price=10, image_data=self.image,
+            status='declined', automated_block_reason='high_similarity', ai_screening=screening(.9))
+        ArtworkSimilarityMatch.objects.create(artwork=artwork, reference_artwork=reference,
+            phash_distance=2, dhash_distance=3, confidence_score=.92, review_status='auto_blocked')
+        payload = {'status': 'approved', 'review_note': 'Verified original process files and permission to repost.'}
+        self.assertEqual(self.call(ArtworkReviewView, self.mod, 'patch', payload, artwork_id=artwork.pk).status_code, 409)
+        cleared = self.call(ArtworkAIReviewView, self.mod, 'patch', {'note': 'Reviewed original sketches and process files.'}, artwork_id=artwork.pk)
+        self.assertEqual(cleared.status_code, 200)
+        response = self.call(ArtworkReviewView, self.mod, 'patch', payload, artwork_id=artwork.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], 'approved')
+        self.assertEqual(response.data['automated_block_reason'], '')
+
+    def test_legacy_similarity_auction_restores_only_a_valid_schedule(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from auctions.models import AuctionListing
+        artwork = Artwork.objects.create(artist=self.artist, title='Held auction', price=10, image_data=self.image,
+            status='declined', automated_block_reason='high_similarity', sale_type='Auction',
+            starting_time=timezone.now() + timedelta(days=1), end_time=timezone.now() + timedelta(days=3))
+        auction = AuctionListing.objects.create(artwork=artwork, artist=self.artist, starting_bid=10, current_bid=10,
+            bid_increment=1, start_time=artwork.starting_time, end_time=artwork.end_time, status='CANCELLED')
+        Artwork.objects.filter(pk=artwork.pk).update(end_time=timezone.now() - timedelta(days=1))
+        response = self.call(ArtworkReviewView, self.mod, 'patch', {'status': 'approved'}, artwork_id=artwork.pk)
+        self.assertEqual(response.status_code, 409)
+        artwork.refresh_from_db()
+        self.assertEqual(artwork.status, 'declined')
+        self.assertEqual(artwork.automated_block_reason, 'high_similarity')
+        Artwork.objects.filter(pk=artwork.pk).update(end_time=auction.end_time)
+        response = self.call(ArtworkReviewView, self.mod, 'patch', {'status': 'approved'}, artwork_id=artwork.pk)
+        self.assertEqual(response.status_code, 200)
+        auction.refresh_from_db()
+        self.assertEqual(auction.status, 'SCHEDULED')
 
     def test_unavailable_detector_does_not_accept_unchecked_submission(self):
         with patch('artworks.views.screen_upload', side_effect=DetectorUnavailable('Temporarily unavailable')):

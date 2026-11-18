@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.conf import settings
 
 from .models import Artwork
 from .categories import CATEGORIES, category_ids
@@ -120,6 +121,8 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "reference_title": match.reference_artwork.title,
             "reference_artist_name": self.get_artist_name(match.reference_artwork),
             "reference_image_data": match.reference_artwork.image_data,
+            "reference_status": match.reference_artwork.status,
+            "reference_provenance": self.get_provenance(match.reference_artwork),
             "confidence_score": match.confidence_score,
             "phash_distance": match.phash_distance,
             "dhash_distance": match.dhash_distance,
@@ -127,6 +130,12 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "feature_match_score": match.feature_match_score,
             "color_similarity_score": match.color_similarity_score,
             "review_status": match.review_status,
+            "automatic_assessment": (
+                'exact_duplicate' if artwork.automated_block_reason == 'exact_duplicate'
+                else 'high_similarity' if match.confidence_score >= settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD
+                else 'possible_match'
+            ),
+            "assessment_threshold": settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD,
         } for match in matches]
 
     def get_is_sold(self, artwork):

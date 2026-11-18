@@ -1,25 +1,32 @@
 import Header from '@/module/home/components/Header';
 import { matchesArtworkCategory, categoryLabel } from '@/services/artworkCategories';
 import { marketplaceHeading } from '@/constants/marketplaceTypography';
-import ProductImage from '@/components/ProductImage';
+import AuctionArtworkCard from './AuctionArtworkCard';
+import AuctionGuidePanel from './AuctionGuidePanel';
 import { Text } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AuctionDashboardScreen() {
   const router = useRouter();
-  const [data, setData] = useState<any>({ close_to_deadline: [], all_auctions: [] });
+  const [data, setData] = useState<any>({ all_auctions: [] });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [showGuide, setShowGuide] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width);
+  const [contentWidth, setContentWidth] = useState(windowWidth);
   const isDesktop = windowWidth >= 768;
+  useFocusEffect(useCallback(() => () => setShowGuide(false), []));
+  const dismissGuide = useCallback(() => {
+    setShowGuide(false);
+    if (Platform.OS === 'web') requestAnimationFrame(() => document.getElementById('auction-guide-open')?.focus({ preventScroll: true }));
+  }, []);
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => {
@@ -29,11 +36,13 @@ export default function AuctionDashboardScreen() {
   }, []);
 
   useEffect(() => {
+    if (showGuide) return;
+    setNow(Date.now());
     const timer = setInterval(() => {
       setNow(Date.now());
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [showGuide]);
 
   const fetchAuction = async () => {
     try {
@@ -44,12 +53,7 @@ export default function AuctionDashboardScreen() {
       if (res.ok) {
         const json = await res.json();
         const allList = json.all_auctions || (Array.isArray(json) ? json : []);
-        const deadlineList =
-          json.close_to_deadline && json.close_to_deadline.length > 0
-            ? json.close_to_deadline
-            : allList.slice(0, 5);
         setData({
-          close_to_deadline: deadlineList,
           all_auctions: allList,
         });
       } else {
@@ -123,10 +127,18 @@ export default function AuctionDashboardScreen() {
   const pastAuctions = filteredAuctions.filter(hasEnded).sort(
     (a: any, b: any) => new Date(b.end_time).getTime() - new Date(a.end_time).getTime()
   );
-  const deadlineAuctions = data.close_to_deadline.filter((item: any) => !hasEnded(item) && matchesFilters(item));
+  // Use the complete loaded catalogue so auctions enter the 24-hour window
+  // while this page is open, and disappear as soon as their countdown expires.
+  const deadlineAuctions = data.all_auctions.filter((item: any) => {
+    const starts = new Date(item.start_time).getTime();
+    const ends = new Date(item.end_time).getTime();
+    return item.status === 'ACTIVE' && starts <= now && ends > now
+      && ends <= now + 24 * 60 * 60 * 1000 && matchesFilters(item);
+  }).sort((a: any, b: any) => new Date(a.end_time).getTime() - new Date(b.end_time).getTime() || Number(a.id) - Number(b.id)).slice(0, 10);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']} onLayout={event => setContentWidth(event.nativeEvent.layout.width)}>
+      <View style={{ flex: 1 }} pointerEvents={showGuide ? 'none' : 'auto'} accessibilityElementsHidden={showGuide} importantForAccessibility={showGuide ? 'no-hide-descendants' : 'auto'} {...(Platform.OS === 'web' && showGuide ? { inert: true } : {})}>
       <Header activeCategory={activeCategory} onSelectCategory={setActiveCategory} searchQuery={search} onSearchChange={setSearch} />
 
       {/* Main Feed Column */}
@@ -145,17 +157,16 @@ export default function AuctionDashboardScreen() {
               <Text style={styles.bannerSubtitle}>
                 Bid on exclusive curated original pieces.
               </Text>
-              <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showGuide }} onPress={() => setShowGuide(value => !value)} style={styles.bannerButton} activeOpacity={0.8}>
-                <Text style={styles.bannerBtnText}>{showGuide ? 'Hide guide' : 'How auctions work →'}</Text>
+              <TouchableOpacity id="auction-guide-open" accessibilityRole="button" accessibilityState={{ expanded: showGuide }} onPress={() => setShowGuide(true)} style={styles.bannerButton} activeOpacity={0.8}>
+                <Text style={styles.bannerBtnText}>How auctions work →</Text>
               </TouchableOpacity>
-              {showGuide && <Text style={styles.bannerSubtitle}>Open an artwork to review its terms, current bid and closing time. Place your bid from the artwork page and follow the checkout instructions if you win.</Text>}
             </View>
           </View>
 
           {/* Close to Deadline Stories */}
           {deadlineAuctions.length > 0 && (
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Close to deadline</Text>
+              <Text style={styles.sectionTitle}>Ending within 24 hours</Text>
               <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -163,33 +174,19 @@ export default function AuctionDashboardScreen() {
                 keyExtractor={(item) => String(item.id)}
                 contentContainerStyle={styles.deadlineList}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
+                  <AuctionArtworkCard
+                    compact
+                    item={item}
+                    image={getImageSource(item)}
+                    countdown={formatTimer(item.end_time)}
                     style={styles.deadlineCard}
-                    activeOpacity={0.85}
                     onPress={() =>
                       router.push({
                         pathname: '/auction-post',
                         params: { id: item.id },
                       } as any)
                     }
-                  >
-                    <View style={styles.tagBadge}>
-                      <Text style={styles.tagText}>
-                        {item.is_physical ? 'Physical' : 'Digital'}
-                      </Text>
-                    </View>
-                    <ProductImage
-                      source={getImageSource(item)}
-                      style={styles.cardImage}
-                      resizeMode="cover"
-                    />
-                    <Text style={styles.cardArtist} numberOfLines={1}>
-                      {item.artist_name || 'Artist'}
-                    </Text>
-                    <Text style={styles.cardPrice}>
-                      Php {Number(item.current_bid).toLocaleString()}
-                    </Text>
-                  </TouchableOpacity>
+                  />
                 )}
               />
             </View>
@@ -213,57 +210,20 @@ export default function AuctionDashboardScreen() {
                   const isClosed = hasEnded(item);
 
                   return (
-                    <TouchableOpacity
+                    <AuctionArtworkCard
                       key={item.id}
-                      style={[styles.gridCard, isDesktop ? styles.gridCardDesktop : styles.gridCardMobile]}
-                      activeOpacity={0.9}
+                      item={item}
+                      image={getImageSource(item)}
+                      ended={isClosed}
+                      countdown={formatTimer(item.end_time)}
+                      style={isDesktop ? styles.gridCardDesktop : styles.gridCardMobile}
                       onPress={() =>
                         router.push({
                           pathname: '/auction-post',
                           params: { id: item.id },
                         } as any)
                       }
-                    >
-                      <View style={styles.imageHeaderWrapper}>
-                        <View style={[styles.timerBadge, isClosed && styles.timerBadgeEnded]}>
-                          <Ionicons
-                            name="time-outline"
-                            size={12}
-                            color={isClosed ? '#C05C5C' : '#2C3E50'}
-                          />
-                          <Text style={[styles.timerText, isClosed && styles.timerTextEnded]}>
-                            {isClosed ? 'Ended' : formatTimer(item.end_time)}
-                          </Text>
-                        </View>
-                        <ProductImage
-                          source={getImageSource(item)}
-                          style={styles.gridImage}
-                          resizeMode="cover"
-                        />
-                      </View>
-
-                      <View style={styles.cardBody}>
-                        <Text style={styles.gridTitle} numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                        <Text style={styles.gridArtist} numberOfLines={1}>
-                          by {item.artist_name || 'Artist'}
-                        </Text>
-                        <View style={styles.priceRow}>
-                          <View>
-                            <Text style={styles.bidPromptLabel}>{isClosed ? 'Final bid' : 'Current Bid'}</Text>
-                            <Text style={styles.gridPrice}>
-                              Php {Number(item.current_bid).toLocaleString()}
-                            </Text>
-                          </View>
-                          <View style={styles.typeTag}>
-                            <Text style={styles.typeText}>
-                              {item.is_physical ? 'Physical' : 'Digital'}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
+                    />
                   );
                 })}
               </View>
@@ -272,6 +232,8 @@ export default function AuctionDashboardScreen() {
           ))}
         </View>
       </ScrollView>
+      </View>
+      {showGuide && <AuctionGuidePanel width={contentWidth} onDismiss={dismissGuide} />}
     </SafeAreaView>
   );
 }
@@ -280,6 +242,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+    overflow: 'hidden',
   },
   centerContainer: {
     flex: 1,
@@ -403,56 +366,17 @@ const styles = StyleSheet.create({
 
   // DEADLINE HORIZONTAL CAROUSEL
   deadlineList: {
-    paddingHorizontal: 16,
-    gap: 12,
-    paddingBottom: 4,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    gap: 40,
+    paddingBottom: 14,
   },
   deadlineCard: {
     width: 124,
-    backgroundColor: '#FAFAFA',
-    borderRadius: 10,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
   },
-  tagBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    zIndex: 2,
-    borderWidth: 0.5,
-    borderColor: '#DDD',
-  },
-  tagText: {
-    fontSize: 9,
-    color: '#C05C5C',
-    fontWeight: 'bold',
-  },
-  cardImage: {
-    width: '100%',
-    height: 96,
-    borderRadius: 6,
-    marginBottom: 6,
-    backgroundColor: '#EEE',
-  },
-  cardArtist: {
-    fontSize: 11,
-    color: '#555',
-    marginBottom: 2,
-  },
-  cardPrice: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#222',
-  },
-
   // FEED GRID (SEE MORE)
   grid: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
   },
   gridDesktop: {
     flexDirection: 'row',
@@ -464,101 +388,14 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 14,
   },
-  gridCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E2D6CD',
-  },
   gridCardDesktop: {
     width: '23%',
+    marginTop: 22,
     marginBottom: 10,
   },
   gridCardMobile: {
     width: '100%',
-  },
-  imageHeaderWrapper: {
-    position: 'relative',
-    width: '100%',
-    backgroundColor: '#F0F0F0',
-  },
-  gridImage: {
-    width: '100%',
-    height: 190,
-  },
-  timerBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    zIndex: 2,
-    borderWidth: 0.5,
-    borderColor: '#E5E5E5',
-    gap: 4,
-  },
-  timerBadgeEnded: {
-    backgroundColor: '#FFF0F0',
-    borderColor: '#F5C6CB',
-  },
-  timerText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#2C3E50',
-  },
-  timerTextEnded: {
-    color: '#C05C5C',
-  },
-  cardBody: {
-    padding: 16,
-  },
-  gridTitle: {
-    fontSize: 18,
-    fontWeight: '600', fontFamily: 'LoraSemiBold',
-    color: '#3A2D2A',
-  },
-  gridArtist: {
-    fontSize: 11,
-    color: '#81756D',
-    marginTop: 2,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: 8,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#F4F4F4',
-  },
-  bidPromptLabel: {
-    fontSize: 9,
-    color: '#888',
-    textTransform: 'uppercase',
-    fontWeight: '600',
-  },
-  gridPrice: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#C05C5C',
-  },
-  typeTag: {
-    backgroundColor: '#F7F7F7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 0.5,
-    borderColor: '#E0E0E0',
-  },
-  typeText: {
-    fontSize: 10,
-    color: '#666',
-    fontWeight: '600',
+    marginTop: 22,
   },
   emptyContainer: {
     padding: 32,

@@ -45,7 +45,7 @@ function Licence({ value }: { value: any }) {
   </View>;
 }
 
-export default function ArtworkHistoryPanel({ artworkId }: { artworkId: number }) {
+export default function ArtworkHistoryPanel({ artworkId, buttonLabel = 'View full artwork history' }: { artworkId: number; buttonLabel?: string }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
@@ -82,7 +82,7 @@ export default function ArtworkHistoryPanel({ artworkId }: { artworkId: number }
     finally { if (version === lookupVersion.current) setLookupBusy(false); }
   };
   return <>
-    <TouchableOpacity accessibilityRole="button" style={s.button} onPress={() => setOpen(true)}><Text style={s.buttonText}>View full artwork history</Text></TouchableOpacity>
+    <TouchableOpacity accessibilityRole="button" style={s.button} onPress={() => setOpen(true)}><Text style={s.buttonText}>{buttonLabel}</Text></TouchableOpacity>
     <Modal visible={open} animationType="fade" transparent onRequestClose={() => setOpen(false)}>
       <View style={s.overlay}><View style={s.modal}>
         <View style={s.heading}><Text style={s.title}>Artwork history and investigation</Text><TouchableOpacity onPress={() => setOpen(false)}><Text>Close</Text></TouchableOpacity></View>

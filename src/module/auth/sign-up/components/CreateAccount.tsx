@@ -1,12 +1,12 @@
 import { Text, TextInput } from '@/components/Typography';
-import { useState } from "react";
-import { View, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/colors";
 import type {
   SignUpFormData,
   UpdateSignUpField,
 } from "@/module/auth/sign-up/types";
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
+import { Pressable, View } from "react-native";
 
 type CreateAccountProps = {
   onGoogleSignUp: () => void;
@@ -58,16 +58,6 @@ export default function CreateAccount({
           onChangeText={(text) => updateField("password", text)}
           secureTextEntry={!showPassword}
         />
-        <Pressable
-          onPress={() => setShowPassword((prev) => !prev)}
-          style={{ position: "absolute", right: 14 }}
-        >
-          <Ionicons
-            name={showPassword ? "eye-off" : "eye"}
-            size={18}
-            color={COLORS.textMuted}
-          />
-        </Pressable>
       </View>
 
       <View style={{ position: "relative", justifyContent: "center" }}>
@@ -79,16 +69,6 @@ export default function CreateAccount({
           onChangeText={(text) => updateField("confirmPassword", text)}
           secureTextEntry={!showConfirmPassword}
         />
-        <Pressable
-          onPress={() => setShowConfirmPassword((prev) => !prev)}
-          style={{ position: "absolute", right: 14 }}
-        >
-          <Ionicons
-            name={showConfirmPassword ? "eye-off" : "eye"}
-            size={18}
-            color={COLORS.textMuted}
-          />
-        </Pressable>
       </View>
       </>}
 

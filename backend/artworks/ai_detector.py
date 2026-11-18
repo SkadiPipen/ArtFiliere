@@ -7,7 +7,9 @@ from .hashing import decode_image_data, load_image
 
 
 class DetectorUnavailable(Exception):
-    pass
+    def __init__(self, message='Image screening is temporarily unavailable.', code='screening_unavailable'):
+        super().__init__(message)
+        self.code = code
 
 
 class ScreeningPending(DetectorUnavailable):

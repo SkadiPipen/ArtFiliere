@@ -250,7 +250,7 @@ class ArtworkView(AuthenticatedAPIView):
         except (ValueError, TypeError) as error:
             return Response({'error': str(error)}, status=400)
         except DetectorUnavailable as error:
-            return Response({'error': str(error)}, status=503)
+            return Response({'error': str(error), 'code': getattr(error, 'code', 'screening_unavailable')}, status=503)
 
         bid_increment = request.data.get("bid_increment") or 100.00
         starting_time = auction_start_time if sale_type == "Auction" else request.data.get("starting_time") or None
@@ -359,8 +359,6 @@ class ArtworkView(AuthenticatedAPIView):
             artwork.automated_block_reason = 'exact_duplicate'
         else:
             _create_similarity_matches(artwork)
-            if artwork.similarity_matches.filter(confidence_score__gte=settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD).exists():
-                artwork.automated_block_reason = 'high_similarity'
         if artwork.automated_block_reason:
             artwork.status = Artwork.Status.DECLINED
             strongest = artwork.similarity_matches.order_by('-confidence_score').first()
@@ -461,6 +459,7 @@ class ArtworkReviewView(AuthenticatedAPIView):
 
     @transaction.atomic
     def patch(self, request, artwork_id):
+        from django.utils import timezone
         moderator = self.get_request_user(request)
 
         review_status = request.data.get("status")
@@ -484,31 +483,31 @@ class ArtworkReviewView(AuthenticatedAPIView):
                 {"error": "Artwork not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        if artwork.automated_block_reason:
+        if artwork.automated_block_reason and artwork.automated_block_reason != 'high_similarity':
             return Response({'error': 'Automatically blocked submissions are read-only evidence and cannot be approved or changed.'}, status=409)
         screening = artwork.ai_screening
         if review_status == Artwork.Status.APPROVED and screening.get('status') == 'review_required' and screening.get('review_status') != 'cleared':
             return Response({'error': 'Review the AI flag and record supporting evidence before approving this artwork.'}, status=409)
 
-        if review_status == Artwork.Status.APPROVED:
-            matches = artwork.similarity_matches.all()
-            if matches.filter(review_status=ArtworkSimilarityMatch.ReviewStatus.CONFIRMED_COPY).exists():
-                return Response(
-                    {"error": "This artwork has a confirmed internal copy match and cannot be approved."},
-                    status=status.HTTP_409_CONFLICT,
-                )
-            if matches.filter(review_status=ArtworkSimilarityMatch.ReviewStatus.PENDING).exists():
-                return Response(
-                    {"error": "Resolve all possible duplicate matches before approving this artwork."},
-                    status=status.HTTP_409_CONFLICT,
-                )
+        # Similarity is automatic evidence, not an authorship verdict. The final
+        # moderator decision replaces the old per-match copy classification.
+        review_note = str(request.data.get('review_note') or '').strip()
+        if review_status == Artwork.Status.APPROVED and artwork.similarity_matches.exists() and len(review_note) < 20:
+            return Response({'error': 'Explain the ownership or permission evidence reviewed before approving this similarity match (at least 20 characters).'}, status=400)
+
+        legacy_similarity_block = artwork.automated_block_reason == 'high_similarity'
+        if legacy_similarity_block and review_status == Artwork.Status.APPROVED and artwork.end_time and artwork.end_time <= timezone.now() and ('AUCTION' in str(artwork.sale_type).upper() or 'AUCTION' in str(artwork.category).upper()):
+            return Response({'error': 'This previously blocked auction has expired. The artist must submit an updated auction schedule before approval.'}, status=409)
 
         previous_status = artwork.status
+        # Legacy visual-score blocks can now be reconsidered, with an audit note.
+        if legacy_similarity_block:
+            artwork.automated_block_reason = ''
         artwork.status = review_status
         artwork.decline_reason = (
             reason if review_status == Artwork.Status.DECLINED else ""
         )
-        artwork.save(update_fields=["status", "decline_reason", "updated_at"])
+        artwork.save(update_fields=["status", "decline_reason", "automated_block_reason", "updated_at"])
 
         # Blockchain is proof of the approved artwork only. A node failure must
         # never undo a valid moderation decision; it is recorded for retry.
@@ -579,7 +578,9 @@ class ArtworkReviewView(AuthenticatedAPIView):
                         "is_physical": is_physical,
                     },
                 )
-                if not created and auction.status == "PENDING_APPROVAL":
+                # The former high-similarity policy cancelled its unpublished
+                # auction request. Reconsideration must restore that request too.
+                if not created and (auction.status == "PENDING_APPROVAL" or (legacy_similarity_block and auction.status == "CANCELLED")):
                     auction.status = initial_status
                     auction.start_time = start_time
                     auction.end_time = end_time
@@ -590,7 +591,7 @@ class ArtworkReviewView(AuthenticatedAPIView):
             action=review_status,
             previous_status=previous_status,
             new_status=review_status,
-            reason=reason,
+            reason=(review_note[:500] if review_status == Artwork.Status.APPROVED else reason),
         )
 
         message = (
@@ -686,8 +687,8 @@ def _create_similarity_matches(artwork):
                     "feature_match_score": feature_score,
                     "color_similarity_score": color_score,
                     "confidence_score": confidence,
-                    'review_status': ArtworkSimilarityMatch.ReviewStatus.AUTO_BLOCKED if confidence >= settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD else ArtworkSimilarityMatch.ReviewStatus.PENDING,
-                    'review_note': 'Automatic publication block; similarity is not proof of infringement.' if confidence >= settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD else '',
+                    'review_status': ArtworkSimilarityMatch.ReviewStatus.PENDING,
+                    'review_note': 'Automatic similarity assessment; final artwork decision requires moderator review.',
                 },
             )
 
@@ -701,7 +702,7 @@ class ArtworkImageScreenView(AuthenticatedAPIView):
             response['Cache-Control'] = 'private, no-store'
             return response
         except DetectorUnavailable as error:
-            return Response({'error': str(error)}, status=503)
+            return Response({'error': str(error), 'code': getattr(error, 'code', 'screening_unavailable')}, status=503)
 
     def post(self, request):
         gallery = request.data.get('additional_images', [])
@@ -717,7 +718,7 @@ class ArtworkImageScreenView(AuthenticatedAPIView):
         except (ValueError, TypeError):
             return Response({'error': 'The uploaded image could not be processed.'}, status=400)
         except DetectorUnavailable as error:
-            return Response({'error': str(error)}, status=503)
+            return Response({'error': str(error), 'code': getattr(error, 'code', 'screening_unavailable')}, status=503)
         response = Response(result)
         response['Cache-Control'] = 'private, no-store'
         return response
@@ -731,7 +732,7 @@ class ArtworkAIReviewView(AuthenticatedAPIView):
         artwork = Artwork.objects.select_for_update().filter(pk=artwork_id).first()
         if not artwork:
             return Response({'error': 'Artwork not found.'}, status=404)
-        if artwork.automated_block_reason:
+        if artwork.automated_block_reason and artwork.automated_block_reason != 'high_similarity':
             return Response({'error': 'Automatically blocked submissions are read-only.'}, status=409)
         note = request.data.get('note', '')
         if not isinstance(note, str) or not 20 <= len(note.strip()) <= 1000:

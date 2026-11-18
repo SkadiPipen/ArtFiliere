@@ -35,13 +35,46 @@ def _request(method, url, **kwargs):
     response = _send(method, url, **kwargs)
     if not 200 <= response.status_code < 300:
         # Neither response bodies nor request URLs/keys belong in error logs.
-        raise ProviderHTTPError(response.status_code)
+        reason = ''
+        try:
+            payload = response.json()
+            detail = payload.get('error', payload.get('detail', '')) if isinstance(payload, dict) else ''
+            if isinstance(detail, str):
+                detail = detail[:2048].lower()
+                if any(text in detail for text in ('not enough credits', 'insufficient credits', 'out of credits', 'no credits', 'zero credits')):
+                    reason = 'credits'
+        except (ValueError, TypeError):
+            pass
+        raise ProviderHTTPError(response.status_code, reason)
     return response
 
 
 class ProviderHTTPError(Exception):
-    def __init__(self, status):
+    def __init__(self, status, reason=''):
         self.status = status
+        self.reason = reason
+
+
+FAILURES = {
+    'credits': ('TruthScan has no available screening credits. The platform administrator must activate or add API credits before image screening can continue. Your image has not received a screening verdict.', 'screening_credits_exhausted'),
+    'authentication': ('TruthScan denied access. The platform administrator must check the screening API key, account access and credits.', 'screening_access_denied'),
+    'rate_limit': ('TruthScan is receiving too many requests. Wait at least one minute before retrying screening.', 'screening_rate_limited'),
+    'request': ('TruthScan rejected the screening request. The platform administrator must check the provider integration; refreshing alone will not fix it.', 'screening_request_rejected'),
+    'unavailable': ('TruthScan could not finish screening. Please retry shortly or contact platform support.', 'screening_unavailable'),
+}
+
+
+def failure_reason(error):
+    if isinstance(error, ProviderHTTPError):
+        if error.reason == 'credits':
+            return 'credits'
+        if error.status == 429:
+            return 'rate_limit'
+        if error.status in {401, 403}:
+            return 'authentication'
+        if error.status in {400, 422}:
+            return 'request'
+    return 'unavailable'
 
 
 def normalise_result(payload):
@@ -115,7 +148,8 @@ def screen_with_truthscan(raw):
         if scan.state == 'done' and scan.expires_at and scan.expires_at > now:
             return dict(scan.result)
         if scan.state == 'failed' and scan.expires_at and scan.expires_at > now:
-            raise DetectorUnavailable('TruthScan is temporarily unavailable or out of credits. Please try again later.')
+            reason = scan.result.get('failure_reason', 'unavailable')
+            raise DetectorUnavailable(*FAILURES.get(reason, FAILURES['unavailable']))
         if scan.lease_until and scan.lease_until > now:
             raise ScreeningPending('Your images are still being checked.')
         resume = bool(scan.job_id and scan.state == 'pending')
@@ -175,12 +209,14 @@ def screen_with_truthscan(raw):
         # A definite rejection cannot have produced a charged job. An ambiguous
         # timeout/server failure keeps the ID so a retry only polls that job.
         rejected = stage == 'submit' and isinstance(error, ProviderHTTPError) and error.status in {400, 401, 403, 422, 429}
+        reason = failure_reason(error)
         if not submitted or rejected:
             ArtworkAIScan.objects.filter(pk=identity, lease_until=owned_lease).update(
-                state='failed', expires_at=timezone.now() + timedelta(seconds=60))
+                state='failed', result={'failure_reason': reason}, expires_at=timezone.now() + timedelta(seconds=60))
         if submitted and isinstance(error, ProviderHTTPError) and error.status == 404:
             raise ScreeningPending('Your scan is awaiting confirmation. Please retry shortly.') from None
-        logger.warning('TruthScan screening failed (%s at %s).', type(error).__name__, stage)
-        raise DetectorUnavailable('TruthScan could not finish screening. Please retry shortly or check the account credits.') from None
+        logger.warning('TruthScan screening failed (%s at %s; provider_status=%s; reason=%s).',
+                       type(error).__name__, stage, getattr(error, 'status', None), reason)
+        raise DetectorUnavailable(*FAILURES[reason]) from None
     finally:
         ArtworkAIScan.objects.filter(pk=identity, lease_until=owned_lease).update(lease_until=None)

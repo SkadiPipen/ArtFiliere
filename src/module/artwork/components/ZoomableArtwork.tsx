@@ -6,14 +6,15 @@ import { PanResponder, Platform, Pressable, StyleSheet, View } from 'react-nativ
 const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 
 /** A clipped, watermarked preview with mouse magnification and touch inspection. */
-export default function ZoomableArtwork({ uri, height, interactive = false, onOpen }: {
-  uri: string; height: number; interactive?: boolean; onOpen?: () => void;
+export default function ZoomableArtwork({ uri, height, interactive = false, hoverMagnify = true, onOpen }: {
+  uri: string; height: number; interactive?: boolean; hoverMagnify?: boolean; onOpen?: () => void;
 }) {
   const [size, setSize] = useState({ width: 0, height });
   const [zoom, setZoom] = useState({ scale: 1, x: 0, y: 0 });
   const [hovering, setHovering] = useState(false);
   const current = useRef(zoom);
   const gesture = useRef({ scale: 1, x: 0, y: 0, distance: 0, midX: 0, midY: 0 });
+  const pointerDrag = useRef<{ id: number; clientX: number; clientY: number; x: number; y: number } | null>(null);
   const update = (scale: number, x: number, y: number) => {
     const next = {
       scale: Math.max(1, Math.min(4, scale)),
@@ -55,7 +56,13 @@ export default function ZoomableArtwork({ uri, height, interactive = false, onOp
     onPanResponderTerminationRequest: () => false,
   }), []);
   const movePointer: NonNullable<React.ComponentProps<typeof View>['onPointerMove']> = event => {
-    if (Platform.OS !== 'web' || event.nativeEvent.pointerType !== 'mouse') return;
+    if (Platform.OS !== 'web') return;
+    if (!hoverMagnify) {
+      const drag = pointerDrag.current;
+      if (drag && event.nativeEvent.pointerId === drag.id) update(current.current.scale, drag.x + event.nativeEvent.clientX - drag.clientX, drag.y + event.nativeEvent.clientY - drag.clientY);
+      return;
+    }
+    if (event.nativeEvent.pointerType !== 'mouse') return;
     const target = event.currentTarget as unknown as { getBoundingClientRect: () => { left: number; top: number; width: number; height: number } };
     const bounds = target.getBoundingClientRect();
     const pointer = event.nativeEvent as unknown as { clientX: number; clientY: number };
@@ -65,7 +72,15 @@ export default function ZoomableArtwork({ uri, height, interactive = false, onOp
   };
   return <View>
     <View
-      {...responder.panHandlers}
+      {...(Platform.OS === 'web' && !hoverMagnify ? {} : responder.panHandlers)}
+      onPointerDown={event => {
+        if (Platform.OS !== 'web' || !interactive || hoverMagnify || pointerDrag.current) return;
+        const { pointerId, clientX, clientY } = event.nativeEvent;
+        pointerDrag.current = { id: pointerId, clientX, clientY, x: current.current.x, y: current.current.y };
+        (event.currentTarget as unknown as HTMLElement).setPointerCapture?.(pointerId);
+      }}
+      onPointerUp={() => { pointerDrag.current = null; }}
+      onPointerCancel={() => { pointerDrag.current = null; }}
       onLayout={event => { setSize(event.nativeEvent.layout); reset(); }}
       onPointerMove={movePointer}
       onPointerLeave={() => { if (hovering) reset(); }}
@@ -79,7 +94,7 @@ export default function ZoomableArtwork({ uri, height, interactive = false, onOp
       </Pressable>
     </View>
     <View style={styles.toolbar}>
-      <Text style={styles.hint}>{interactive ? (Platform.OS === 'web' ? 'Hover or pinch to zoom · Drag to explore' : 'Pinch to zoom · Drag to explore') : (Platform.OS === 'web' ? 'Hover to zoom · Tap to view larger' : 'Tap to view larger')}</Text>
+      <Text style={styles.hint}>{interactive ? (Platform.OS === 'web' ? hoverMagnify ? 'Hover or pinch to zoom · Drag to explore' : 'Use + / − to zoom · Drag to explore · Reset to fit' : 'Pinch to zoom · Drag to explore') : (Platform.OS === 'web' ? 'Hover to zoom · Tap to view larger' : 'Tap to view larger')}</Text>
       {interactive && <View style={styles.controls}>
         <Pressable accessibilityRole="button" accessibilityLabel="Zoom out" onPress={() => update(Math.max(1, zoom.scale - 0.5), zoom.x, zoom.y)} style={styles.control}><Text style={styles.label}>−</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Reset artwork zoom" onPress={reset} style={styles.control}><Text style={styles.label}>{Math.round(zoom.scale * 100)}%</Text></Pressable>

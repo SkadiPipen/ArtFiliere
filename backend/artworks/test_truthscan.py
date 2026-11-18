@@ -40,6 +40,31 @@ class TruthScanTests(TestCase):
         return [response(self.location), upload, response({'id': self.job, 'status': 'pending'}),
                 response(payload or completed())]
 
+    def test_credit_rejection_is_actionable_cached_and_does_not_expose_secrets(self):
+        rejected = response({'error': 'Not enough credits. unit-test-secret https://private.example/upload'}, status=403)
+        with patch('artworks.truthscan._send', side_effect=[response(self.location), response(), rejected]) as http:
+            with self.assertLogs('artworks.truthscan', level='WARNING') as logs:
+                with self.assertRaises(DetectorUnavailable) as failure:
+                    screen_image(self.image)
+            self.assertEqual(failure.exception.code, 'screening_credits_exhausted')
+            self.assertIn('administrator', str(failure.exception))
+            self.assertIn('provider_status=403', ' '.join(logs.output))
+            self.assertNotIn('unit-test-secret', ' '.join(logs.output) + str(failure.exception))
+            self.assertNotIn('private.example', ' '.join(logs.output) + str(failure.exception))
+            with self.assertRaises(DetectorUnavailable) as cached:
+                screen_image(self.image)
+            self.assertEqual(cached.exception.code, 'screening_credits_exhausted')
+            self.assertEqual(http.call_count, 3)
+        self.assertEqual(ArtworkAIScan.objects.get().state, 'failed')
+
+    def test_rejected_requests_distinguish_access_rate_limit_and_validation(self):
+        for status, code in [(401, 'screening_access_denied'), (403, 'screening_access_denied'), (429, 'screening_rate_limited'), (400, 'screening_request_rejected'), (422, 'screening_request_rejected')]:
+            ArtworkAIScan.objects.all().delete()
+            with patch('artworks.truthscan._send', side_effect=[response(self.location), response(), response({'detail': 'Rejected'}, status=status)]):
+                with self.assertRaises(DetectorUnavailable) as failure:
+                    screen_image(self.image)
+                self.assertEqual(failure.exception.code, code)
+
     def test_documented_flow_preserves_bytes_and_keeps_secrets_and_job_ids_private(self):
         with patch('artworks.truthscan._send', side_effect=self.flow()) as http:
             result = screen_image(self.image)

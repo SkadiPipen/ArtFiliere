@@ -1,4 +1,7 @@
 import { Text, TextInput } from '@/components/Typography';
+import ReviewTransition from './ReviewTransition';
+import SimilarityAssessment, { type SimilarityMatch } from './SimilarityAssessment';
+import ZoomableArtwork from '@/module/artwork/components/ZoomableArtwork';
 import ArtistRecordReviews from './ArtistRecordReviews';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
@@ -11,23 +14,13 @@ import {
   CheckCircle2,
   LogOut,
   ShieldAlert,
+  ZoomIn,
   X,
   XCircle,
 } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 
-type Match = {
-  id: number;
-  reference_title: string;
-  reference_artist_name: string;
-  reference_image_data: string;
-  confidence_score: number;
-  edge_hash_distance: number;
-  feature_match_score: number;
-  color_similarity_score: number;
-  review_status: "pending" | "confirmed_copy" | "not_a_copy" | "auto_blocked";
-};
 type Artwork = {
   id: number;
   artist_name: string;
@@ -51,11 +44,14 @@ type Artwork = {
   decline_reason?: string;
   automated_block_reason?: string;
   ai_screening?: ScreeningScore & { threshold: number; review_status: string; review_note?: string; images?: (ScreeningScore & { image_index: number })[] } | null;
-  similarity_matches: Match[];
+  similarity_matches: SimilarityMatch[];
 };
 const label = (value: string) => value.replace("_", " ");
 
 export default function CreativeDashboardScreen({ embedded = false }: { embedded?: boolean }) {
+  const { width, height } = useWindowDimensions();
+  const reviewLandscape = width >= 1000;
+  const [viewingImage, setViewingImage] = useState<{ uri: string; label: string } | null>(null);
   const { artworkId } = useLocalSearchParams<{ artworkId?: string }>();
   const openedArtwork = useRef<string | undefined>(undefined);
   const [items, setItems] = useState<Artwork[]>([]);
@@ -63,12 +59,18 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Artwork | null>(null);
   const [viewingAgreement, setViewingAgreement] = useState(false);
+  useEffect(() => { setViewingImage(null); setViewingAgreement(false); }, [selected?.id]);
   useEffect(() => { setViewingAgreement(false); }, [selected?.id]);
   const [reason, setReason] = useState("");
+  const [reviewNote, setReviewNote] = useState('');
+  useEffect(() => { setReviewNote(''); }, [selected?.id]);
+  const readOnlyBlock = !!selected?.automated_block_reason && selected.automated_block_reason !== 'high_similarity';
+  const needsSimilarityReason = !!selected?.similarity_matches.length;
   const [aiNote, setAiNote] = useState('');
   useEffect(() => { setAiNote(''); }, [selected?.id]);
   const [declining, setDeclining] = useState(false);
   const [saving, setSaving] = useState(false);
+  const approvalDisabled = saving || (selected?.ai_screening?.status === 'review_required' && selected.ai_screening.review_status !== 'cleared') || (needsSimilarityReason && reviewNote.trim().length < 20);
   const token = async () => {
     if (!auth.currentUser) throw new Error("Please log in again.");
     return auth.currentUser.getIdToken();
@@ -122,41 +124,6 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
   const approvedCount = items.filter(
     (artwork) => artwork.status === "approved",
   ).length;
-  const reviewMatch = async (
-    match: Match,
-    review_status: "confirmed_copy" | "not_a_copy",
-  ) => {
-    if (!selected) return;
-    try {
-      setSaving(true);
-      const response = await fetch(
-        `${API_URL}/api/users/artwork-similarity/${match.id}/review/`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${await token()}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ review_status }),
-        },
-      );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      replaceArtwork({
-        ...selected,
-        similarity_matches: selected.similarity_matches.map((item) =>
-          item.id === match.id ? { ...item, review_status } : item,
-        ),
-      });
-    } catch (error: any) {
-      Alert.alert(
-        "Similarity review",
-        error.message || "Unable to save this decision.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
   const clearAIFlag = async () => {
     if (!selected || aiNote.trim().length < 20 || saving) return;
     try {
@@ -172,7 +139,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
     finally { setSaving(false); }
   };
   const reviewArtwork = async (status: "approved" | "declined") => {
-    if (!selected || (status === "declined" && !reason.trim())) return;
+    if (!selected || saving || (status === "approved" && approvalDisabled) || (status === "declined" && !reason.trim())) return;
     try {
       setSaving(true);
       const response = await fetch(
@@ -183,7 +150,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
             Authorization: `Bearer ${await token()}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ status, decline_reason: reason.trim() }),
+          body: JSON.stringify({ status, decline_reason: reason.trim(), review_note: reviewNote.trim() }),
         },
       );
       const data = await response.json();
@@ -231,7 +198,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
         <TouchableOpacity onPress={() => router.push('/attribution-reviews' as any)}><Text style={{ color: '#B74F50', fontWeight: '700', paddingVertical: 12 }}>Attribution & ownership reviews</Text></TouchableOpacity>
         </>}
         <Text style={s.lead}>
-          Review pending work and artist appeals. Automatic publication blocks are retained as read-only evidence.
+          Review automatic similarity assessments and make the final artwork decision. Exact-file publication blocks remain read-only evidence.
         </Text>
         {!embedded && <>
         <TouchableOpacity accessibilityRole="button" style={[s.tab, { alignSelf: "flex-start", marginBottom: 16 }]} onPress={() => router.push("/moderator-dashboard")}>
@@ -294,7 +261,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                   >
                     {label(item.status)}
                   </Text>
-                  {!!pending(item).length && (
+                  {item.status !== 'approved' && !!pending(item).length && (
                     <Text style={[s.badge, s.alert]}>
                       {pending(item).length} match
                       {pending(item).length === 1 ? "" : "es"} to review
@@ -326,9 +293,9 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
             onPress={(event) => event.stopPropagation()}
           >
             {selected && (
-              <>
+              <ReviewTransition key={selected.id}>
                 <View style={s.modalHeader}>
-                  <View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={s.overline}>ARTWORK REVIEW</Text>
                     <Text style={s.modalTitle} numberOfLines={1}>
                       {selected.title}
@@ -341,15 +308,22 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                     <X size={20} color="#6D5C57" />
                   </TouchableOpacity>
                 </View>
-                <ScrollView contentContainerStyle={s.modalContent}>
-                  <Image source={{ uri: selected.image_data }} style={s.hero} />
+                <ScrollView contentContainerStyle={s.modalContent} showsVerticalScrollIndicator={false}>
+                  <View style={[s.reviewGrid, { flexDirection: reviewLandscape ? 'row' : 'column' }]}>
+                  <View style={[s.reviewColumn, s.reviewLeft, !reviewLandscape && { flex: undefined, width: '100%' }]}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Open artwork image for zooming and dragging" onPress={() => setViewingImage({ uri: selected.image_data, label: selected.title })} style={({ pressed }) => [s.imageButton, pressed && { opacity: 0.85 }]}>
+                    <Image source={{ uri: selected.image_data }} style={[s.hero, { height: reviewLandscape ? 350 : 260 }]} resizeMode="contain" />
+                    <View pointerEvents="none" style={s.imageInspectIcon}><ZoomIn size={22} color="#A74646" /></View>
+                  </Pressable>
                   <Text style={s.artist}>
                     by {selected.artist_name} · ₱ {selected.price}
                   </Text>
                   <Text style={s.category}>{selected.category}</Text>
                   <Text style={s.description}>{selected.description}</Text>
                   <ArtworkHistoryPanel artworkId={selected.id} />
-                  {!!selected.automated_block_reason && <View style={s.match}><Text style={s.copyResolved}>Automatically blocked · read-only evidence</Text><Text style={s.detailText}>{selected.automated_block_reason === 'high_ai_score' ? 'The AI model score reached the automatic block threshold. This artwork was not published; no moderator decision is required. The score does not prove artwork origin.' : 'This submission was not published. The submitted image and matched artwork are retained for reference. A similarity score does not establish copyright infringement.'}</Text></View>}
+                  </View>
+                  <View style={[s.reviewColumn, s.reviewRight, !reviewLandscape && { flex: undefined, width: '100%' }]}>
+                  {!!selected.automated_block_reason && <View style={s.match}><Text style={s.copyResolved}>{readOnlyBlock ? 'Automatically blocked · read-only evidence' : 'Previously held for high similarity · moderator review available'}</Text><Text style={s.detailText}>{selected.automated_block_reason === 'high_ai_score' ? 'The AI model score reached the automatic block threshold. This artwork was not published; no moderator decision is required. The score does not prove artwork origin.' : 'This submission was not published. Review the matched artwork history and ownership evidence. A similarity score does not establish copyright infringement.'}</Text></View>}
                   {selected.status === "declined" && !!selected.decline_reason && <Text style={s.copyResolved}>Rejection reason: {selected.decline_reason}</Text>}
                   <Text style={s.detailTitle}>Submitted details</Text>
                   <Text style={s.detailText}>Sale type: {selected.sale_type || "Direct Sell"}</Text>
@@ -358,7 +332,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                   {!!selected.additional_images?.length && (
                     <ScrollView horizontal contentContainerStyle={s.gallery}>
                       {selected.additional_images.map((uri, index) => (
-                        <Image key={`${uri}-${index}`} source={{ uri }} style={s.galleryImage} />
+                        <Pressable key={`${uri}-${index}`} accessibilityRole="button" accessibilityLabel={`Inspect additional artwork image ${index + 1}`} onPress={() => setViewingImage({ uri, label: `${selected.title} · Image ${index + 2}` })}><Image source={{ uri }} style={s.galleryImage} /></Pressable>
                       ))}
                     </ScrollView>
                   )}
@@ -379,7 +353,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                     <Text style={s.detailText}>{selected.ai_screening.provider_name ? `${selected.ai_screening.provider_name}: ` : ''}{screeningScoreLabel(selected.ai_screening)}</Text>
                     <Text style={s.detailText}>{selected.ai_screening.status === 'auto_blocked' ? 'Automatic block' : 'Screening'} threshold: {(selected.ai_screening.threshold * 100).toFixed(1)}%. The score is not proof of origin.</Text>
                     {selected.ai_screening.images?.map(image => <Text key={image.image_index} style={s.detailText}>{image.image_index === 0 ? 'Cover' : `Additional image ${image.image_index}`}: {screeningScoreLabel(image)} · {image.status !== 'clear' ? 'Flagged' : 'No AI flag'}</Text>)}
-                    {selected.ai_screening.review_status === 'cleared' ? <Text style={s.detailText}>Flag cleared after evidence review: {selected.ai_screening.review_note}</Text> : selected.ai_screening.status === 'review_required' && !selected.automated_block_reason && <>
+                    {selected.ai_screening.review_status === 'cleared' ? <Text style={s.detailText}>Flag cleared after evidence review: {selected.ai_screening.review_note}</Text> : selected.ai_screening.status === 'review_required' && !readOnlyBlock && <>
                       <Text style={s.detailText}>Review the artist’s process files, sketches or other supporting evidence before clearing this flag. You can decline the artwork using the normal decision controls.</Text>
                       <TextInput accessibilityLabel="Evidence reviewed for AI flag" placeholder="Describe the process evidence reviewed (at least 20 characters)" value={aiNote} onChangeText={setAiNote} maxLength={1000} multiline style={s.reason} />
                       <TouchableOpacity accessibilityRole="button" disabled={saving || aiNote.trim().length < 20} onPress={clearAIFlag} style={[s.notCopy, (saving || aiNote.trim().length < 20) && s.disabled]}><Text style={s.notCopyText}>Record evidence and clear AI flag</Text></TouchableOpacity>
@@ -387,11 +361,10 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                   </View>}
                   <View style={s.sectionHeader}>
                     <ShieldAlert size={18} color="#A86868" />
-                    <View>
-                      <Text style={s.sectionTitle}>Similarity check</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.sectionTitle}>Automatic similarity assessment</Text>
                       <Text style={s.sectionHint}>
-                        Structure is primary evidence; colour supports the
-                        decision.
+                        Visual matching supports your review; it does not establish plagiarism.
                       </Text>
                     </View>
                   </View>
@@ -399,76 +372,23 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                     <View style={s.safe}>
                       <CheckCircle2 size={18} color="#5D8A63" />
                       <Text style={s.safeText}>
-                        No internal similarity matches require review.
+                        No strong match was flagged among the internal references checked. This does not certify originality.
                       </Text>
                     </View>
                   ) : (
                     selected.similarity_matches.map((match) => (
-                      <View key={match.id} style={s.match}>
-                        <View style={s.matchTop}>
-                          <Text style={s.matchTitle}>Possible match · {label(match.review_status)}</Text>
-                          <Text style={s.confidence}>
-                            {Math.round(match.confidence_score * 100)}% visual similarity
-                          </Text>
-                        </View>
-                        <View style={s.matchBody}>
-                          <Image
-                            source={{ uri: match.reference_image_data }}
-                            style={s.matchImage}
-                          />
-                          <View style={s.matchInfo}>
-                            <Text style={s.referenceTitle} numberOfLines={1}>
-                              {match.reference_title}
-                            </Text>
-                            <Text style={s.artist} numberOfLines={1}>
-                              by {match.reference_artist_name}
-                            </Text>
-                            <Text style={s.metric}>
-                              Edge {match.edge_hash_distance} · Features{" "}
-                              {Math.round(match.feature_match_score * 100)}%
-                            </Text>
-                            <Text style={s.metric}>
-                              Palette{" "}
-                              {Math.round(match.color_similarity_score * 100)}%
-                            </Text>
-                          </View>
-                        </View>
-                        {!selected.automated_block_reason && (match.review_status === "pending" || selected.status === "declined") ? (
-                          <View style={s.matchActions}>
-                            <TouchableOpacity
-                              disabled={saving}
-                              style={s.notCopy}
-                              onPress={() => reviewMatch(match, "not_a_copy")}
-                            >
-                              <Text style={s.notCopyText}>Not a copy</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              disabled={saving}
-                              style={s.copy}
-                              onPress={() =>
-                                reviewMatch(match, "confirmed_copy")
-                              }
-                            >
-                              <Text style={s.buttonText}>Confirm copy</Text>
-                            </TouchableOpacity>
-                          </View>
-                        ) : (
-                          <Text
-                            style={[
-                              s.resolved,
-                              match.review_status === "confirmed_copy" &&
-                                s.copyResolved,
-                            ]}
-                          >
-                            {label(match.review_status)}
-                          </Text>
-                        )}
-                      </View>
+                      <SimilarityAssessment key={match.id} match={match} onInspect={(uri, title) => setViewingImage({ uri, label: title })} />
                     ))
                   )}
-                  {!selected.automated_block_reason && (selected.status === "pending" || selected.status === "declined") && (
+                  {!readOnlyBlock && (selected.status === "pending" || selected.status === "declined") && (
                     <View style={s.decision}>
                       <Text style={s.sectionTitle}>{selected.status === "declined" ? "Reconsider artwork" : "Artwork decision"}</Text>
+                      <Text style={s.detailText}>The assessment is automatic. You make the final decision after reviewing ownership, permissions and the submission.</Text>
+                      {needsSimilarityReason && !declining && <>
+                        <Text style={s.reasonLabel}>Evidence supporting approval</Text>
+                        <TextInput accessibilityLabel="Ownership or permission evidence supporting approval" style={s.reason} value={reviewNote} onChangeText={setReviewNote} maxLength={500} multiline placeholder="Describe ownership, permission or authorized repost evidence (at least 20 characters)..." />
+                        <Text style={s.metric}>Required to approve a flagged artwork. Your reason is saved in its review history.</Text>
+                      </>}
                       {declining && (
                         <>
                           <Text style={s.reasonLabel}>
@@ -519,8 +439,8 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                               <Text style={s.buttonText}>Decline</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                              disabled={saving || (selected.ai_screening?.status === 'review_required' && selected.ai_screening.review_status !== 'cleared') || !!pending(selected).length || selected.similarity_matches.some(match => match.review_status === 'confirmed_copy')}
-                              style={[s.approve, ((selected.ai_screening?.status === 'review_required' && selected.ai_screening.review_status !== 'cleared') || !!pending(selected).length || selected.similarity_matches.some(match => match.review_status === 'confirmed_copy')) && s.disabled]}
+                              disabled={approvalDisabled}
+                              style={[s.approve, approvalDisabled && s.disabled]}
                               onPress={() => reviewArtwork("approved")}
                             >
                               <CheckCircle2 color="#fff" size={16} />
@@ -533,7 +453,15 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                       </View>
                     </View>
                   )}
+                  </View>
+                  </View>
                 </ScrollView>
+                <Modal visible={!!viewingImage} transparent animationType="fade" onRequestClose={() => setViewingImage(null)}>
+                  <View style={s.imageBackdrop}><View style={s.imageDialog}>
+                    <View style={s.imageHeader}><Text numberOfLines={1} style={{ color: '#FFF', flex: 1, fontWeight: '700', fontSize: 17 }}>{viewingImage?.label}</Text><Pressable accessibilityRole="button" accessibilityLabel="Close image viewer" onPress={() => setViewingImage(null)} style={s.close}><X size={24} color="#FFF" /></Pressable></View>
+                    {viewingImage && <ZoomableArtwork key={viewingImage.uri} uri={viewingImage.uri} height={Math.max(150, Math.min(650, height - 220))} interactive hoverMagnify={false} />}
+                  </View></View>
+                </Modal>
                 <Modal visible={viewingAgreement} animationType="slide" onRequestClose={() => setViewingAgreement(false)}>
                   <View style={s.agreementPage}>
                     <View style={s.agreementHeader}>
@@ -559,7 +487,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                     </ScrollView>
                   </View>
                 </Modal>
-              </>
+              </ReviewTransition>
             )}
           </Pressable>
         </Pressable>
@@ -659,7 +587,8 @@ const s = StyleSheet.create({
   },
   modal: {
     width: "100%",
-    maxWidth: 580,
+    maxWidth: 1240,
+    height: "92%",
     maxHeight: "92%",
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -696,6 +625,15 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   modalContent: { padding: 20, paddingBottom: 28 },
+  reviewGrid: { gap: 22, alignItems: 'stretch' },
+  reviewColumn: { flex: 1, minWidth: 0, borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#EEDFD5' },
+  reviewLeft: { backgroundColor: '#FCF8F4' },
+  reviewRight: { backgroundColor: '#FFFFFF' },
+  imageButton: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E8D7CC', backgroundColor: '#F2ECE6' },
+  imageInspectIcon: { position: 'absolute', right: 12, bottom: 12, width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFF9F3', borderWidth: 1, borderColor: '#E8D7CC', alignItems: 'center', justifyContent: 'center' },
+  imageBackdrop: { flex: 1, backgroundColor: 'rgba(20,16,15,.94)', justifyContent: 'center', alignItems: 'center', padding: 18 },
+  imageDialog: { width: '100%', maxWidth: 1200, backgroundColor: '#181616', borderRadius: 16, overflow: 'hidden' },
+  imageHeader: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   hero: {
     width: "100%",
     height: 240,

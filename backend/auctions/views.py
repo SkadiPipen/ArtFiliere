@@ -128,7 +128,10 @@ class AuctionDashboardView(APIView):
             status__in=['ACTIVE', 'SCHEDULED', 'ENDED', 'SETTLED', 'PAYMENT_PENDING', 'BACKUP_OFFER', 'FORFEITED']
         ).select_related('artwork', 'artist').annotate(dashboard_bid_count=Count('bids'))
 
-        close_to_deadline = published_auctions.filter(status='ACTIVE', end_time__gt=now).order_by('end_time')[:10]
+        close_to_deadline = published_auctions.filter(
+            status='ACTIVE', start_time__lte=now,
+            end_time__gt=now, end_time__lte=now + timezone.timedelta(hours=24),
+        ).order_by('end_time', 'id')[:10]
 
         def serialize_item(a):
             end_iso = a.end_time.isoformat() if a.end_time else (now + timezone.timedelta(days=2)).isoformat()
@@ -150,6 +153,7 @@ class AuctionDashboardView(APIView):
                 "is_physical": bool(a.is_physical or "PHYSICAL" in str(getattr(a.artwork, 'art_type', '')).upper()),
                 "image_data": get_artwork_image(a.artwork),
                 "image_url": get_artwork_image(a.artwork),
+                "start_time": a.start_time.isoformat(),
                 "end_time": end_iso,
                 "status": a.status,
             }
