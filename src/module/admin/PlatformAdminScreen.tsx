@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { adminType } from './adminDesign';
 import { Text } from '@/components/Typography';
 import CommissionReviews from '@/module/commissions/CommissionReviews';
@@ -113,7 +114,7 @@ function Metric({
   );
 }
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FAF7F3" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
     height: 86,

@@ -1,3 +1,5 @@
+import { COLORS } from '@/constants/colors';
+import TourLauncher from '@/components/TourLauncher';
 import { Text, TextInput } from '@/components/Typography';
 import BuyerCommissionOverview, { BuyerAgreementSummary } from './BuyerCommissionOverview';
 import { buyerMilestoneLabels, commissionStatusLabel } from './buyerCommissionFlow';
@@ -258,11 +260,19 @@ export default function CommissionDetailScreen() {
           <Text style={styles.backButtonText}> Back to commissions</Text>
         </TouchableOpacity>
         {data && (
-          <View style={styles.statusBadge}>
+          <View id="commission-detail-status" style={styles.statusBadge}>
             <Text style={styles.statusBadgeText}>{data.is_artist ? data.status : commissionStatusLabel(data.status)}</Text>
           </View>
         )}
       </View>
+      {data && <TourLauncher label="Commission workflow tutorial" steps={[
+        { target: 'commission-detail-status', instruction: 'Check the current stage and whether the commission is waiting on an action.' },
+        { target: 'commission-detail-request', instruction: 'Review the original request and its reference images.' },
+        { target: 'commission-detail-agreement', instruction: 'Review the latest terms and signatures before funding or starting work.' },
+        { target: 'commission-detail-milestones', instruction: 'Track progress and revisions for each stage. Work approval and payout are tracked separately.' },
+        { target: 'commission-detail-funding', instruction: 'Check the funding deadline and whether the payment provider has confirmed funding.' },
+        ...(data.is_artist ? [{ target: 'commission-detail-payout', instruction: 'Review the bank or e-wallet destination for commission payouts.' }] : []),
+      ]} />}
 
       {!!error && (
         <View style={styles.errorBanner}>
@@ -288,7 +298,7 @@ export default function CommissionDetailScreen() {
 
               {/* Left: Portrait Commission */}
               <View style={[styles.topColumn, isWebWide && styles.flexHalf]}>
-                <View style={styles.cardHeader}>
+                <View id="commission-detail-request" style={styles.cardHeader}>
                   <Text style={styles.colHeaderTitle}>{data.is_artist ? 'Portrait commission' : 'Commission request'}</Text>
                 </View>
                 <View style={styles.card}>
@@ -319,7 +329,7 @@ export default function CommissionDetailScreen() {
 
               {/* Right: Proposal Version (Scrollable Box, Plain Background, Signed PDF Button inside) */}
               <View onLayout={event => { sectionY.current.agreement = event.nativeEvent.layout.y; }} style={[styles.topColumn, isWebWide && styles.flexHalf]}>
-                <View style={styles.cardHeader}>
+                <View id="commission-detail-agreement" style={styles.cardHeader}>
                   <Text style={styles.colHeaderTitle}>{data.is_artist ? 'Proposal version' : 'Agreement'}</Text>
                 </View>
                 {!data.is_artist && <BuyerAgreementSummary data={data} expanded={showProposalDetails} onToggle={() => setShowProposalDetails(value => !value)} onAgreement={() => setSigning(true)} />}
@@ -431,7 +441,7 @@ export default function CommissionDetailScreen() {
 
             {/* ROW 2: MILESTONES & REVISIONS (BELOW PORTRAIT COMMISSION & PROPOSAL) */}
             <View onLayout={event => { sectionY.current.milestones = event.nativeEvent.layout.y; }} style={styles.bottomSectionWrapper}>
-              <View style={styles.sectionMainHeader}>
+              <View id="commission-detail-milestones" style={styles.sectionMainHeader}>
                 <Text style={styles.sectionMainTitle}>Milestones & Revision History</Text>
                 {!data.is_artist && <Text style={styles.helperText}>One consolidated revision request per stage. Work approval and payout confirmation are tracked separately.</Text>}
               </View>
@@ -441,7 +451,7 @@ export default function CommissionDetailScreen() {
                 {/* 1. LEFT COLUMN: Funding due & Verified funding with refresh icon button */}
                 <View style={[styles.milestonesLeftCol, isWebWide ? styles.colWidthLeft : styles.colFull]}>
                   <View style={styles.card}>
-                    <View style={styles.fundingTitleRow}>
+                    <View id="commission-detail-funding" style={styles.fundingTitleRow}>
                       <Text style={styles.sectionHeading}>Funding Details</Text>
                       {data.funding_pending && (
                         <TouchableOpacity
@@ -471,7 +481,7 @@ export default function CommissionDetailScreen() {
                   {/* Payout Recipient Configuration (for Artist) */}
                   {data.is_artist && (
                     <View style={styles.card}>
-                      <Text style={styles.sectionHeading}>Bank / e-wallet payout recipient</Text>
+                      <View id="commission-detail-payout"><Text style={styles.sectionHeading}>Bank / e-wallet payout recipient</Text></View>
                       <Text style={styles.helperText}>Your name and address are filled from your artist profile. Review them against your bank or e-wallet registration.</Text>
                       {payoutLoading && <ActivityIndicator color="#C15656" />}
                       {!!payoutError && <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{payoutError}</Text>}
@@ -489,7 +499,7 @@ export default function CommissionDetailScreen() {
                       <Text style={styles.helperText}>{payout.routing_type === 'WALLET' ? 'Registered e-wallet mobile/account number' : 'Bank account number'}</Text>
                       <TextInput accessibilityLabel="Payout account number" keyboardType="number-pad" autoComplete="off" style={styles.input} placeholder={keepSavedAccount ? `Leave blank to keep account ending ${payoutInfo.account_last4}` : payout.routing_type === 'WALLET' ? 'Enter your registered account number (GCash: 09...)' : 'Enter your bank account number'} value={payout.account_number || ''} editable={!payoutLoading && !payoutSaving} onChangeText={text => setPayout({ ...payout, account_number: text })} />
                       {[['street', 'Street / barangay'], ['city', 'City'], ['province', 'Province'], ['postal_code', 'Postal code']].map(([key, label]) => <View key={key} style={{ gap: 5 }}><Text style={styles.helperText}>{label}</Text><TextInput accessibilityLabel={label} style={styles.input} value={payout[key] || ''} editable={!payoutLoading && !payoutSaving} onChangeText={text => setPayout({ ...payout, [key]: text })} /></View>)}
-                      <View style={{ gap: 8, padding: 12, backgroundColor: '#FAF6EF', borderRadius: 10 }}>
+                      <View style={{ gap: 8, padding: 12, backgroundColor: COLORS.pageBackground, borderRadius: 10 }}>
                         <Text style={styles.boldText}>Xendit · {payoutInfo?.xendit?.mode === 'test' ? 'Test mode' : payoutInfo?.xendit?.mode === 'live' ? 'Live mode' : 'Not configured'}</Text>
                         <Text style={styles.helperText}>{payoutInfo?.xendit?.payouts_enabled ? 'Platform milestone payouts are enabled.' : 'Platform milestone payouts are currently disabled. The administrator must enable them after Xendit setup.'}</Text>
                         {payoutInfo?.xendit?.detail && <Text style={styles.helperText}>{payoutInfo.xendit.detail}</Text>}
@@ -709,7 +719,7 @@ export default function CommissionDetailScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FAF6EF',
+    backgroundColor: COLORS.pageBackground,
   },
   topBar: {
     flexDirection: 'row',
@@ -719,7 +729,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#E8DCD4',
-    backgroundColor: '#FAF6EF',
+    backgroundColor: COLORS.pageBackground,
   },
   backButton: {
     paddingVertical: 6,
@@ -1001,7 +1011,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   submissionBox: {
-    backgroundColor: '#FAF7F3',
+    backgroundColor: COLORS.pageBackground,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,

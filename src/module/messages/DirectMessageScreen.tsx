@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import useChatAutoScroll from '@/hooks/useChatAutoScroll';
 import { Text, TextInput } from '@/components/Typography';
@@ -345,7 +346,7 @@ function Info({ k, v }: { k: string; v: string }) {
   );
 }
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FBF7E8" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   head: {
     height: 64,

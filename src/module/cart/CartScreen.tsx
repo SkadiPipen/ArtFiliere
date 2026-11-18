@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import TransactionHeader from '@/components/TransactionHeader';
@@ -13,13 +14,14 @@ import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentRet
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ShoppingBag } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Platform, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useCart } from '@/context/CartContext';
 import CartCategory from '@/module/cart/components/CartCategory';
 import CartFooter from '@/module/cart/components/CartFooter';
 import CartItemRow from '@/module/cart/components/CartItemRow';
+import TourLauncher from '@/components/TourLauncher';
 import { CartItem, FilterType } from '@/module/cart/types';
 
 function resolveCartImage(raw?: string): string {
@@ -40,11 +42,14 @@ function resolveCartImage(raw?: string): string {
 
 export default function CartScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ directCheckout?: string; artworkId?: string }>();
   const [artworkImages, setArtworkImages] = useState<Record<string, string>>({});
   const [checkoutError, setCheckoutError] = useState('');
   const [deliveryCheckout, setDeliveryCheckout] = useState<{ agreementId: number; context: AuctionCheckoutContext } | null>(null);
   const [showPurchases, setShowPurchases] = useState(false);
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  useFocusEffect(useCallback(() => () => setTourStep(null), []));
   const { cartItems, removeFromCart, loading: cartLoading, error: cartError, refreshCart } = useCart();
   const refreshCartRef = useRef(refreshCart);
   refreshCartRef.current = refreshCart;
@@ -183,6 +188,14 @@ export default function CartScreen() {
     const price = Number(agreedFor(item.artworkId)?.price || String(item.price).replace(/,/g, '')) || 0;
     return sum + price;
   }, 0);
+  const tourItem = filteredItems.find((item) => selectedItems.includes(item.id)) ?? filteredItems[0];
+  const showTourControls = Platform.OS === 'web' && !!tourItem && !contractArtwork &&
+    signingId === null && !showPurchases && !deliveryCheckout;
+  const tourSteps = [
+    { target: `checkout-tour-select-${tourItem?.id}`, instruction: 'Select one artwork to purchase.' },
+    { target: `checkout-tour-agreement-${tourItem?.id}`, instruction: 'Review the terms with the artist. Both of you must accept the agreement and sign.' },
+    { target: 'checkout-tour-pay', instruction: 'When the agreement is signed, check the total and continue to payment.' },
+  ];
 
   const toggleSelectItem = (id: string) => {
     if (selectedItems.includes(id)) {
@@ -344,6 +357,9 @@ export default function CartScreen() {
       <TransactionHeader title="Cart" onBack={() => goBackOr('/(home)')} />
 
       <View style={styles.centerContainer}>
+        {showTourControls && (
+          <TourLauncher label="Checkout tutorial" steps={tourSteps} bottom={width >= 768 ? 120 : 220} controller={{ step: tourStep, onStep: setTourStep }} />
+        )}
         {cartLoading && <Text style={{ padding: 16 }}>Loading your saved cart...</Text>}
         {!!cartError && (
           <TouchableOpacity onPress={refreshCart}>
@@ -384,8 +400,10 @@ export default function CartScreen() {
                   onToggleArtistSelect={toggleArtistSelect}
                   onRemove={handleRemove}
                   onNegotiate={(id) => { 
-                    if (/^[1-9]\d*$/.test(id)) setContractArtwork(id); 
-                    else Alert.alert('Artwork unavailable', 'Remove this item and add it again.'); 
+                    if (/^[1-9]\d*$/.test(id)) {
+                      if (tourStep === 1) setTourStep(2);
+                      setContractArtwork(id);
+                    } else Alert.alert('Artwork unavailable', 'Remove this item and add it again.');
                   }}
                   isOngoing={ongoingFor(item.artworkId)}
                   isAgreed={!!agreedFor(item.artworkId)}
@@ -417,7 +435,7 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF7F3' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   topAppBar: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,

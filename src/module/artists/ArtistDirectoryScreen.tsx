@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import API_URL from "@/services/api";
@@ -194,7 +195,7 @@ export default function ArtistDirectoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FFFCF0" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: {
     flexDirection: "row",
     alignItems: "center",

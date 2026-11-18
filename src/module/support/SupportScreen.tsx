@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackToWorkspace } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
 import { useContext, useEffect, useRef, useState } from 'react';
@@ -369,7 +370,7 @@ const s = StyleSheet.create({
   ticketCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 12, padding: 18, gap: 10 }, ticketTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   ticketNumber: { color: '#A84B46', fontSize: 12, fontWeight: '700' }, ticketStatus: { backgroundColor: '#F5E8E3', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5 }, ticketStatusDone: { backgroundColor: '#EDF4EE' }, ticketStatusText: { fontSize: 11, fontWeight: '700', color: '#A84B46' },
   ticketSubjectRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, ticketSubject: { flex: 1, fontSize: 16, fontWeight: '700', color: '#3A2D2A' }, ticketMeta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, borderTopWidth: 1, borderTopColor: '#F1E8E2', paddingTop: 10 },
-  page: { flex: 1, backgroundColor: '#FAF7F3' }, header: { padding: 18, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#E8DAD2', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground }, header: { padding: 18, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#E8DAD2', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   brand: { fontSize: 23, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#B54848', marginBottom: 4 },
   iconButton: { padding: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   hero: { gap: 16, paddingVertical: 12, marginBottom: 8 },

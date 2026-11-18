@@ -1,3 +1,4 @@
+import ContentModal from '@/components/ContentModal';
 import { Text } from '@/components/Typography';
 // ========================================
 // FILE: chatModal.tsx
@@ -10,7 +11,7 @@ import DirectMessageScreen from '@/module/messages/DirectMessageScreen';
 import CommissionChat from '@/module/commissions/CommissionChat';
 import { X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Modal, SafeAreaView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import type { Artwork } from './types';
 import { ChatList } from './chatList';
 import { ChatWindow } from './chats';
@@ -103,6 +104,7 @@ export function ChatModal({
 
   //II.5. Close the entire modal
   const handleCloseModal = () => {
+    setShowContracts(false);
     setSelectedChat(null);
     setSelectedCommission(null);
     setCommissionFilter(false); setSelectedDriver(null); setDriverTab(false);
@@ -112,7 +114,8 @@ export function ChatModal({
   //III. Render
   if (!visible) return null;
   return (
-    <Modal
+    <ContentModal
+      accessibilityLabel="Messages"
       visible={visible}
       animationType="slide"
       transparent={false}
@@ -133,7 +136,7 @@ export function ChatModal({
           <>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Messages</Text>
-              <TouchableOpacity onPress={handleCloseModal}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close messages" onPress={handleCloseModal}>
                 <X size={24} color="#000" />
               </TouchableOpacity>
             </View>
@@ -148,7 +151,7 @@ export function ChatModal({
           </>
         )}
       </SafeAreaView>
-    </Modal>
+    </ContentModal>
   );
 }
 

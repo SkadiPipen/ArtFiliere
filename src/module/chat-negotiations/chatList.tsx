@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
@@ -372,7 +373,7 @@ export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initia
     </View>
     {activeTab === 'artists' && <View style={{ padding: 10, gap: 8 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {filters.map(filter => <TouchableOpacity key={filter} accessibilityRole="button" accessibilityState={{ selected: artworkFilter === filter }} onPress={() => setArtworkFilter(filter)} style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: artworkFilter === filter ? '#D48C62' : '#F4EEE8' }}>
+        {filters.map(filter => <TouchableOpacity key={filter} accessibilityRole="button" accessibilityState={{ selected: artworkFilter === filter }} onPress={() => setArtworkFilter(filter)} style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: artworkFilter === filter ? COLORS.redDark : '#F4EEE8' }}>
           <Text style={{ color: artworkFilter === filter ? '#fff' : '#75655F', fontWeight: '600' }}>{filter === 'all' ? 'All' : filter === 'buying' ? 'Buying' : filter === 'commission' ? 'Commission' : 'Selling'}</Text>
         </TouchableOpacity>)}
       </View>
@@ -397,9 +398,9 @@ const styles = StyleSheet.create({
   supportIntro: { padding: 16, gap: 8, backgroundColor: '#FFFDF8' },
   supportButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#A84949', borderRadius: 10, padding: 14, marginTop: 4 },
   supportButtonText: { flexShrink: 1, color: '#FFFFFF', fontWeight: '700' },
-  tabs: { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 0, paddingHorizontal: 10, gap: 5, borderBottomWidth: 3, borderBottomColor: '#D48C62', backgroundColor: '#FFF' },
+  tabs: { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 0, paddingHorizontal: 10, gap: 5, borderBottomWidth: 3, borderBottomColor: COLORS.redDark, backgroundColor: '#FFF' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 34, paddingVertical: 7, paddingHorizontal: 6, borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-  activeTab: { backgroundColor: '#D48C62', minHeight: 38, borderTopLeftRadius: 10, borderTopRightRadius: 22 },
+  activeTab: { backgroundColor: COLORS.redDark, minHeight: 38, borderTopLeftRadius: 10, borderTopRightRadius: 22 },
   driverTab: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
   supportTab: { borderTopLeftRadius: 22, borderTopRightRadius: 10 },
   tabLabel: { fontSize: 12, color: '#75655F', fontWeight: '600', textAlign: 'center' },
@@ -432,11 +433,11 @@ const styles = StyleSheet.create({
   },
   // III.4.A. Artist avatar color (brown/orange)
   artistAvatar: {
-    backgroundColor: '#D48C62',
+    backgroundColor: COLORS.redDark,
   },
   // III.4.B. Buyer avatar color (lighter orange)
   buyerAvatar: {
-    backgroundColor: '#E8A066',
+    backgroundColor: COLORS.redDark,
   },
   // III.5. Avatar text (first letter of display name)
   avatarText: {
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
   },
   // III.11. Artist tag
   artistTag: {
-    backgroundColor: '#D48C62',
+    backgroundColor: COLORS.redDark,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,

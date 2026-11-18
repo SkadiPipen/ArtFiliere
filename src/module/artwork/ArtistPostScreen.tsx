@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
@@ -1017,7 +1018,7 @@ export default function ArtistPostScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FFFCF0" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: {
     height: 58,
     backgroundColor: "#FFFFFF",

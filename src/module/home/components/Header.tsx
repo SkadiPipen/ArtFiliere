@@ -228,7 +228,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
             </View>
           )}
 
-            <View style={[styles.searchBox, !isDesktop && styles.mobileSearchBox, webDesktop && styles.desktopSearchBox]}>
+            <View id="marketplace-tour-search" style={[styles.searchBox, !isDesktop && styles.mobileSearchBox, webDesktop && styles.desktopSearchBox]}>
               <TextInput
                 style={styles.input}
                 placeholder="Search Artwork..."
@@ -254,7 +254,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
           {isDesktop && searchSection}
 
           <View style={[styles.headerIcons, !isDesktop && styles.mobileHeaderIcons]}>
-            <TouchableOpacity accessibilityLabel="Your licenses and agreements" onPress={openFiles} style={!isDesktop ? styles.mobileIcon : undefined}>
+            <TouchableOpacity id="marketplace-tour-files" accessibilityLabel="Your licenses and agreements" onPress={openFiles} style={!isDesktop ? styles.mobileIcon : undefined}>
               <Folder color="#fff" size={22} />
             </TouchableOpacity>
 

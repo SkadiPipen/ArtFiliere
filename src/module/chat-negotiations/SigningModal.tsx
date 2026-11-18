@@ -1,8 +1,10 @@
+import { COLORS } from '@/constants/colors';
+import ContentModal from '@/components/ContentModal';
 import { Text, TextInput } from '@/components/Typography';
 import SignaturePad, { Strokes } from './SignaturePad';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
-import { Modal, ScrollView, View, TouchableOpacity, Platform, Image, StyleSheet } from 'react-native';
+import { ScrollView, View, TouchableOpacity, Platform, Image, StyleSheet } from 'react-native';
 import { Check, FileText, PenLine, ShieldCheck, Upload, X } from 'lucide-react-native';
 import { downloadLicensePdf } from '@/services/purchases';
 import AgreementPaper from '@/module/messages/components/AgreementPaper';
@@ -62,7 +64,7 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
     catch (e: any) { setError(e.message); }
     finally { setBusy(false); }
   };
-  return <Modal visible animationType="slide" onRequestClose={onClose}>
+  return <ContentModal visible animationType="slide" onRequestClose={onClose}>
     <View style={{ flex: 1 }}>
     {/* The web pad blocks touch panning and captures the pointer itself. Keep
         scrolling enabled there so drawing never removes the scrollbar. */}
@@ -107,11 +109,11 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
       <TouchableOpacity accessibilityRole="button" onPress={() => scrollRef.current?.scrollTo({ y: Math.max(0, signingPosition.current - 16), animated: true })} style={[s.signButton, { paddingHorizontal: 16 }]}><Text style={s.signText}>{signed || data.can_sign === false ? 'Jump to signing status' : 'Jump to signature & consent'}</Text></TouchableOpacity>
     </View>}
     </View>
-  </Modal>;
+  </ContentModal>;
 }
 
 const s = StyleSheet.create({
-  screen: { backgroundColor: '#FAF7F4' },
+  screen: { backgroundColor: COLORS.pageBackground },
   content: { padding: 18, paddingTop: 50, paddingBottom: 120, gap: 18, maxWidth: 800, width: '100%', alignSelf: 'center' },
   pageHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 8 },
   pageTitle: { fontSize: 26, fontWeight: '800', color: '#674737' },

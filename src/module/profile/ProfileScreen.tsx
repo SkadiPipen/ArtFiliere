@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import PortfolioAvailability from '@/module/profile/components/PortfolioAvailability';
@@ -228,7 +229,7 @@ export default function UserProfile() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: COLORS.pageBackground,
   },
   loadingContainer: {
     flex: 1,

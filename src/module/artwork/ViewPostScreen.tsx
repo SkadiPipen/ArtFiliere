@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import ResellerBadge from '@/components/ResellerBadge';
@@ -604,7 +605,7 @@ export default function ViewPostPage() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: "#F4F5F7" },
+  mainContainer: { flex: 1, backgroundColor: COLORS.pageBackground },
   scrollContent: { alignItems: "center", paddingBottom: 100 },
   cardWrapper: { width: "100%", maxWidth: 800, backgroundColor: "#fff" },
   desktopWrapper: {

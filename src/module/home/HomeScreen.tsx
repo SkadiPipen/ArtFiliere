@@ -1,10 +1,12 @@
 import { Text } from '@/components/Typography';
+import { COLORS } from '@/constants/colors';
+import TourLauncher from '@/components/TourLauncher';
 import { staffDashboardForRole } from '@/services/roleRoutes';
 import UnreadMessageBadge from "@/module/chat-negotiations/UnreadMessageBadge";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { MessageSquare } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { createElement, useCallback, useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   SafeAreaView,
@@ -25,6 +27,54 @@ import LatestSection from "@/module/home/components/LatestSection";
 import { ArtItem } from "@/module/home/types";
 import API_URL from "@/services/api";
 
+const marketplaceAnimation = `
+  #marketplace-tour-messages:is(:hover, :focus-visible) { background-color: ${COLORS.redDark}; }
+  #marketplace-tour-commissions:is(:hover, :focus-visible) #marketplace-artist-link-text { color: ${COLORS.redDark}; }
+  #marketplace-chat-secondary {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: scale(.65);
+  }
+  #marketplace-tour-messages:is(:hover, :focus-visible) #marketplace-chat-glyph {
+    transform: translate(-6px, 4px) scale(.67);
+  }
+  #marketplace-tour-messages:is(:hover, :focus-visible) #marketplace-chat-secondary {
+    opacity: 1;
+    transform: translate(6px, -5px) scale(.67);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    #marketplace-chat-glyph, #marketplace-artist-link-text {
+      transition: transform 180ms ease-out;
+    }
+    #marketplace-chat-secondary {
+      transition: transform 180ms ease-out, opacity 150ms ease-out;
+    }
+    #marketplace-artist-link-text { transform-origin: left center; }
+    #marketplace-tour-commissions:is(:hover, :focus-visible) #marketplace-artist-link-text {
+      transform: scale(1.07);
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes artfilier-card-paint-drift {
+      50% { transform: translate(3px, -5px) rotate(9deg); }
+    }
+    @keyframes artfilier-card-paint-dots {
+      50% { transform: translateY(-3px) scale(1.14); }
+    }
+    #marketplace-paint-shapes > path,
+    #marketplace-paint-dots > circle {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: artfilier-card-paint-drift 3.2s ease-in-out infinite;
+    }
+    #marketplace-paint-dots > circle { animation-name: artfilier-card-paint-dots; }
+    #marketplace-paint-shapes > path:nth-child(even),
+    #marketplace-paint-dots > circle:nth-child(3n) { animation-delay: .35s; }
+  }
+`;
+
 export default function Dashboard() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -38,6 +88,24 @@ export default function Dashboard() {
   useEffect(() => { if (paymentReturn) setChatVisible(false); }, [paymentReturn]);
   const isDesktop = width >= 768;
   const hasSidebar = Platform.OS === 'web' && isDesktop;
+  const chatBottom = (hasSidebar ? 24 : 85) + insets.bottom;
+  const chatSize = width < 480 ? 44 : 52;
+  const chatRight = width < 480 ? 12 : 20;
+  const tourSteps = [
+    { target: 'marketplace-nav-home', instruction: `Use the ${hasSidebar ? 'sidebar' : 'bottom navigation'} to move around ArtFilier. Home brings you back to the marketplace.` },
+    { target: 'marketplace-tour-search', instruction: 'Search for artwork by title, artist, category, or tag.' },
+    { target: 'marketplace-tour-messages', instruction: 'Open messages to talk to artists and return to ongoing negotiations.' },
+    { target: 'marketplace-tour-commissions', instruction: 'Find an artist, request custom work, then agree on the scope, milestones, and price.' },
+    { target: 'marketplace-nav-auctions', instruction: hasSidebar ? 'Browse live auctions and review the bidding rules before placing a bid.' : 'Buyers can browse auctions here. Artists use this shortcut to post artwork.' },
+    { target: 'marketplace-nav-cart', instruction: 'Open your cart to review an agreement, sign it with the artist, and check out.' },
+    { target: 'marketplace-nav-activities', instruction: 'Track purchases, deliveries, and artwork submission status in Activities.' },
+    { target: 'marketplace-tour-files', instruction: 'Open your files to find saved licenses and agreements.', closeOnActivate: true },
+    { target: 'marketplace-nav-profile', instruction: 'Open your profile to manage your account and access your purchase tools.' },
+    ...(hasSidebar ? [
+      { target: 'marketplace-nav-settings', instruction: 'Use Settings to update your account and manage access to selling features.' },
+      { target: 'marketplace-nav-reports-disputes', instruction: 'Use Reports & Disputes to file a report, request a cancellation or return, and track a resolution.' },
+    ] : []),
+  ];
 
   useEffect(
     () =>
@@ -153,6 +221,7 @@ export default function Dashboard() {
         onSearchChange={setSearchQuery}
       />
 
+      {!chatVisible && <TourLauncher label="Take a tour" steps={tourSteps} bottom={chatBottom + chatSize + 8} right={chatRight} size={chatSize} />}
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -177,8 +246,8 @@ export default function Dashboard() {
                 <PromoArtwork variant="botanical" />
                 <Text style={styles.promoEyebrow}>OPEN COMMISSION</Text>
                 <Text style={[styles.promoTitle, { fontSize: width >= 1100 ? 34 : 28, lineHeight: width >= 1100 ? 39 : 33 }]}>{'Bring your\nidea to life'}</Text>
-                <TouchableOpacity onPress={() => router.push("/artists")}>
-                  <Text style={styles.promoLink}>Find an artist →</Text>
+                <TouchableOpacity id="marketplace-tour-commissions" onPress={() => router.push("/artists")} style={{ alignSelf: 'flex-start' }}>
+                  <Text id="marketplace-artist-link-text" style={styles.promoLink}>Find an artist →</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -233,13 +302,24 @@ export default function Dashboard() {
       </ScrollView>
 
       {/* Floating chat button */}
+      {Platform.OS === 'web' && createElement('style', null, marketplaceAnimation)}
       <TouchableOpacity
-        style={[styles.msgFab, width < 480 && { width: 44, height: 44, borderRadius: 22, right: 12 }, { bottom: (hasSidebar ? 24 : 85) + insets.bottom }]}
+        id="marketplace-tour-messages"
+        style={[styles.msgFab, { width: chatSize, height: chatSize, borderRadius: chatSize / 2, right: chatRight, bottom: chatBottom }]}
         onPress={handleOpenChat}
         accessibilityRole="button"
         accessibilityLabel="Open messages"
       >
-        <MessageSquare color="#fff" size={26} fill="#fff" />
+        <View style={{ position: 'relative' }} aria-hidden>
+          {Platform.OS === 'web' && (
+            <View id="marketplace-chat-secondary">
+              <MessageSquare color={COLORS.white} size={26} fill={COLORS.white} />
+            </View>
+          )}
+          <View id="marketplace-chat-glyph">
+            <MessageSquare color={COLORS.white} size={26} fill={COLORS.white} />
+          </View>
+        </View>
         <UnreadMessageBadge uid={currentUser?.uid} />
       </TouchableOpacity>
       {chatVisible && currentUser && (
@@ -254,7 +334,7 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9fa" },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   scrollContent: { alignItems: "center" },
   centerContainer: { width: "100%", maxWidth: 1200 },
   desktopContainer: {
@@ -335,16 +415,12 @@ const styles = StyleSheet.create({
   footerText: { color: "#8A7C76", fontSize: 11, fontFamily: "NunitoSans", lineHeight: 17, flex: 1 },
   msgFab: {
     position: "absolute",
-    right: 20,
-    backgroundColor: "#9B5B44",
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    backgroundColor: COLORS.red,
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
     zIndex: 10,
-    shadowColor: "#000",
+    shadowColor: COLORS.textDark,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,

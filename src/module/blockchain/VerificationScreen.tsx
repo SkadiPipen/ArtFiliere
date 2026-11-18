@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import TransactionHeader from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
@@ -54,7 +55,7 @@ export default function VerificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF7F3' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   back: { color: '#C15656', fontWeight: '800', fontSize: 15 },
   card: { width: '100%', maxWidth: 700, alignSelf: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignItems: 'stretch', borderWidth: 1, borderColor: '#E9DDD6' },
   title: { color: '#3A2D2A', fontSize: 23, fontWeight: '800', textAlign: 'center', marginTop: 14 },

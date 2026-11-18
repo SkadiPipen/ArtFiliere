@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import ReviewTransition from './ReviewTransition';
 import SimilarityAssessment, { type SimilarityMatch } from './SimilarityAssessment';
@@ -507,7 +508,7 @@ const s = StyleSheet.create({
   auctionDetails: { marginTop: 8, gap: 4 },
   gallery: { gap: 8, marginTop: 10 },
   galleryImage: { width: 110, height: 90, borderRadius: 8, backgroundColor: "#EEE" },
-  page: { flex: 1, backgroundColor: "#FAF7F3" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: {
     height: 86,
     backgroundColor: "#FFF8D6",

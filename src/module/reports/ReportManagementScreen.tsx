@@ -1,8 +1,11 @@
+import { COLORS } from '@/constants/colors';
+import ContentModal from '@/components/ContentModal';
 import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
 import { useAdminRefresh } from '@/module/admin/AdminRefresh';
 import { staffWorkspaceStyles } from '@/components/staffWorkspaceStyles';
 import { goBackToWorkspace } from '@/services/navigation';
 import TransactionHeader from '@/components/TransactionHeader';
+import TourLauncher from '@/components/TourLauncher';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest, downloadProtectedFile } from '@/services/purchases';
 import { markAdminQueueRead } from '@/services/adminNotifications';
@@ -12,7 +15,7 @@ import { signOut } from 'firebase/auth';
 import { Redirect, useRouter } from 'expo-router';
 import { Flag, ShieldCheck } from 'lucide-react-native';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Linking, Platform, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Report = { id: number; title: string; category: string; description: string; evidence: string; links: string[]; attachments: { id: number; name: string; size: number }[]; status: string; reporter: string; reported_user?: string; reported_user_id?: number; payment_id?: number; resolution: string };
@@ -131,14 +134,23 @@ export default function ReportManagementScreen({ embedded = false, initialTab = 
     } catch (e: any) { setFormError(e.message || 'Unable to save.'); }
     finally { setBusy(false); }
   };
-  const button = (text: string, onPress: () => void, secondary = false) => <TouchableOpacity disabled={busy} onPress={onPress} style={[s.button, adminWorkspace && adminSurfaces.button, secondary && s.secondary]}><Text style={[s.buttonText, adminWorkspace && adminType.button, secondary && { color: '#8C4C43' }]}>{text}</Text></TouchableOpacity>;
+  const button = (text: string, onPress: () => void, secondary = false, id?: string) => <TouchableOpacity id={id} disabled={busy} onPress={onPress} style={[s.button, adminWorkspace && adminSurfaces.button, secondary && s.secondary]}><Text style={[s.buttonText, adminWorkspace && adminType.button, secondary && { color: '#8C4C43' }]}>{text}</Text></TouchableOpacity>;
   const choice = (text: string, selected: boolean, onPress: () => void) => <TouchableOpacity key={text} disabled={busy} onPress={onPress} style={[s.choice, selected && s.chosen]}><Text style={[s.choiceText, selected && { color: '#A74646', fontWeight: '700' }]}>{text}</Text></TouchableOpacity>;
-  const filterTab = (text: string, value: string) => <TouchableOpacity key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value as typeof initialTab)} style={[s.filterTab, tab === value && s.filterTabActive]}><Text style={s.filterTabText}>{text}</Text></TouchableOpacity>;
+  const filterTab = (text: string, value: string) => <TouchableOpacity id={`reports-tour-${value}`} key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value as typeof initialTab)} style={[s.filterTab, tab === value && s.filterTabActive]}><Text style={s.filterTabText}>{text}</Text></TouchableOpacity>;
   const status = (value: string) => <View style={s.status}><Text style={s.statusText}>{label(value)}</Text></View>;
   if (admin && !embedded) return <Redirect href="/admin-reports" />;
   if (loading) return <SafeAreaView edges={embedded ? [] : undefined} style={s.page}><ActivityIndicator style={{ marginTop: 80 }} color="#B65B50" /></SafeAreaView>;
   return <SafeAreaView edges={embedded ? [] : undefined} style={s.page}>
     {!embedded && <TransactionHeader title="Reports, Disputes & Transactions" onBack={() => void goBackToWorkspace()} onRefresh={() => { void load(); }} refreshing={busy} />}
+    {!embedded && !staff && !!data && composer === null && <TourLauncher label="Reports and disputes tutorial" steps={[
+      { target: 'reports-tour-file', instruction: 'File a report when you need to tell ArtFilier about an incident or dispute.', closeOnActivate: true },
+      { target: 'reports-tour-reports', instruction: 'Check this tab for reports you filed and their review status.' },
+      ...(trader ? [
+        { target: 'reports-tour-request', instruction: 'Use this form to request a cancellation or return for an eligible transaction.', closeOnActivate: true },
+        { target: 'reports-tour-requests', instruction: 'Follow your submitted cancellation and return requests here.' },
+        { target: 'reports-tour-finance', instruction: 'Check refunds and wallet credits tied to your transactions.' },
+      ] : []),
+    ]} />}
     <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} contentContainerStyle={embedded ? staffWorkspaceStyles.content : s.content} keyboardShouldPersistTaps="handled">
       {header}
       {embedded && !header && <View style={staffWorkspaceStyles.titleRow}><Text style={staffWorkspaceStyles.title}>{initialTab === 'reports' ? 'Report Reviews' : initialTab === 'requests' ? 'Transaction Requests' : initialTab === 'actions' ? 'Account Approvals' : 'Refunds & Wallet Credits'}</Text>{!adminWorkspace && <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void load()}><Text style={{ color: '#A74646' }}>Refresh</Text></TouchableOpacity>}</View>}
@@ -151,8 +163,8 @@ export default function ReportManagementScreen({ embedded = false, initialTab = 
           {staff && button('Artwork code lookup', () => router.push('/artwork-code-lookup' as any), true)}
           {data?.role === 'customer_support' && button('Log out', () => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }, true)}
           {staff && button('Review restriction appeals', () => router.push((admin ? '/moderation-approvals' : '/moderator-dashboard') as any), true)}
-          {!staff && button('File a report', () => open('report'))}
-          {trader && button('Request cancellation or return', () => open('request'), true)}
+          {!staff && button('File a report', () => open('report'), false, 'reports-tour-file')}
+          {trader && button('Request cancellation or return', () => open('request'), true, 'reports-tour-request')}
         </View>}
         {!embedded && <View style={s.filters}>
           {filterTab(`Reports (${data.reports.length})`, 'reports')}
@@ -215,7 +227,7 @@ export default function ReportManagementScreen({ embedded = false, initialTab = 
         </>}
       </>}
     </ScrollView>
-    <Modal visible={composer !== null} transparent animationType="fade" onRequestClose={() => !busy && setComposer(null)}>
+    <ContentModal visible={composer !== null} transparent animationType="fade" onRequestClose={() => !busy && setComposer(null)}>
       <View style={s.overlay}><ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} style={s.modal} contentContainerStyle={{ padding: 24, gap: 14 }} keyboardShouldPersistTaps="handled">
         <Text style={s.title}>{composer === 'report' ? 'File incident / dispute report' : composer === 'request' ? 'Request cancellation or return' : composer === 'action' ? 'Initiate suspension / ban' : composer === 'finance' ? `Authorize ${label(financialKind)}` : review?.title}</Text>
         {composer === 'finance' && <>
@@ -268,17 +280,17 @@ export default function ReportManagementScreen({ embedded = false, initialTab = 
         {button(busy ? 'Saving…' : composer === 'action' ? 'Submit for approval' : 'Submit', submit)}
         {button('Cancel', () => setComposer(null), true)}
       </ScrollView></View>
-    </Modal>
+    </ContentModal>
   </SafeAreaView>;
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FAF7F3' }, header: { padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE5DE' },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground }, header: { padding: 18, flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE5DE' },
   brand: { fontSize: 23, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#A74646' }, subhead: { fontSize: 11, color: '#8B8078', marginTop: 3 },
   content: { width: '100%', maxWidth: 1280, alignSelf: 'center', padding: 20, gap: 16, paddingBottom: 60 },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   filterTab: { flex: 1, minWidth: 160, minHeight: 48, padding: 14, borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 12, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' },
-  filterTabActive: { borderColor: '#E68A50', backgroundColor: '#FFF0E4' },
+  filterTabActive: { borderColor: COLORS.red, backgroundColor: COLORS.roseLight },
   filterTabText: { color: '#70482F', fontWeight: '700', textAlign: 'center', fontSize: 13 },
   hero: { gap: 10, marginBottom: 8 }, title: { fontSize: 25, fontWeight: '800', color: '#3D3028' },
   body: { color: '#62574E', lineHeight: 22 }, muted: { color: '#8B8078', fontSize: 12, lineHeight: 19 },

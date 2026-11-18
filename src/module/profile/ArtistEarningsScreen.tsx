@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import ProductImage from '@/components/ProductImage';
 import EarningsChart, { earningsSeries as series } from './components/EarningsChart';
@@ -143,7 +144,7 @@ const s = StyleSheet.create({
   chartTable: { minWidth: 0, borderWidth: 1, borderColor: '#E8DDEB', borderRadius: 14, overflow: 'hidden', backgroundColor: '#FFF' },
   preview: { borderRadius: 12, overflow: 'hidden', backgroundColor: '#F5EEEA', borderWidth: 1, borderColor: '#EADBD3', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'center' },
   pageButton: { minWidth: 36, height: 36, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#F7EEEA' },
-  page: { flex: 1, backgroundColor: '#FAF7F3' }, content: { padding: 32, paddingBottom: 70, maxWidth: 1200, width: '100%', alignSelf: 'center' },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground }, content: { padding: 32, paddingBottom: 70, maxWidth: 1200, width: '100%', alignSelf: 'center' },
   headingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }, heading: { color: '#3A2D2A', fontSize: 24, fontWeight: '800' },
   icon: { padding: 10, backgroundColor: '#F5E8E3', borderRadius: 24 }, muted: { color: '#786862', fontSize: 12, lineHeight: 19 },
   section: { color: '#3A2D2A', fontSize: 17, fontWeight: '700', marginBottom: 8 }, panel: { padding: 18, borderRadius: 16, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#EADBD3', marginBottom: 18, gap: 8 },

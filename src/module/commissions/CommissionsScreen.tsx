@@ -1,3 +1,5 @@
+import { COLORS } from '@/constants/colors';
+import TourLauncher from '@/components/TourLauncher';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
@@ -888,6 +890,10 @@ export default function CommissionsScreen() {
         </View>
       )}
 
+      <TourLauncher label="Commissions tutorial" steps={[
+        { target: 'commissions-list', instruction: isArtist ? 'Use My Requests for work you commissioned and Incoming Jobs for requests from buyers.' : 'My Requests lists the commissions you have requested from artists.' },
+        { target: 'commissions-list', instruction: 'Open a commission to review its proposal, track milestones, and see the next action.' },
+      ]} />
       <View style={s.appLayout}>
         {/* LEFT COLUMN */}
         {isDesktop && (
@@ -950,7 +956,7 @@ export default function CommissionsScreen() {
         )}
 
         {/* MIDDLE COLUMN: FEED OF COMMISSIONS */}
-        <View style={[s.feedColumn, !isDesktop && s.feedColumnMobile]}>
+        <View id="commissions-list" style={[s.feedColumn, !isDesktop && s.feedColumnMobile]}>
           {isDesktop && (
             <View style={s.feedHeader}>
               <Text style={s.feedHeaderText}>
@@ -1330,7 +1336,7 @@ export default function CommissionsScreen() {
           animationType="slide"
           onRequestClose={() => setRightPanelMode("empty")}
         >
-          <SafeAreaView style={{ flex: 1, backgroundColor: "#FAF6EF" }}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
             <View style={s.mobileModalHeader}>
               <Text style={s.mobileModalTitle}>
                 {rightPanelMode === "upload"
@@ -1733,7 +1739,7 @@ export default function CommissionsScreen() {
 const s = StyleSheet.create({
   pageContainer: {
     flex: 1,
-    backgroundColor: "#FAF6EF",
+    backgroundColor: COLORS.pageBackground,
   },
   appLayout: {
     flex: 1,
@@ -1754,7 +1760,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E8DED1",
-    backgroundColor: "#FAF6EF",
+    backgroundColor: COLORS.pageBackground,
   },
   mobileBrandRow: {
     flexDirection: "row",
@@ -1803,7 +1809,7 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#E8DED1",
-    backgroundColor: "#FAF6EF",
+    backgroundColor: COLORS.pageBackground,
   },
   mobileModalTitle: {
     fontSize: 18,
@@ -1923,7 +1929,7 @@ const s = StyleSheet.create({
   rightPanel: {
     flex: 1,
     maxWidth: 460,
-    backgroundColor: "#FAF6EF",
+    backgroundColor: COLORS.pageBackground,
     height: "100%",
     ...(Platform.OS === "web" ? { overflowY: "auto" } : {}),
   },

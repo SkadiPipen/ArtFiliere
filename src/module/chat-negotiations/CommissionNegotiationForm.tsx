@@ -1,3 +1,5 @@
+import { COLORS } from '@/constants/colors';
+import TourLauncher from '@/components/TourLauncher';
 import { usePlatformDefaults } from '@/services/platformDefaults';
 import { Text, TextInput } from '@/components/Typography';
 import ResaleRoyaltyPolicy from '@/module/commissions/ResaleRoyaltyPolicy';
@@ -351,6 +353,12 @@ export default function NegotiationForm({
 
   return (
     <>
+    <TourLauncher label="Commission proposal tutorial" steps={[
+      { target: 'commission-proposal-license', instruction: 'Choose how you plan to use the finished work.' },
+      { target: 'commission-proposal-exclusivity', instruction: 'Choose who else may use the licensed rights.' },
+      { target: 'commission-proposal-price', instruction: 'Enter your proposed price and review any delivery charge separately.' },
+      { target: 'commission-proposal-send', instruction: 'Send the proposal for review. Return to Commissions to follow its status.', closeOnActivate: true },
+    ]} />
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Artwork Preview */}
       <View style={styles.preview}>
@@ -362,7 +370,7 @@ export default function NegotiationForm({
       </View>
 
       {/* License Type - Only show available from artwork */}
-      <View style={styles.section}>
+      <View id="commission-proposal-license" style={styles.section}>
         <Text style={styles.sectionTitle}>License Type *</Text>
         <Text style={styles.sectionSubtitle}>Choose one option</Text>
         <View style={styles.optionsContainer}>
@@ -371,7 +379,7 @@ export default function NegotiationForm({
             return <InfoAccordion key={option} {...details} choice={
               <TouchableOpacity accessibilityRole="radio" accessibilityState={{ checked: licenseType === option }} onPress={() => setLicenseType(option as any)} style={[styles.optionButton, licenseType === option && styles.optionSelected]}>
                 <View style={styles.optionRow}>
-                  {licenseType === option ? <CheckCircle size={20} color="#D48C62" /> : <Circle size={20} color="#C7C7CC" />}
+                  {licenseType === option ? <CheckCircle size={20} color={COLORS.redDark} /> : <Circle size={20} color="#C7C7CC" />}
                   <Text style={styles.optionText}>{details.title}</Text>
                 </View>
               </TouchableOpacity>
@@ -381,7 +389,7 @@ export default function NegotiationForm({
       </View>
 
       {/* Exclusivity - Only show available from artwork */}
-      <View style={styles.section}>
+      <View id="commission-proposal-exclusivity" style={styles.section}>
         <Text style={styles.sectionTitle}>Exclusivity *</Text>
         <Text style={styles.sectionSubtitle}>Choose one option</Text>
         <View style={styles.optionsContainer}>
@@ -390,7 +398,7 @@ export default function NegotiationForm({
             return <InfoAccordion key={option} {...details} choice={
               <TouchableOpacity accessibilityRole="radio" accessibilityState={{ checked: exclusivity === option }} onPress={() => setExclusivity(option as any)} style={[styles.optionButton, exclusivity === option && styles.optionSelected]}>
                 <View style={styles.optionRow}>
-                  {exclusivity === option ? <CheckCircle size={20} color="#D48C62" /> : <Circle size={20} color="#C7C7CC" />}
+                  {exclusivity === option ? <CheckCircle size={20} color={COLORS.redDark} /> : <Circle size={20} color="#C7C7CC" />}
                   <Text style={styles.optionText}>{details.title}</Text>
                 </View>
               </TouchableOpacity>
@@ -429,7 +437,7 @@ export default function NegotiationForm({
               value={isRoyalty}
               onValueChange={setIsRoyalty}
               disabled={!royaltyPercentage}
-              trackColor={{ false: '#E5E5EA', true: '#D48C62' }}
+              trackColor={{ false: '#E5E5EA', true: COLORS.redDark }}
             />
           </View>
 
@@ -509,7 +517,7 @@ export default function NegotiationForm({
       <View style={styles.section}>
         <Text>Proposed price (PHP), excluding delivery</Text>
         <Text>Minimum including platform fee and selected multipliers: PHP {prices.finalPrice.toFixed(2)}</Text>
-        <TextInput accessibilityLabel="Proposed price" accessibilityHint={invalidOffer ? offerError : `Minimum price PHP ${minimumPrice.toFixed(2)}`} value={offer} onChangeText={setOffer} keyboardType="decimal-pad" placeholder={prices.finalPrice.toFixed(2)} style={[styles.offerInput, invalidOffer && styles.offerInputError]} />
+        <TextInput id="commission-proposal-price" accessibilityLabel="Proposed price" accessibilityHint={invalidOffer ? offerError : `Minimum price PHP ${minimumPrice.toFixed(2)}`} value={offer} onChangeText={setOffer} keyboardType="decimal-pad" placeholder={prices.finalPrice.toFixed(2)} style={[styles.offerInput, invalidOffer && styles.offerInputError]} />
         {invalidOffer && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.offerError}>{offerError}</Text>}
       </View>
       <Text style={styles.totalLabel}>
@@ -528,6 +536,7 @@ export default function NegotiationForm({
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          id="commission-proposal-send"
           style={[styles.sendButton, (sending || invalidOffer || missingCommissionShipping || (requiresDelivery && !deliveryQuote)) && styles.sendButtonDisabled]}
           onPress={handleSend}
           disabled={sending || invalidOffer || missingCommissionShipping || (requiresDelivery && !deliveryQuote)}
@@ -583,7 +592,7 @@ const styles = StyleSheet.create({
   },
   previewType: {
     fontSize: 12,
-    color: '#D48C62',
+    color: COLORS.redDark,
     marginTop: 2,
     fontWeight: '500',
   },
@@ -616,8 +625,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   optionSelected: {
-    borderColor: '#D48C62',
-    backgroundColor: '#FDF6F0',
+    borderColor: COLORS.redDark,
+    backgroundColor: COLORS.roseLight,
   },
   optionRow: {
     flexDirection: 'row',
@@ -629,7 +638,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   optionTextSelected: {
-    color: '#D48C62',
+    color: COLORS.redDark,
     fontWeight: '500',
   },
   infoButton: {
@@ -672,15 +681,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   zoneSelected: {
-    borderColor: '#D48C62',
-    backgroundColor: '#FDF6F0',
+    borderColor: COLORS.redDark,
+    backgroundColor: COLORS.roseLight,
   },
   zoneText: {
     fontSize: 14,
     color: '#000',
   },
   zoneTextSelected: {
-    color: '#D48C62',
+    color: COLORS.redDark,
     fontWeight: '500',
   },
   zoneFee: {
@@ -693,7 +702,7 @@ const styles = StyleSheet.create({
   },
   priceToggleText: {
     fontSize: 14,
-    color: '#D48C62',
+    color: COLORS.redDark,
     fontWeight: '500',
   },
   priceBreakdown: {
@@ -731,7 +740,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#D48C62',
+    color: COLORS.redDark,
   },
   actionContainer: {
     flexDirection: 'row',
@@ -754,7 +763,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     flex: 2,
-    backgroundColor: '#D48C62',
+    backgroundColor: COLORS.redDark,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',

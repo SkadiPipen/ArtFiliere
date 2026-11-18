@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { useContext } from 'react';
 import { AdminRefreshContext } from '@/module/admin/AdminRefresh';
 import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
@@ -8,7 +9,7 @@ export function Action({ label, onPress, disabled = false }: { label: string; on
   return <TouchableOpacity accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.button, adminWorkspace && adminSurfaces.button, disabled && { opacity: 0.45 }]}><Text style={[styles.buttonText, adminWorkspace && adminType.button]}>{label}</Text></TouchableOpacity>;
 }
 export const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FAF7F3' }, content: { padding: 22, paddingBottom: 70, width: '100%', maxWidth: 1000, alignSelf: 'center', gap: 16 },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground }, content: { padding: 22, paddingBottom: 70, width: '100%', maxWidth: 1000, alignSelf: 'center', gap: 16 },
   title: { fontSize: 26, fontFamily: 'LoraSemiBold', color: '#3A2D2A', fontWeight: '600' }, heading: { fontSize: 18, fontFamily: 'LoraSemiBold', color: '#5A3D37', fontWeight: '600' }, text: { color: '#786862', fontSize: 13, lineHeight: 21 },
   card: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#EFE1DC', borderRadius: 14, padding: 18, gap: 12 }, row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
   input: { padding: 12, borderWidth: 1, borderColor: '#CDBDB2', borderRadius: 8, backgroundColor: '#fff', minHeight: 44, color: '#322B29' },

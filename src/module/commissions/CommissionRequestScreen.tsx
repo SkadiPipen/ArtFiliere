@@ -1,9 +1,11 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
 import FixedMilestoneSchedule, { COMMISSION_MILESTONE_PERCENTAGES } from './FixedMilestoneSchedule';
 import CommissionDeliveryDetails from './CommissionDeliveryDetails';
 import { auth } from "@/firebase/config";
 import NegotiationForm from '@/module/chat-negotiations/negotiationForm';
+import TourLauncher from '@/components/TourLauncher';
 import API_URL from "@/services/api";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -288,6 +290,14 @@ export default function CommissionRequestScreen() {
       <TouchableOpacity style={s.backBtn} onPress={handleBack}>
         <ArrowLeft color="#B84A4A" size={24} />
       </TouchableOpacity>
+      <TourLauncher label="Commission request tutorial" steps={[
+        { target: 'commission-request-references', instruction: 'Upload reference images to show the artist what you have in mind.' },
+        { target: 'commission-request-description', instruction: 'Describe what you want made. Use the extra instructions for details such as dimensions, colors, or style.' },
+        { target: 'commission-request-type', instruction: 'Choose digital or physical artwork. Physical work can require a delivery quote.' },
+        { target: 'commission-request-budget', instruction: 'Enter your starting budget in pesos. The artist can negotiate the amount.' },
+        { target: 'commission-request-date', instruction: 'Choose your preferred completion date and check the artist’s availability.' },
+        { target: 'commission-request-next', instruction: 'Continue to the proposal to review the terms before sending your request.', closeOnActivate: true },
+      ]} />
 
       <ScrollView
         contentContainerStyle={[s.content, !isDesktop && { paddingBottom: 56 }]}
@@ -302,7 +312,7 @@ export default function CommissionRequestScreen() {
             <View style={s.redDivider} />
 
             <Text style={s.labelRed}>Upload Images:</Text>
-            <View style={s.slotsRow}>
+            <View id="commission-request-references" style={s.slotsRow}>
               {Array.from({ length: MAX_IMAGES }).map((_, i) => {
                 const img = refImages[i];
                 if (img) {
@@ -341,6 +351,7 @@ export default function CommissionRequestScreen() {
 
             <Text style={s.labelRed}>What do you want created? *</Text>
             <TextInput
+              id="commission-request-description"
               style={s.descInput}
               value={subject}
               onChangeText={setSubject}
@@ -363,7 +374,7 @@ export default function CommissionRequestScreen() {
           <View style={[s.column, !isDesktop && { flex: 0, flexGrow: 0, flexShrink: 0, flexBasis: 'auto' }]}>
             <Text style={s.headingRed}>ART COMMISSION DETAILS</Text>
 
-            <View style={s.fieldRow}>
+            <View id="commission-request-type" style={s.fieldRow}>
               <Text style={s.labelRedInline}>Type of Art:</Text>
               <View style={s.pillGroup}>
                 <TouchableOpacity
@@ -440,6 +451,7 @@ export default function CommissionRequestScreen() {
 
             <Text style={s.labelRed}>Proposed budget (PHP): *</Text>
             <TextInput
+              id="commission-request-budget"
               style={s.budgetInput}
               accessibilityLabel="Proposed budget in PHP"
               value={proposedBudget}
@@ -451,7 +463,7 @@ export default function CommissionRequestScreen() {
 
             <View style={s.redDivider} />
 
-            <Text style={s.headingRedSmall}>PREFERRED COMPLETION DATE</Text>
+            <View id="commission-request-date"><Text style={s.headingRedSmall}>PREFERRED COMPLETION DATE</Text></View>
             {!!rawArtistId && <AvailabilityCalendar artistId={String(rawArtistId)} selectedDate={manilaDate(targetDate)}
               onAvailability={handleAvailability} onSelect={date => {
                 setTargetDate(new Date(`${date}T17:00:00+08:00`));
@@ -504,6 +516,7 @@ export default function CommissionRequestScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              id="commission-request-next"
               style={s.nextBtn}
               onPress={handleNext}
               disabled={loading}
@@ -523,7 +536,7 @@ export default function CommissionRequestScreen() {
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FAF6ED" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   backBtn: { paddingHorizontal: 20, paddingTop: 12 },
   content: { padding: 24, maxWidth: 1100, alignSelf: "center", width: "100%" },
   formRow: { gap: 36 },

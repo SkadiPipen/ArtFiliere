@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import AdminTabs from '@/module/admin/AdminTabs';
 import { adminWorkspaceStyles } from '@/module/admin/adminDesign';
 import { useAdminRefresh } from '@/module/admin/AdminRefresh';
@@ -23,7 +24,7 @@ export default function AttributionReviewsScreen({ embedded = false }: { embedde
   const adminWorkspace = useAdminRefresh(load);
   const workspace = adminWorkspace ? adminWorkspaceStyles : staffStyles;
   useEffect(() => { void load(); }, []);
-  return <ScrollView style={{ flex: 1, backgroundColor: '#FAF7F3' }} contentContainerStyle={embedded ? workspace.content : { padding: 24, gap: 16 }}>
+  return <ScrollView style={{ flex: 1, backgroundColor: COLORS.pageBackground }} contentContainerStyle={embedded ? workspace.content : { padding: 24, gap: 16 }}>
     {!embedded && <>
     <TouchableOpacity onPress={() => void goBackToWorkspace()}><Text>‹ Back</Text></TouchableOpacity>
     </>}

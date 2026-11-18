@@ -1,7 +1,9 @@
+import { COLORS } from '@/constants/colors';
+import ContentModal from '@/components/ContentModal';
 import TransactionHeader from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '@/firebase/config';
 import { Contract, contractRequest } from './contracts';
@@ -26,8 +28,8 @@ export default function OngoingNegotiations({ onClose }: { onClose: () => void }
     return () => { active = false; clearInterval(timer); };
   }, [revision]);
   const buying = selected?.buyer_uid === auth.currentUser?.uid;
-  return <Modal visible animationType="slide" onRequestClose={selected ? () => setSelected(null) : onClose}>
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
+  return <ContentModal visible animationType="slide" onRequestClose={selected ? () => setSelected(null) : onClose}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
       {selected ? <ChatWindow currentUser={auth.currentUser} user={{ id: buying ? selected.artist_uid : selected.buyer_uid, displayName: buying ? selected.artist : selected.buyer, role: buying ? 'artist' : 'buyer', email: '', photoURL: '' }} onClose={() => setSelected(null)} /> : <>
         <TransactionHeader title="Ongoing Negotiations" onBack={onClose} onRefresh={() => { setLoading(true); setRevision(value => value + 1); }} refreshing={loading} />
         <FlatList data={loading ? [] : rows} keyExtractor={item => String(item.id)} style={{ flex: 1 }} contentContainerStyle={s.content}
@@ -41,7 +43,7 @@ export default function OngoingNegotiations({ onClose }: { onClose: () => void }
         </TouchableOpacity>} />
       </>}
     </SafeAreaView>
-  </Modal>;
+  </ContentModal>;
 }
 
 const s = StyleSheet.create({

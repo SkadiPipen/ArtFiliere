@@ -1,8 +1,10 @@
+import { COLORS } from '@/constants/colors';
 import { PlatformDefaultsProvider, usePlatformDefaults } from '@/services/platformDefaults';
 import FloatingProgressTracker from './FloatingProgressTracker';
 import { Text, TextInput } from '@/components/Typography';
 import NegotiationSection, { NegotiationSectionsContext, RequiredMark } from './NegotiationSection';
 import CommissionNegotiationForm from './CommissionNegotiationForm';
+import TourLauncher from '@/components/TourLauncher';
 import API_URL from '@/services/api';
 import NegotiationPresets from './NegotiationPresets';
 import CopyrightTransferFields from './CopyrightTransferFields';
@@ -345,8 +347,20 @@ function ArtworkNegotiationForm({
 
   return (
     <>
+    <TourLauncher label="Negotiation tutorial" steps={[
+      { target: 'negotiation-tour-presets', instruction: 'Use a preset as a starting point, then adjust the terms to fit your purchase.' },
+      { target: 'negotiation-tour-license', instruction: 'Choose the license for how you plan to use the artwork.' },
+      { target: 'negotiation-tour-exclusivity', instruction: 'Choose who else may use the licensed rights.' },
+      { target: 'negotiation-tour-copyright', instruction: 'Review copyright ownership separately from license permissions.' },
+      { target: 'negotiation-tour-permissions', instruction: 'Specify the uses and permissions you want in the agreement.' },
+      { target: 'negotiation-tour-duration', instruction: 'Set the license duration. The term begins on the later signature date.' },
+      ...(!isDigital ? [{ target: 'negotiation-tour-delivery', instruction: 'Choose a delivery address and calculate the fee for physical artwork.' }] : []),
+      ...(licenseType === 'commercial' ? [{ target: 'negotiation-tour-compensation', instruction: 'Review available commercial compensation and any royalty reporting terms.' }] : []),
+      { target: 'negotiation-tour-pricing', instruction: 'Set the proposed price and review fees before sending.' },
+      { target: 'negotiation-tour-send', instruction: 'Send the proposal for the artist to review. You can follow replies and revisions in Messages.', closeOnActivate: true },
+    ]} />
     <NegotiationSectionsContext.Provider value={{ collapsed, toggle: id => setCollapsed(previous => ({ ...previous, [id]: !(previous[id] ?? true) })), positions: (id, y) => { sectionPositions.current[id] = y; }, errors: attemptedSubmit ? sectionIssues : {}, completed }}>
-    <View onLayout={event => setAvailableWidth(event.nativeEvent.layout.width)} style={{ flex: 1, flexDirection: 'row', position: 'relative', backgroundColor: '#F8F5F1' }}>
+    <View onLayout={event => setAvailableWidth(event.nativeEvent.layout.width)} style={{ flex: 1, flexDirection: 'row', position: 'relative', backgroundColor: COLORS.pageBackground }}>
     <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
       {/* Artwork Preview */}
       <View style={styles.preview}>
@@ -499,6 +513,7 @@ function ArtworkNegotiationForm({
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          id="negotiation-tour-send"
           style={[styles.sendButton, sending && styles.sendButtonDisabled]}
           onPress={handleSend}
           disabled={sending}
@@ -529,7 +544,7 @@ const styles = StyleSheet.create({
   offerError: { color: '#B91C1C', fontSize: 12, marginTop: 7, lineHeight: 18 },
   container: {
     flex: 1,
-    backgroundColor: '#F8F5F1',
+    backgroundColor: COLORS.pageBackground,
     padding: 16,
   },
   loadingContainer: {
@@ -561,7 +576,7 @@ const styles = StyleSheet.create({
   },
   previewType: {
     fontSize: 12,
-    color: '#D48C62',
+    color: COLORS.redDark,
     marginTop: 2,
     fontWeight: '500',
   },
@@ -604,8 +619,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   optionSelected: {
-    borderColor: '#D48C62',
-    backgroundColor: '#FDF6F0',
+    borderColor: COLORS.redDark,
+    backgroundColor: COLORS.roseLight,
   },
   optionRow: {
     flexDirection: 'row',
@@ -617,7 +632,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   optionTextSelected: {
-    color: '#D48C62',
+    color: COLORS.redDark,
     fontWeight: '500',
   },
   infoButton: {
@@ -660,15 +675,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   zoneSelected: {
-    borderColor: '#D48C62',
-    backgroundColor: '#FDF6F0',
+    borderColor: COLORS.redDark,
+    backgroundColor: COLORS.roseLight,
   },
   zoneText: {
     fontSize: 14,
     color: '#000',
   },
   zoneTextSelected: {
-    color: '#D48C62',
+    color: COLORS.redDark,
     fontWeight: '500',
   },
   zoneFee: {
@@ -681,7 +696,7 @@ const styles = StyleSheet.create({
   },
   priceToggleText: {
     fontSize: 14,
-    color: '#D48C62',
+    color: COLORS.redDark,
     fontWeight: '500',
   },
   priceBreakdown: {
@@ -719,7 +734,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#D48C62',
+    color: COLORS.redDark,
   },
   actionContainer: {
     flexDirection: 'row',
@@ -742,7 +757,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     flex: 2,
-    backgroundColor: '#D48C62',
+    backgroundColor: COLORS.redDark,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',

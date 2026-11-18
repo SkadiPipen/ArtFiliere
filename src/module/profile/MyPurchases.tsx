@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import ProductImage from '@/components/ProductImage';
 import TransactionHeader from '@/components/TransactionHeader';
 import PurchaseRatingCard from './PurchaseRatingCard';
@@ -120,7 +121,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
       {agreement !== null ? (
         <SigningModal id={agreement} onClose={() => setAgreement(null)} onSigned={() => load(true)} />
       ) : null}
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
       <TransactionHeader title={filter === 'rate' ? 'To Rate' : filter === 'pay' ? 'To Pay' : filter === 'receive' ? 'To Receive' : 'My Purchases'} onBack={onClose} onRefresh={() => { void load(true); }} refreshing={loading || busy} />
       <View style={s.filterBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterBarContent} style={{ flexGrow: 0 }}>

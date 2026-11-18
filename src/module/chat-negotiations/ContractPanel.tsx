@@ -1,10 +1,11 @@
+import ContentModal from '@/components/ContentModal';
 import { Text } from '@/components/Typography';
 import { proposalPayload } from './proposalPayload';
 import { auth } from '@/firebase/config';
 import { ChatWindow } from './chats';
 import NegotiationForm from './negotiationForm';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Contract, ContractResponse, contractRequest, isAgreed } from './contracts';
 
 export default function ContractPanel({ artworkId, onClose, revision, startInChat = false }: { artworkId?: string; onClose: () => void; revision?: Contract; startInChat?: boolean }) {
@@ -44,15 +45,15 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
   };
   const cancelForm = () => { if (revision) onClose(); else { setFormSubmitted(true); setRevising(false); } };
   if (loading && artworkId) {
-    return <Modal visible animationType="slide" onRequestClose={onClose}>
+    return <ContentModal visible animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 }}>
         <ActivityIndicator /><Text>Loading negotiation form...</Text>
         <TouchableOpacity onPress={onClose}><Text style={s.link}>Close</Text></TouchableOpacity>
       </View>
-    </Modal>;
+    </ContentModal>;
   }
   if (artwork && (artwork.can_propose || revision) && (!agreed || revision) && (revising || !formSubmitted)) {
-    return <Modal visible animationType="slide" onRequestClose={cancelForm}>
+    return <ContentModal visible animationType="slide" onRequestClose={cancelForm}>
       <View style={{ flex: 1, paddingTop: 45, width: '100%', maxWidth: 1120, alignSelf: 'center' }}>
         {!!error && <Text style={s.error}>{error}</Text>}
         <View style={s.header}><Text style={s.heading}>Negotiate a contract</Text><TouchableOpacity onPress={cancelForm}><Text style={s.link}>Cancel</Text></TouchableOpacity></View>
@@ -70,16 +71,16 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
         </View>
 
       </View>
-    </Modal>;
+    </ContentModal>;
   }
   if (artwork?.can_propose && (formSubmitted || agreed) && !revising) {
-    return <Modal visible animationType="slide" onRequestClose={onClose}>
+    return <ContentModal visible animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, paddingTop: 45 }}>
         <ChatWindow user={{ id: artwork.artist_uid, displayName: artwork.artist, email: '', photoURL: '', role: 'artist' }} currentUser={auth.currentUser} onClose={onClose} />
       </View>
-    </Modal>;
+    </ContentModal>;
   }
-  return <Modal visible animationType="slide" onRequestClose={onClose}>
+  return <ContentModal visible animationType="slide" onRequestClose={onClose}>
     <View style={{ flex: 1 }}>
     <ScrollView contentContainerStyle={s.page} style={{ flex: 1 }}>
       <View style={s.header}><Text style={s.heading}>Negotiate a contract</Text><TouchableOpacity onPress={onClose}><Text style={s.link}>Close</Text></TouchableOpacity></View>
@@ -102,7 +103,7 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
     </ScrollView>
     {artwork?.can_propose && <View style={{ flex: 1, minHeight: 220 }}><ChatWindow user={{ id: artwork.artist_uid, displayName: artwork.artist, email: '', photoURL: '', role: 'artist' }} currentUser={auth.currentUser} onClose={onClose} /></View>}
     </View>
-  </Modal>;
+  </ContentModal>;
 }
 const s = StyleSheet.create({
   page: { padding: 24, paddingTop: 50, gap: 14, width: '100%', maxWidth: 1120, alignSelf: 'center' },
