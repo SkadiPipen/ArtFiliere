@@ -54,7 +54,7 @@ export default function CommissionsScreen() {
             border-radius: 10px;
           }
           ::-webkit-scrollbar-thumb:hover {
-            background-color: #C15656; /* ArtFiliere Red on hover */
+            background-color: #C15656; /* ArtFilier Red on hover */
           }
           * {
             scrollbar-width: thin;
@@ -1203,7 +1203,7 @@ export default function CommissionsScreen() {
                           <Text style={s.riderName}>
                             Driver:{" "}
                             {deliveryData?.rider?.name ||
-                              "ArtFiliere Courier Rider"}
+                              "ArtFilier Courier Rider"}
                           </Text>
                           <Text style={s.riderPhone}>
                             Vehicle: Honda XRM 125 • ABC-1234
@@ -1519,7 +1519,7 @@ export default function CommissionsScreen() {
                             <Text style={s.riderName}>
                               Driver:{" "}
                               {deliveryData?.rider?.name ||
-                                "ArtFiliere Courier Rider"}
+                                "ArtFilier Courier Rider"}
                             </Text>
                             <Text style={s.riderPhone}>
                               Vehicle: Honda XRM 125 • ABC-1234

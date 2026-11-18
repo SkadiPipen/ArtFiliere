@@ -215,7 +215,7 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
         {/* Brand / Logo */}
         <Link href="/(home)" asChild>
           <Pressable
-            accessibilityLabel="ArtFiliere home"
+            accessibilityLabel="ArtFilier home"
             onPress={onNavigate}
             style={StyleSheet.flatten([
               styles.brand,
@@ -227,11 +227,11 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
               source={require('../../../../assets/images/logo.png')}
               style={styles.brandMark}
               resizeMode="contain"
-              accessibilityLabel="ArtFiliere logo"
+              accessibilityLabel="ArtFilier logo"
             />
             {!compact && (
               <View {...webLabel}>
-                <Text style={styles.brandName}>ArtFiliere</Text>
+                <Text style={styles.brandName}>ArtFilier</Text>
                 <Text style={styles.brandCaption}>A space for art.</Text>
               </View>
             )}

@@ -2,7 +2,7 @@ import { Text } from '@/components/Typography';
 import { StyleSheet, View } from 'react-native';
 import { ShieldCheck } from 'lucide-react-native';
 
-export const resellerBadgeNote = 'Seller documents reviewed by ArtFiliere. Resale eligibility is checked separately for each artwork.';
+export const resellerBadgeNote = 'Seller documents reviewed by ArtFilier. Resale eligibility is checked separately for each artwork.';
 
 export default function ResellerBadge({ verified }: { verified?: boolean }) {
   if (!verified) return null;

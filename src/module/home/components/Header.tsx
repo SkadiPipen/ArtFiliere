@@ -250,7 +250,7 @@ export default function Header({ activeCategory, onSelectCategory, searchQuery, 
     <View style={[styles.header, isDesktop && styles.desktopHeader, webDesktop && styles.fullWidthHeader]}>
       <View style={[styles.innerContainer, isDesktop && styles.desktopInnerContainer, webDesktop && styles.fullWidthInnerContainer]}>
         <View style={[styles.topRow, !isDesktop && styles.mobileTopRow, webDesktop && styles.desktopRowSpacing]}>
-          {!isDesktop && <Text style={styles.mobileBrand}>ArtFiliere</Text>}
+          {!isDesktop && <Text style={styles.mobileBrand}>ArtFilier</Text>}
           {isDesktop && searchSection}
 
           <View style={[styles.headerIcons, !isDesktop && styles.mobileHeaderIcons]}>

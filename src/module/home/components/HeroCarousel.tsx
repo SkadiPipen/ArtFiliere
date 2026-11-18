@@ -10,7 +10,7 @@ import { auctionCountdown } from './AuctionSection';
 import { Star } from 'lucide-react-native';
 
 type Slide = { id: string; kind: 'welcome' | 'popular' | 'artist' | 'auction'; badge: string; title: string; subtitle: string; artist_id?: number; ends_at?: string; artwork?: any; sold_count?: number; rating?: number | null };
-const welcome: Slide = { id: 'welcome', kind: 'welcome', badge: 'A SPACE FOR ART', title: 'Welcome to ArtFiliere', subtitle: 'Discover original work. Meet artists. Bring your ideas to life.' };
+const welcome: Slide = { id: 'welcome', kind: 'welcome', badge: 'A SPACE FOR ART', title: 'Welcome to ArtFilier', subtitle: 'Discover original work. Meet artists. Bring your ideas to life.' };
 
 function PopularRating({ slide }: { slide: Slide }) {
   // Retain compatibility with an already-running backend's subtitle response.

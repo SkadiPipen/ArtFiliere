@@ -107,7 +107,7 @@ export default memo(function AuctionGuidePanel({ width, onDismiss }: { width: nu
         <Text style={s.eyebrow}>YOUR GUIDE TO BIDDING</Text>
         <Text accessibilityRole="header" style={[s.title, width < 600 && { fontSize: 27 }]}>How Auctions Work</Text>
         <View style={s.baseline} />
-        <Text style={s.introduction}>ArtFiliere auctions let you compete for artworks by placing bids within a set time. The highest eligible bidder wins and proceeds to checkout under the published auction terms.</Text>
+        <Text style={s.introduction}>ArtFilier auctions let you compete for artworks by placing bids within a set time. The highest eligible bidder wins and proceeds to checkout under the published auction terms.</Text>
         <Text style={s.body}>Each auction brings together an artist’s approved artwork, its license terms, and a bidding deadline. Review the details before joining, then follow these steps from your first bid to receiving your artwork.</Text>
       </View>
       <View style={s.steps}>

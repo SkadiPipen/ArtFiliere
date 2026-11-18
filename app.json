@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "ArtFiliere",
-    "slug": "ArtFiliere",
+    "name": "ArtFilier",
+    "slug": "ArtFilier",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "artfiliere",
+    "scheme": ["artfilier", "artfiliere"],
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -38,7 +38,7 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow ArtFiliere to take pickup and delivery proof photos.",
+          "cameraPermission": "Allow ArtFilier to take pickup and delivery proof photos.",
           "microphonePermission": false
         }
       ],

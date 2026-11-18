@@ -37,7 +37,7 @@ export default function LoginScreen() {
           },
         });
         if (!backendResponse.ok) {
-          throw new Error('Your rider account could not be linked to ArtFiliere. Ask an administrator to check the rider email address.');
+          throw new Error('Your rider account could not be linked to ArtFilier. Ask an administrator to check the rider email address.');
         }
         // Keep rider access available while an administrator corrects a legacy
         // account role. The delivery API remains responsible for protecting

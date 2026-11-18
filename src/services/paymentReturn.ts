@@ -19,7 +19,7 @@ export async function openPaymentCheckout(url: string, kind: Target['kind'], id:
     tab?.close(); throw new Error('Checkout could not be opened. Refresh and try again.');
   }
   const browser = Platform.OS === 'web' ? tab || preparePaymentWindow() : null;
-  if (Platform.OS === 'web' && !browser) throw new Error('Allow payment pop-ups for ArtFiliere, then click Checkout again.');
+  if (Platform.OS === 'web' && !browser) throw new Error('Allow payment pop-ups for ArtFilier, then click Checkout again.');
   target = { kind, id, uid: auth.currentUser.uid };
   if (Platform.OS === 'web') {
     try { sessionStorage.setItem(key, JSON.stringify(target)); } catch {}

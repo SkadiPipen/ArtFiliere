@@ -4,6 +4,7 @@ import API_URL from '@/services/api';
 import { loginUser, logOut } from '@/services/auth';
 import { platformAccessError } from '@/services/platformAccess';
 import { staffDashboardForRole } from '@/services/roleRoutes';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -15,6 +16,7 @@ export default function HomeScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
@@ -102,7 +104,7 @@ export default function HomeScreen() {
               </View>
             </Pressable>
             {isWide && <Animated.View style={[styles.brandCopy, baseline]}>
-              <Text style={styles.brandTitle}>ArtFiliere</Text>
+              <Text style={styles.brandTitle}>ArtFilier</Text>
               <Text style={styles.brandSubtitle}>A space for art.</Text>
             </Animated.View>}
             <Svg pointerEvents="none" width={isWide ? 80 : '100%'} height={isWide ? '100%' : 54} viewBox={isWide ? '0 0 60 400' : '0 0 400 60'} preserveAspectRatio="none" style={isWide ? styles.waveRight : styles.wave}>
@@ -117,9 +119,19 @@ export default function HomeScreen() {
               <TextInput accessibilityLabel="Email" style={[styles.input, focused === 'email' && styles.inputFocused]} placeholder="Email" placeholderTextColor={COLORS.textMuted}
                 value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email"
                 onFocus={() => setFocused('email')} onBlur={() => setFocused(null)} />
-              <TextInput accessibilityLabel="Password" style={[styles.input, focused === 'password' && styles.inputFocused]} placeholder="Password" placeholderTextColor={COLORS.textMuted}
-                value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" returnKeyType="go"
-                onSubmitEditing={handleLogin} onFocus={() => setFocused('password')} onBlur={() => setFocused(null)} />
+              <View style={styles.passwordField}>
+                <TextInput accessibilityLabel="Password" style={[styles.input, focused === 'password' && styles.inputFocused, styles.passwordInput]} placeholder="Password" placeholderTextColor={COLORS.textMuted}
+                  value={password} onChangeText={setPassword} secureTextEntry={!showPassword} autoComplete="current-password" autoCapitalize="none" autoCorrect={false} returnKeyType="go"
+                  onSubmitEditing={handleLogin} onFocus={() => setFocused('password')} onBlur={() => setFocused(null)} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  onPress={() => setShowPassword((visible) => !visible)}
+                  style={styles.passwordVisibility}
+                >
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={COLORS.textDark} />
+                </Pressable>
+              </View>
               <Pressable accessibilityRole="button" disabled={busy} onPress={handleLogin} style={({ pressed }) => [styles.login, pressed && styles.loginPressed, busy && { opacity: 0.65 }]}>
                 <Text style={styles.loginText}>{busy ? 'Please wait…' : 'Log In'}</Text>
               </Pressable>
@@ -159,6 +171,9 @@ const styles = StyleSheet.create({
   baseline: { width: 42, height: 3, backgroundColor: COLORS.red, borderRadius: 2, marginBottom: 26, alignSelf: 'flex-start' },
   input: { width: '100%', minHeight: 50, borderWidth: 1, borderColor: COLORS.red, backgroundColor: '#FFFFFF', borderRadius: 7, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14, fontSize: 15, color: COLORS.textDark },
   inputFocused: { borderColor: COLORS.redDark, borderWidth: 2, paddingHorizontal: 13, paddingVertical: 11 },
+  passwordField: { position: 'relative', marginBottom: 14 },
+  passwordInput: { marginBottom: 0, paddingRight: 48 },
+  passwordVisibility: { position: 'absolute', top: 0, bottom: 0, right: 0, width: 44, alignItems: 'center', justifyContent: 'center' },
   login: { minHeight: 50, backgroundColor: COLORS.red, borderRadius: 7, alignItems: 'center', justifyContent: 'center', marginTop: 3, marginBottom: 12 },
   loginPressed: { backgroundColor: COLORS.redDark, transform: [{ scale: 0.99 }] },
   loginText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },

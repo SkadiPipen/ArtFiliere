@@ -135,7 +135,7 @@ export default function UserProfile() {
   if (!user) {
     return (
       <View style={styles.guestContainer}>
-        <Text style={styles.guestTitle}>Welcome to ArtFiliere</Text>
+        <Text style={styles.guestTitle}>Welcome to ArtFilier</Text>
         <Text style={styles.guestBody}>
           Browse artworks as a guest. Create an account or log in when you are
           ready to message an artist, purchase artwork, or view your wallet.

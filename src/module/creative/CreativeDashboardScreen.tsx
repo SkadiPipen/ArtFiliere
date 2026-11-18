@@ -177,7 +177,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
     <View style={s.page}>
       {!embedded && <View style={s.header}>
         <View>
-          <Text style={s.brand}>ArtFiliere</Text>
+          <Text style={s.brand}>ArtFilier</Text>
           <Text style={s.subtitle}>CREATIVE MODERATOR PORTAL</Text>
         </View>
         <TouchableOpacity

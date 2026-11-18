@@ -51,7 +51,7 @@ function ArtCardItem({
     : 'Physical';
 
   const titleText = item.title || item.artist || 'Untitled';
-  const artistLabel = item.artistName || item.artist_name || 'ArtFiliere Artist';
+  const artistLabel = item.artistName || item.artist_name || 'ArtFilier Artist';
   const reviewCount = Number(item.review_count || 0);
   const ratingVal = reviewCount > 0 && item.average_rating != null ? Number(item.average_rating).toFixed(1) : null;
   const tagsList = Array.isArray(item.tags) ? item.tags.slice(0, 3) : [];

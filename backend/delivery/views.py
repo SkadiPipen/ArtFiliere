@@ -67,7 +67,7 @@ def geocode_address_nominatim(address_str, fallback_coords=(10.3157, 123.8854)):
 
     encoded_query = urllib.parse.quote(search_query)
     url = f"https://nominatim.openstreetmap.org/search?q={encoded_query}&format=json&limit=1&countrycodes=ph"
-    headers = {'User-Agent': 'ArtFiliere-DeliveryApp/1.0 (artfiliere.ph)'}
+    headers = {'User-Agent': 'ArtFilier-DeliveryApp/1.0 (artfiliere.ph)'}
 
     try:
         req = urllib.request.Request(url, headers=headers)
@@ -413,7 +413,7 @@ class RiderProfileView(APIView):
     def get(self, request):
         completed_count = Order.objects.filter(status__in=['DELIVERED', 'COMPLETED']).count()
         return Response({
-            "fullName": "ArtFiliere Express Rider",
+            "fullName": "ArtFilier Express Rider",
             "email": "rider@artfiliere.ph",
             "is_clocked_in": False,
             "total_delivery": completed_count,
