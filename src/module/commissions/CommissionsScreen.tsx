@@ -1,12 +1,12 @@
+import { COLORS } from '@/constants/colors';
+import TourLauncher from '@/components/TourLauncher';
+import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text, TextInput } from '@/components/Typography';
 import { AuthContext } from '@/context/AuthContext';
 import { auth } from "@/firebase/config";
 import { ChatModal } from "@/module/chat-negotiations/chat-index";
-import Header from '@/module/home/components/Header';
-import WebSidebar from '@/module/home/components/WebSidebar';
 import API_URL from "@/services/api";
-import { goBackOr } from '@/services/navigation';
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { onAuthStateChanged } from 'firebase/auth';
@@ -27,7 +27,6 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Linking, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CommissionProgressPanel from './CommissionProgressPanel';
-import CommissionTransition from './CommissionTransition';
 
 export default function CommissionsScreen() {
   const router = useRouter();
@@ -35,10 +34,7 @@ export default function CommissionsScreen() {
   const [windowWidth, setWindowWidth] = useState(
     Dimensions.get("window").width,
   );
-  const showSidebar = Platform.OS === 'web' && windowWidth >= 768;
-  const isDesktop = windowWidth - (showSidebar ? 256 : 0) >= 800;
-  const [headerCategory, setHeaderCategory] = useState('All');
-  const [headerSearch, setHeaderSearch] = useState('');
+  const isDesktop = windowWidth >= 960;
 
   useEffect(() => {
     if (Platform.OS === "web" && typeof document !== "undefined") {
@@ -60,7 +56,7 @@ export default function CommissionsScreen() {
             border-radius: 10px;
           }
           ::-webkit-scrollbar-thumb:hover {
-            background-color: #C15656; /* ArtFiliere Red on hover */
+            background-color: #C15656; /* ArtFilier Red on hover */
           }
           * {
             scrollbar-width: thin;
@@ -843,10 +839,7 @@ export default function CommissionsScreen() {
     "Client";
 
   return (
-    <View style={s.shell}>
-      {showSidebar && <WebSidebar />}
     <SafeAreaView style={s.pageContainer} edges={["top", "left", "right"]}>
-      <Header activeCategory={headerCategory} onSelectCategory={setHeaderCategory} searchQuery={headerSearch} onSearchChange={setHeaderSearch} />
       {/* MOBILE TOP NAVIGATION BAR (< 960px) */}
       {!isDesktop && (
         <View style={s.mobileTopNav}>
@@ -897,27 +890,77 @@ export default function CommissionsScreen() {
         </View>
       )}
 
-      {isDesktop && <View style={s.filterBar}>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from Commissions" onPress={handleBack} style={s.filterTitle}>
-          <ArrowLeft color="#C15656" size={22} />
-        </TouchableOpacity>
-        <Text style={s.brandTitle}>Commissions</Text>
-        <View style={s.filters}>
-          {(isArtist ? [{ value: 'buyer', label: 'My Requests' }, { value: 'artist', label: 'Incoming Jobs' }] : [{ value: 'buyer', label: 'My Requests' }]).map(filter => (
-            <TouchableOpacity key={filter.value} accessibilityRole="button" accessibilityState={{ selected: role === filter.value }} style={[s.filterPill, role === filter.value && s.filterPillActive]} onPress={() => setRole(filter.value as 'buyer' | 'artist')}>
-              <Text style={[s.filterText, role === filter.value && s.filterTextActive]}>{filter.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>}
-      <CommissionTransition>
+      <TourLauncher label="Commissions tutorial" steps={[
+        { target: 'commissions-list', instruction: isArtist ? 'Use My Requests for work you commissioned and Incoming Jobs for requests from buyers.' : 'My Requests lists the commissions you have requested from artists.' },
+        { target: 'commissions-list', instruction: 'Open a commission to review its proposal, track milestones, and see the next action.' },
+      ]} />
       <View style={s.appLayout}>
+        {/* LEFT COLUMN */}
+        {isDesktop && (
+          <View style={s.sidebar}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from Commissions" onPress={handleBack} style={s.brandRow}>
+              <ArrowLeft color="#000000" size={24} />
+              <Text style={s.brandTitle}>Commissions</Text>
+            </TouchableOpacity>
+
+            {isArtist ? (
+              <View style={s.sidebarToggleContainer}>
+                <TouchableOpacity
+                  style={[
+                    s.sideNavPill,
+                    role === "buyer" && s.sideNavPillActive,
+                  ]}
+                  onPress={() => setRole("buyer")}
+                >
+                  <Text
+                    style={[
+                      s.sideNavText,
+                      role === "buyer" && s.sideNavTextActive,
+                    ]}
+                  >
+                    My Requests
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    s.sideNavPill,
+                    role === "artist" && s.sideNavPillActive,
+                  ]}
+                  onPress={() => setRole("artist")}
+                >
+                  <Text
+                    style={[
+                      s.sideNavText,
+                      role === "artist" && s.sideNavTextActive,
+                    ]}
+                  >
+                    Incoming Jobs
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={s.buyerBadgeSidebar}>
+                <Text style={s.buyerBadgeSidebarText}>My Requests</Text>
+              </View>
+            )}
+
+            <View style={s.sidebarFooterInfo}>
+              <Text style={s.sidebarHelpHeading}>3-Stage Pipeline</Text>
+              <Text style={s.sidebarHelpText}>
+                Stage 1: 33% Sketch & Downpayment
+              </Text>
+              <Text style={s.sidebarHelpText}>Stage 2: 66% Color Render</Text>
+              <Text style={s.sidebarHelpText}>Stage 3: 100% Final</Text>
+            </View>
+          </View>
+        )}
+
         {/* MIDDLE COLUMN: FEED OF COMMISSIONS */}
-        <View style={[s.feedColumn, !isDesktop && s.feedColumnMobile]}>
+        <View id="commissions-list" style={[s.feedColumn, !isDesktop && s.feedColumnMobile]}>
           {isDesktop && (
             <View style={s.feedHeader}>
               <Text style={s.feedHeaderText}>
-                {role === "artist" ? "Review and manage commission requests from buyers." : "Track and manage your commission requests."}
+                {role === "artist" ? "Incoming Jobs" : "My Commission Requests"}
               </Text>
             </View>
           )}
@@ -1166,7 +1209,7 @@ export default function CommissionsScreen() {
                           <Text style={s.riderName}>
                             Driver:{" "}
                             {deliveryData?.rider?.name ||
-                              "ArtFiliere Courier Rider"}
+                              "ArtFilier Courier Rider"}
                           </Text>
                           <Text style={s.riderPhone}>
                             Vehicle: Honda XRM 125 • ABC-1234
@@ -1285,7 +1328,6 @@ export default function CommissionsScreen() {
           </View>
         )}
       </View>
-      </CommissionTransition>
 
       {/* MOBILE MODAL */}
       {!isDesktop && (
@@ -1294,7 +1336,7 @@ export default function CommissionsScreen() {
           animationType="slide"
           onRequestClose={() => setRightPanelMode("empty")}
         >
-          <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
             <View style={s.mobileModalHeader}>
               <Text style={s.mobileModalTitle}>
                 {rightPanelMode === "upload"
@@ -1483,7 +1525,7 @@ export default function CommissionsScreen() {
                             <Text style={s.riderName}>
                               Driver:{" "}
                               {deliveryData?.rider?.name ||
-                                "ArtFiliere Courier Rider"}
+                                "ArtFilier Courier Rider"}
                             </Text>
                             <Text style={s.riderPhone}>
                               Vehicle: Honda XRM 125 • ABC-1234
@@ -1691,24 +1733,13 @@ export default function CommissionsScreen() {
         />
       )}
     </SafeAreaView>
-    </View>
   );
 }
 
 const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', backgroundColor: '#FFFFFF' },
-  filterBar: { padding: 20, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 20, borderBottomWidth: 1, borderBottomColor: '#F0DEDA', backgroundColor: '#FFFFFF' },
-  filterTitle: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  filters: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  filterPill: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 24, backgroundColor: '#F7EAE6', borderWidth: 1, borderColor: '#EDD6D0' },
-  filterPillActive: { backgroundColor: '#C15656', borderColor: '#C15656' },
-  filterText: { color: '#A94848', fontWeight: '700', fontSize: 13 },
-  filterTextActive: { color: '#FFFFFF' },
   pageContainer: {
     flex: 1,
-    minWidth: 0,
-    minHeight: 0,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.pageBackground,
   },
   appLayout: {
     flex: 1,
@@ -1729,7 +1760,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E8DED1",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.pageBackground,
   },
   mobileBrandRow: {
     flexDirection: "row",
@@ -1778,7 +1809,7 @@ const s = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#E8DED1",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.pageBackground,
   },
   mobileModalTitle: {
     fontSize: 18,
@@ -1871,7 +1902,7 @@ const s = StyleSheet.create({
   // FEED COLUMN (MIDDLE)
   feedColumn: {
     flex: 1,
-    minWidth: 0,
+    maxWidth: 620,
     borderRightWidth: 1,
     borderRightColor: "#E8DED1",
     height: "100%",
@@ -1886,19 +1917,19 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#E8DED1",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(250, 246, 239, 0.95)",
   },
   feedHeaderText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#2c3e50c9",
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#2C3E50",
   },
 
   // RIGHT PANEL (DESKTOP)
   rightPanel: {
     flex: 1,
-    minWidth: 0,
-    backgroundColor: "#FFFFFF",
+    maxWidth: 460,
+    backgroundColor: COLORS.pageBackground,
     height: "100%",
     ...(Platform.OS === "web" ? { overflowY: "auto" } : {}),
   },

@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import BusinessPermitFields from '@/components/BusinessPermitFields';
 import { pickDocument, type PermitDocument } from '@/components/businessPermit';
 import PrivateDocumentPreview from '@/components/PrivateDocumentPreview';
@@ -53,7 +54,7 @@ export default function RoyaltyApplicationScreen({ onClose, onAccessChange }: { 
     }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
-  return <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
+  return <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
     <View style={s.header}><Pressable accessibilityLabel="Back" onPress={() => onClose ? onClose() : goBackOr('/(home)/settings')}><ArrowLeft size={24} color="#69534A" /></Pressable><Percent size={28} color="#C15656" /><Text style={s.headerTitle}>Royalty access</Text><Pressable accessibilityLabel="Refresh royalty status" disabled={busy || authLoading || !user} onPress={load} style={{ marginLeft: 'auto' }}><RefreshCw size={23} color="#C15656" /></Pressable></View>
     <ScrollView contentContainerStyle={s.page}>
     <Text style={s.title}>Royalty payment application</Text>

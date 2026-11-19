@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { checkedDriverPosition, getDriverPosition } from '@/services/driverLocation';
@@ -422,7 +423,7 @@ export default function DeliveryDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F8F9FA' },
+    container: { flex: 1, backgroundColor: COLORS.pageBackground },
     header: { backgroundColor: '#BC5454', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20 },
     backRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     backText: { color: '#FFFFFF', fontSize: 14, marginLeft: 6, fontWeight: '500' },

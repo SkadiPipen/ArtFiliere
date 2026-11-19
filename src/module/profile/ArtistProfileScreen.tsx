@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import ArtistShareCard from './components/ArtistShareCard';
@@ -416,12 +417,12 @@ export default function ArtistProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FAF7F3" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FAF7F3",
+    backgroundColor: COLORS.pageBackground,
   },
 
   // Top Nav

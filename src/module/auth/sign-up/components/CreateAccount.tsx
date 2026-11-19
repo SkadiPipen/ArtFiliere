@@ -1,5 +1,6 @@
 import { Text, TextInput } from '@/components/Typography';
 import { COLORS } from "@/constants/colors";
+import { getSignupPasswordError } from "@/services/signupPassword";
 import type {
   SignUpFormData,
   UpdateSignUpField,
@@ -9,8 +10,6 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 type CreateAccountProps = {
-  onGoogleSignUp: () => void;
-  googleLinked?: boolean;
   busy?: boolean;
   formData: SignUpFormData;
   updateField: UpdateSignUpField;
@@ -19,12 +18,12 @@ type CreateAccountProps = {
 export default function CreateAccount({
   formData,
   updateField,
-  onGoogleSignUp,
-  googleLinked = false,
   busy = false,
 }: CreateAccountProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const passwordHint = formData.password ? getSignupPasswordError(formData.password) : null;
+  const passwordsMismatch = !!formData.confirmPassword && formData.password !== formData.confirmPassword;
 
   return (
     <View>
@@ -45,82 +44,58 @@ export default function CreateAccount({
         onChangeText={(text) => updateField("email", text)}
         autoCapitalize="none"
         keyboardType="email-address"
-        editable={!googleLinked && !busy}
+        editable={!busy}
       />
 
-      {!googleLinked && <>
+      {(passwordHint || passwordsMismatch) && (
+        <Text accessibilityLiveRegion="polite" style={{ color: COLORS.red, fontSize: 12, marginBottom: 6 }}>
+          {passwordHint || "Passwords do not match."}
+        </Text>
+      )}
       <View style={{ position: "relative", justifyContent: "center" }}>
         <TextInput
-          style={inputStyle}
+          style={passwordInputStyle}
           placeholder="Password"
           placeholderTextColor={COLORS.textMuted}
           value={formData.password}
           onChangeText={(text) => updateField("password", text)}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="new-password"
           secureTextEntry={!showPassword}
         />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+          onPress={() => setShowPassword((visible) => !visible)}
+          style={visibilityButtonStyle}
+        >
+          <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={COLORS.textDark} />
+        </Pressable>
       </View>
 
       <View style={{ position: "relative", justifyContent: "center" }}>
         <TextInput
-          style={inputStyle}
+          style={passwordInputStyle}
           placeholder="Confirm password"
           placeholderTextColor={COLORS.textMuted}
           value={formData.confirmPassword}
           onChangeText={(text) => updateField("confirmPassword", text)}
+          autoCapitalize="none"
+          autoCorrect={false}
           secureTextEntry={!showConfirmPassword}
         />
-      </View>
-      </>}
-
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginVertical: 16,
-        }}
-      >
-        <View style={{ flex: 1, height: 1, backgroundColor: COLORS.border }} />
-        <Text
-          style={{
-            marginHorizontal: 10,
-            color: COLORS.textMuted,
-            fontSize: 12,
-          }}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={showConfirmPassword ? "Hide password confirmation" : "Show password confirmation"}
+          onPress={() => setShowConfirmPassword((visible) => !visible)}
+          style={visibilityButtonStyle}
         >
-          or sign up with
-        </Text>
-        <View style={{ flex: 1, height: 1, backgroundColor: COLORS.border }} />
+          <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={20} color={COLORS.textDark} />
+        </Pressable>
       </View>
-
-      <Pressable
-        style={{
-          backgroundColor: COLORS.white,
-          borderWidth: 1,
-          borderColor: COLORS.red,
-          borderRadius: 8,
-          paddingVertical: 12,
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
-          marginBottom: 14,
-        }}
-        disabled={busy}
-        onPress={onGoogleSignUp}
-      >
-        <Ionicons
-          name="logo-google"
-          size={18}
-          color={COLORS.textDark}
-          style={{ marginRight: 8 }}
-        />
-        <Text style={{ color: COLORS.textDark, fontWeight: "600" }}>
-          {busy ? 'Connecting…' : googleLinked ? 'Change Google account' : 'Sign Up with Google'}
-        </Text>
-      </Pressable>
-
-      {googleLinked && <Text style={{ color: COLORS.textMuted, marginBottom: 12 }}>Google account connected. No password is needed.</Text>}
       <Text
-        style={{ fontSize: 11, color: COLORS.textMuted, textAlign: "center" }}
+        style={{ marginTop: 8, fontSize: 11, color: COLORS.textMuted, textAlign: "center" }}
       >
         By signing up, you agree to our Terms of Service and Privacy Policy
       </Text>
@@ -139,3 +114,15 @@ const inputStyle = {
   fontSize: 15,
   color: COLORS.textDark,
 };
+
+const passwordInputStyle = { ...inputStyle, paddingRight: 48 };
+
+const visibilityButtonStyle = {
+  position: "absolute",
+  right: 0,
+  top: 0,
+  bottom: inputStyle.marginBottom,
+  width: 44,
+  alignItems: "center",
+  justifyContent: "center",
+} as const;

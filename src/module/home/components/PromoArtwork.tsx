@@ -5,13 +5,13 @@ import Svg, { Circle, G, Path } from 'react-native-svg';
 export default function PromoArtwork({ variant }: { variant: 'paint' | 'botanical' }) {
   return <Svg pointerEvents="none" aria-hidden viewBox="0 0 420 230" preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill}>
     {variant === 'paint' ? <G>
-      <G opacity="0.5">
+      <G id="marketplace-paint-shapes" opacity="0.5">
         <Path d="M328 3l7 5 8-2 2 8 8 5-5 6 1 7-9 1-6 6-5-8-9-2 4-8-3-8z" fill="#6C8792" />
         <Path d="M347 63l5-5 5 4 7-1 1 7 5 4-4 6-1 6-8-1-6 5-4-7-7-2 3-7-2-5z" fill="#B56D85" />
         <Path d="M410 91l8-5 9 5 4 10-8 9-11-3-7-7z" fill="#B56D85" />
         <Path d="M13 192l7-6 5 5 7-1 2 8 6 3-4 7-1 8-8-2-6 5-5-8-9-2 5-8z" fill="#698C91" />
       </G>
-      <G fill="#8E6C66" opacity="0.55">
+      <G id="marketplace-paint-dots" fill="#8E6C66" opacity="0.55">
         <Circle cx="308" cy="13" r="2" /><Circle cx="320" cy="43" r="1.5" /><Circle cx="360" cy="30" r="2.5" />
         <Circle cx="374" cy="82" r="1.6" /><Circle cx="390" cy="63" r="2" /><Circle cx="395" cy="116" r="1.2" />
         <Circle cx="8" cy="174" r="1.5" /><Circle cx="43" cy="212" r="2.6" /><Circle cx="56" cy="222" r="1.5" />

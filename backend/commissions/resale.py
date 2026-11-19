@@ -49,7 +49,7 @@ class CommissionResaleView(AuthenticatedAPIView):
         image = Image.open(BytesIO(bytes(submission.content))).convert('RGB'); image.thumbnail((1400, 1400))
         draw = ImageDraw.Draw(image)
         for y in range(20, image.height, 100):
-            for x in range(10, image.width, 180): draw.text((x, y), 'ArtFiliere PREVIEW', fill=(200, 65, 65))
+            for x in range(10, image.width, 180): draw.text((x, y), 'ArtFilier PREVIEW', fill=(200, 65, 65))
         output = BytesIO(); image.save(output, 'JPEG', quality=85)
         artwork = Artwork.objects.create(artist=user, title=asset.commission.title, description=f'Licensed resale of commission #{asset.commission_id}. Original artist: {asset.original_artist.username}.',
             category='Commission resale', price=price, art_type=asset.commission.art_type.lower(), image_data='data:image/jpeg;base64,' + base64.b64encode(output.getvalue()).decode(), status='pending', sale_type='DIRECT')

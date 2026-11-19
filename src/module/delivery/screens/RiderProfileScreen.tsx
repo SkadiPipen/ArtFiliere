@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import { fetchRiderProfile } from '@/services/deliveryApi';
@@ -246,7 +247,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9F9FB' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
   headerBanner: { backgroundColor: '#BC5454', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' },

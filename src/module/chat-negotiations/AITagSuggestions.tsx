@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 // ========================================
 // FILE: src/components/artworks/AITagSuggestions.tsx
@@ -39,10 +40,10 @@ export default function AITagSuggestions({
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Sparkles size={16} color="#D48C62" />
+            <Sparkles size={16} color={COLORS.redDark} />
             <Text style={styles.headerTitle}>Analyzing your artwork...</Text>
           </View>
-          <ActivityIndicator size="small" color="#D48C62" />
+          <ActivityIndicator size="small" color={COLORS.redDark} />
         </View>
       </View>
     );
@@ -70,7 +71,7 @@ export default function AITagSuggestions({
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Sparkles size={16} color="#D48C62" />
+          <Sparkles size={16} color={COLORS.redDark} />
           <Text style={styles.headerTitle}>AI Suggested Tags</Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{filteredTags.length}</Text>
@@ -93,9 +94,9 @@ export default function AITagSuggestions({
             style={styles.suggestionTag}
             onPress={() => onAddTag(tag)}
           >
-            <Sparkles size={12} color="#D48C62" />
+            <Sparkles size={12} color={COLORS.redDark} />
             <Text style={styles.suggestionTagText}>{tag}</Text>
-            <Plus size={12} color="#D48C62" />
+            <Plus size={12} color={COLORS.redDark} />
           </TouchableOpacity>
         ))}
       </View>
@@ -107,7 +108,7 @@ export default function AITagSuggestions({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FDF6F0',
+    backgroundColor: COLORS.roseLight,
     borderRadius: 12,
     padding: 14,
     marginTop: 8,
@@ -133,10 +134,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#D48C62',
+    color: COLORS.redDark,
   },
   badge: {
-    backgroundColor: '#D48C62',
+    backgroundColor: COLORS.redDark,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 10,
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   addAllButton: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#D48C62',
+    backgroundColor: COLORS.redDark,
     borderRadius: 12,
   },
   addAllText: {
@@ -176,12 +177,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#D48C62',
+    borderColor: COLORS.redDark,
     gap: 4,
   },
   suggestionTagText: {
     fontSize: 12,
-    color: '#D48C62',
+    color: COLORS.redDark,
     fontWeight: '500',
   },
   hint: {

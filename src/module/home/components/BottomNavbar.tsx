@@ -36,19 +36,20 @@ export default function BottomNavBar() {
     <View style={[styles.navBar, { paddingBottom: Math.max(10, insets.bottom) }]}>
       <View style={styles.navInner}>
         {/* HOME */}
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)')}>
+        <TouchableOpacity id="marketplace-nav-home" style={styles.navItem} onPress={() => router.push('/(home)')}>
           <Home color="#fff" size={24} style={isHomeActive ? styles.activeIcon : undefined} />
           <Text style={[styles.navText, isHomeActive && styles.activeText]}>Home</Text>
         </TouchableOpacity>
 
         {/* ACTIVITIES */}
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/activities')}>
+        <TouchableOpacity id="marketplace-nav-activities" style={styles.navItem} onPress={() => router.push('/(home)/activities')}>
           <Clock color="#fff" size={24} />
           <Text style={styles.navText}>Activities</Text>
         </TouchableOpacity>
 
         {/* Artists post from the dashboard; buyers retain the auction action. */}
         <TouchableOpacity 
+          id="marketplace-nav-auctions"
           disabled={isArtist && readOnly}
           style={styles.auctionContainer} 
           onPress={() => { 
@@ -65,7 +66,7 @@ export default function BottomNavBar() {
         </TouchableOpacity>
 
         {/* CART */}
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/cart')}>
+        <TouchableOpacity id="marketplace-nav-cart" style={styles.navItem} onPress={() => router.push('/(home)/cart')}>
           <View style={styles.cartIconWrap}>
             <ShoppingCart color="#fff" size={24} style={pathname.includes('/cart') ? styles.activeIcon : undefined}/>
             {cartCount > 0 && (
@@ -78,7 +79,7 @@ export default function BottomNavBar() {
         </TouchableOpacity>
 
         {/* PROFILE / ME */}
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/(home)/profile')}>
+        <TouchableOpacity id="marketplace-nav-profile" style={styles.navItem} onPress={() => router.push('/(home)/profile')}>
           <User color="#fff" size={24} style={pathname.includes('/profile') ? styles.activeIcon : undefined}/>
           <Text style={[styles.navText, pathname.includes('/profile') && styles.activeText]}>Me</Text>
         </TouchableOpacity>

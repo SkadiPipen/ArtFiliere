@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
@@ -202,7 +203,7 @@ export default function RegisterArtistScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FAF7F3" },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   topHeaderBar: {
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1, borderBottomColor: "#E8D8D0",

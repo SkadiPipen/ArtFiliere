@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import useChatAutoScroll from '@/hooks/useChatAutoScroll';
 import { Text, TextInput } from '@/components/Typography';
 import { buildChatTimeline } from './negotiationThreads';
@@ -448,15 +449,15 @@ export function ChatWindow({
           case 'counter':
           case 'COUNTER':
             return { 
-              color: '#FF9800', 
-              bgColor: '#FFF3E0',
+              color: COLORS.redDark,
+              bgColor: COLORS.roseLight,
               icon: '↩️',
               label: 'COUNTER OFFER'
             };
           default:
             return { 
-              color: '#D48C62', 
-              bgColor: '#FDF6F0',
+              color: COLORS.redDark,
+              bgColor: COLORS.roseLight,
               icon: '📝',
               label: 'PENDING'
             };
@@ -548,7 +549,7 @@ export function ChatWindow({
     if (loading) {
       return (
         <View style={styles.chatLoadingContainer}>
-          <ActivityIndicator size="large" color="#E8A066" />
+          <ActivityIndicator size="large" color={COLORS.redDark} />
         </View>
       );
     }
@@ -662,7 +663,7 @@ export function ChatWindow({
             <Ionicons
               name="send"
               size={20}
-              color={messageText.trim() ? '#E8A066' : '#C7C7CC'}
+              color={messageText.trim() ? COLORS.redDark : '#C7C7CC'}
             />
           </TouchableOpacity>
         </View>
@@ -701,7 +702,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E8A066',
+    backgroundColor: COLORS.redDark,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -781,7 +782,7 @@ const styles = StyleSheet.create({
   },
 
   messageBubbleSent: {
-    backgroundColor: '#E8A066',
+    backgroundColor: COLORS.redDark,
     alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
   },
@@ -849,7 +850,7 @@ const styles = StyleSheet.create({
   negotiationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#D48C62',
+    color: COLORS.redDark,
   },
 
   negotiationArtworkTitle: {
@@ -861,7 +862,7 @@ const styles = StyleSheet.create({
   },
 
   negotiationPriceContainer: {
-    backgroundColor: '#FDF6F0',
+    backgroundColor: COLORS.roseLight,
     padding: 10,
     borderRadius: 8,
     marginBottom: 10,
@@ -876,7 +877,7 @@ const styles = StyleSheet.create({
   negotiationPrice: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#D48C62',
+    color: COLORS.redDark,
     textAlign: 'center',
   },
 

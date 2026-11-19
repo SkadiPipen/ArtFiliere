@@ -478,7 +478,7 @@ class SubmissionFileView(CommissionFlowView):
             image = Image.open(BytesIO(raw)).convert('RGB'); image.thumbnail((1400, 1400))
             draw = ImageDraw.Draw(image)
             for y in range(20, image.height, 100):
-                for x in range(10, image.width, 180): draw.text((x, y), 'ArtFiliere PREVIEW', fill=(200, 65, 65))
+                for x in range(10, image.width, 180): draw.text((x, y), 'ArtFilier PREVIEW', fill=(200, 65, 65))
             out = BytesIO(); image.save(out, 'JPEG', quality=80); raw = out.getvalue(); mime = 'image/jpeg'
         if not preview and user.pk == c.buyer_id and mime.startswith('image/'):
             from fulfillment.watermarks import protected_image

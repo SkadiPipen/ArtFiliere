@@ -147,7 +147,7 @@ class AgreementView(AuthenticatedAPIView):
             return Response({"error": "Conversation not found."}, status=404)
         buyer = next((p.user for p in participants if p.user.role == User.Role.BUYER), None)
         artist = next((p.user for p in participants if p.user.role == User.Role.ARTIST), None)
-        template = (AgreementTemplate.objects.filter(is_active=True, name='ArtFiliere standard agreement').first() or AgreementTemplate.objects.filter(is_active=True).exclude(name='Commission milestone agreement').first())
+        template = (AgreementTemplate.objects.filter(is_active=True, name='ArtFilier standard agreement').first() or AgreementTemplate.objects.filter(is_active=True).exclude(name='Commission milestone agreement').first())
         if not buyer or not artist or not template:
             return Response({"error": "A buyer, artist, and active agreement template are required."}, status=400)
         price = request.data.get("price")
@@ -189,7 +189,7 @@ class AgreementView(AuthenticatedAPIView):
         if agreement.buyer_accepted_at and agreement.artist_accepted_at:
             agreement.status = Agreement.Status.ACCEPTED
             Conversation.objects.filter(id=agreement.conversation_id).update(status=Conversation.Status.AGREED)
-            Message.objects.create(conversation_id=agreement.conversation_id, message_type=Message.Type.SYSTEM, body="Both parties accepted the agreement. Payment must be made through ArtFiliere's secure Xendit checkout.")
+            Message.objects.create(conversation_id=agreement.conversation_id, message_type=Message.Type.SYSTEM, body="Both parties accepted the agreement. Payment must be made through ArtFilier's secure Xendit checkout.")
 
         # trigger for delivery for physical
         delivery_type_str = str(getattr(agreement, 'delivery_type', '')).lower() 

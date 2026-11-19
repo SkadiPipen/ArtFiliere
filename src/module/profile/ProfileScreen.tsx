@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import PortfolioAvailability from '@/module/profile/components/PortfolioAvailability';
@@ -135,7 +136,7 @@ export default function UserProfile() {
   if (!user) {
     return (
       <View style={styles.guestContainer}>
-        <Text style={styles.guestTitle}>Welcome to ArtFiliere</Text>
+        <Text style={styles.guestTitle}>Welcome to ArtFilier</Text>
         <Text style={styles.guestBody}>
           Browse artworks as a guest. Create an account or log in when you are
           ready to message an artist, purchase artwork, or view your wallet.
@@ -228,7 +229,7 @@ export default function UserProfile() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: COLORS.pageBackground,
   },
   loadingContainer: {
     flex: 1,

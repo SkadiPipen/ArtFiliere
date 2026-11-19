@@ -131,7 +131,7 @@ export default function Address({ formData, updateField }: AddressProps) {
           >
             {deliveryEligible
               ? '✓ Physical Delivery Available in your area (Cebu Courier Zone)'
-              : 'ℹ Digital Access Only — ArtFiliere physical delivery is currently exclusive to Cebu residents.'}
+              : 'ℹ Digital Access Only — ArtFilier physical delivery is currently exclusive to Cebu residents.'}
           </Text>
         </View>
       ) : null}

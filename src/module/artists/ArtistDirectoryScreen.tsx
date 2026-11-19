@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import API_URL from "@/services/api";
@@ -162,7 +163,7 @@ export default function ArtistDirectoryScreen() {
                   </View>
                 </View>
                 <Text style={styles.bio} numberOfLines={2}>
-                  {artist.bio || "Commission artist on ArtFiliere"}
+                  {artist.bio || "Commission artist on ArtFilier"}
                 </Text>
                 <View style={styles.stats}>
                   <View style={styles.rating}>
@@ -194,7 +195,7 @@ export default function ArtistDirectoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FFFCF0" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: {
     flexDirection: "row",
     alignItems: "center",

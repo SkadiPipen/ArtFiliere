@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import TransactionHeader from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
@@ -27,7 +28,7 @@ export default function VerificationScreen() {
       const data = await response.json();
       setResult({ verified: Boolean(data.verified), record_type: data.record_type, artwork_id: data.artwork_id, message: data.message || 'Unable to verify this record.' });
     } catch {
-      setResult({ verified: false, message: 'Verification is unavailable. Make sure ArtFiliere and the local blockchain are running.' });
+      setResult({ verified: false, message: 'Verification is unavailable. Make sure ArtFilier and the local blockchain are running.' });
     } finally {
       setLoading(false);
     }
@@ -35,7 +36,7 @@ export default function VerificationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TransactionHeader title="Verify an ArtFiliere Record" onBack={() => goBackOr('/(home)/profile')} />
+      <TransactionHeader title="Verify an ArtFilier Record" onBack={() => goBackOr('/(home)/profile')} />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28 }}><View style={styles.card}>
         <Text style={styles.body}>Enter the verification code shown on a finalized agreement or completed sale receipt.</Text>
         <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" placeholder="Example: AF-AGR-7KQ9X2" style={styles.input} />
@@ -54,7 +55,7 @@ export default function VerificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF7F3' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   back: { color: '#C15656', fontWeight: '800', fontSize: 15 },
   card: { width: '100%', maxWidth: 700, alignSelf: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignItems: 'stretch', borderWidth: 1, borderColor: '#E9DDD6' },
   title: { color: '#3A2D2A', fontSize: 23, fontWeight: '800', textAlign: 'center', marginTop: 14 },

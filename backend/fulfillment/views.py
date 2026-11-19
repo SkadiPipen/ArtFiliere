@@ -131,7 +131,7 @@ class PurchasesView(AuthenticatedAPIView):
                     from io import BytesIO
                     with Image.open(BytesIO(bytes(submission.content))) as original:
                         preview = original.convert('RGB'); preview.thumbnail((900, 900))
-                        ImageDraw.Draw(preview).text((10, 10), 'ArtFiliere preview', fill=(190, 70, 70))
+                        ImageDraw.Draw(preview).text((10, 10), 'ArtFilier preview', fill=(190, 70, 70))
                         output = BytesIO(); preview.save(output, 'JPEG', quality=80)
                         image = 'data:image/jpeg;base64,' + base64.b64encode(output.getvalue()).decode()
             else:

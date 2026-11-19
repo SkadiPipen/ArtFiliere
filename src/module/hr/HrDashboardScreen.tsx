@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { staffWorkspaceStyles as workspace } from '@/components/staffWorkspaceStyles';
 import UserManagement from '@/module/admin/UserManagement';
 import ResellerApprovals from '@/module/admin/ResellerApprovals';
@@ -260,7 +261,7 @@ export default function HrDashboardScreen() {
       if (!previewWindow) {
         Alert.alert(
           "Popup blocked",
-          "Allow popups for ArtFiliere, then try viewing the document again.",
+          "Allow popups for ArtFilier, then try viewing the document again.",
         );
         return;
       }
@@ -284,7 +285,7 @@ export default function HrDashboardScreen() {
   return (
     <View style={[workspace.page, { flexDirection: desktop ? 'row' : 'column' }]}>
       <View style={[workspace.sidebar, !desktop && { width: '100%', borderRightWidth: 0, borderBottomWidth: 1 }]}>
-        <View style={workspace.brandRow}><Image source={require('../../../assets/images/logo.png')} style={workspace.logo} resizeMode="contain" /><View><Text style={workspace.brand}>ArtFiliere</Text><Text style={workspace.role}>HR MODERATOR</Text></View></View>
+        <View style={workspace.brandRow}><Image source={require('../../../assets/images/logo.png')} style={workspace.logo} resizeMode="contain" /><View><Text style={workspace.brand}>ArtFilier</Text><Text style={workspace.role}>HR MODERATOR</Text></View></View>
         <ScrollView horizontal={!desktop} style={{ flex: desktop ? 1 : undefined }} contentContainerStyle={[workspace.navigation, !desktop && { flexDirection: 'row' }]}>
           {navigation.map(({ id, label, icon: Icon }) => <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: section === id }} onPress={() => { setSection(id); if (id === 'logs') void loadLogs(); }} style={[workspace.navItem, section === id && workspace.navActive]}><Icon size={20} color={section === id ? '#A74646' : '#81756D'} /><Text style={[workspace.navLabel, section === id && { color: '#A74646', fontWeight: '700' }]}>{label}</Text></Pressable>)}
         </ScrollView>
@@ -772,7 +773,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   accountButtonText: { color: "#5A4039", fontSize: 12, fontWeight: "800" },
-  scrollContent: { flexGrow: 1, backgroundColor: "#FAF7F3" },
+  scrollContent: { flexGrow: 1, backgroundColor: COLORS.pageBackground },
   content: {
     width: "100%",
     maxWidth: 1360,

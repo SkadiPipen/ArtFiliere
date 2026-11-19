@@ -24,9 +24,9 @@ export default function ArtistShareCard({ artist, avatarUri, onClose }: { artist
   const share = async () => {
     setBusy(true); setFeedback('');
     try {
-      const title = `${artist.name || artist.username} on ArtFiliere`;
+      const title = `${artist.name || artist.username} on ArtFilier`;
       if (Platform.OS === 'web') {
-        if (navigator.share) await navigator.share({ title, text: `Explore @${artist.username} on ArtFiliere`, url });
+        if (navigator.share) await navigator.share({ title, text: `Explore @${artist.username} on ArtFilier`, url });
         else await copy();
       } else await Share.share({ title, message: `${title}\n${url}`, ...(Platform.OS === 'ios' ? { url } : {}) });
     } catch (error: any) { if (error.name !== 'AbortError') setFeedback('Unable to share. You can use the profile link below.'); }

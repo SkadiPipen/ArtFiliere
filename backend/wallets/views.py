@@ -165,7 +165,7 @@ class AgreementCheckoutView(AuthenticatedAPIView):
             payload = {
                 "reference_id": session.reference_id, "session_type": "PAY", "mode": "PAYMENT_LINK",
                 "amount": float(gross), "currency": "PHP", "country": "PH",
-                "description": f"ArtFiliere agreement payment: {agreement.artwork.title}",
+                "description": f"ArtFilier agreement payment: {agreement.artwork.title}",
                 "capture_method": "AUTOMATIC", "allow_save_payment_method": "DISABLED",
                 "customer": checkout_customer(buyer),
             }

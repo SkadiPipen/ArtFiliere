@@ -10,6 +10,7 @@ export default function ArtistCommission() {
     <View>
       <Text style={styles.sectionTitle}>Commission an Artist</Text>
       <TouchableOpacity
+        id="marketplace-tour-commissions"
         style={styles.artistRow}
         onPress={() => router.push("/artists")}
       >

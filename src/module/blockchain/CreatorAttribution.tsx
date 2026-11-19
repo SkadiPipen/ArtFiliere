@@ -17,6 +17,6 @@ export default function CreatorAttribution({ artworkId }: { artworkId: string | 
   if (!data?.created_by) return null;
   return <View style={{ gap: 4, marginVertical: 12 }}>
     <Text style={{ fontWeight: '700' }}>Original creator: @{data.created_by.username}</Text>
-    <Text>{data.disputed ? 'Creator attribution is under review.' : data.creator_verification === 'reviewed' ? 'Creator attribution reviewed by ArtFiliere.' : 'Creator attribution recorded by ArtFiliere; not independently verified.'}</Text>
+    <Text>{data.disputed ? 'Creator attribution is under review.' : data.creator_verification === 'reviewed' ? 'Creator attribution reviewed by ArtFilier.' : 'Creator attribution recorded by ArtFilier; not independently verified.'}</Text>
   </View>;
 }

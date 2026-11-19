@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
@@ -672,7 +673,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: "45%",
-    backgroundColor: "#FAF6ED",
+    backgroundColor: COLORS.pageBackground,
     opacity: 0.8,
   },
   bgGlowBottom: {

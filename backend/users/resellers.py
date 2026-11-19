@@ -15,7 +15,7 @@ from authentication.views import AuthenticatedAPIView
 from .models import User, ResellerApplication, ResellerReview
 
 REVIEWERS = {User.Role.PLATFORM_ADMIN, User.Role.HR}
-BADGE_NOTE = 'Seller documents reviewed by ArtFiliere. Resale eligibility is checked separately for each artwork.'
+BADGE_NOTE = 'Seller documents reviewed by ArtFilier. Resale eligibility is checked separately for each artwork.'
 
 
 def seller_compliant(user):

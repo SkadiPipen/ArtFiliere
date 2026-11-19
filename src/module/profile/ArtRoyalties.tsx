@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import TransactionHeader from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
@@ -31,7 +32,7 @@ export default function ArtRoyalties({ onClose }: { onClose: () => void }) {
   }, []);
   useEffect(() => { const stop = auth.onAuthStateChanged(user => { if (user) void load(); else { setAccess(null); setLicenses([]); setLoading(false); setError('Please sign in to view your royalty licenses.'); } }); return stop; }, [load]);
   const visible = licenses.filter(item => item.license_status === tab);
-  return <Modal visible animationType="slide" onRequestClose={onClose}><SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F4' }}>
+  return <Modal visible animationType="slide" onRequestClose={onClose}><SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
     <TransactionHeader title="Art Royalties" onBack={onClose} onRefresh={() => { void load(); }} refreshing={loading} />
     <ScrollView contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
       {!loading && !error && access && !access.royalty_enabled && <View style={[s.card, { padding: 24, gap: 14 }]}>

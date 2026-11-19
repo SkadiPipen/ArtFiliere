@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
@@ -33,7 +34,7 @@ export default function RoyaltyPaymentReturn() {
     void check();
     return () => { active = false; };
   }, [reportId]);
-  return <SafeAreaView style={{ flex: 1, backgroundColor: '#FAF7F4', justifyContent: 'center', padding: 24 }}>
+  return <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground, justifyContent: 'center', padding: 24 }}>
     <View style={{ width: '100%', maxWidth: 560, alignSelf: 'center', padding: 24, gap: 18, borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 16, backgroundColor: '#fff' }}>
       <Text style={{ fontSize: 24, fontWeight: '700', color: '#70482F' }}>Royalty payment</Text>
       {checking && <ActivityIndicator />}

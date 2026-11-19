@@ -1,8 +1,10 @@
+import { COLORS } from '@/constants/colors';
 import Header from '@/module/home/components/Header';
 import { matchesArtworkCategory, categoryLabel } from '@/services/artworkCategories';
 import { marketplaceHeading } from '@/constants/marketplaceTypography';
 import AuctionArtworkCard from './AuctionArtworkCard';
 import AuctionGuidePanel from './AuctionGuidePanel';
+import TourLauncher from '@/components/TourLauncher';
 import { Text } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -140,6 +142,11 @@ export default function AuctionDashboardScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']} onLayout={event => setContentWidth(event.nativeEvent.layout.width)}>
       <View style={{ flex: 1 }} pointerEvents={showGuide ? 'none' : 'auto'} accessibilityElementsHidden={showGuide} importantForAccessibility={showGuide ? 'no-hide-descendants' : 'auto'} {...(Platform.OS === 'web' && showGuide ? { inert: true } : {})}>
       <Header activeCategory={activeCategory} onSelectCategory={setActiveCategory} searchQuery={search} onSearchChange={setSearch} />
+      {!showGuide && <TourLauncher label="Auction tutorial" steps={[
+        { target: 'auction-guide-open', instruction: 'Open the auction guide for bidding rules, ending times, and what happens if you win.', closeOnActivate: true },
+        { target: 'auction-tour-live', instruction: 'Choose a live auction to inspect the artwork, current bid, and listing terms.' },
+        { target: 'auction-tour-past', instruction: 'Review closed auctions here. Check your cart for a winning artwork that is ready for checkout.' },
+      ]} />}
 
       {/* Main Feed Column */}
       <ScrollView
@@ -198,7 +205,7 @@ export default function AuctionDashboardScreen() {
             { title: 'Past auctions', auctions: pastAuctions, empty: 'No past auctions found.' },
           ].map(section => (
           <View key={section.title} style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View id={section.title === 'Live auctions' ? 'auction-tour-live' : 'auction-tour-past'}><Text style={styles.sectionTitle}>{section.title}</Text></View>
             {section.auctions.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Ionicons name="images-outline" size={36} color="#BBB" />
@@ -241,7 +248,7 @@ export default function AuctionDashboardScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.pageBackground,
     overflow: 'hidden',
   },
   centerContainer: {
@@ -302,7 +309,7 @@ const styles = StyleSheet.create({
   // SCROLL CONTAINER
   scrollContainer: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.pageBackground,
   },
   scrollContent: {
     alignItems: 'center',
@@ -311,7 +318,7 @@ const styles = StyleSheet.create({
   feedWrapper: {
     width: '100%',
     maxWidth: 1200,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.pageBackground,
     minHeight: '100%',
     borderLeftWidth: 0,
     borderRightWidth: 0,

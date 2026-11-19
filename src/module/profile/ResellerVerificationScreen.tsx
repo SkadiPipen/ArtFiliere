@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import BusinessPermitFields from '@/components/BusinessPermitFields';
 import { ArrowLeft, Store, RefreshCw } from 'lucide-react-native';
 import { goBackOr } from '@/services/navigation';
@@ -45,7 +46,7 @@ export default function ResellerVerificationScreen() {
   const status = record?.application?.status;
   const expired = !!record?.application?.permit_expires_on && new Date(record.application.permit_expires_on + 'T23:59:59+08:00') < new Date();
   const eligibleToApply = !loading && !!record && (!['pending', 'approved'].includes(status) || (status === 'approved' && expired));
-  return <View style={{ flex: 1, backgroundColor: '#FAF7F3' }}>
+  return <View style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
     <View style={s.header}><TouchableOpacity accessibilityLabel="Back to profile" onPress={() => goBackOr('/(home)/profile')}><ArrowLeft size={24} color="#69534A" /></TouchableOpacity><Store size={28} color="#C15656" /><Text style={s.headerTitle}>Become a reseller</Text><TouchableOpacity accessibilityLabel="Refresh application status" disabled={busy || loading} onPress={load} style={{ marginLeft: 'auto' }}><RefreshCw size={23} color="#C15656" /></TouchableOpacity></View>
     <ScrollView contentContainerStyle={s.page}>
       <Text style={s.title}>Reseller application</Text>

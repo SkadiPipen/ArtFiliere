@@ -56,7 +56,7 @@ export async function getBarangaysByCity(cityCode: string): Promise<AddressOptio
   return fetchPsgc(`/cities-municipalities/${cityCode}/barangays/`);
 }
 
-// Checks if the address qualifies for ArtFiliere physical delivery (Cebu area only).
+// Checks if the address qualifies for ArtFilier physical delivery (Cebu area only).
 
 export function isEligibleForDelivery(provinceName: string, cityName?: string): boolean {
   if (!provinceName) return false;
