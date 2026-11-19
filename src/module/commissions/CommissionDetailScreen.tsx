@@ -1,12 +1,10 @@
-import { COLORS } from '@/constants/colors';
+import ContentModal from '@/components/ContentModal';
 import TourLauncher from '@/components/TourLauncher';
 import { Text, TextInput } from '@/components/Typography';
-import BuyerCommissionOverview, { BuyerAgreementSummary } from './BuyerCommissionOverview';
-import { buyerMilestoneLabels, commissionStatusLabel } from './buyerCommissionFlow';
-import FixedMilestoneSchedule, { COMMISSION_MILESTONE_PERCENTAGES } from './FixedMilestoneSchedule';
-import CommissionDeliveryPanel from './CommissionDeliveryPanel';
-import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
+import { COLORS } from '@/constants/colors';
 import { auth } from '@/firebase/config';
+import ZoomableArtwork from '@/module/artwork/components/ZoomableArtwork';
+import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import { CompensationSettings } from '@/module/chat-negotiations/compensation';
@@ -14,11 +12,19 @@ import API_URL from '@/services/api';
 import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentReturn';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, Maximize2, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AvailabilityCalendar from './AvailabilityCalendar';
+import BuyerCommissionOverview, { BuyerAgreementSummary } from './BuyerCommissionOverview';
+import CommissionDeliveryPanel from './CommissionDeliveryPanel';
+import CommissionTransition from './CommissionTransition';
+import FixedMilestoneSchedule, { COMMISSION_MILESTONE_PERCENTAGES } from './FixedMilestoneSchedule';
+import PayoutAccountCard from './PayoutAccountCard';
+import PayoutDestinationSelect from './PayoutDestinationSelect';
 import ResaleRoyaltyPolicy from './ResaleRoyaltyPolicy';
+import { buyerMilestoneLabels, commissionStatusLabel } from './buyerCommissionFlow';
 
 export async function commissionApi(path: string, body?: any) {
   const token = await auth.currentUser?.getIdToken();
@@ -68,7 +74,7 @@ function Button({
 export default function CommissionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isWebWide = width >= 1024;
 
   const [data, setData] = useState<any>(null);
@@ -96,11 +102,14 @@ export default function CommissionDetailScreen() {
   };
   const openHelp = () => { setHelpExpanded(true); requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true })); };
   const [preview, setPreview] = useState('');
+  const [expandedPreview, setExpandedPreview] = useState('');
   const [payout, setPayout] = useState<Record<string, string>>({ routing_type: 'WALLET', routing_value: 'PH_GCASH' });
   const [payoutInfo, setPayoutInfo] = useState<any>(null);
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutSaving, setPayoutSaving] = useState(false);
   const [payoutChecking, setPayoutChecking] = useState(false);
+  const [payoutPanelOpen, setPayoutPanelOpen] = useState(false);
+  const [payoutServiceExpanded, setPayoutServiceExpanded] = useState(false);
   const [payoutMessage, setPayoutMessage] = useState('');
   const [payoutError, setPayoutError] = useState('');
   const keepSavedAccount = !!payoutInfo?.configured && payout.routing_type === payoutInfo.fields?.routing_type && payout.routing_value?.trim().toUpperCase() === payoutInfo.fields?.routing_value;
@@ -256,12 +265,18 @@ export default function CommissionDetailScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
-        <TouchableOpacity activeOpacity={0.8} onPress={() => router.replace('/commissions')} style={styles.backButton}>
-          <Text style={styles.backButtonText}> Back to commissions</Text>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.replace('/commissions')}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Back to commissions"
+        >
+          <ArrowLeft color="#C15656" size={24} />
         </TouchableOpacity>
         {data && (
           <View id="commission-detail-status" style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>{data.is_artist ? data.status : commissionStatusLabel(data.status)}</Text>
+            <Text style={styles.statusBadgeText}>{commissionStatusLabel(data.status)}</Text>
           </View>
         )}
       </View>
@@ -288,10 +303,10 @@ export default function CommissionDetailScreen() {
         <ScrollView ref={scrollRef} contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.contentContainer}>
 
-            {!data.is_artist && <BuyerCommissionOverview data={data} busy={busy} paymentNotice={paymentNotice}
+            <BuyerCommissionOverview data={data} busy={busy} paymentNotice={paymentNotice}
               onFund={() => void action('fund')} onRefresh={() => void action('refresh_payment')} onReload={() => void load()}
               onAgreement={() => setSigning(true)} onProposal={() => { setShowProposalDetails(true); scrollRef.current?.scrollTo({ y: sectionY.current.proposal + sectionY.current.agreement + 24, animated: true }); }}
-              onReview={reviewMilestone} onHelp={openHelp} />}
+              onReview={reviewMilestone} onHelp={openHelp} />
 
             {/* ROW 1: PORTRAIT COMMISSION (LEFT) & PROPOSAL VERSION (RIGHT) */}
             <View onLayout={event => { sectionY.current.proposal = event.nativeEvent.layout.y; }} style={[styles.topRowWrapper, isWebWide ? styles.rowLayout : styles.columnLayout]}>
@@ -299,11 +314,11 @@ export default function CommissionDetailScreen() {
               {/* Left: Portrait Commission */}
               <View style={[styles.topColumn, isWebWide && styles.flexHalf]}>
                 <View id="commission-detail-request" style={styles.cardHeader}>
-                  <Text style={styles.colHeaderTitle}>{data.is_artist ? 'Portrait commission' : 'Commission request'}</Text>
+                  <Text style={styles.colHeaderTitle}>Commission request</Text>
                 </View>
                 <View style={styles.card}>
                   <Text style={styles.titleText}>{data.title}</Text>
-                  <Text style={styles.subtitleText}>{data.is_artist ? `${data.status} · ${data.artist} / ${data.buyer}` : `${commissionStatusLabel(data.status)} · Artist: ${data.artist} / Buyer: ${data.buyer}`}</Text>
+                  <Text style={styles.subtitleText}>{`${commissionStatusLabel(data.status)} · Artist: ${data.artist} / Buyer: ${data.buyer}`}</Text>
                   <Text style={styles.bodyText}>{data.description}</Text>
                   <Text style={styles.bodyMuted}>References below:</Text>
 
@@ -330,10 +345,10 @@ export default function CommissionDetailScreen() {
               {/* Right: Proposal Version (Scrollable Box, Plain Background, Signed PDF Button inside) */}
               <View onLayout={event => { sectionY.current.agreement = event.nativeEvent.layout.y; }} style={[styles.topColumn, isWebWide && styles.flexHalf]}>
                 <View id="commission-detail-agreement" style={styles.cardHeader}>
-                  <Text style={styles.colHeaderTitle}>{data.is_artist ? 'Proposal version' : 'Agreement'}</Text>
+                  <Text style={styles.colHeaderTitle}>Agreement</Text>
                 </View>
-                {!data.is_artist && <BuyerAgreementSummary data={data} expanded={showProposalDetails} onToggle={() => setShowProposalDetails(value => !value)} onAgreement={() => setSigning(true)} />}
-                {(data.is_artist || showProposalDetails) && <View style={[styles.card, styles.scrollableProposalCard]}>
+                <BuyerAgreementSummary data={data} expanded={showProposalDetails} onToggle={() => setShowProposalDetails(value => !value)} onAgreement={() => setSigning(true)} />
+                {showProposalDetails && <View style={[styles.card, styles.scrollableProposalCard]}>
                   <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={styles.proposalScrollContainer} contentContainerStyle={{ gap: 12 }}>
 
                     {data.proposal ? (
@@ -443,7 +458,7 @@ export default function CommissionDetailScreen() {
             <View onLayout={event => { sectionY.current.milestones = event.nativeEvent.layout.y; }} style={styles.bottomSectionWrapper}>
               <View id="commission-detail-milestones" style={styles.sectionMainHeader}>
                 <Text style={styles.sectionMainTitle}>Milestones & Revision History</Text>
-                {!data.is_artist && <Text style={styles.helperText}>One consolidated revision request per stage. Work approval and payout confirmation are tracked separately.</Text>}
+                <Text style={styles.helperText}>One consolidated revision request per stage. Work approval and payout confirmation are tracked separately.</Text>
               </View>
 
               <View onLayout={event => { sectionY.current.columns = event.nativeEvent.layout.y; }} style={[styles.bottomColumnsLayout, isWebWide ? styles.rowLayout : styles.columnLayout]}>
@@ -478,37 +493,7 @@ export default function CommissionDetailScreen() {
                     {!!paymentNotice && <Text accessibilityLiveRegion="polite" style={styles.helperText}>{paymentNotice}</Text>}
                   </View>
 
-                  {/* Payout Recipient Configuration (for Artist) */}
-                  {data.is_artist && (
-                    <View style={styles.card}>
-                      <View id="commission-detail-payout"><Text style={styles.sectionHeading}>Bank / e-wallet payout recipient</Text></View>
-                      <Text style={styles.helperText}>Your name and address are filled from your artist profile. Review them against your bank or e-wallet registration.</Text>
-                      {payoutLoading && <ActivityIndicator color="#C15656" />}
-                      {!!payoutError && <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{payoutError}</Text>}
-                      {!!payoutMessage && <Text accessibilityLiveRegion="polite" style={{ color: '#34734C' }}>{payoutMessage}</Text>}
-                      {payoutInfo?.configured && <Text style={styles.boldText}>Saved destination: {payoutInfo.routing} · Account ending {payoutInfo.account_last4}</Text>}
-                      {[['given_name', 'Given name'], ['surname', 'Surname'], ['account_holder_name', 'Registered account holder name']].map(([key, label]) => <View key={key} style={{ gap: 5 }}>
-                        <Text style={styles.helperText}>{label}</Text><TextInput accessibilityLabel={label} style={styles.input} value={payout[key] || ''} onChangeText={text => setPayout({ ...payout, [key]: text })} editable={!payoutLoading && !payoutSaving} />
-                      </View>)}
-                      <Text style={styles.boldText}>Receive payouts through</Text>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                        {[['WALLET', 'E-wallet'], ['SWIFT', 'Bank']].map(([value, label]) => <TouchableOpacity key={value} disabled={payoutLoading || payoutSaving} accessibilityRole="radio" accessibilityState={{ checked: payout.routing_type === value }} onPress={() => setPayout({ ...payout, routing_type: value, routing_value: value === 'WALLET' ? 'PH_GCASH' : '', account_number: '' })} style={{ padding: 12, borderRadius: 9, backgroundColor: payout.routing_type === value ? '#C15656' : '#F2E8DF' }}><Text style={{ color: payout.routing_type === value ? '#FFF' : '#65574D', fontWeight: '600' }}>{label}</Text></TouchableOpacity>)}
-                      </View>
-                      <Text style={styles.helperText}>{payout.routing_type === 'WALLET' ? 'E-wallet routing code (GCash: PH_GCASH)' : 'Bank SWIFT/BIC code'}</Text>
-                      <TextInput accessibilityLabel="Payout destination routing code" autoCapitalize="characters" style={styles.input} placeholder={payout.routing_type === 'WALLET' ? 'PH_GCASH' : 'Your bank’s SWIFT/BIC code'} value={payout.routing_value || ''} editable={!payoutLoading && !payoutSaving} onChangeText={text => setPayout({ ...payout, routing_value: text.toUpperCase() })} />
-                      <Text style={styles.helperText}>{payout.routing_type === 'WALLET' ? 'Registered e-wallet mobile/account number' : 'Bank account number'}</Text>
-                      <TextInput accessibilityLabel="Payout account number" keyboardType="number-pad" autoComplete="off" style={styles.input} placeholder={keepSavedAccount ? `Leave blank to keep account ending ${payoutInfo.account_last4}` : payout.routing_type === 'WALLET' ? 'Enter your registered account number (GCash: 09...)' : 'Enter your bank account number'} value={payout.account_number || ''} editable={!payoutLoading && !payoutSaving} onChangeText={text => setPayout({ ...payout, account_number: text })} />
-                      {[['street', 'Street / barangay'], ['city', 'City'], ['province', 'Province'], ['postal_code', 'Postal code']].map(([key, label]) => <View key={key} style={{ gap: 5 }}><Text style={styles.helperText}>{label}</Text><TextInput accessibilityLabel={label} style={styles.input} value={payout[key] || ''} editable={!payoutLoading && !payoutSaving} onChangeText={text => setPayout({ ...payout, [key]: text })} /></View>)}
-                      <View style={{ gap: 8, padding: 12, backgroundColor: COLORS.pageBackground, borderRadius: 10 }}>
-                        <Text style={styles.boldText}>Xendit · {payoutInfo?.xendit?.mode === 'test' ? 'Test mode' : payoutInfo?.xendit?.mode === 'live' ? 'Live mode' : 'Not configured'}</Text>
-                        <Text style={styles.helperText}>{payoutInfo?.xendit?.payouts_enabled ? 'Platform milestone payouts are enabled.' : 'Platform milestone payouts are currently disabled. The administrator must enable them after Xendit setup.'}</Text>
-                        {payoutInfo?.xendit?.detail && <Text style={styles.helperText}>{payoutInfo.xendit.detail}</Text>}
-                        {payoutInfo?.xendit && !payoutInfo.xendit.webhook_configured && <Text style={styles.helperText}>Payout callbacks still need configuration by the administrator.</Text>}
-                        <Button text={payoutChecking ? 'Checking Xendit…' : 'Check Xendit connection'} disabled={payoutChecking || payoutLoading} onPress={() => void checkPayoutConnection()} />
-                      </View>
-                      <Button text={payoutSaving ? 'Saving recipient…' : 'Save payout recipient'} disabled={payoutLoading || payoutSaving || !payoutInfo} onPress={() => void savePayout()} />
-                    </View>
-                  )}
+                  {data.is_artist && <PayoutAccountCard info={payoutInfo} loading={payoutLoading} error={payoutError} message={payoutMessage} onEdit={() => setPayoutPanelOpen(true)} />}
 
                   {/* Asset Record (Completed) */}
                   {data.asset && (
@@ -557,15 +542,11 @@ export default function CommissionDetailScreen() {
                               <Text style={styles.stageTitle}>Stage {m.number}: {m.label}</Text>
                               <Text style={styles.stageBadge}>{m.percentage}%</Text>
                             </View>
-                            {data.is_artist ? <>
-                              <Text style={styles.overviewText}>Artist payout: PHP {m.amount} · {m.status}</Text>
-                              <Text style={styles.overviewText}>Payout: {m.payout_status} {m.payout_error}</Text>
-                            </> : <>
-                              <Text style={styles.overviewText}>Stage amount: PHP {m.amount}</Text>
-                              <Text style={styles.overviewText}>Work: {buyerLabels.work}</Text>
-                              <Text style={styles.overviewText}>Payment: {buyerLabels.payout}</Text>
-                              <Text style={styles.overviewText}>Revision: {buyerLabels.revision}</Text>
-                            </>}
+                            <Text style={styles.overviewText}>{data.is_artist ? 'Artist payout' : 'Stage amount'}: PHP {m.amount}</Text>
+                            <Text style={styles.overviewText}>Work: {data.is_artist ? buyerLabels.work.replace('Awaiting artist submission', 'Ready for your submission').replace('Waiting for artist’s revised submission', 'Revision requested · awaiting your submission') : buyerLabels.work}</Text>
+                            <Text style={styles.overviewText}>Payment: {buyerLabels.payout}</Text>
+                            <Text style={styles.overviewText}>Revision: {buyerLabels.revision}</Text>
+                            {data.is_artist && !!m.payout_error && <Text style={styles.revisionNotice}>{m.payout_error}</Text>}
                             {!!m.review_due_at && (
                               <Text style={styles.overviewText}>Review due: {new Date(m.review_due_at).toLocaleString()}</Text>
                             )}
@@ -639,6 +620,7 @@ export default function CommissionDetailScreen() {
 
                             <CommissionDeliveryPanel data={data} milestone={m} busy={busy} onAction={(name, extra) => { void action(name, { milestone_id: m.id, ...extra }); }} />
 
+                            {data.is_artist && m.payout_status === 'CONFIG_REQUIRED' && <Button text="Review payout account" variant="secondary" onPress={() => setPayoutPanelOpen(true)} />}
                             {data.is_artist && m.approved_at && ['CONFIG_REQUIRED', 'RETRY_PENDING', 'NOT_REQUESTED'].includes(m.payout_status) && (
                               <Button text="Retry / reconcile payout" onPress={() => action('payout', { milestone_id: m.id })} />
                             )}
@@ -664,8 +646,9 @@ export default function CommissionDetailScreen() {
 
                         <Text style={styles.previewCenterTitle}>Submission Preview</Text>
 
-                        {/* Spacer to keep center title precisely centered */}
-                        <View style={styles.previewHeaderSpacer} />
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Expand submission preview" onPress={() => setExpandedPreview(preview)} style={styles.expandPreviewButton}>
+                          <Maximize2 size={20} color="#A43F48" />
+                        </TouchableOpacity>
                       </View>
 
                       <Image source={{ uri: preview }} style={styles.previewImage} resizeMode="contain" />
@@ -675,11 +658,11 @@ export default function CommissionDetailScreen() {
                   {/* File Dispute & Request Cancellation Box */}
                   {data.status !== 'CANCELLED' && (
                     <View style={styles.card}>
-                      {!data.is_artist && <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: helpExpanded || Boolean(data.disputed) }} onPress={() => setHelpExpanded(value => !value)} style={{ paddingVertical: 8 }}>
+                      <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: helpExpanded || Boolean(data.disputed) }} onPress={() => setHelpExpanded(value => !value)} style={{ paddingVertical: 8 }}>
                         <Text style={styles.sectionHeading}>Need help? Dispute or cancel {helpExpanded || data.disputed ? '−' : '+'}</Text>
                         <Text style={styles.helperText}>Report an issue or request a cancellation. These options do not approve work or release funds.</Text>
-                      </TouchableOpacity>}
-                      {(data.is_artist || helpExpanded || data.disputed) && <>
+                      </TouchableOpacity>
+                      {(helpExpanded || data.disputed) && <>
                       {!!data.disputed && <Text style={styles.disputeText}>Dispute active. Customer Service is reviewing the commission; unreleased funds remain on hold.</Text>}
                       <TextInput
                         style={[styles.input, styles.multilineInput]}
@@ -706,6 +689,71 @@ export default function CommissionDetailScreen() {
         </ScrollView>
       )}
 
+      {!!expandedPreview && <ContentModal visible transparent animationType="none" accessibilityLabel="Enlarged submission preview" onRequestClose={() => setExpandedPreview('')}>
+        <View style={styles.submissionViewerOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Close enlarged submission preview" onPress={() => setExpandedPreview('')} />
+          <View style={styles.submissionViewer}>
+            <View>
+              <View style={styles.submissionViewerHeader}>
+                <Text style={[styles.sectionHeading, { color: '#FFF', flex: 1 }]}>Submission Preview</Text>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close enlarged submission preview" onPress={() => setExpandedPreview('')} style={{ padding: 12 }}><X size={22} color="#FFF" /></TouchableOpacity>
+              </View>
+              <ZoomableArtwork key={expandedPreview} uri={expandedPreview} height={Math.max(140, Math.min(650, height - 240))} interactive hoverMagnify={false} />
+            </View>
+          </View>
+        </View>
+      </ContentModal>}
+
+      {data?.is_artist && payoutPanelOpen && <ContentModal visible transparent animationType="none" accessibilityLabel="Edit payout account" onRequestClose={() => { if (!payoutSaving) setPayoutPanelOpen(false); }}>
+        <View style={styles.payoutOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Close payout account editor" disabled={payoutSaving} onPress={() => setPayoutPanelOpen(false)} />
+          <View style={[styles.payoutPanel, { width: width < 768 ? '100%' : 560, maxWidth: width < 768 ? '100%' : '94%', height: width < 768 ? '100%' : Math.min(height - 64, 800), borderRadius: width < 768 ? 0 : 22 }]}>
+            <CommissionTransition>
+              <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'bottom']}>
+                <View style={styles.payoutPanelHeader}>
+                  <View style={{ flex: 1, gap: 4 }}><Text style={styles.sectionHeading}>Payout account</Text><Text style={styles.helperText}>Bank or e-wallet recipient</Text></View>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close payout account editor" disabled={payoutSaving} onPress={() => setPayoutPanelOpen(false)} style={{ padding: 12 }}><Text style={styles.backButtonText}>Close</Text></TouchableOpacity>
+                </View>
+                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.payoutEditorContent} showsVerticalScrollIndicator={false}>
+                      <Text style={styles.helperText}>Your name and address are filled from your artist profile. Review them against your bank or e-wallet registration.</Text>
+                      {payoutLoading && <ActivityIndicator color="#C15656" />}
+                      {!!payoutError && <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{payoutError}</Text>}
+                      {!!payoutMessage && <Text accessibilityLiveRegion="polite" style={{ color: '#34734C' }}>{payoutMessage}</Text>}
+                      {payoutInfo?.configured && <Text style={styles.boldText}>Saved destination: {payoutInfo.routing} · Account ending {payoutInfo.account_last4}</Text>}
+                      {[['given_name', 'Given name'], ['surname', 'Surname'], ['account_holder_name', 'Registered account holder name']].map(([key, label]) => <View key={key} style={{ gap: 5 }}>
+                        <Text style={styles.helperText}>{label}</Text><TextInput accessibilityLabel={label} style={styles.input} value={payout[key] || ''} onChangeText={text => setPayout({ ...payout, [key]: text })} editable={!payoutLoading && !payoutSaving} />
+                      </View>)}
+                      <Text style={styles.boldText}>Receive payouts through</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                        {[['WALLET', 'E-wallet'], ['SWIFT', 'Bank']].map(([value, label]) => <TouchableOpacity key={value} disabled={payoutLoading || payoutSaving} accessibilityRole="radio" accessibilityState={{ checked: payout.routing_type === value }} onPress={() => setPayout({ ...payout, routing_type: value, routing_value: value === 'WALLET' ? 'PH_GCASH' : '', account_number: '' })} style={{ padding: 12, borderRadius: 9, backgroundColor: payout.routing_type === value ? '#C15656' : '#F2E8DF' }}><Text style={{ color: payout.routing_type === value ? '#FFF' : '#65574D', fontWeight: '600' }}>{label}</Text></TouchableOpacity>)}
+                      </View>
+                      <PayoutDestinationSelect key={payout.routing_type} type={payout.routing_type} value={payout.routing_value || ''} disabled={payoutLoading || payoutSaving} onChange={routing_value => setPayout(previous => ({ ...previous, routing_value, account_number: routing_value === previous.routing_value ? previous.account_number : '' }))} />
+                      <Text style={styles.helperText}>{payout.routing_type === 'WALLET' ? 'Registered e-wallet mobile/account number' : 'Bank account number'}</Text>
+                      <TextInput accessibilityLabel="Payout account number" keyboardType="number-pad" autoComplete="off" style={styles.input} placeholder={keepSavedAccount ? `Leave blank to keep account ending ${payoutInfo.account_last4}` : payout.routing_type === 'WALLET' ? 'Enter your registered account number (GCash: 09...)' : 'Enter your bank account number'} value={payout.account_number || ''} editable={!payoutLoading && !payoutSaving} onChangeText={text => setPayout({ ...payout, account_number: text })} />
+                      {[['street', 'Street / barangay'], ['city', 'City'], ['province', 'Province'], ['postal_code', 'Postal code']].map(([key, label]) => <View key={key} style={{ gap: 5 }}><Text style={styles.helperText}>{label}</Text><TextInput accessibilityLabel={label} style={styles.input} value={payout[key] || ''} editable={!payoutLoading && !payoutSaving} onChangeText={text => setPayout({ ...payout, [key]: text })} /></View>)}
+                      <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: payoutServiceExpanded }} onPress={() => setPayoutServiceExpanded(value => !value)} style={styles.payoutServiceToggle}>
+                        <Text style={styles.boldText}>Payout service status {payoutServiceExpanded ? '−' : '+'}</Text>
+                      </TouchableOpacity>
+                      {payoutServiceExpanded && <CommissionTransition>
+                      <View style={{ gap: 8, padding: 12, backgroundColor: COLORS.pageBackground, borderRadius: 10 }}>
+                        <Text style={styles.boldText}>Xendit · {payoutInfo?.xendit?.mode === 'test' ? 'Test mode' : payoutInfo?.xendit?.mode === 'live' ? 'Live mode' : 'Not configured'}</Text>
+                        <Text style={styles.helperText}>{payoutInfo?.xendit?.payouts_enabled ? 'Platform milestone payouts are enabled.' : 'Platform milestone payouts are currently disabled. The administrator must enable them after Xendit setup.'}</Text>
+                        {payoutInfo?.xendit?.detail && <Text style={styles.helperText}>{payoutInfo.xendit.detail}</Text>}
+                        {payoutInfo?.xendit && !payoutInfo.xendit.webhook_configured && <Text style={styles.helperText}>Payout callbacks still need configuration by the administrator.</Text>}
+                        <Button text={payoutChecking ? 'Checking Xendit…' : 'Check Xendit connection'} disabled={payoutChecking || payoutLoading} onPress={() => void checkPayoutConnection()} />
+                      </View>
+                      </CommissionTransition>}
+
+                </ScrollView>
+                <View style={styles.payoutEditorFooter}>
+                  <Button text={payoutSaving ? 'Saving recipient…' : 'Save payout account'} disabled={payoutLoading || payoutSaving || !payoutInfo} onPress={() => void savePayout()} style={{ alignSelf: 'stretch' }} />
+                </View>
+              </SafeAreaView>
+            </CommissionTransition>
+          </View>
+        </View>
+      </ContentModal>}
+
       {signing && data?.agreement_id && (
         <SigningModal id={data.agreement_id} onClose={() => { setSigning(false); void load(); }} onSigned={load} />
       )}
@@ -717,6 +765,16 @@ export default function CommissionDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  expandPreviewButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#FAECE8' },
+  submissionViewerOverlay: { flex: 1, backgroundColor: 'rgba(24, 16, 18, 0.78)', alignItems: 'center', justifyContent: 'center' },
+  submissionViewer: { width: '94%', maxWidth: 1100, borderRadius: 16, overflow: 'hidden', backgroundColor: '#181616', borderWidth: 1, borderColor: '#654448' },
+  submissionViewerHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 6, backgroundColor: '#332429' },
+  payoutOverlay: { flex: 1, backgroundColor: 'rgba(40, 25, 22, 0.32)', alignItems: 'center', justifyContent: 'center' },
+  payoutPanel: { maxWidth: '94%', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E8DCD4', overflow: 'hidden' },
+  payoutPanelHeader: { flexDirection: 'row', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#E8DCD4' },
+  payoutEditorContent: { padding: 20, gap: 12, paddingBottom: 32 },
+  payoutEditorFooter: { padding: 20, borderTopWidth: 1, borderTopColor: '#E8DCD4' },
+  payoutServiceToggle: { paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#E8DCD4', marginTop: 8 },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.pageBackground,
