@@ -1,22 +1,26 @@
 import { Text, TextInput } from '@/components/Typography';
-import BuyerCommissionOverview, { BuyerAgreementSummary } from './BuyerCommissionOverview';
-import { buyerMilestoneLabels, commissionStatusLabel } from './buyerCommissionFlow';
-import FixedMilestoneSchedule, { COMMISSION_MILESTONE_PERCENTAGES } from './FixedMilestoneSchedule';
-import CommissionDeliveryPanel from './CommissionDeliveryPanel';
-import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import { auth } from '@/firebase/config';
+import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import { CompensationSettings } from '@/module/chat-negotiations/compensation';
+import Header from '@/module/home/components/Header';
+import WebSidebar from '@/module/home/components/WebSidebar';
 import API_URL from '@/services/api';
 import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentReturn';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AvailabilityCalendar from './AvailabilityCalendar';
+import BuyerCommissionOverview, { BuyerAgreementSummary } from './BuyerCommissionOverview';
+import CommissionDeliveryPanel from './CommissionDeliveryPanel';
+import CommissionTransition from './CommissionTransition';
+import FixedMilestoneSchedule, { COMMISSION_MILESTONE_PERCENTAGES } from './FixedMilestoneSchedule';
 import ResaleRoyaltyPolicy from './ResaleRoyaltyPolicy';
+import { buyerMilestoneLabels, commissionStatusLabel } from './buyerCommissionFlow';
 
 export async function commissionApi(path: string, body?: any) {
   const token = await auth.currentUser?.getIdToken();
@@ -67,7 +71,10 @@ export default function CommissionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const isWebWide = width >= 1024;
+  const showSidebar = Platform.OS === 'web' && width >= 768;
+  const isWebWide = width - (showSidebar ? 256 : 0) >= 1024;
+  const [headerCategory, setHeaderCategory] = useState('All');
+  const [headerSearch, setHeaderSearch] = useState('');
 
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
@@ -252,10 +259,14 @@ export default function CommissionDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.shell}>
+      {showSidebar && <WebSidebar />}
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <Header activeCategory={headerCategory} onSelectCategory={setHeaderCategory} searchQuery={headerSearch} onSearchChange={setHeaderSearch} />
+      <CommissionTransition key={`${id}-${data ? 'ready' : 'loading'}`} direction="left">
       <View style={styles.topBar}>
         <TouchableOpacity activeOpacity={0.8} onPress={() => router.replace('/commissions')} style={styles.backButton}>
-          <Text style={styles.backButtonText}> Back to commissions</Text>
+          <ArrowLeft color="#C15656" size={22} />
         </TouchableOpacity>
         {data && (
           <View style={styles.statusBadge}>
@@ -696,6 +707,8 @@ export default function CommissionDetailScreen() {
         </ScrollView>
       )}
 
+      </CommissionTransition>
+
       {signing && data?.agreement_id && (
         <SigningModal id={data.agreement_id} onClose={() => { setSigning(false); void load(); }} onSigned={load} />
       )}
@@ -703,13 +716,18 @@ export default function CommissionDetailScreen() {
         <ChatModal visible={chatOpen} onClose={() => setChatOpen(false)} currentUser={auth.currentUser} initialCommissionId={Number(data.id)} />
       )}
     </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  shell: { flex: 1, flexDirection: 'row', backgroundColor: '#FFFFFF', overflow: 'hidden' },
   safeArea: {
     flex: 1,
-    backgroundColor: '#FAF6EF',
+    minWidth: 0,
+    minHeight: 0,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
   },
   topBar: {
     flexDirection: 'row',
@@ -719,7 +737,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#E8DCD4',
-    backgroundColor: '#FAF6EF',
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
     paddingVertical: 6,
