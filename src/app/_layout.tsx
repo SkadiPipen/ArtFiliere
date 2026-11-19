@@ -2,6 +2,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { Stack } from "expo-router";
 import ContentProtection from "@/components/ContentProtection";
+import CursorInkTrail from "@/components/CursorInkTrail";
 import BackNavigationTracker from '@/components/BackNavigationTracker';
 import AccountRestrictionNotice from '@/components/AccountRestrictionNotice';
 import ReadOnlyRequestGuard from '@/components/ReadOnlyRequestGuard';
@@ -22,6 +23,7 @@ export default function RootLayout() {
         <AccountRestrictionNotice />
         <ReadOnlyRequestGuard />
         <PaymentReturnMonitor />
+        <CursorInkTrail />
       </CartProvider>
     </AuthProvider>
   );

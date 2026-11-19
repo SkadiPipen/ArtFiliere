@@ -205,11 +205,11 @@ export default function Dashboard() {
             </View>
 
             <View style={styles.desktopFooter}>
-              <Text style={styles.footerBrand}>ArtFiliere</Text>
+              <Text style={styles.footerBrand}>ArtFilier</Text>
               <Text style={styles.footerText}>
-                ArtFiliere is a start-up project registered in the Philippines.
+                ArtFilier is a start-up project registered in the Philippines.
               </Text>
-              <Text style={styles.footerText}>© 2026 ArtFiliere</Text>
+              <Text style={styles.footerText}>© 2026 ArtFilier</Text>
             </View>
           </View>
         ) : (

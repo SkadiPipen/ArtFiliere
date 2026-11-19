@@ -8,7 +8,7 @@ No purchase, artist portfolio, hourly rate or artist role is required. The buyer
 keeps the buyer role. A sworn declaration upload is optional when applicable;
 this feature does not determine or automate tax exemptions or withholding.
 
-The badge means seller documents were reviewed by ArtFiliere, not official BIR
+The badge means seller documents were reviewed by ArtFilier, not official BIR
 endorsement, authorship verification or blanket permission to resell. Reviewers
 must evaluate the uploaded documents; their authenticity is not automatically
 confirmed against a government service.

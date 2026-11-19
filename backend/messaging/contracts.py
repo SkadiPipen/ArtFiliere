@@ -218,7 +218,7 @@ class ContractsView(AuthenticatedAPIView):
         minimum = minimum_price(artwork, selected["license_type"], selected["exclusivity"])
         if not pricing_terms and price - delivery_fee < minimum:
             return Response({"error": f"The proposed price cannot be below PHP {minimum} for these terms, plus PHP {delivery_fee} delivery."}, status=400)
-        template = (AgreementTemplate.objects.filter(is_active=True, name='ArtFiliere standard agreement').first() or AgreementTemplate.objects.filter(is_active=True).exclude(name='Commission milestone agreement').first())
+        template = (AgreementTemplate.objects.filter(is_active=True, name='ArtFilier standard agreement').first() or AgreementTemplate.objects.filter(is_active=True).exclude(name='Commission milestone agreement').first())
         if not template:
             return Response({"error": "No active agreement template is configured."}, status=409)
         if not original and previous.filter(status=Agreement.Status.PROPOSED).exists():

@@ -25,7 +25,7 @@ def restricted_preview(raw):
         draw = ImageDraw.Draw(image)
         for y in range(10, image.height, 70):
             for x in range(5, image.width, 140):
-                draw.text((x, y), 'ArtFiliere PREVIEW', fill=(190, 70, 70))
+                draw.text((x, y), 'ArtFilier PREVIEW', fill=(190, 70, 70))
         out = BytesIO()
         image.save(out, 'JPEG', quality=65)
     return 'data:image/jpeg;base64,' + base64.b64encode(out.getvalue()).decode()

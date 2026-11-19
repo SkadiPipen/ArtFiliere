@@ -26,7 +26,7 @@ def commission_preview(commission):
                 preview.thumbnail((900, 900))
                 draw = ImageDraw.Draw(preview)
                 for y in range(20, preview.height, 120):
-                    draw.text((10, y), 'ArtFiliere preview', fill=(190, 70, 70), stroke_width=1, stroke_fill='white')
+                    draw.text((10, y), 'ArtFilier preview', fill=(190, 70, 70), stroke_width=1, stroke_fill='white')
                 output = BytesIO()
                 preview.save(output, 'JPEG', quality=75)
                 return 'data:image/jpeg;base64,' + base64.b64encode(output.getvalue()).decode()

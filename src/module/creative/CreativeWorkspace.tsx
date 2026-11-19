@@ -49,7 +49,7 @@ export default function CreativeWorkspace() {
   return <SafeAreaView style={s.page}>
     <View style={[s.shell, { flexDirection: desktop ? 'row' : 'column' }]}>
       <View style={[s.sidebar, !desktop && { width: '100%', borderRightWidth: 0, borderBottomWidth: 1 }]}>
-        <View style={s.brandRow}><Image source={require('../../../assets/images/logo.png')} style={s.logo} resizeMode="contain" /><View><Text style={s.brand}>ArtFiliere</Text><Text style={s.role}>CREATIVE MODERATOR</Text></View></View>
+        <View style={s.brandRow}><Image source={require('../../../assets/images/logo.png')} style={s.logo} resizeMode="contain" /><View><Text style={s.brand}>ArtFilier</Text><Text style={s.role}>CREATIVE MODERATOR</Text></View></View>
         <ScrollView horizontal={!desktop} style={{ flex: desktop ? 1 : undefined }} contentContainerStyle={[s.navigation, !desktop && { flexDirection: 'row' }]}>
           {sections.map(({ id, label, icon: Icon }) => <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: section === id }} onPress={() => navigate(id)} style={[s.navItem, section === id && s.navActive]}><Icon size={20} color={section === id ? '#A74646' : '#81756D'} /><Text style={[s.navLabel, section === id && { color: '#A74646', fontWeight: '700' }]}>{label}</Text></Pressable>)}
         </ScrollView>

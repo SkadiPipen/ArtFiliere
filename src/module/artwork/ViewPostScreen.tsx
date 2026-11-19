@@ -343,7 +343,7 @@ export default function ViewPostPage() {
             <View style={styles.detailsSection}>
               <Text style={styles.detailsHeader}>About the Art</Text>
               <Text style={styles.detailsText}>
-                {artworkData?.description || "Original artwork on ArtFiliere."}
+                {artworkData?.description || "Original artwork on ArtFilier."}
                 {"\n"}
                 Medium/Material:{" "}
                 {isDigital ? "Digital" : (medium as string) || "Oil on Canvas"}

@@ -162,7 +162,7 @@ export default function ArtistDirectoryScreen() {
                   </View>
                 </View>
                 <Text style={styles.bio} numberOfLines={2}>
-                  {artist.bio || "Commission artist on ArtFiliere"}
+                  {artist.bio || "Commission artist on ArtFilier"}
                 </Text>
                 <View style={styles.stats}>
                   <View style={styles.rating}>

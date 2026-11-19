@@ -74,7 +74,7 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
   }, [notificationRevision]);
   return <TypographyDefaults.Provider value={{ text: adminType.body, input: adminType.input }}><AdminRefreshContext.Provider value={registerRefresh}><View style={[workspace.page, { flexDirection: desktop ? 'row' : 'column' }]}>
     <View style={[workspace.sidebar, !desktop && { width: '100%', borderRightWidth: 0, borderBottomWidth: 1 }]}>
-      <View style={workspace.brandRow}><Image source={require('../../../assets/images/logo.png')} style={workspace.logo} resizeMode="contain" /><View><Text style={workspace.brand}>ArtFiliere</Text><Text style={workspace.role}>PLATFORM ADMIN</Text></View></View>
+      <View style={workspace.brandRow}><Image source={require('../../../assets/images/logo.png')} style={workspace.logo} resizeMode="contain" /><View><Text style={workspace.brand}>ArtFilier</Text><Text style={workspace.role}>PLATFORM ADMIN</Text></View></View>
       <ScrollView horizontal={!desktop} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} style={{ flex: desktop ? 1 : undefined }} contentContainerStyle={[workspace.navigation, !desktop && { flexDirection: 'row' }]}>
         {tabs.map(({ key, label, path, icon: Icon }) => <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: !section && activeTab === key }} onPress={() => { setSection(null); if (activeTab !== key) router.replace(path as any); }} style={[workspace.navItem, !section && activeTab === key && workspace.navActive]}><Icon size={20} color="#A74646" /><Text style={workspace.navLabel}>{label}</Text></Pressable>)}
         {approvalQueues.map(({ label, path, categories: keys, icon: Icon }) => {
