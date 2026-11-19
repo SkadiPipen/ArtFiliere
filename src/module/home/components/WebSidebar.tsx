@@ -59,6 +59,7 @@ function NavItem({
   return (
     <Link href={href} asChild>
       <Pressable
+        id={`marketplace-nav-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`}
         onPress={onNavigate}
         accessibilityRole="link"
         accessibilityLabel={count ? `${label}, ${count} items` : label}

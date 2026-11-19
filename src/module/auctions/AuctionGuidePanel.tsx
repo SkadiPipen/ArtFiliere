@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useLayoutEffect, useRef } from 'react';
@@ -126,7 +127,7 @@ export default memo(function AuctionGuidePanel({ width, onDismiss }: { width: nu
 });
 
 const s = StyleSheet.create({
-  panel: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 2000, elevation: 20, backgroundColor: '#FAF7F3' },
+  panel: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 2000, elevation: 20, backgroundColor: COLORS.pageBackground },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#EADBD1', backgroundColor: '#FFFFFF' },
   back: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
   backText: { color: '#B74F50', fontWeight: '700', fontSize: 13 },

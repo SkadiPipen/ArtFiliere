@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { staffWorkspaceStyles as workspace } from '@/components/staffWorkspaceStyles';
 import UserManagement from '@/module/admin/UserManagement';
 import ResellerApprovals from '@/module/admin/ResellerApprovals';
@@ -772,7 +773,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   accountButtonText: { color: "#5A4039", fontSize: 12, fontWeight: "800" },
-  scrollContent: { flexGrow: 1, backgroundColor: "#FAF7F3" },
+  scrollContent: { flexGrow: 1, backgroundColor: COLORS.pageBackground },
   content: {
     width: "100%",
     maxWidth: 1360,

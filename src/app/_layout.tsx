@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { Stack } from "expo-router";
@@ -13,13 +14,13 @@ import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(appFonts);
-  if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: '#FAF7F4', justifyContent: 'center' }}><ActivityIndicator color="#C15656" /></View>;
+  if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: COLORS.pageBackground, justifyContent: 'center' }}><ActivityIndicator color="#C15656" /></View>;
   return (
     <AuthProvider>
       <CartProvider>
         <BackNavigationTracker />
         <ContentProtection />
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.pageBackground } }} />
         <AccountRestrictionNotice />
         <ReadOnlyRequestGuard />
         <PaymentReturnMonitor />

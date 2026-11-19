@@ -1,8 +1,10 @@
 export const COLORS = {
+  pageBackground: "#FAF7F3",
   cream: "#F4EBC9",
   creamLight: "#FBF7E8",
   red: "#C05A52",
   redDark: "#A6453E",
+  roseLight: "#F8ECE8",
   textDark: "#2B2320",
   textMuted: "#8A8072",
   border: "#E3DCC4",

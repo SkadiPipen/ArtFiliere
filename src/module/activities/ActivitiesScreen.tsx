@@ -1,6 +1,8 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import TransactionHeader from '@/components/TransactionHeader';
+import TourLauncher from '@/components/TourLauncher';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
@@ -22,6 +24,11 @@ type Artwork = {
 };
 
 type ActivityLogItem = { id: number; action: string; description: string; reference_type: string; reference_id: number; created_at: string; };
+
+const activityTour = [
+  { target: 'activities-tour-purchases', instruction: 'Follow your payment and delivery updates here. Use Track Delivery when it appears on a purchase.' },
+  { target: 'activities-tour-posts', instruction: 'Check whether your artwork is under review, live on the marketplace, or needs changes.' },
+];
 
 const STATUS_COPY = {
   pending: {
@@ -71,15 +78,16 @@ export default function ActivitiesScreen() {
 
   return <SafeAreaView style={styles.page} edges={['top', 'left', 'right']}>
     <TransactionHeader title="Activities" onBack={() => goBackOr('/(home)')} onRefresh={() => { setLoading(true); void load(); }} refreshing={loading} />
+    <TourLauncher label="Activities tutorial" steps={activityTour} />
 
     {/* Tabs */}
     <View style={styles.tabBar}>
-      <TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: tab === 'purchases' }} style={[styles.tabItem, tab === 'purchases' && styles.tabItemActive]} onPress={() => setTab('purchases')}>
+      <TouchableOpacity id="activities-tour-purchases" accessibilityRole="tab" accessibilityState={{ selected: tab === 'purchases' }} style={[styles.tabItem, tab === 'purchases' && styles.tabItemActive]} onPress={() => setTab('purchases')}>
         <Text style={[styles.tabText, tab === 'purchases' && styles.tabTextActive]}>
           Purchases & Deliveries
         </Text>
       </TouchableOpacity>
-      <TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: tab === 'posts' }} style={[styles.tabItem, tab === 'posts' && styles.tabItemActive]} onPress={() => setTab('posts')}>
+      <TouchableOpacity id="activities-tour-posts" accessibilityRole="tab" accessibilityState={{ selected: tab === 'posts' }} style={[styles.tabItem, tab === 'posts' && styles.tabItemActive]} onPress={() => setTab('posts')}>
         <Text style={[styles.tabText, tab === 'posts' && styles.tabTextActive]}>
           My Artwork Posts
         </Text>
@@ -175,7 +183,7 @@ export default function ActivitiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#FAF7F3' },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: {
     height: 58,
     backgroundColor: '#FFFFFF',

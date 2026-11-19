@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { AdminRefreshContext } from '@/module/admin/AdminRefresh';
 import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
 import { useContext, useEffect, useState } from 'react';
@@ -58,7 +59,7 @@ export default function ArtworkCodeLookup() {
   </ScrollView>;
 }
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FAF7F3' },
+  screen: { flex: 1, backgroundColor: COLORS.pageBackground },
   page: { padding: 28, gap: 18, width: '100%', maxWidth: 1360, alignSelf: 'center', paddingBottom: 60 },
   title: { fontSize: 26, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#3A2D2A' },
   description: { color: '#786862', fontSize: 14, lineHeight: 23 },

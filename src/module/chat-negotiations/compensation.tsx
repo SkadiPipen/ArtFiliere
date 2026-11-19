@@ -1,8 +1,9 @@
+import ContentModal from '@/components/ContentModal';
 import { PlatformDefaultsProvider, useOptionalPlatformDefaults, usePlatformDefaults } from '@/services/platformDefaults';
 import { Text, TextInput } from '@/components/Typography';
 import { RequiredMark } from './NegotiationSection';
 import RoyaltyCalculationFields from './RoyaltyCalculationFields';
-import { Modal, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useState } from 'react';
 import RoyaltyApplicationScreen from '@/module/royalties/RoyaltyApplicationScreen';
 import InfoAccordion from './InfoAccordion';
@@ -97,9 +98,9 @@ function ConfiguredCompensationSettings({ enabled, category, terms, onChange, on
   const editEntry = (index: number, values: Partial<PaymentEntry>) => update({ entries: entries.map((entry, i) => i === index ? { ...entry, ...values } : entry) });
   const inputStyle = { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, backgroundColor: '#fff' };
   return <View style={{ gap: 12 }}>
-    <Modal visible={applicationOpen} animationType="slide" onRequestClose={() => setApplicationOpen(false)}>
+    <ContentModal visible={applicationOpen} animationType="slide" onRequestClose={() => setApplicationOpen(false)}>
       {applicationOpen && <RoyaltyApplicationScreen onClose={() => setApplicationOpen(false)} onAccessChange={onAccessChange} />}
-    </Modal>
+    </ContentModal>
     <Text style={{ fontSize: 18, fontWeight: '700' }}>Commercial compensation</Text>
     <Text style={{ color: '#81756D', fontSize: 13, lineHeight: 20 }}>Choose how the artist is paid, then set the amounts and schedule below.</Text>
     <View style={{ gap: 8 }}>{(Object.keys(categoryLabels) as CompensationCategory[]).filter(value => !commissionMode || value !== 'royalty').map(value => <InfoAccordion key={value} title={commissionMode ? value === 'one_time' ? 'One-time commission fee' : 'Upfront fee + commercial royalties' : categoryLabels[value]} description={value === 'one_time' ? 'A fixed fee, paid once or through an agreed schedule.' : value === 'royalty' ? 'Recurring payments based on reported units, sales or profit.' : 'An upfront fee with royalties, or a minimum guarantee per period.'} details={value === 'one_time' ? 'No recurring sales royalty. License scope and duration still apply.' : 'Reports need evidence and artist approval. Automatic collection requires separate payer authorization.'} selected={category === value} disabled={value !== 'one_time' && !enabled} onSelect={() => value !== category && onChange(value, configuredCompensation(value === 'one_time' ? 'one_time_payment' : value === 'royalty' ? 'gross_sales' : 'upfront_gross_sales'))} />)}</View>

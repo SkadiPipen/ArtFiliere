@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
@@ -113,7 +114,7 @@ export default function MessagesInboxScreen() {
   );
 }
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#FBF7E8" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   head: {
     height: 64,
     backgroundColor: "#fff",

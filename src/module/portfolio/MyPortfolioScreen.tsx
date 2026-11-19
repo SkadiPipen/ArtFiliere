@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
@@ -254,7 +255,7 @@ export default function MyPortfolioScreen() {
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#F7F8FA" },
+  page: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: {
     flexDirection: "row",
     alignItems: "center",

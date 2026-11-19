@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { checkedDriverPosition } from '@/services/driverLocation';
 import DeliveryMap from '@/module/delivery/components/DeliveryMap';
@@ -412,7 +413,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9F9FB' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   row: { flexDirection: 'row', alignItems: 'center' },
   headerBanner: { backgroundColor: '#BC5454', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' },

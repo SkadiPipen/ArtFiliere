@@ -1,3 +1,4 @@
+import TourLauncher from '@/components/TourLauncher';
 import { Text } from '@/components/Typography';
 import ArtRoyalties from '../ArtRoyalties';
 import OngoingNegotiations from "@/module/chat-negotiations/OngoingNegotiations";
@@ -17,6 +18,18 @@ import {
 import { useEffect, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import MyPurchases from "../MyPurchases";
+
+
+const transactionTour = [
+  { target: 'transactions-tour-negotiate', instruction: 'Review ongoing proposals and agreements that still need a response.', closeOnActivate: true },
+  { target: 'transactions-tour-pay', instruction: 'Find purchases that are waiting for payment.', closeOnActivate: true },
+  { target: 'transactions-tour-receive', instruction: 'Follow deliveries and confirm receipt when appropriate.', closeOnActivate: true },
+  { target: 'transactions-tour-rate', instruction: 'Leave feedback after a purchase is complete.', closeOnActivate: true },
+  { target: 'transactions-tour-commissions', instruction: 'Follow custom artwork requests and milestone progress.', closeOnActivate: true },
+  { target: 'transactions-tour-royalties', instruction: 'Open the royalty tools for eligible artwork and agreements.', closeOnActivate: true },
+  { target: 'transactions-tour-verify', instruction: 'Use a verification code to check an agreement or sale record.', closeOnActivate: true },
+  { target: 'transactions-tour-reports', instruction: 'Open reports, disputes, and transaction requests from here.', closeOnActivate: true },
+];
 
 export default function TransactionGrid({ role }: { role?: string }) {
   const router = useRouter();
@@ -124,13 +137,14 @@ export default function TransactionGrid({ role }: { role?: string }) {
       )}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>My Transactions</Text>
-
+        <TourLauncher label="Transactions tutorial" steps={transactionTour} />
       </View>
 
       {showRoyalties && <ArtRoyalties onClose={() => setShowRoyalties(false)} />}
       <View style={styles.iconGrid}>
-        <TouchableOpacity accessibilityRole="button" style={styles.iconItem} onPress={() => setShowRoyalties(true)}><Percent color="#C15656" size={28} /><Text style={styles.iconLabel}>Art Royalties</Text></TouchableOpacity>
+        <TouchableOpacity id="transactions-tour-royalties" accessibilityRole="button" style={styles.iconItem} onPress={() => setShowRoyalties(true)}><Percent color="#C15656" size={28} /><Text style={styles.iconLabel}>Art Royalties</Text></TouchableOpacity>
         <TouchableOpacity
+          id="transactions-tour-negotiate"
           style={styles.iconItem}
           onPress={() => setShowNegotiations(true)}
         >
@@ -141,6 +155,7 @@ export default function TransactionGrid({ role }: { role?: string }) {
         <TouchableOpacity
           style={styles.iconItem}
           onPress={() => setPurchaseFilter("pay")}
+          id="transactions-tour-pay"
         >
           <Wallet color="#C15656" size={28} />
           <Text style={styles.iconLabel}>To Pay</Text>
@@ -149,6 +164,7 @@ export default function TransactionGrid({ role }: { role?: string }) {
         <TouchableOpacity
           style={styles.iconItem}
           onPress={() => setPurchaseFilter("receive")}
+          id="transactions-tour-receive"
         >
           <Truck color="#C15656" size={28} />
           <Text style={styles.iconLabel}>To Receive</Text>
@@ -157,13 +173,14 @@ export default function TransactionGrid({ role }: { role?: string }) {
         <TouchableOpacity
           style={styles.iconItem}
           onPress={() => setPurchaseFilter("rate")}
+          id="transactions-tour-rate"
         >
           <Star color="#C15656" size={28} />
           <Text style={styles.iconLabel}>To Rate</Text>
         </TouchableOpacity>
 
         {/* 5th Action: Commissions */}
-        <TouchableOpacity style={styles.iconItem} onPress={openCommissions}>
+        <TouchableOpacity id="transactions-tour-commissions" style={styles.iconItem} onPress={openCommissions}>
           <View style={styles.commissionIconWrap}>
             <Paintbrush color="#C15656" size={28} />
             {commissionBadgeCount > 0 && (
@@ -180,11 +197,12 @@ export default function TransactionGrid({ role }: { role?: string }) {
         <TouchableOpacity
           style={styles.iconItem}
           onPress={() => router.push("/verify-record" as any)}
+          id="transactions-tour-verify"
         >
           <ShieldCheck color="#5D8A63" size={28} />
           <Text style={styles.iconLabel}>Verify</Text>
         </TouchableOpacity>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Reports, disputes and transaction requests" style={styles.iconItem} onPress={() => router.push('/report-management')}>
+        <TouchableOpacity id="transactions-tour-reports" accessibilityRole="button" accessibilityLabel="Reports, disputes and transaction requests" style={styles.iconItem} onPress={() => router.push('/report-management')}>
           <Flag color="#C15656" size={28} />
           <Text style={styles.iconLabel}>Reports & Disputes</Text>
         </TouchableOpacity>

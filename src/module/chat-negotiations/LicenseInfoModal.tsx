@@ -1,3 +1,5 @@
+import { COLORS } from '@/constants/colors';
+import ContentModal from '@/components/ContentModal';
 import { Text } from '@/components/Typography';
 // ========================================
 // FILE: components/artworks/LicenseInfoModal.tsx
@@ -5,7 +7,7 @@ import { Text } from '@/components/Typography';
 // ========================================
 
 import { X } from 'lucide-react-native';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface LicenseInfoModalProps {
   visible: boolean;
@@ -22,7 +24,7 @@ export default function LicenseInfoModal({ visible, onClose, data }: LicenseInfo
   if (!data) return null;
 
   return (
-    <Modal
+    <ContentModal
       visible={visible}
       transparent={true}
       animationType="fade"
@@ -65,7 +67,7 @@ export default function LicenseInfoModal({ visible, onClose, data }: LicenseInfo
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </ContentModal>
   );
 }
 
@@ -117,7 +119,7 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   closeBottomButton: {
-    backgroundColor: '#D48C62',
+    backgroundColor: COLORS.redDark,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',

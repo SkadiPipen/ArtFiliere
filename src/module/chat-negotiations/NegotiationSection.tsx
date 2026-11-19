@@ -15,7 +15,7 @@ export default function NegotiationSection({ id, title, required = false, childr
   const closed = context.collapsed[id] ?? true;
   const error = context.errors[id];
   return <View onLayout={event => context.positions(id, event.nativeEvent.layout.y)} style={{ marginBottom: 16, borderWidth: error ? 2 : 1, borderColor: error ? '#C62828' : '#EAE2DA', borderRadius: 16, backgroundColor: error ? '#FFF7F7' : '#FFFFFF', overflow: 'hidden' }}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`${closed ? 'Expand' : 'Collapse'} ${title}`} accessibilityState={{ expanded: !closed }} onPress={() => context.toggle(id)} style={{ padding: 18, flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+    <Pressable id={`negotiation-tour-${id}`} accessibilityRole="button" accessibilityLabel={`${closed ? 'Expand' : 'Collapse'} ${title}`} accessibilityState={{ expanded: !closed }} onPress={() => context.toggle(id)} style={{ padding: 18, flexDirection: 'row', gap: 10, alignItems: 'center' }}>
       <Text style={{ flex: 1, fontSize: 17, fontWeight: '600', color: '#382C26' }}>{title}{required && <RequiredMark />}</Text>
       {required && context.completed[id] && <CheckCircle size={19} color="#477452" />}
       {closed ? <ChevronDown size={20} color="#A56840" /> : <ChevronUp size={20} color="#A56840" />}

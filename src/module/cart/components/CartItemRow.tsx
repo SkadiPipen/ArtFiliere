@@ -42,6 +42,7 @@ export default function CartItemRow({
       {/* Aartwork card details */}
       <View style={styles.artRow}>
         <TouchableOpacity
+          id={`checkout-tour-select-${item.id}`}
           style={[styles.checkboxSquare, isItemSelected && styles.checkboxSquareChecked]}
           onPress={() => onToggleSelect(item.id)}
         />
@@ -79,7 +80,7 @@ export default function CartItemRow({
       </View>
       <View style={styles.contractRow}>
         <Text style={styles.contractStatus}>{contractStatus}</Text>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${isAgreed ? 'Review contract for' : isOngoing ? 'View negotiation for' : 'Negotiate contract for'} ${item.title}`} onPress={() => onNegotiate(item.artworkId)} style={[styles.negotiateButton, isAgreed && styles.reviewButton]}>
+        <TouchableOpacity id={`checkout-tour-agreement-${item.id}`} accessibilityRole="button" accessibilityLabel={`${isAgreed ? 'Review contract for' : isOngoing ? 'View negotiation for' : 'Negotiate contract for'} ${item.title}`} onPress={() => onNegotiate(item.artworkId)} style={[styles.negotiateButton, isAgreed && styles.reviewButton]}>
           <Handshake color="#C15656" size={18} />
           <Text style={styles.negotiateText}>{isAgreed ? 'Review contract' : isOngoing ? 'View negotiation' : 'Negotiate'}</Text>
         </TouchableOpacity>

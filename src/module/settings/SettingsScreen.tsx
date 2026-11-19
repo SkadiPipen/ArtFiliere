@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
@@ -239,7 +240,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F4F5F7" },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: {
     backgroundColor: "#C15656",
     width: "100%",

@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import { Text } from '@/components/Typography';
@@ -110,8 +111,8 @@ export default function ProcessTrackScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF6ED' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAF6ED' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.pageBackground },
   backBtn: { position: 'absolute', top: 50, left: 24, zIndex: 10 },
   screenTitle: {
     textAlign: 'center',

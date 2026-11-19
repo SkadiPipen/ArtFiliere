@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import { fetchDeliveryDetailsApi, fetchDeliveryHistory } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
@@ -434,7 +435,7 @@ export default function RiderHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: {
     backgroundColor: '#BC5454',
     paddingTop: 16,

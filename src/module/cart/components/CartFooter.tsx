@@ -44,6 +44,7 @@ export default function CartFooter({
       <View style={{ alignItems: 'center', gap: 4 }}>
       {signaturesRequired && !agreementRequired && selectedCount === 1 && <TouchableOpacity onPress={onSign}><Text style={{ color: '#C15656', fontWeight: '600' }}>Sign / view signatures</Text></TouchableOpacity>}
       <TouchableOpacity
+        id="checkout-tour-pay"
         style={[styles.solidCheckoutBtn, (readOnly || selectedCount !== 1 || agreementRequired || signaturesRequired) && { backgroundColor: '#C8B8AE' }]}
         disabled={readOnly || selectedCount !== 1 || checkingOut || agreementRequired || signaturesRequired}
         onPress={onCheckout}

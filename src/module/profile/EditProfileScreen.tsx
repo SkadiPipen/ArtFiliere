@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProfileCover from '@/components/ProfileCover';
 import { pickProfileImage } from '@/services/profileImages';
@@ -339,7 +340,7 @@ export default function EditProfile() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F5F7' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
   header: {
     backgroundColor: '#C15656',

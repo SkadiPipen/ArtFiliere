@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { AccessibilityInfo, Animated, BackHandler, Easing, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import ArtistEarningsScreen from './ArtistEarningsScreen';
@@ -59,7 +60,7 @@ export default function ArtistEarningsPanel({ left, onDismiss }: { left: number;
   }, [progress]);
 
   return <Animated.View accessibilityViewIsModal={left === 0} style={[StyleSheet.absoluteFill, {
-    left, zIndex: 10, elevation: 10, backgroundColor: '#FAF7F3',
+    left, zIndex: 10, elevation: 10, backgroundColor: COLORS.pageBackground,
     transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [Math.max(1, width - left), 0] }) }],
   }]}>
     <ArtistEarningsScreen onBack={() => closeRef.current()} />

@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { acceptOrderApi, fetchPendingOrders, fetchAssignedOrders } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
@@ -323,7 +324,7 @@ export default function RiderOrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9F9FB' },
+  container: { flex: 1, backgroundColor: COLORS.pageBackground },
   header: { backgroundColor: '#BC5454', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' },
   headerSubtitle: { fontSize: 13, color: '#F5EFEB', marginTop: 2 },
