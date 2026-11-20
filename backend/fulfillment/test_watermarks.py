@@ -65,7 +65,7 @@ class WatermarkTests(TestCase):
         self.assertEqual(snapshot['reference'], f'AGR-{pk}')
         self.assertIn('license_scope', snapshot)
 
-    def test_lookup_is_staff_only_and_returns_buyer_artwork_and_license(self):
+    def test_lookup_is_admin_or_creative_only_and_returns_buyer_artwork_and_license(self):
         from django.utils import timezone
         from .fingerprint_lookup import FingerprintLookupView
         pk = self.proposal()
@@ -74,7 +74,10 @@ class WatermarkTests(TestCase):
             license_snapshot=license_details(f'agreement:{pk}'), issued_at=timezone.now())
         payload = {'code': 'af-0000000000000001'}
         self.assertEqual(self.call(FingerprintLookupView, self.buyer, 'post', payload).status_code, 403)
-        for role in ('customer_support', 'platform_admin'):
+        for role in ('customer_support',):
+            self.other.role = role
+            self.assertEqual(self.call(FingerprintLookupView, self.other, 'post', payload).status_code, 403)
+        for role in ('creative_moderator', 'platform_admin'):
             self.other.role = role
             response = self.call(FingerprintLookupView, self.other, 'post', payload)
             self.assertEqual(response.status_code, 200)

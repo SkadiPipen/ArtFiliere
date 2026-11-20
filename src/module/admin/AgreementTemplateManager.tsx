@@ -1,5 +1,6 @@
+import Skeleton from '@/components/Skeleton';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { FileText, Pencil, X } from 'lucide-react-native';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from '@/firebase/config';
@@ -54,7 +55,7 @@ export default function AgreementTemplateManager() {
     <View style={s.notice}><Text style={type.muted}>Each clause has its own editor. Prices, parties, selected permissions, royalty calculations, and delivery details are filled from the agreement. Existing agreements keep their recorded wording.</Text></View>
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
     {!!notice && <Text accessibilityLiveRegion="polite" style={{ color: '#477452' }}>{notice}</Text>}
-    {loading ? <ActivityIndicator color="#B65B50" /> : items.map(item => <View key={item.id} style={[surface.card, s.row]}>
+    {loading ? <Skeleton layout="list" /> : items.map(item => <View key={item.id} style={[surface.card, s.row]}>
       <FileText size={23} color="#B65B50" /><View style={{ flex: 1, gap: 6 }}><Text style={type.cardTitle}>{item.name}</Text><Text style={type.muted}>{item.sections.length} editable clauses | {item.is_active ? 'Active' : 'Inactive'}</Text><Text numberOfLines={2} style={type.muted}>{item.sections.map(section => section.label).join(', ')}</Text></View>
       <Pressable accessibilityRole="button" style={[surface.button, s.secondary]} onPress={() => open(item)}><Pencil size={16} color="#A74646" /><Text style={[type.button, s.accent]}>Edit wording</Text></Pressable>
     </View>)}

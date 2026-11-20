@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import Header from '@/module/home/components/Header';
 import { matchesArtworkCategory, categoryLabel } from '@/services/artworkCategories';
@@ -10,7 +11,7 @@ import API_URL from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AuctionDashboardScreen() {
@@ -108,7 +109,7 @@ export default function AuctionDashboardScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#BC5454" />
+        <Skeleton layout="cards" />
       </View>
     );
   }

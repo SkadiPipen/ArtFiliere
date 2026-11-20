@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import BusinessPermitFields from '@/components/BusinessPermitFields';
 import { ArrowLeft, Store, RefreshCw } from 'lucide-react-native';
@@ -8,7 +9,7 @@ import { purchaseRequest } from '@/services/purchases';
 import { pickDocument, type PermitDocument } from '@/components/businessPermit';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ResellerVerificationScreen() {
   const [record, setRecord] = useState<any>(null);
@@ -55,7 +56,7 @@ export default function ResellerVerificationScreen() {
     <View style={s.card}>
       <ResellerBadge verified={record?.verified} />
       {!!record?.verified && <Text>{resellerBadgeNote}</Text>}
-      {loading && <ActivityIndicator color="#C15656" />}
+      {loading && <Skeleton layout="form" />}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {!!status && <Text style={s.label}>Application: {expired ? 'Permit expired - submit a renewed permit' : status}</Text>}
       {status === 'pending' && <Text>Your application is awaiting document review. You do not need to purchase anything while waiting.</Text>}

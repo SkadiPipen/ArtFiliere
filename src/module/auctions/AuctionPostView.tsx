@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
@@ -302,7 +303,7 @@ export default function AuctionPostView() {
   if (loading) {
     return (
       <View style={styles.centerBox}>
-        <ActivityIndicator size="large" color="#BC5454" />
+        <Skeleton layout="cards" />
       </View>
     );
   }

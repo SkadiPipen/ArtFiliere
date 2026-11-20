@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { adminType, adminSurfaces } from './adminDesign';
 import { useAdminRefresh } from './AdminRefresh';
 import { adminWorkspaceStyles as staffWorkspaceStyles } from './adminDesign';
@@ -79,7 +80,7 @@ export default function ResellerApprovals({ workspace = false }: { workspace?: b
     <Text style={workspace ? staffWorkspaceStyles.title : s.title}>Reseller document reviews</Text>
     <Text>Approve seller documents only—not authorship, ownership or permission to resell a specific artwork. Applicants do not need an existing purchase.</Text>
     {!adminWorkspace && <TouchableOpacity disabled={loading || busy} onPress={load}><Text style={s.link}>Refresh applications</Text></TouchableOpacity>}
-    {loading && <ActivityIndicator color="#C15656" />}
+    {loading && <Skeleton layout="list" />}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#B00020' }}>{error}</Text>}
     {!loading && !items.length && <Text>No reseller applications yet.</Text>}
     {[...items].sort((a, b) => Number(b.status === 'pending') - Number(a.status === 'pending')).map(item => <View key={item.id} style={s.card}>

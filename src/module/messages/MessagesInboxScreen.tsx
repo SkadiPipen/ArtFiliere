@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
@@ -6,7 +7,7 @@ import API_URL from "@/services/api";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, FileText, MessageCircle } from "lucide-react-native";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type Row = {
   id: number;
@@ -54,7 +55,7 @@ export default function MessagesInboxScreen() {
       </View>
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator color="#C15656" size="large" />
+          <Skeleton layout="list" />
         </View>
       ) : (
         <FlatList

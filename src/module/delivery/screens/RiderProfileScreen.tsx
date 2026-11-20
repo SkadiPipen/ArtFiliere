@@ -1,3 +1,5 @@
+import { ActivityIndicator } from 'react-native';
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
@@ -6,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface RiderProfile {
   fullName: string;
@@ -72,7 +74,7 @@ export default function ProfileScreen() {
     return (
       <View style={styles.loadingContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#BC5454" />
-        <ActivityIndicator size="large" color="#BC5454" />
+        <Skeleton layout="profile" />
       </View>
     );
   }

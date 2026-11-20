@@ -1,7 +1,8 @@
+import Skeleton from '@/components/Skeleton';
 import { Text, TextInput } from '@/components/Typography';
 import { RefreshCw } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 
@@ -35,7 +36,7 @@ export default function CommissionDeliveryDetails({ artistId, onQuote, floorUnit
   return <View style={{ gap: 10, padding: 16, backgroundColor: '#FFF8EF', borderRadius: 12 }}>
     <Text style={{ fontWeight: '700' }}>Delivery destination</Text>
     <Text>Shipping is calculated from the artist pickup to your saved address. The artist confirms these details before accepting.</Text>
-    {loading && <ActivityIndicator />}
+    {loading && <Skeleton layout="form" />}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{error}</Text>}
     {quote && <>
       {quote.addresses.map((address: any) => <TouchableOpacity key={address.id} disabled={loading} onPress={() => void load(address.id)} accessibilityRole="radio" accessibilityState={{ checked: address.id === quote.delivery_address_id }}><Text style={{ fontWeight: address.id === quote.delivery_address_id ? '700' : '400' }}>{address.id === quote.delivery_address_id ? '●' : '○'} {address.label || 'Saved address'}: {address.formatted}</Text></TouchableOpacity>)}

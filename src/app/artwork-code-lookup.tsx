@@ -31,7 +31,7 @@ export default function ArtworkCodeLookup() {
   };
   return <ScrollView style={s.screen} contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
     <Text style={[s.title, adminWorkspace && adminType.pageTitle]}>Artwork code lookup</Text>
-    <Text style={[s.description, adminWorkspace && adminType.body]}>Admin and customer service can identify an issued copy using the faint code on the image.</Text>
+    <Text style={[s.description, adminWorkspace && adminType.body]}>Administrators can identify an issued copy using the faint code on the image.</Text>
     <View style={[s.card, adminWorkspace && adminSurfaces.card]}>
     <Text style={[s.label, adminWorkspace && adminType.label]}>Artwork copy code</Text>
     <TextInput accessibilityLabel="Artwork copy code" style={[s.input, adminWorkspace && adminType.input]} value={code} maxLength={40} autoCapitalize="characters" autoCorrect={false} placeholder="AF-TX-0123456789ABCDEF" onChangeText={value => { setCode(value); setMatch(null); setError(''); }} editable={!busy} />

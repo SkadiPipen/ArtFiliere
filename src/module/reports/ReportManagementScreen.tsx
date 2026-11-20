@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import ContentModal from '@/components/ContentModal';
 import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
@@ -15,7 +16,7 @@ import { signOut } from 'firebase/auth';
 import { Redirect, useRouter } from 'expo-router';
 import { Flag, ShieldCheck } from 'lucide-react-native';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Report = { id: number; title: string; category: string; description: string; evidence: string; links: string[]; attachments: { id: number; name: string; size: number }[]; status: string; reporter: string; reported_user?: string; reported_user_id?: number; payment_id?: number; resolution: string };
@@ -139,7 +140,7 @@ export default function ReportManagementScreen({ embedded = false, initialTab = 
   const filterTab = (text: string, value: string) => <TouchableOpacity id={`reports-tour-${value}`} key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value as typeof initialTab)} style={[s.filterTab, tab === value && s.filterTabActive]}><Text style={s.filterTabText}>{text}</Text></TouchableOpacity>;
   const status = (value: string) => <View style={s.status}><Text style={s.statusText}>{label(value)}</Text></View>;
   if (admin && !embedded) return <Redirect href="/admin-reports" />;
-  if (loading) return <SafeAreaView edges={embedded ? [] : undefined} style={s.page}><ActivityIndicator style={{ marginTop: 80 }} color="#B65B50" /></SafeAreaView>;
+  if (loading) return <SafeAreaView edges={embedded ? [] : undefined} style={s.page}><Skeleton layout="list" /></SafeAreaView>;
   return <SafeAreaView edges={embedded ? [] : undefined} style={s.page}>
     {!embedded && <TransactionHeader title="Reports, Disputes & Transactions" onBack={() => void goBackToWorkspace()} onRefresh={() => { void load(); }} refreshing={busy} />}
     {!embedded && !staff && !!data && composer === null && <TourLauncher label="Reports and disputes tutorial" steps={[
@@ -160,7 +161,7 @@ export default function ReportManagementScreen({ embedded = false, initialTab = 
       {!!message && <Text style={s.success}>{message}</Text>}
       {!!data && <>
         {!embedded && <View style={s.row}>
-          {staff && button('Artwork code lookup', () => router.push('/artwork-code-lookup' as any), true)}
+          {admin && button('Artwork code lookup', () => router.push('/artwork-code-lookup' as any), true)}
           {data?.role === 'customer_support' && button('Log out', () => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }, true)}
           {staff && button('Review restriction appeals', () => router.push((admin ? '/moderation-approvals' : '/moderator-dashboard') as any), true)}
           {!staff && button('File a report', () => open('report'), false, 'reports-tour-file')}

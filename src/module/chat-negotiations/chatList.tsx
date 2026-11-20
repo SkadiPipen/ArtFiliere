@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
@@ -22,7 +23,7 @@ import { chatService } from './chats';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { db } from '../../firebase/config';
 
 // I. Interfaces
@@ -387,7 +388,7 @@ export function ChatList({ currentUser, onChatSelect, onCommissionSelect, initia
         <Text style={styles.supportButtonText}>Contact customer support / My reports</Text>
       </TouchableOpacity>
     </View>}
-    {(activeTab === 'drivers' ? deliveryLoading : activeTab === 'artists' && artworkFilter === 'commission' ? commissionLoading : loading && !commissionChats.length) ? <View style={styles.centered}><ActivityIndicator size="large" color="#C15656" /></View> :
+    {(activeTab === 'drivers' ? deliveryLoading : activeTab === 'artists' && artworkFilter === 'commission' ? commissionLoading : loading && !commissionChats.length) ? <View style={styles.centered}><Skeleton layout="list" /></View> :
       <FlatList data={visible} keyExtractor={item => item.id} renderItem={renderChatItem} contentContainerStyle={visible.length ? styles.listContent : { flexGrow: 1 }}
         ListEmptyComponent={<View style={styles.centered}><Ionicons name="chatbubble-outline" size={48} color="#C7C7CC" /><Text style={styles.emptyText}>No {activeTab === 'artists' ? artworkFilter === 'commission' ? 'commission' : 'artwork' : activeTab === 'drivers' ? 'driver' : 'customer support'} conversations yet</Text></View>} />}
   </View>;

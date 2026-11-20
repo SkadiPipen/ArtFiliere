@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import ContentModal from '@/components/ContentModal';
 import TourLauncher from '@/components/TourLauncher';
 import { Text, TextInput } from '@/components/Typography';
@@ -297,7 +298,7 @@ export default function CommissionDetailScreen() {
 
       {!data ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#C15656" />
+          <Skeleton layout="form" />
         </View>
       ) : (
         <ScrollView ref={scrollRef} contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>

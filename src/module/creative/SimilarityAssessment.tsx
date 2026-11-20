@@ -1,5 +1,5 @@
 import { Text } from '@/components/Typography';
-import ArtworkHistoryPanel from '@/module/blockchain/ArtworkHistoryPanel';
+import ArtworkVerificationPanel from '@/module/blockchain/ArtworkVerificationPanel';
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, Animated, Easing, Image, Pressable, StyleSheet, View } from 'react-native';
 
@@ -20,6 +20,11 @@ export type SimilarityMatch = {
   review_status: 'pending' | 'confirmed_copy' | 'not_a_copy' | 'auto_blocked';
   automatic_assessment?: 'exact_duplicate' | 'high_similarity' | 'possible_match';
   assessment_threshold?: number;
+  match_evidence?: {
+    algorithm_version?: string; rotation?: number; mirrored?: boolean;
+    strong_copy_evidence?: boolean;
+    geometry?: { verified: boolean; inliers: number; matches: number; inlier_ratio: number; coverage_left: number; coverage_right: number };
+  };
 };
 
 const validRatio = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
@@ -53,13 +58,13 @@ export default function SimilarityAssessment({ match, onInspect }: {
     { name: 'pHash similarity index', value: hashIndex(match.phash_distance), raw: match.phash_distance, color: '#A43D44' },
     { name: 'dHash similarity index', value: hashIndex(match.dhash_distance), raw: match.dhash_distance, color: '#D15C58' },
     { name: 'Edge similarity index', value: hashIndex(match.edge_hash_distance), raw: match.edge_hash_distance, color: '#E48854' },
-    { name: 'ORB feature-match ratio', value: validRatio(match.feature_match_score) ? match.feature_match_score : null, raw: undefined, color: '#B87D28' },
+    { name: match.match_evidence?.algorithm_version ? 'Geometrically verified ORB ratio' : 'Legacy ORB feature-match ratio', value: validRatio(match.feature_match_score) ? match.feature_match_score : null, raw: undefined, color: '#B87D28' },
   ];
   const title = exact ? 'Identical file detected' : score === null ? 'Assessment unavailable' : high ? 'High visual similarity' : 'Possible visual match';
   return <View style={s.card}>
     <View style={s.header}>
       <View style={s.heading}><Text style={s.eyebrow}>AUTOMATIC ASSESSMENT</Text><Text style={s.title}>{title}</Text></View>
-      <View style={s.score}><Text style={s.scoreNumber}>{score === null ? '—' : `${Math.round(score * 100)}/100`}</Text><Text style={s.scoreCaption}>{exact ? 'File match' : 'Visual similarity'}</Text></View>
+      <View style={s.score}><Text style={s.scoreNumber}>{score === null ? '—' : `${(score * 100).toFixed(1)}/100`}</Text><Text style={s.scoreCaption}>{exact ? 'File match' : 'Visual similarity'}</Text></View>
     </View>
     <Text style={s.description}>{exact ? 'The file fingerprint matches an existing upload. Exact-file duplicate protection applies.' : 'Ownership review required. Check the matched work and any permission or repost evidence before the final artwork decision.'}</Text>
     <View style={s.reference}>
@@ -74,7 +79,13 @@ export default function SimilarityAssessment({ match, onInspect }: {
         {match.reference_provenance && <Text style={s.caption}>{match.reference_provenance.disputed ? 'Attribution disputed—investigate history' : match.reference_provenance.creator_verified ? 'Creator attribution reviewed' : 'Creator attribution claimed'}</Text>}
       </View>
     </View>
-    <ArtworkHistoryPanel artworkId={match.reference_artwork_id} buttonLabel="View matched artwork history" />
+    <ArtworkVerificationPanel artworkId={match.reference_artwork_id} buttonLabel="Verify matched artwork" />
+    {match.match_evidence?.geometry && <View style={s.rule}>
+      <Text style={s.ruleTitle}>Spatial verification</Text>
+      <Text style={s.caption}>{match.match_evidence.geometry.verified ? 'Consistent feature geometry detected' : 'Insufficient consistent feature geometry'} · {match.match_evidence.geometry.inliers} inliers / {match.match_evidence.geometry.matches} candidate matches.</Text>
+      <Text style={s.caption}>Matched area: {Math.round(match.match_evidence.geometry.coverage_left * 100)}% of submission / {Math.round(match.match_evidence.geometry.coverage_right * 100)}% of reference. Orientation: {match.match_evidence.rotation || 0}°{match.match_evidence.mirrored ? ', mirrored' : ''}.</Text>
+      <Text style={s.caption}>Algorithm: {match.match_evidence.algorithm_version}. {match.match_evidence.strong_copy_evidence ? 'Multiple copy-detection signals agree.' : 'Treat this as review evidence.'}</Text>
+    </View>}
     {!exact && <View style={s.chart}>
       <Text style={s.chartTitle}>Comparison measurements</Text>
       <Text style={s.caption}>Each bar uses its own measure. These are not parts of a total or a simple average.</Text>
@@ -85,7 +96,7 @@ export default function SimilarityAssessment({ match, onInspect }: {
         </View>
         {metric.value !== null && metric.raw !== undefined && <Text style={s.caption}>Hash distance: {metric.raw} · lower is more similar</Text>}
       </View>)}
-      <Text style={s.caption}>Hash indices use max(0, 1 − distance ÷ 20). ORB shows the raw matched-feature ratio; the overall score applies its own normalization and weights.</Text>
+      <Text style={s.caption}>Hash indices use max(0, 1 − distance ÷ 20). ORB shows the matched-feature ratio (RANSAC-verified for geometry-v2); the overall score applies its own normalization and weights.</Text>
       {validRatio(match.color_similarity_score) && <Text style={s.caption}>Palette similarity: {Math.round(match.color_similarity_score * 100)}% · context only, excluded from the final score.</Text>}
     </View>}
     <View style={s.rule}>

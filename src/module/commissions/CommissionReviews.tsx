@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { adminType, adminSurfaces } from '@/module/admin/adminDesign';
 import { useAdminRefresh } from '@/module/admin/AdminRefresh';
 import { Text, TextInput } from '@/components/Typography';
@@ -7,6 +8,7 @@ import { TouchableOpacity, View } from 'react-native';
 import { commissionApi } from './CommissionDetailScreen';
 
 export default function CommissionReviews() {
+  const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<any[]>([]);
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [amounts, setAmounts] = useState<Record<number, string>>({});
@@ -14,7 +16,7 @@ export default function CommissionReviews() {
   const [payoutIds, setPayoutIds] = useState<Record<number, string>>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const load = async () => { try { const result = await commissionApi('reviews/'); setRows(result); void markAdminQueueRead('commission', result.map((row: any) => row.id)); } catch (e: any) { setError(e.message); } };
+  const load = async () => { setLoading(true); try { const result = await commissionApi('reviews/'); setRows(result); void markAdminQueueRead('commission', result.map((row: any) => row.id)); } catch (e: any) { setError(e.message); } finally { setLoading(false); } };
   const adminWorkspace = useAdminRefresh(load);
   useEffect(() => { void load(); }, []);
   const decide = async (row: any, action: string, milestone_id?: number, refund_id?: number) => {
@@ -28,7 +30,7 @@ export default function CommissionReviews() {
     <Text style={{ fontSize: 20, fontWeight: '700' }}>Commission disputes & payouts</Text>
     {!adminWorkspace && button('Refresh commission reviews', load)}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{error}</Text>}
-    {!rows.length && <Text>No commission reviews pending.</Text>}
+    {loading ? <Skeleton layout="list" /> : !rows.length && <Text>No commission reviews pending.</Text>}
     {rows.map(row => <View key={row.id} style={{ padding: 16, borderWidth: 1, borderColor: '#E8DCD4', gap: 10 }}>
       <Text style={{ fontWeight: '700' }}>{row.title} · {row.buyer} / {row.artist}</Text><Text>{row.status} · Unreleased PHP {row.held_amount}</Text>
       {row.tickets.map((ticket: any) => <Text key={ticket.id}>Ticket #{ticket.id} ({ticket.status}): {ticket.details}</Text>)}

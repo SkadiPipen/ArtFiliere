@@ -1,6 +1,7 @@
+import Skeleton from './Skeleton';
 import { Text } from '@/components/Typography';
 import { useContext, useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Platform, TouchableOpacity, View } from 'react-native';
+import { Platform, TouchableOpacity, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { AuthContext } from '@/context/AuthContext';
 import { auth } from '@/firebase/config';
@@ -28,6 +29,6 @@ export default function PlatformGate({ platform, roles, children }: { platform: 
   const message = !allowedPlatform ? platform === 'web' ? 'This panel is available on the website only. Open it in a web browser.' : 'Driver features are available in the Android or iOS mobile app only.' : error || (roles && checked?.uid === user?.uid && checked && !roles.includes(checked.role) ? 'Your account does not have access to this panel.' : '');
   if (message) return <View style={{ flex: 1, justifyContent: 'center', padding: 28, gap: 18 }}><Text accessibilityRole="alert">{message}</Text>{!!error && <TouchableOpacity onPress={() => setRetry(n => n + 1)}><Text>Retry</Text></TouchableOpacity>}<TouchableOpacity onPress={() => router.replace('/login')}><Text style={{ color: '#C15656' }}>Back to login</Text></TouchableOpacity></View>;
   if (roles && !loading && !user) return <Redirect href="/login" />;
-  if (roles && (loading || checked?.uid !== user?.uid)) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator color="#C15656" /></View>;
+  if (roles && (loading || checked?.uid !== user?.uid)) return <View style={{ flex: 1, justifyContent: 'center' }}><Skeleton layout="dashboard" /></View>;
   return <>{children}</>;
 }

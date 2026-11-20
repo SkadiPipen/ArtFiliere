@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import ContentModal from '@/components/ContentModal';
 import { Text } from '@/components/Typography';
 import { proposalPayload } from './proposalPayload';
@@ -5,7 +6,7 @@ import { auth } from '@/firebase/config';
 import { ChatWindow } from './chats';
 import NegotiationForm from './negotiationForm';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Contract, ContractResponse, contractRequest, isAgreed } from './contracts';
 
 export default function ContractPanel({ artworkId, onClose, revision, startInChat = false }: { artworkId?: string; onClose: () => void; revision?: Contract; startInChat?: boolean }) {
@@ -47,7 +48,7 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
   if (loading && artworkId) {
     return <ContentModal visible animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 }}>
-        <ActivityIndicator /><Text>Loading negotiation form...</Text>
+        <Skeleton layout="form" />
         <TouchableOpacity onPress={onClose}><Text style={s.link}>Close</Text></TouchableOpacity>
       </View>
     </ContentModal>;
@@ -85,7 +86,7 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
     <ScrollView contentContainerStyle={s.page} style={{ flex: 1 }}>
       <View style={s.header}><Text style={s.heading}>Negotiate a contract</Text><TouchableOpacity onPress={onClose}><Text style={s.link}>Close</Text></TouchableOpacity></View>
       <Text>Both buyer and artist must accept the same terms before checkout. The contract price covers one artwork purchase.</Text>
-      {loading && <ActivityIndicator />}
+      {loading && <Skeleton layout="form" />}
       {artwork && !artwork.can_propose && <Text accessibilityRole="alert" style={s.error}>{artwork.is_auction ? 'Auction license terms are fixed. The winning buyer signs the auction agreement after the auction ends.' : `You are signed in as ${artwork.buyer_name}. Buyer and artist accounts can negotiate purchases of another artist’s work. You cannot negotiate your own artwork.`}</Text>}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       <TouchableOpacity onPress={load}><Text style={s.link}>Refresh contracts</Text></TouchableOpacity>

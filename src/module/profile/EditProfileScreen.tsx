@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProfileCover from '@/components/ProfileCover';
@@ -190,7 +191,7 @@ export default function EditProfile() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C15656" />
+        <Skeleton layout="form" />
       </View>
     );
   }

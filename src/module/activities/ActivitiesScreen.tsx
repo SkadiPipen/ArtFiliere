@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
@@ -9,7 +10,7 @@ import API_URL from '@/services/api';
 import { useRouter } from 'expo-router';
 import { Clock3, Store, Truck, Wallet } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Artwork = {
@@ -20,6 +21,7 @@ type Artwork = {
   image_data: string;
   status: "pending" | "approved" | "declined";
   decline_reason: string;
+  automated_block_reason?: string;
   created_at: string;
 };
 
@@ -96,7 +98,7 @@ export default function ActivitiesScreen() {
 
     {loading ? (
       <View style={styles.center}>
-        <ActivityIndicator color="#C15656" size="large" />
+        <Skeleton layout="list" />
       </View>
     ) : (
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor="#C15656" />}>
@@ -142,7 +144,9 @@ export default function ActivitiesScreen() {
             </View>
             {artworks.length ? (
               artworks.map((artwork) => {
-                const copy = STATUS_COPY[artwork.status];
+                const copy = artwork.status === 'declined' && artwork.automated_block_reason === 'high_similarity'
+                  ? { label: 'Auto-declined', detail: 'High similarity detected. You can appeal with authorship or permission evidence.' }
+                  : STATUS_COPY[artwork.status];
                 return (
                   <View key={artwork.id} style={styles.card}>
                     <ProductImage source={{ uri: artwork.image_data }} style={styles.image} />

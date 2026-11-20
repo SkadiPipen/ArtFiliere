@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { checkedDriverPosition } from '@/services/driverLocation';
@@ -304,7 +305,7 @@ export default function HomeScreen() {
 
         {loadingDelivery ? (
           <View style={styles.loaderBox}>
-            <ActivityIndicator size="small" color="#BC5454"/>
+            <Skeleton layout="list" count={1} />
             <Text style={styles.loaderBoxText}>Checking active deliveries...</Text>
           </View>
         ) : delivery ? (

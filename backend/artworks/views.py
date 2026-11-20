@@ -361,8 +361,14 @@ class ArtworkView(AuthenticatedAPIView):
             _create_similarity_matches(artwork)
         if artwork.automated_block_reason:
             artwork.status = Artwork.Status.DECLINED
-            strongest = artwork.similarity_matches.order_by('-confidence_score').first()
-            artwork.decline_reason = ('Identical file already submitted (100% file match).' if duplicate else f'Visual similarity score {strongest.confidence_score:.1%} reached the {settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD:.0%} automatic publication-block threshold.') + ' This submission was not published. The score is a screening signal, not proof of infringement.'
+            strongest = artwork.similarity_matches.filter(review_status=ArtworkSimilarityMatch.ReviewStatus.AUTO_BLOCKED).order_by('-confidence_score').first()
+            artwork.decline_reason = (
+                'Identical file already submitted (100% file match).'
+                if duplicate else
+                f'Suspected duplicate: visual similarity index {strongest.confidence_score:.1%} reached the '
+                f'{settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD:.0%} auto-decline threshold, with geometric verification and multiple matching signals. '
+                'A moderator can reconsider this decision. You may appeal through Activities or Support with original process files or proof of permission.'
+            ) + ' This submission remains unpublished. Similarity is not proof of plagiarism or infringement.'
             artwork.save(update_fields=['status', 'decline_reason', 'automated_block_reason', 'updated_at'])
             artwork.auction_listings.filter(status='PENDING_APPROVAL').update(status='CANCELLED')
             from notifications.models import UserNotification
@@ -500,7 +506,7 @@ class ArtworkReviewView(AuthenticatedAPIView):
             return Response({'error': 'This previously blocked auction has expired. The artist must submit an updated auction schedule before approval.'}, status=409)
 
         previous_status = artwork.status
-        # Legacy visual-score blocks can now be reconsidered, with an audit note.
+        # Similarity auto-declines can be reconsidered with documented evidence.
         if legacy_similarity_block:
             artwork.automated_block_reason = ''
         artwork.status = review_status
@@ -662,35 +668,34 @@ def _create_similarity_matches(artwork):
     This runs synchronously for the project-scale catalogue. Move it to a job
     queue before the catalogue becomes large.
     """
-    references = Artwork.objects.filter(status=Artwork.Status.APPROVED, automated_block_reason='').exclude(id=artwork.id).exclude(perceptual_hash__isnull=True).exclude(difference_hash__isnull=True).exclude(edge_hash__isnull=True)
+    from .matching import prepare_image, compare_images, strong_copy_evidence
+    prepared = prepare_image(artwork.image_data)
+    references = Artwork.objects.filter(status=Artwork.Status.APPROVED, automated_block_reason='').exclude(id=artwork.id)
     for reference in references.iterator():
         try:
-            phash_distance = calculate_phash_distance(artwork.perceptual_hash, reference.perceptual_hash)
-            dhash_distance = calculate_phash_distance(artwork.difference_hash, reference.difference_hash)
-            edge_hash_distance = calculate_phash_distance(artwork.edge_hash, reference.edge_hash)
-        except ValueError:
+            result = compare_images(prepared, prepare_image(reference.image_data))
+        except (ValueError, OSError):
             continue
-        # Avoid costly feature matching for clearly unrelated images.
-        if phash_distance > 14 and dhash_distance > 16 and edge_hash_distance > 10:
-            continue
-        feature_score = calculate_feature_match_score(artwork.image_data, reference.image_data)
-        color_score = calculate_color_similarity_score(artwork.image_data, reference.image_data)
-        confidence = similarity_confidence(phash_distance, dhash_distance, feature_score, edge_hash_distance)
-        if is_review_worthy(phash_distance, dhash_distance, feature_score, confidence, edge_hash_distance):
-            ArtworkSimilarityMatch.objects.get_or_create(
-                artwork=artwork,
-                reference_artwork=reference,
-                defaults={
-                    "phash_distance": phash_distance,
-                    "dhash_distance": dhash_distance,
-                    "edge_hash_distance": edge_hash_distance,
-                    "feature_match_score": feature_score,
-                    "color_similarity_score": color_score,
-                    "confidence_score": confidence,
-                    'review_status': ArtworkSimilarityMatch.ReviewStatus.PENDING,
-                    'review_note': 'Automatic similarity assessment; final artwork decision requires moderator review.',
-                },
-            )
+        # Keep the policy calculation in this module for screening integrations.
+        confidence = similarity_confidence(result['phash_distance'], result['dhash_distance'],
+                                          result['feature_match_score'], result['edge_hash_distance'])
+        result['confidence_score'] = confidence
+        strong = strong_copy_evidence(result, settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD)
+        if result['review_worthy'] or confidence >= settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD:
+            blocked = bool(settings.ARTWORK_SIMILARITY_AUTO_BLOCK_ENABLED and strong)
+            ArtworkSimilarityMatch.objects.get_or_create(artwork=artwork, reference_artwork=reference, defaults={
+                'phash_distance': result['phash_distance'], 'dhash_distance': result['dhash_distance'],
+                'edge_hash_distance': result['edge_hash_distance'], 'feature_match_score': result['feature_match_score'],
+                'color_similarity_score': calculate_color_similarity_score(artwork.image_data, reference.image_data),
+                'confidence_score': confidence,
+                'match_evidence': {**result, 'strong_copy_evidence': strong,
+                                   'policy_threshold': settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD,
+                                   'auto_block_enabled': settings.ARTWORK_SIMILARITY_AUTO_BLOCK_ENABLED},
+                'review_status': ArtworkSimilarityMatch.ReviewStatus.AUTO_BLOCKED if blocked else ArtworkSimilarityMatch.ReviewStatus.PENDING,
+                'review_note': 'Suspected duplicate: geometric verification and multiple signals agree.' if blocked else 'Automatic similarity evidence; authorship and permission require moderator review.',
+            })
+            if blocked:
+                artwork.automated_block_reason = 'high_similarity'
 
 
 class ArtworkImageScreenView(AuthenticatedAPIView):
