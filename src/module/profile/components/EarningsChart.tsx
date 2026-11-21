@@ -53,7 +53,7 @@ export default function EarningsChart({ buckets }: { buckets: EarningsBucket[] }
       <Animated.View accessibilityLabel={`Earnings distribution, total ${amount(total)}`} style={{ width: 140, height: 140, opacity: progress, transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }}>
         <Svg width={140} height={140} viewBox="0 0 140 140"><Circle cx={70} cy={70} r={54} fill="none" stroke="#F6E9E0" strokeWidth={16} />{totals.map(item => {
           const length = total ? item.amount / total * circumference : 0; const start = offset; offset += length;
-          return <Circle key={item.key} cx={70} cy={70} r={54} fill="none" stroke={item.color} strokeWidth={16} strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-start} rotation={-90} origin="70, 70" />;
+          return <Circle key={item.key} cx={70} cy={70} r={54} fill="none" stroke={item.color} strokeWidth={16} strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-start} transform="rotate(-90 70 70)" />;
         })}</Svg>
         <View pointerEvents="none" style={{ position: 'absolute', inset: 0, justifyContent: 'center', alignItems: 'center' }}><Text style={{ fontSize: 10, color: '#937E73' }}>Chart total</Text><Text style={{ fontSize: 13, color: '#824B39', fontWeight: '700' }}>{amount(total)}</Text></View>
       </Animated.View>

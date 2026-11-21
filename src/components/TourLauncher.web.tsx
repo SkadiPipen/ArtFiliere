@@ -130,7 +130,7 @@ export default function TourLauncher({ label, steps, bottom, right = 20, size = 
         dialog ?? document.body,
       )}
       {activeStep !== null && (
-        <SpotlightTour label={label} steps={steps} step={activeStep} onNext={() => setStep(activeStep + 1)} onClose={() => setStep(null)} />
+        <SpotlightTour label={label} steps={steps} step={activeStep} scope={dialog ?? undefined} onNext={() => setStep(activeStep + 1)} onClose={() => setStep(null)} />
       )}
     </>
   );
