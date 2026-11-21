@@ -43,6 +43,19 @@ def artist_portfolio(artist, *, own=False):
     for entry in entries:
         entry['source'] = 'artwork'
         entry['portfolio_date'] = entry['created_at']
+    application = getattr(artist, 'artist_application', None)
+    if application and application.status == 'approved':
+        for index, item in enumerate(application.portfolio or []):
+            if not isinstance(item, dict) or not item.get('title'):
+                continue
+            image = item.get('imageDataUri') or item.get('imageUri')
+            if not isinstance(image, str) or not image.startswith(('data:image/jpeg;base64,', 'data:image/png;base64,', 'data:image/webp;base64,', 'data:image/jpg;base64,')):
+                continue
+            entries.append({
+                'id': f'registration-{application.pk}-{index}', 'source': 'registration', 'artist_id': artist.pk,
+                'title': item['title'], 'description': item.get('description') or '', 'category': 'Portfolio sample',
+                'image_data': image, 'status': 'approved', 'is_for_sale': False, 'portfolio_date': application.submitted_at.isoformat(),
+            })
     commissions = CommissionRequest.objects.filter(artist=artist, status='COMPLETE').prefetch_related('milestones')
     for commission in commissions:
         if not commission_completed(commission):

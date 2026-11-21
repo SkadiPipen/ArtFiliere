@@ -172,6 +172,7 @@ export default function MyPortfolioScreen() {
               <TouchableOpacity
                 accessibilityRole="button"
                 onPress={() =>
+                  artwork.source === 'registration' ? router.push({ pathname: '/artist-profile', params: { artistId: String(artwork.artist_id) } }) :
                   artwork.source === "commission" ? router.push({ pathname: "/commission-detail", params: { id: String(artwork.commission_id) } }) : router.push({
                     pathname: "/(home)/view-post",
                     params: {
@@ -196,9 +197,9 @@ export default function MyPortfolioScreen() {
                     </Text>
                   </View>
                   <Text style={s.price}>
-                    {artwork.source === "commission" ? "Completed commission" : `₱ ${Number(artwork.price).toLocaleString()}`}
+                    {artwork.source === "commission" ? "Completed commission" : artwork.source === 'registration' ? 'Registration portfolio sample' : `₱ ${Number(artwork.price).toLocaleString()}`}
                   </Text>
-                  {artwork.source !== 'commission' && <Text style={{ color: '#75655F', fontSize: 12 }}>{artwork.category_labels?.length ? artwork.category_labels.join(' · ') : 'Choose artwork categories'}</Text>}
+                  {(artwork.source === 'artwork' || !artwork.source) && <Text style={{ color: '#75655F', fontSize: 12 }}>{artwork.category_labels?.length ? artwork.category_labels.join(' · ') : 'Choose artwork categories'}</Text>}
                   {artwork.status === "declined" && artwork.decline_reason ? (
                     <Text style={s.reason} numberOfLines={2}>
                       {artwork.decline_reason}
@@ -206,7 +207,7 @@ export default function MyPortfolioScreen() {
                   ) : null}
                 </View>
               </TouchableOpacity>
-              {artwork.source !== 'commission' && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit categories for ${artwork.title}`} onPress={() => { setDraftCategories(artworkCategoryIds(artwork)); setCategoryError(''); setEditing(artwork); }} style={{ padding: 14 }}><Text style={{ color: '#BC5555', fontWeight: '700' }}>Edit categories</Text></TouchableOpacity>}
+              {(artwork.source === 'artwork' || !artwork.source) && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit categories for ${artwork.title}`} onPress={() => { setDraftCategories(artworkCategoryIds(artwork)); setCategoryError(''); setEditing(artwork); }} style={{ padding: 14 }}><Text style={{ color: '#BC5555', fontWeight: '700' }}>Edit categories</Text></TouchableOpacity>}
               {artwork.status === "declined" && (
                 <TouchableOpacity
                   accessibilityRole="button"

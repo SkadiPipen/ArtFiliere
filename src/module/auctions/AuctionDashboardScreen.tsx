@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
 
   // BANNER
   banner: {
-    backgroundColor: '#F5E8DC', borderWidth: 1, borderColor: '#E6D6C6',
+    backgroundColor: COLORS.roseLight, borderWidth: 1, borderColor: COLORS.border,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   bannerButton: {
-    backgroundColor: '#BC5555',
+    backgroundColor: COLORS.red,
     alignSelf: 'flex-start',
     paddingVertical: 11,
     paddingHorizontal: 16,

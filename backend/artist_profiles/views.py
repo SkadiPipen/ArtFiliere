@@ -9,9 +9,10 @@ from django.db.models import Avg, Count, Q
 from django.db.models.functions import Coalesce
 from fulfillment.models import PurchaseReview
 
-from users.models import User
+from users.models import ArtistFollow, User
 from artworks.models import Artwork
 from artworks.serializers import ArtworkSerializer
+from .statistics import profile_counts
 
 
 class ArtistProfileView(APIView):
@@ -39,8 +40,39 @@ class ArtistProfileView(APIView):
                 "is_accepting_commissions": artist.role == User.Role.ARTIST and artist.is_accepting_commissions,
                 "artworks": ArtworkSerializer(artworks, many=True).data,
                 "portfolio": artist_portfolio(artist) if artist.role == User.Role.ARTIST else [],
+                **profile_counts(artist),
             }
         )
+
+
+class ArtistFollowView(AuthenticatedAPIView):
+    permission_classes = [IsAuthenticatedUser]
+
+    def follow_state(self, request, artist_id, action=None):
+        viewer = self.get_request_user(request)
+        artist = User.objects.filter(pk=artist_id, role=User.Role.ARTIST).first()
+        if not artist:
+            return Response({'error': 'Artist not found.'}, status=404)
+        if action and (viewer.pk == artist.pk or getattr(viewer, 'view_only', False)):
+            return Response({'error': 'You cannot change this follow.'}, status=403)
+        relationship = ArtistFollow.objects.filter(follower=viewer, artist=artist)
+        if action == 'follow':
+            ArtistFollow.objects.get_or_create(follower=viewer, artist=artist)
+        elif action == 'unfollow':
+            relationship.delete()
+        return Response({
+            'is_following': relationship.exists(), 'can_follow': viewer.pk != artist.pk and not getattr(viewer, 'view_only', False),
+            'followers_count': artist.artist_followers.count(),
+        }, headers={'Cache-Control': 'private, no-store'})
+
+    def get(self, request, artist_id):
+        return self.follow_state(request, artist_id)
+
+    def put(self, request, artist_id):
+        return self.follow_state(request, artist_id, 'follow')
+
+    def delete(self, request, artist_id):
+        return self.follow_state(request, artist_id, 'unfollow')
 
 
 class ArtistDirectoryView(APIView):

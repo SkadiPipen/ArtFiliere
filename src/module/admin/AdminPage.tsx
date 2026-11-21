@@ -6,6 +6,7 @@ import { TypographyDefaults } from '@/components/Typography';
 import ResellerApprovals from './ResellerApprovals';
 import ModeratorEvaluation from '@/module/hr/ModeratorEvaluation';
 import RoyaltyApprovals from './RoyaltyApprovals';
+import RenewalsAndDeadlines from './RenewalsAndDeadlines';
 import AttributionReviewsScreen from '@/module/blockchain/AttributionReviewsScreen';
 import { AccountActions } from '@/module/moderation/ModeratorDashboard';
 import AppealReviews from '@/module/moderation/AppealReviews';
@@ -16,7 +17,7 @@ import type { AdminRequestCategories } from '@/components/AdminRequestBell';
 import { purchaseRequest } from '@/services/purchases';
 import { auth } from '@/firebase/config';
 import { router } from 'expo-router';
-import { ChartNoAxesCombined, LogOut, RefreshCcw, LayoutDashboard, Banknote, FileText, Store, ShieldCheck, Percent, UserCog, Users, ScanLine, Shield, Flag } from 'lucide-react-native';
+import { CalendarClock, ChartNoAxesCombined, LogOut, RefreshCcw, LayoutDashboard, Banknote, FileText, Store, ShieldCheck, Percent, UserCog, Users, ScanLine, Shield, Flag } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 
@@ -54,7 +55,7 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
   const desktop = width >= 900;
   const [section, setSection] = useState<string | null>(initialSection);
   const [logoutError, setLogoutError] = useState('');
-  const current = section === 'users' ? 'User management' : section === 'lookup' ? 'Artwork code lookup' : approvalQueues.find(queue => queue.path === section)?.label || tabs.find(tab => tab.key === activeTab)!.label;
+  const current = section === 'deadlines' ? 'Renewals & Deadlines' : section === 'users' ? 'User management' : section === 'lookup' ? 'Artwork code lookup' : approvalQueues.find(queue => queue.path === section)?.label || tabs.find(tab => tab.key === activeTab)!.label;
   const [categories, setCategories] = useState<AdminRequestCategories>({});
   useEffect(() => {
     let active = true;
@@ -77,6 +78,7 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
       <View style={workspace.brandRow}><Image source={require('../../../assets/images/logo.png')} style={workspace.logo} resizeMode="contain" /><View><Text style={workspace.brand}>ArtFilier</Text><Text style={workspace.role}>PLATFORM ADMIN</Text></View></View>
       <ScrollView horizontal={!desktop} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} style={{ flex: desktop ? 1 : undefined }} contentContainerStyle={[workspace.navigation, !desktop && { flexDirection: 'row' }]}>
         {tabs.map(({ key, label, path, icon: Icon }) => <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: !section && activeTab === key }} onPress={() => { setSection(null); if (activeTab !== key) router.replace(path as any); }} style={[workspace.navItem, !section && activeTab === key && workspace.navActive]}><Icon size={20} color="#A74646" /><Text style={workspace.navLabel}>{label}</Text></Pressable>)}
+        <Pressable accessibilityRole="button" accessibilityState={{ selected: section === 'deadlines' }} onPress={() => setSection('deadlines')} style={[workspace.navItem, section === 'deadlines' && workspace.navActive]}><CalendarClock size={20} color="#A74646" /><Text style={workspace.navLabel}>Renewals &amp; Deadlines</Text></Pressable>
         {approvalQueues.map(({ label, path, categories: keys, icon: Icon }) => {
           const pending = keys.reduce((count, key) => count + (categories[key]?.pending || 0), 0);
           return <Pressable key={path} accessibilityRole="button" accessibilityState={{ selected: section === path }} accessibilityLabel={`${label}, ${pending} pending`} onPress={() => setSection(path)} style={[workspace.navItem, section === path && workspace.navActive]}><Icon size={20} color="#A74646" /><Text style={[workspace.navLabel, { flex: 1 }]}>{label}</Text>{pending > 0 && <View style={s.badge}><Text style={s.badgeText}>{pending > 99 ? '99+' : pending}</Text></View>}</Pressable>;
@@ -93,6 +95,7 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
       {!!refreshError && <Text style={workspace.error}>{refreshError}</Text>}
       {!section ? children : section === 'lookup' ? <ArtworkCodeLookup /> : section === '/attribution-reviews' ? <AttributionReviewsScreen embedded /> : <ScrollView key={section} contentContainerStyle={workspace.content}>
         {section === 'users' && <UserManagement />}
+        {section === 'deadlines' && <RenewalsAndDeadlines />}
         {section === '/reseller-approvals' && <ResellerApprovals workspace />}
         {section === '/admin-moderator-approvals' && <ModeratorEvaluation admin />}
         {section === '/admin-driver-approvals' && <ModeratorEvaluation admin driver />}

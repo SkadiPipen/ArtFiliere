@@ -145,6 +145,18 @@ class User(models.Model):
         db_table = "user"
 
 
+class ArtistFollow(models.Model):
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='artist_follows')
+    artist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='artist_followers')
+
+    class Meta:
+        db_table = 'artist_follow'
+        constraints = [
+            models.UniqueConstraint(fields=['follower', 'artist'], name='unique_artist_follow'),
+            models.CheckConstraint(condition=~models.Q(follower=models.F('artist')), name='no_self_artist_follow'),
+        ]
+
+
 class RoyaltyApplication(models.Model):
     permit_details = models.JSONField(default=dict, blank=True)
     business_permit_name = models.CharField(max_length=180, blank=True)
