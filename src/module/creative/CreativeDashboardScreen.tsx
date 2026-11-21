@@ -1,4 +1,5 @@
 import Skeleton from '@/components/Skeleton';
+import useLogoutConfirmation from '@/components/useLogoutConfirmation';
 import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import ReviewTransition from './ReviewTransition';
@@ -51,6 +52,7 @@ type Artwork = {
 const label = (value: string) => value.replace("_", " ");
 
 export default function CreativeDashboardScreen({ embedded = false }: { embedded?: boolean }) {
+  const { requestLogout, logoutConfirmation } = useLogoutConfirmation();
   const { width, height } = useWindowDimensions();
   const reviewLandscape = width >= 1000;
   const [viewingImage, setViewingImage] = useState<{ uri: string; label: string } | null>(null);
@@ -177,16 +179,17 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
   };
   return (
     <View style={s.page}>
+      {logoutConfirmation}
       {!embedded && <View style={s.header}>
         <View>
           <Text style={s.brand}>ArtFilier</Text>
           <Text style={s.subtitle}>CREATIVE MODERATOR PORTAL</Text>
         </View>
         <TouchableOpacity
-          onPress={async () => {
+          onPress={() => requestLogout(async () => {
             await auth.signOut();
             router.replace("/login");
-          }}
+          })}
           style={s.logout}
         >
           <LogOut size={16} color="#5A4039" />

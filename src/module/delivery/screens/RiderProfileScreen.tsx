@@ -1,3 +1,4 @@
+import useLogoutConfirmation from '@/components/useLogoutConfirmation';
 import { ActivityIndicator } from 'react-native';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
@@ -34,6 +35,7 @@ interface RiderProfile {
 }
 
 export default function ProfileScreen() {
+  const { requestLogout, logoutConfirmation } = useLogoutConfirmation();
   const router = useRouter();
   const [riderData, setRiderData] = useState<RiderProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -227,10 +229,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {logoutConfirmation}
         {/* Logout */}
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={handleLogout}
+          onPress={() => requestLogout(handleLogout)}
           disabled={logoutLoading}
           activeOpacity={0.7}
         >

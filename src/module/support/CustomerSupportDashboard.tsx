@@ -1,3 +1,4 @@
+import useLogoutConfirmation from '@/components/useLogoutConfirmation';
 import { staffWorkspaceStyles as s } from '@/components/staffWorkspaceStyles';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
@@ -23,6 +24,7 @@ const sections = [
 type Section = typeof sections[number]['id'];
 
 export default function CustomerSupportDashboard() {
+  const { requestLogout, logoutConfirmation } = useLogoutConfirmation();
   const [section, setSection] = useState<Section>('overview');
   const [error, setError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
@@ -48,7 +50,8 @@ export default function CustomerSupportDashboard() {
         <ScrollView horizontal={!desktop} style={{ flex: desktop ? 1 : undefined }} contentContainerStyle={[s.navigation, !desktop && { flexDirection: 'row' }]}>
           {sections.map(({ id, label, icon: Icon }) => <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: section === id }} onPress={() => navigate(id)} style={[s.navItem, section === id && s.navActive]}><Icon size={20} color={section === id ? '#A74646' : '#81756D'} /><Text style={[s.navLabel, section === id && { color: '#A74646', fontWeight: '700' }]}>{label}</Text></Pressable>)}
         </ScrollView>
-        <Pressable accessibilityRole="button" onPress={logout} disabled={loggingOut} style={s.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>{loggingOut ? 'Logging out…' : 'Log out'}</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => requestLogout(logout)} disabled={loggingOut} style={s.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>{loggingOut ? 'Logging out…' : 'Log out'}</Text></Pressable>
+        {logoutConfirmation}
       </View>
       <View style={s.main}>
         <View style={s.topbar}><Headset size={22} color="#B65B50" /><Text style={s.workspace}>Customer support workspace</Text><Text style={s.muted}>{current.label}</Text></View>

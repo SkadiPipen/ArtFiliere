@@ -1,3 +1,4 @@
+import useLogoutConfirmation from '@/components/useLogoutConfirmation';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { staffWorkspaceStyles as workspace } from '@/components/staffWorkspaceStyles';
@@ -78,6 +79,7 @@ const statusStyle = (status: ApplicationStatus) => {
 };
 
 export default function HrDashboardScreen() {
+  const { requestLogout, logoutConfirmation } = useLogoutConfirmation();
   const { width } = useWindowDimensions();
   const desktop = width >= 900;
   const isWide = width >= 1100;
@@ -290,7 +292,8 @@ export default function HrDashboardScreen() {
         <ScrollView horizontal={!desktop} style={{ flex: desktop ? 1 : undefined }} contentContainerStyle={[workspace.navigation, !desktop && { flexDirection: 'row' }]}>
           {navigation.map(({ id, label, icon: Icon }) => <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: section === id }} onPress={() => { setSection(id); if (id === 'logs') void loadLogs(); }} style={[workspace.navItem, section === id && workspace.navActive]}><Icon size={20} color={section === id ? '#A74646' : '#81756D'} /><Text style={[workspace.navLabel, section === id && { color: '#A74646', fontWeight: '700' }]}>{label}</Text></Pressable>)}
         </ScrollView>
-        <Pressable accessibilityRole="button" onPress={handleLogout} style={workspace.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>Log out</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => requestLogout(handleLogout)} style={workspace.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>Log out</Text></Pressable>
+        {logoutConfirmation}
       </View>
       <View style={workspace.main}>
       <View style={workspace.topbar}><Users size={22} color="#B65B50" /><Text style={workspace.workspace}>HR moderation workspace</Text><Text style={workspace.muted}>{current.label}</Text></View>

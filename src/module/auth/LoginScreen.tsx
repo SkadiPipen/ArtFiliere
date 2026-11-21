@@ -1,11 +1,12 @@
 import { Text, TextInput } from '@/components/Typography';
 import { COLORS } from '@/constants/colors';
 import API_URL from '@/services/api';
-import { loginUser, logOut } from '@/services/auth';
+import { loginUser, logOut, requestPasswordReset } from '@/services/auth';
 import { platformAccessError } from '@/services/platformAccess';
 import { staffDashboardForRole } from '@/services/roleRoutes';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { FirebaseError } from 'firebase/app';
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +18,8 @@ export default function HomeScreen() {
   const [error, setError] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
@@ -86,6 +89,36 @@ export default function HomeScreen() {
     } finally { setBusy(false); }
   }
 
+  function showResetForm(show: boolean) {
+    setResetMode(show);
+    setResetSent(false);
+    setPassword('');
+    setShowPassword(false);
+    setError('');
+  }
+
+  async function handleReset() {
+    if (busy || resetSent) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Enter a valid email address.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await requestPasswordReset(email);
+      setResetSent(true);
+    } catch (error) {
+      const code = error instanceof FirebaseError ? error.code : '';
+      if (code === 'auth/user-not-found') setResetSent(true);
+      else if (code === 'auth/invalid-email') setError('Enter a valid email address.');
+      else if (code === 'auth/too-many-requests') setError('Too many attempts. Wait a few minutes and try again.');
+      else setError('Unable to send the reset email right now. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const baseline = { opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] };
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.screen}>
@@ -113,12 +146,21 @@ export default function HomeScreen() {
           </View>
           <View style={[styles.formRegion, isWide && styles.formRegionWide]}>
             <Animated.View style={[styles.form, baseline]}>
-              <Text style={styles.title}>Login</Text>
+              <Text accessibilityRole="header" style={styles.title}>{resetMode ? 'Reset your password' : 'Login'}</Text>
               <Animated.View style={[styles.baseline, { transform: [{ scaleX: entrance }] }]} />
               {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-              <TextInput accessibilityLabel="Email" style={[styles.input, focused === 'email' && styles.inputFocused]} placeholder="Email" placeholderTextColor={COLORS.textMuted}
-                value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email"
-                onFocus={() => setFocused('email')} onBlur={() => setFocused(null)} />
+              {resetMode && <Text style={styles.resetCopy} accessibilityLiveRegion="polite">{resetSent
+                ? 'If this email is registered, you’ll receive a password reset link. Check your inbox and spam folder.'
+                : 'Enter the email address you use for ArtFilier. We’ll send you a link to set a new password.'}</Text>}
+              {!resetSent && <TextInput accessibilityLabel="Email" style={[styles.input, focused === 'email' && styles.inputFocused]} placeholder="Email" placeholderTextColor={COLORS.textMuted}
+                value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" editable={!busy}
+                onSubmitEditing={resetMode ? handleReset : undefined} onFocus={() => setFocused('email')} onBlur={() => setFocused(null)} />}
+              {resetMode ? <>
+                {!resetSent && <Pressable accessibilityRole="button" disabled={busy} onPress={handleReset} style={({ pressed }) => [styles.login, pressed && styles.loginPressed, busy && { opacity: 0.65 }]}>
+                  <Text style={styles.loginText}>{busy ? 'Sending…' : 'Send reset link'}</Text>
+                </Pressable>}
+                <Pressable accessibilityRole="button" disabled={busy} onPress={() => showResetForm(false)} style={styles.textLink}><Text style={styles.link}>Back to login</Text></Pressable>
+              </> : <>
               <View style={styles.passwordField}>
                 <TextInput accessibilityLabel="Password" style={[styles.input, focused === 'password' && styles.inputFocused, styles.passwordInput]} placeholder="Password" placeholderTextColor={COLORS.textMuted}
                   value={password} onChangeText={setPassword} secureTextEntry={!showPassword} autoComplete="current-password" autoCapitalize="none" autoCorrect={false} returnKeyType="go"
@@ -135,13 +177,14 @@ export default function HomeScreen() {
               <Pressable accessibilityRole="button" disabled={busy} onPress={handleLogin} style={({ pressed }) => [styles.login, pressed && styles.loginPressed, busy && { opacity: 0.65 }]}>
                 <Text style={styles.loginText}>{busy ? 'Please wait…' : 'Log In'}</Text>
               </Pressable>
-              <Pressable accessibilityRole="link" onPress={() => router.push('/')} style={styles.textLink}><Text style={styles.link}>Forgot password?</Text></Pressable>
+              <Pressable accessibilityRole="button" disabled={busy} onPress={() => showResetForm(true)} style={styles.textLink}><Text style={styles.link}>Forgot password?</Text></Pressable>
               <Pressable accessibilityRole="link" onPress={() => router.push('/sign-up')} style={styles.textLink}>
                 <Text style={styles.signup}>Don't have an account? <Text style={styles.link}>Sign Up</Text></Text>
               </Pressable>
               <Pressable accessibilityRole="link" onPress={() => router.push('/rider/login' as any)} style={({ pressed }) => [styles.driver, pressed && { backgroundColor: '#FFF5F3' }]}>
                 <Text style={styles.driverText}>Are you Courier / Driver? Log In Here</Text>
               </Pressable>
+              </>}
             </Animated.View>
           </View>
         </ScrollView>
@@ -180,6 +223,7 @@ const styles = StyleSheet.create({
   textLink: { minHeight: 36, alignItems: 'center', justifyContent: 'center' },
   link: { color: COLORS.red, fontWeight: '600', fontSize: 13 },
   signup: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
+  resetCopy: { color: COLORS.textDark, fontSize: 14, lineHeight: 21, marginBottom: 16 },
   driver: { minHeight: 46, borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.red, borderRadius: 7, padding: 12, marginTop: 20, alignItems: 'center', justifyContent: 'center' },
   driverText: { color: COLORS.red, fontSize: 12, textAlign: 'center' },
   error: { color: '#B42318', backgroundColor: '#FFF5F3', padding: 12, borderRadius: 7, marginBottom: 16, fontSize: 13 },

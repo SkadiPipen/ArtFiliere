@@ -1,3 +1,4 @@
+import useLogoutConfirmation from '@/components/useLogoutConfirmation';
 import UserManagement from './UserManagement';
 import { AdminRefreshContext } from './AdminRefresh';
 import AccountApprovalWorkspace from './AccountApprovalWorkspace';
@@ -48,6 +49,7 @@ const navigationGroups: { id: string; label: string; icon: typeof LayoutDashboar
 ];
 
 export default function AdminPage({ activeTab, children, onRefresh, initialSection = null }: { activeTab: Tab; children: ReactNode; onRefresh?: () => void; initialSection?: string | null }) {
+  const { requestLogout, logoutConfirmation } = useLogoutConfirmation();
   const refreshers = useRef(new Set<() => void | Promise<unknown>>());
   const registerRefresh = useCallback((refresh: () => void | Promise<unknown>) => { refreshers.current.add(refresh); return () => { refreshers.current.delete(refresh); }; }, []);
   const [refreshing, setRefreshing] = useState(false);
@@ -120,7 +122,8 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
         })}
       </ScrollView>
       {!!logoutError && <Text style={workspace.error}>{logoutError}</Text>}
-      <Pressable accessibilityRole="button" onPress={async () => { try { await auth.signOut(); router.replace('/login'); } catch { setLogoutError('Unable to log out. Please try again.'); } }} style={workspace.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>Log out</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => requestLogout(async () => { try { await auth.signOut(); router.replace('/login'); } catch { setLogoutError('Unable to log out. Please try again.'); } })} style={workspace.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>Log out</Text></Pressable>
+      {logoutConfirmation}
     </View>
     <View style={workspace.main}>
       <View style={workspace.topbar}><Shield size={22} color="#B65B50" /><Text style={workspace.workspace}>Platform administration</Text><Text style={workspace.muted}>{current}</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh current admin section" disabled={refreshing} onPress={() => void refreshCurrent()} style={{ padding: 8, opacity: refreshing ? 0.4 : 1 }}><RefreshCcw size={20} color="#A74646" /></TouchableOpacity></View>

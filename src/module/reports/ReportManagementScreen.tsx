@@ -1,3 +1,4 @@
+import useLogoutConfirmation from '@/components/useLogoutConfirmation';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import ContentModal from '@/components/ContentModal';
@@ -30,6 +31,7 @@ type Review = { title: string; path: string; field: string; value: string };
 const label = (value: string) => value.replace(/_/g, ' ');
 
 export default function ReportManagementScreen({ embedded = false, initialTab = 'reports', header }: { embedded?: boolean; initialTab?: 'reports' | 'requests' | 'actions' | 'finance'; header?: ReactNode }) {
+  const { requestLogout, logoutConfirmation } = useLogoutConfirmation();
   const router = useRouter();
   const [data, setData] = useState<Dashboard | null>(null);
   const [tab, setTab] = useState(initialTab);
@@ -162,7 +164,8 @@ export default function ReportManagementScreen({ embedded = false, initialTab = 
       {!!data && <>
         {!embedded && <View style={s.row}>
           {admin && button('Artwork code lookup', () => router.push('/artwork-code-lookup' as any), true)}
-          {data?.role === 'customer_support' && button('Log out', () => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }, true)}
+          {data?.role === 'customer_support' && button('Log out', () => requestLogout(() => { signOut(auth).then(() => router.replace('/')).catch(() => setError('Unable to log out.')); }), true)}
+          {logoutConfirmation}
           {staff && button('Review restriction appeals', () => router.push((admin ? '/moderation-approvals' : '/moderator-dashboard') as any), true)}
           {!staff && button('File a report', () => open('report'), false, 'reports-tour-file')}
           {trader && button('Request cancellation or return', () => open('request'), true, 'reports-tour-request')}
