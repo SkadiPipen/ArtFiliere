@@ -1,12 +1,14 @@
 import { auth } from '@/firebase/config';
 import { signOut } from 'firebase/auth';
 import { Text } from '@/components/Typography';
+import AppDialog from '@/components/AppDialog';
 import { Link, usePathname, useRouter, type Href } from 'expo-router';
 import {
   Clock,
   Compass,
   Flag,
   Home,
+  Paintbrush,
   Plus,
   LogOut,
   Settings,
@@ -27,6 +29,7 @@ interface ProfileData {
   role?: string;
   username?: string;
   first_name?: string;
+  profile_image?: string | null;
 }
 
 interface NavItemProps {
@@ -114,6 +117,7 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [logoutError, setLogoutError] = useState('');
   const logout = async () => {
     setLoggingOut(true); setLogoutError('');
@@ -124,10 +128,12 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
   const { user, readOnly } = useContext(AuthContext);
   const { cartItems } = useCart();
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     setProfile(null);
+    setFailedAvatar(null);
 
     if (user) {
       (async () => {
@@ -153,6 +159,7 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
   }, [user]);
 
   const artist = profile?.role === 'artist';
+  const avatar = profile?.profile_image || user?.photoURL;
   const name =
     profile?.first_name ||
     profile?.username ||
@@ -253,6 +260,7 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
           {renderItem('Home', '/(home)', Home, isHome)}
           {renderItem('Activities', '/(home)/activities', Clock, pathname === '/activities')}
           {renderItem('Auctions', '/(home)/auction-dashboard', Compass, pathname === '/auction-dashboard')}
+          {renderItem('Commissions', '/commissions', Paintbrush, pathname === '/commissions' || pathname === '/commission-detail')}
 
           <View style={styles.divider} />
 
@@ -266,7 +274,7 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
             'Profile',
             '/(home)/profile',
             User,
-            pathname === '/profile' || pathname === '/edit-profile'
+            pathname === '/profile' || pathname === '/edit-profile' || pathname === '/my-portfolio'
           )}
           {renderItem('Settings', '/(home)/settings', Settings, pathname === '/settings')}
           {renderItem('Reports & disputes', '/report-management', Flag, pathname === '/report-management')}
@@ -290,7 +298,7 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
               </Pressable>
             </Link>
           )}
-          {user && <Pressable accessibilityRole="button" accessibilityLabel="Log out" disabled={loggingOut} onPress={() => { void logout(); }} style={({ pressed }) => [styles.logout, pressed && { backgroundColor: '#EBDAD4' }, loggingOut && { opacity: 0.5 }]}>
+          {user && <Pressable accessibilityRole="button" accessibilityLabel="Log out" disabled={loggingOut} onPress={() => setConfirmLogout(true)} style={({ pressed }) => [styles.logout, pressed && { backgroundColor: '#EBDAD4' }, loggingOut && { opacity: 0.5 }]}>
             <LogOut size={19} color="#B65B50" />
             {!compact && <Text {...webLabel} style={styles.logoutLabel}>{loggingOut ? 'Logging out...' : 'Log Out'}</Text>}
           </Pressable>}
@@ -309,9 +317,11 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
               ])}
             >
               <View style={styles.avatar}>
-                <Text style={styles.initial}>
-                  {name.slice(0, 1).toUpperCase()}
-                </Text>
+                {avatar && avatar !== failedAvatar ? (
+                  <Image source={{ uri: avatar }} style={styles.avatarImage} onError={() => setFailedAvatar(avatar)} />
+                ) : (
+                  <Text style={styles.initial}>{name.slice(0, 1).toUpperCase()}</Text>
+                )}
               </View>
               {!compact && (
                 <View {...webLabel} style={{ flex: 1 }}>
@@ -329,6 +339,15 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
 
         </View>
       </View>
+      <AppDialog
+        visible={!!user && confirmLogout}
+        title="Log out?"
+        message="Are you sure you want to log out of ArtFilier?"
+        secondaryLabel="Cancel"
+        primaryLabel="Log Out"
+        onClose={() => setConfirmLogout(false)}
+        onPrimary={() => { void logout(); }}
+      />
     </View>
   );
 }
@@ -491,6 +510,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#8A5946',
   },
+  avatarImage: { width: 36, height: 36, borderRadius: 18 },
   accountName: {
     color: '#463A32',
     fontSize: 12,

@@ -8,6 +8,13 @@ from decimal import Decimal
 from .models import AuctionListing, Bid
 from authentication.views import AuthenticatedAPIView
 from users.models import User
+from wallets.auction_delivery import AUCTION_MESSAGE
+
+
+def can_select_winner(auction, user):
+    return bool(user and not getattr(user, 'view_only', False) and auction.highest_bidder_id
+                and user.pk in (auction.artist_id, auction.highest_bidder_id)
+                and auction.is_expired() and auction.status in ('ACTIVE', 'ENDED'))
 
 
 def auction_terms(auction, buyer_name="the winning buyer", amount="the winning bid"):
@@ -49,7 +56,7 @@ def create_auction_agreement(auction, buyer, amount):
         artist_signed_at=auction.artist_signed_at,
     )
     Message.objects.create(conversation=conversation, sender=None, message_type=Message.Type.SYSTEM,
-        body="Auction terms were accepted at bid time. Only delivery details may be discussed.", agreement=agreement)
+        body=AUCTION_MESSAGE, agreement=agreement)
     return agreement
 
 
@@ -167,7 +174,7 @@ class AuctionDashboardView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class AuctionDetailView(APIView):
+class AuctionDetailView(AuthenticatedAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, pk):
@@ -212,6 +219,21 @@ class AuctionDetailView(APIView):
             full_name = f"{getattr(artist_obj, 'first_name', '')} {getattr(artist_obj, 'last_name', '')}".strip()
             artist_display = full_name or getattr(artist_obj, 'username', 'Artist')
 
+        user = self.get_request_user(request)
+        conversation_id = None
+        if (user and auction.highest_bidder_id and auction.winning_bid is not None and auction.is_expired()
+                and user.pk in (auction.artist_id, auction.highest_bidder_id)):
+            from messaging.models import Agreement
+            conversation_id = Agreement.objects.filter(
+                artwork_id=auction.artwork_id, artist_id=auction.artist_id, buyer_id=auction.highest_bidder_id,
+                price=auction.winning_bid, status=Agreement.Status.ACCEPTED,
+                artist_presigned_document=auction.signed_document,
+                artist_signed_at__isnull=False, buyer_signed_at__isnull=False,
+                messages__body=AUCTION_MESSAGE, messages__sender__isnull=True,
+            ).exclude(artist_signature_image='').exclude(buyer_signature_image='').order_by('-pk').values_list(
+                'conversation_id', flat=True,
+            ).first()
+
         return Response({
             "id": auction.id,
             "artwork_id": auction.artwork.id if auction.artwork else pk,
@@ -230,6 +252,8 @@ class AuctionDetailView(APIView):
             "next_min_bid": current_bid_val + increment_val,
             "end_time": auction.end_time.isoformat() if auction.end_time else (timezone.now() + timezone.timedelta(days=3)).isoformat(),
             "status": auction.status,
+            "contract_conversation_id": conversation_id,
+            "can_select_winner": can_select_winner(auction, user),
             "highest_bidder_id": auction.highest_bidder.id if auction.highest_bidder else None,
             "highest_bidder_name": auction.highest_bidder.username if auction.highest_bidder else None,
             "highest_bidder_uid": getattr(auction.highest_bidder, 'firebase_uid', None),
@@ -241,7 +265,7 @@ class AuctionDetailView(APIView):
             "payment_deadline": auction.payment_deadline.isoformat() if auction.payment_deadline else None,
             "backup_offer_expires_at": auction.backup_offer_expires_at.isoformat() if auction.backup_offer_expires_at else None,
             "backup_bidder_id": auction.backup_bidder_id,
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK, headers={'Cache-Control': 'private, no-store'})
 
 
 class PlaceBidView(AuthenticatedAPIView):
@@ -321,20 +345,15 @@ class SettleAuctionView(AuthenticatedAPIView):
         if not user:
             return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
         
-        auction = AuctionListing.objects.select_related('artwork', 'artist', 'highest_bidder').filter(
-            Q(pk=pk)
-        ).first()
+        auction = AuctionListing.objects.select_for_update().filter(pk=pk).first()
 
         if not auction:
             return Response({"error": "Auction not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if not auction.highest_bidder:
-            return Response({"error": "No bids placed on this auction."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not auction.is_expired():
-            return Response({"error": "The auction must end before a winner is selected."}, status=status.HTTP_400_BAD_REQUEST)
-        if auction.status in {'PAYMENT_PENDING', 'SETTLED'}:
-            return Response({"error": "This auction already has a winner."}, status=status.HTTP_400_BAD_REQUEST)
+        if user.pk not in (auction.artist_id, auction.highest_bidder_id) or getattr(user, 'view_only', False):
+            return Response({"error": "Only the artist or winning bidder can select the winner."}, status=status.HTTP_403_FORBIDDEN)
+        if not can_select_winner(auction, user):
+            return Response({"error": "A winner cannot be selected for this auction right now."}, status=status.HTTP_400_BAD_REQUEST)
 
         winner = auction.highest_bidder
         artist = auction.artist

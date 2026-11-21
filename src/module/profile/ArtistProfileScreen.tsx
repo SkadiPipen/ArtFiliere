@@ -11,9 +11,11 @@ import { Text, TextInput } from '@/components/Typography';
 import ResellerBadge from '@/components/ResellerBadge';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
+import { purchaseRequest } from '@/services/purchases';
+import { AuthContext } from '@/context/AuthContext';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, MessageCircle, Paintbrush, Share2, X } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Dimensions, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -29,13 +31,45 @@ export default function ArtistProfileScreen() {
   const [showFullPortfolio, setShowFullPortfolio] = useState(false);
 
   const [artist, setArtist] = useState<any>(null);
+  const { user, loading: authLoading } = useContext(AuthContext);
+  const [follow, setFollow] = useState<{ is_following: boolean; can_follow: boolean; is_self: boolean } | null>(null);
+  const [followingBusy, setFollowingBusy] = useState(false);
   const artistId = String(artist?.id || routeArtistId || '');
+  const artistRole = artist?.role;
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
   const [chatArtist, setChatArtist] = useState<any>(null);
   const [openingChat, setOpeningChat] = useState(false);
   const [messageError, setMessageError] = useState('');
   const [showShare, setShowShare] = useState(false);
+  useEffect(() => {
+    setFollow(null);
+    if (!user || !artistId || artistRole !== 'artist') return;
+    let active = true;
+    purchaseRequest(`users/artists/${artistId}/follow/`).then(result => {
+      if (active) {
+        setFollow(result);
+        setArtist((current: any) => String(current?.id) === artistId ? { ...current, followers_count: result.followers_count } : current);
+      }
+    }).catch(error => { if (active) setMessageError(error.message || 'Unable to load follow status.'); });
+    return () => { active = false; };
+  }, [user, artistId, artistRole]);
+
+  const changeFollow = async () => {
+    if (!user) { router.push('/login'); return; }
+    if (!follow?.can_follow || followingBusy) return;
+    setFollowingBusy(true);
+    setMessageError('');
+    try {
+      const result = await purchaseRequest(`users/artists/${artistId}/follow/`, follow.is_following ? 'DELETE' : 'PUT');
+      setFollow(result);
+      setArtist((current: any) => String(current?.id) === artistId ? { ...current, followers_count: result.followers_count } : current);
+    } catch (error) {
+      setMessageError(error instanceof Error ? error.message : 'Unable to update this follow.');
+    } finally {
+      setFollowingBusy(false);
+    }
+  };
   const openArtistChat = async () => {
     if (openingChat) return;
     setOpeningChat(true); setMessageError('');
@@ -176,6 +210,11 @@ export default function ArtistProfileScreen() {
         </TouchableOpacity>
 
         <View style={[s.navRight, pageWidth < 768 && { width: '100%', justifyContent: 'flex-end', flexWrap: 'wrap' }]}>
+          {follow?.is_self ? (
+            <View style={s.closedCommission}>
+              <Text style={s.closedCommissionText}>You are viewing your account</Text>
+            </View>
+          ) : !authLoading && (!user || artistRole !== 'artist' || follow) ? <>
           {artist.is_accepting_commissions ? (
             <TouchableOpacity
               style={s.commissionBtn}
@@ -205,6 +244,7 @@ export default function ArtistProfileScreen() {
             <MessageCircle color="#A84B46" size={16} />
             <Text style={s.messageText}>{openingChat ? 'Opening...' : 'Message'}</Text>
           </TouchableOpacity>
+          </> : null}
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Share artist profile" accessibilityState={{ expanded: showShare }} onPress={() => setShowShare(true)} style={s.shareButton}><Share2 size={18} color="#A84B46" /></TouchableOpacity>
         </View>
       </View>
@@ -234,10 +274,15 @@ export default function ArtistProfileScreen() {
               <ResellerBadge verified={artist.reseller_verified} />
               {!!artist.bio?.trim() && <Text style={s.bioText}>{artist.bio}</Text>}
               <Text style={s.statsText}>
-                {artist.reviews_count ?? 25} Reviews •{" "}
-                {artist.followers_count ?? 19} Followers •{" "}
-                {artist.following_count ?? 3} Following
+                {artist.reviews_count ?? 0} Reviews •{" "}
+                {artist.followers_count ?? 0} Followers •{" "}
+                {artist.following_count ?? 0} Following
               </Text>
+              {artist.role === 'artist' && (!user || follow?.can_follow) && (
+                <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: followingBusy, selected: !!follow?.is_following }} disabled={followingBusy} onPress={() => void changeFollow()} style={{ alignSelf: 'flex-start', backgroundColor: COLORS.roseLight, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8 }}>
+                  <Text style={{ color: COLORS.redDark, fontWeight: '700' }}>{followingBusy ? 'Saving…' : follow?.is_following ? 'Unfollow artist' : 'Follow artist'}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -336,7 +381,7 @@ export default function ArtistProfileScreen() {
           <TouchableOpacity accessibilityRole="button" onPress={() => setPortfolioPreview(null)}><Text style={{ color: 'white', textAlign: 'right', padding: 16 }}>Close</Text></TouchableOpacity>
           <Text style={{ color: 'white', fontSize: 20 }}>{portfolioPreview?.title}</Text>
           {!!portfolioPreview?.image_data && <ProductImage source={{ uri: portfolioPreview.image_data }} resizeMode="contain" style={{ width: '100%', height: '70%' }} />}
-          <Text style={{ color: 'white' }}>Completed commission · Portfolio preview</Text>
+          <Text style={{ color: 'white' }}>Completed commission</Text>
         </View>
       </Modal>
       {/* 4. Commission Request Modal */}

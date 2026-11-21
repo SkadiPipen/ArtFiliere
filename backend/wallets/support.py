@@ -193,7 +193,11 @@ class SupportView(AuthenticatedAPIView):
             return Response({'results': [dict(username=member.username, profile_image=pictures.get(member.firebase_uid) or None) for member in members]})
         if action == 'catalog':
             artist = user.role == User.Role.ARTIST
-            return Response(dict(user_id=user.pk, is_moderator=is_moderator(user), role=user.role, department_label=DEPARTMENTS.get(user.role, ''), concerns=[c for c in CONCERNS if not c['artist_only'] or artist],
+            concerns = [
+                dict(item, category='Orders & Artwork') if not artist and item['id'] == 'plagiarism' else item
+                for item in CONCERNS if artist or not item['artist_only']
+            ]
+            return Response(dict(user_id=user.pk, is_moderator=is_moderator(user), role=user.role, department_label=DEPARTMENTS.get(user.role, ''), concerns=concerns,
                                  faqs=[f for f in FAQS if not f.get('artist_only') or artist], statuses=dict(SupportTicket.Status.choices)))
         if action == 'agents':
             if user.role != User.Role.CUSTOMER_SUPPORT:
@@ -319,8 +323,8 @@ class SupportView(AuthenticatedAPIView):
             linked[kind] = obj
         elif ref_id is not None:
             raise ValidationError({'error': 'This concern does not require a linked record.'})
-        if item['id'] == 'plagiarism' and not values['evidence'].strip():
-            raise ValidationError({'error': 'Provide the original work link or describe evidence of ownership.'})
+        if item['id'] == 'plagiarism' and not (values['evidence'].strip() or values['image_data']):
+            raise ValidationError({'error': 'Provide a link to the original work, attach an image showing ownership, or provide both.'})
         if item['id'] == 'rejected_artwork':
             existing = SupportTicket.objects.filter(
                 requester=user, artwork=obj, concern='rejected_artwork',

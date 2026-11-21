@@ -1,11 +1,11 @@
 import { Text } from '@/components/Typography';
-import { ArrowLeft, RefreshCw, ShoppingBag, Wallet, Truck, Star, Percent, Handshake, ShieldCheck, ReceiptText, History } from 'lucide-react-native';
+import { ArrowLeft, RefreshCw, ShoppingBag, Wallet, Truck, Star, Percent, Handshake, ShieldCheck, ReceiptText, History, Settings } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 const transactionIcon = (title: string) => title === 'To Pay' ? Wallet : title === 'To Receive' ? Truck : title === 'To Rate' ? Star : title === 'Art Royalties' ? Percent : title === 'Ongoing Negotiations' ? Handshake : (title.startsWith('Verify') || title.startsWith('Reports,') || title === 'Customer Support') ? ShieldCheck : title.startsWith('Royalty Reports') ? ReceiptText : ShoppingBag;
 type Props = { title: string; onBack: () => void; onRefresh?: () => void; refreshing?: boolean };
 export default function TransactionHeader({ title, onBack, onRefresh, refreshing = false }: Props) {
-  const Icon = title === 'Activities' ? History : transactionIcon(title);
+  const Icon = title === 'User Settings' ? Settings : title === 'Activities' ? History : transactionIcon(title);
   return <View style={s.header}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Back from ${title}`} onPress={onBack} style={s.back}><ArrowLeft size={23} color="#62493E" /></Pressable>
     <View style={s.brandCopy}><View style={s.headerTitle}><Icon size={26} color="#BC5555" /><Text accessibilityRole="header" style={[s.brand, { flexShrink: 1 }]}>{title}</Text></View></View>

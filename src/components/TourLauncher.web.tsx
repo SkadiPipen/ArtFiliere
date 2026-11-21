@@ -1,7 +1,7 @@
 import { COLORS } from '@/constants/colors';
 import SpotlightTour from '@/components/SpotlightTour';
 import { useFocusEffect, useIsFocused } from 'expo-router';
-import { Paintbrush } from 'lucide-react-native';
+import { Search } from 'lucide-react-native';
 import { useCallback, useState, type CSSProperties, type ReactNode, type ReactPortal } from 'react';
 import { useWindowDimensions } from 'react-native';
 import type { TourLauncherProps } from './TourLauncher';
@@ -43,6 +43,7 @@ export default function TourLauncher({ label, steps, bottom, right = 20, size = 
           }
           .artfilier-guide-button:is(:hover, :focus-visible) { width: calc(var(--artfilier-guide-size) + 98px); }
           .artfilier-guide-button:focus-visible { outline: 2px solid ${COLORS.redDark}; outline-offset: 3px; }
+          body:has([id^="artfilier-chat-open-"]) .artfilier-guide-button { display: none; }
           .artfilier-guide-paper {
             position: absolute;
             inset: 8px calc(var(--artfilier-guide-size) / 2) 8px 10px;
@@ -65,41 +66,49 @@ export default function TourLauncher({ label, steps, bottom, right = 20, size = 
             opacity: 1;
             transform: scaleX(1);
           }
-          .artfilier-guide-palette {
+          .artfilier-guide-magnifier {
             position: absolute;
             inset: 0 0 0 auto;
             width: var(--artfilier-guide-size);
             display: grid;
             place-items: center;
           }
-          .artfilier-guide-palette-icon {
-            width: 100%;
-            height: 100%;
+          .artfilier-guide-magnifier svg {
+            width: 94%;
+            height: 94%;
             filter: drop-shadow(0 2px 3px #40282426);
-            transition: transform 230ms cubic-bezier(.22, .68, .36, 1);
+            transform-origin: 78% 78%;
           }
-          .artfilier-guide-brush {
+          .artfilier-guide-question {
             position: absolute;
-            right: 0;
-            bottom: 4px;
+            right: calc(var(--artfilier-guide-size) * .54 - 11px);
+            top: calc(var(--artfilier-guide-size) * .46 - 11px);
             width: 22px;
             height: 22px;
             display: grid;
             place-items: center;
-            filter: drop-shadow(0 0 1px ${COLORS.white}) drop-shadow(0 0 1px ${COLORS.white});
-            transform: rotate(-8deg);
-            transition: right 230ms cubic-bezier(.22, .68, .36, 1), bottom 230ms ease, transform 230ms ease;
+            color: ${COLORS.redDark};
+            font: 800 21px/1 NunitoSans, sans-serif;
+            -webkit-text-stroke: 2px ${COLORS.white};
+            paint-order: stroke fill;
+            pointer-events: none;
+            transition: right 230ms cubic-bezier(.22, .68, .36, 1), top 230ms ease, transform 230ms ease;
           }
-          .artfilier-guide-button:is(:hover, :focus-visible) .artfilier-guide-palette-icon {
-            transform: rotate(-32deg);
+          .artfilier-guide-button:is(:hover, :focus-visible) .artfilier-guide-magnifier svg {
+            animation: artfilier-guide-peek 460ms ease-in-out;
           }
-          .artfilier-guide-button:is(:hover, :focus-visible) .artfilier-guide-brush {
-            right: calc(100% - 22px);
-            bottom: calc((var(--artfilier-guide-size) - 22px) / 2);
-            transform: rotate(-43deg) scale(1.18);
+          .artfilier-guide-button:is(:hover, :focus-visible) .artfilier-guide-question {
+            right: calc(100% - 29px);
+            top: calc((var(--artfilier-guide-size) - 22px) / 2);
+            transform: rotate(-10deg);
+          }
+          @keyframes artfilier-guide-peek {
+            35% { transform: translate(-3px, -2px) rotate(-17deg) scale(1.08); }
+            70% { transform: translate(1px, 0) rotate(7deg); }
           }
           @media (prefers-reduced-motion: reduce) {
-            .artfilier-guide-button, .artfilier-guide-paper, .artfilier-guide-palette-icon, .artfilier-guide-brush { transition: none; }
+            .artfilier-guide-button, .artfilier-guide-paper, .artfilier-guide-question { transition: none; }
+            .artfilier-guide-button:is(:hover, :focus-visible) .artfilier-guide-magnifier svg { animation: none; }
           }
         `}</style>
         <button
@@ -117,14 +126,10 @@ export default function TourLauncher({ label, steps, bottom, right = 20, size = 
           } as CSSProperties}
         >
           <span className="artfilier-guide-paper" aria-hidden="true">Guide</span>
-          <span className="artfilier-guide-palette" aria-hidden="true">
-            <svg className="artfilier-guide-palette-icon" viewBox="0 0 52 52" fill={COLORS.red} aria-hidden="true">
-              <path fillRule="evenodd" d="M27 2C13 2 2 12.4 2 26.1 2 39 12.3 49 24.4 49c6 0 8.2-3.2 6.6-7.6-1.4-3.9.2-6.7 4.7-6.1 8.2 1.1 14.3-4.4 14.3-12.1C50 11.5 39.8 2 27 2ZM18 14a3.6 3.6 0 1 0 0 .01ZM29 10a3.6 3.6 0 1 0 0 .01ZM40 15a3.6 3.6 0 1 0 0 .01ZM14 26a3.6 3.6 0 1 0 0 .01ZM39 25c0 2 1.9 3.3 4.2 3.3 2.2 0 4-1.3 4-3.3s-1.8-3.4-4-3.4-4.2 1.4-4.2 3.4Z" />
-            </svg>
+          <span className="artfilier-guide-magnifier" aria-hidden="true">
+            <Search size={size} color={COLORS.red} fill={COLORS.roseLight} strokeWidth={2.5} />
           </span>
-          <span className="artfilier-guide-brush" aria-hidden="true">
-            <Paintbrush size={20} color={COLORS.redDark} aria-hidden />
-          </span>
+          <span className="artfilier-guide-question" aria-hidden="true">?</span>
         </button>
         </>,
         dialog ?? document.body,

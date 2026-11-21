@@ -1,10 +1,43 @@
+from unittest.mock import patch
+
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIRequestFactory
+from commissions.models import CommissionRequest
+from fulfillment.models import PurchaseReview
 from users.models import User
-from .views import ArtistProfileView
+from .statistics import profile_counts
+from .views import ArtistFollowView, ArtistProfileView
 
 
 class PublicArtistProfileTests(TestCase):
+    def test_follow_counts_and_verified_review_count(self):
+        artist = User.objects.create(firebase_uid='followed', username='followed', email='followed@example.test', role='artist')
+        buyer = User.objects.create(firebase_uid='follower', username='follower', email='follower@example.test')
+        factory = APIRequestFactory()
+        profile = ArtistProfileView.as_view()
+        follow = ArtistFollowView.as_view()
+        with patch.object(ArtistFollowView, 'get_request_user', return_value=artist):
+            self.assertTrue(follow(factory.get('/'), artist_id=artist.pk).data['is_self'])
+        with patch.object(ArtistFollowView, 'get_request_user', return_value=buyer):
+            state = follow(factory.get('/'), artist_id=artist.pk).data
+            self.assertFalse(state['is_following'])
+            self.assertFalse(state['is_self'])
+            for _ in range(2):
+                self.assertEqual(follow(factory.put('/'), artist_id=artist.pk).data['followers_count'], 1)
+            self.assertEqual(profile_counts(buyer)['following_count'], 1)
+            self.assertEqual(profile(factory.get('/'), artist_id=artist.pk).data['followers_count'], 1)
+            self.assertFalse(follow(factory.delete('/'), artist_id=artist.pk).data['is_following'])
+        self.assertEqual(profile_counts(buyer)['following_count'], 0)
+
+        commission = CommissionRequest.objects.create(
+            buyer=buyer, artist=artist, title='Review sample', time_duration=100,
+            deadline=timezone.now(), status='COMPLETE',
+        )
+        PurchaseReview.objects.create(commission=commission, artist_rating=5, artwork_rating=5)
+        self.assertEqual(profile(factory.get('/'), artist_id=artist.pk).data['reviews_count'], 1)
+        self.assertEqual(profile_counts(buyer)['reviews_count'], 0)
+
     def test_artist_without_application_can_be_viewed_publicly(self):
         artist = User.objects.create(firebase_uid='public-artist', username='public-artist', email='public@artist.test',
                                      first_name='Public', last_name='Artist', role='artist', profile_image='avatar', cover_image='cover')

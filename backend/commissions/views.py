@@ -96,6 +96,8 @@ class CommissionRequestView(AuthenticatedAPIView):
         if not user:
             return Response({'error': 'Sign in to view your commissions.'}, status=401)
         elif role == 'artist':
+            if user.role != User.Role.ARTIST:
+                return Response({'error': 'Only artists can view received commissions.'}, status=403)
             commissions = CommissionRequest.objects.filter(Q(flow_version=2) | ~Q(status='CANCELLED'), artist=user).order_by('-commission_req_id')
         else:
             commissions = CommissionRequest.objects.filter(Q(flow_version=2) | ~Q(status='CANCELLED'), buyer=user).order_by('-commission_req_id')
