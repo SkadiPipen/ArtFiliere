@@ -2,6 +2,8 @@ import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import TransactionHeader from '@/components/TransactionHeader';
+import { AuthContext } from '@/context/AuthContext';
+import API_URL from '@/services/api';
 import { auth } from "@/firebase/config";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
@@ -15,18 +17,34 @@ import {
   LogOut,
   User,
 } from "lucide-react-native";
-import { useState } from "react";
+import { createElement, useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AccountSettingsPanel from './AccountSettingsPanel';
+import SwornDeclarationRenewal from './SwornDeclarationRenewal';
 
-type TabType = "account" | "privacy" | "billing" | "royalties";
+type TabType = "account" | "privacy" | "billing" | "royalties" | "declaration";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+  const { user } = useContext(AuthContext);
+  const [artistUid, setArtistUid] = useState<string | null>(null);
+  const showDeclaration = !!user && user.uid === artistUid;
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void user.getIdToken().then(token => fetch(`${API_URL}/auth/me/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })).then(async response => {
+      if (!response.ok) return;
+      const profile = await response.json();
+      if (active) setArtistUid(profile.role === 'artist' ? user.uid : null);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [user]);
 
   const [activeTab, setActiveTab] = useState<TabType>("account");
   const [loggingOut, setLoggingOut] = useState(false);
@@ -64,6 +82,14 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <TransactionHeader title="User Settings" onBack={() => goBackOr('/(home)/profile')} />
 
+      {Platform.OS === 'web' && isDesktop && createElement('style', null, `
+        #settings-desktop-menu {
+          position: sticky;
+          top: 24px;
+          max-height: calc(100dvh - 112px);
+          overflow-y: auto;
+        }
+      `)}
       <ScrollView
         style={{ flex: 1, minHeight: 0 }}
         keyboardShouldPersistTaps="handled"
@@ -75,7 +101,7 @@ export default function SettingsScreen() {
           style={[styles.discorContainer, isDesktop && styles.desktopContainer]}
         >
           {/* Lft sidebar navigation */}
-          <View style={[styles.sidebar, isDesktop && styles.desktopSidebar]}>
+          <View id={Platform.OS === 'web' && isDesktop ? 'settings-desktop-menu' : undefined} style={[styles.sidebar, isDesktop && styles.desktopSidebar]}>
             <Text style={styles.sidebarSectionTitle}>SETTINGS</Text>
 
             {/* Account */}
@@ -127,6 +153,14 @@ export default function SettingsScreen() {
               </View>
               {!isDesktop && <ChevronRight color="#CBD5E0" size={18} />}
             </TouchableOpacity>
+
+            {showDeclaration && <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: activeTab === 'declaration' }} style={[styles.navItem, activeTab === 'declaration' && styles.activeNavItem]} onPress={() => setActiveTab('declaration')}>
+              <View style={styles.navItemLeft}>
+                <FileCheck2 color={activeTab === 'declaration' ? COLORS.red : '#718096'} size={18} />
+                <Text style={[styles.navText, activeTab === 'declaration' && styles.activeNavText]}>Sworn Declaration</Text>
+              </View>
+              {!isDesktop && <ChevronRight color="#CBD5E0" size={18} />}
+            </TouchableOpacity>}
 
             {/* Billing tab, user can customize their payment bills here */}
             <TouchableOpacity
@@ -194,6 +228,7 @@ export default function SettingsScreen() {
             ]}
           >
             {(activeTab === 'account' || activeTab === 'privacy') && <AccountSettingsPanel key={activeTab} section={activeTab} />}
+            {activeTab === 'declaration' && showDeclaration && <SwornDeclarationRenewal key={user.uid} />}
 
             {activeTab === "billing" && (
               <View style={styles.panelInner}>

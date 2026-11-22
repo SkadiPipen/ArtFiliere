@@ -67,6 +67,25 @@ class ArtistRegistrationUpdate(models.Model):
         constraints = [models.UniqueConstraint(fields=['application'], condition=models.Q(status='pending'), name='one_pending_artist_record_update')]
 
 
+class SwornDeclarationRenewal(models.Model):
+    artist = models.ForeignKey(User, on_delete=models.PROTECT, related_name='sworn_renewals')
+    document = models.TextField()
+    document_name = models.CharField(max_length=180)
+    details = models.JSONField()
+    previous_record = models.JSONField(default=dict)
+    status = models.CharField(max_length=12, default='pending')
+    review_note = models.CharField(max_length=1000, blank=True)
+    reviewed_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True)
+
+    class Meta:
+        db_table = 'sworn_declaration_renewal'
+        constraints = [models.UniqueConstraint(
+            fields=['artist'], condition=models.Q(status='pending'), name='one_pending_sworn_renewal_per_artist',
+        )]
+
+
 class ArtistApplicationLog(models.Model):
     class Action(models.TextChoices):
         SUBMITTED = "submitted", "Submitted"

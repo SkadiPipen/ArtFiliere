@@ -1,6 +1,9 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
-from django.utils import timezone
+
+
+def tax_today():
+    return datetime.now(ZoneInfo('Asia/Manila')).date()
 
 
 def validate_document_details(value):
@@ -14,16 +17,28 @@ def validate_document_details(value):
         result[key] = text
     if not result['rdo_code'].isdigit() or len(result['rdo_code']) not in (3, 4):
         raise ValueError('Enter a 3 or 4-digit RDO code.')
-    today = datetime.now(ZoneInfo('Asia/Manila')).date()
-    for key in ('registration_date', 'notarized_date', 'bir_received_date'):
-        raw = value.get(key)
-        try:
-            parsed = date.fromisoformat(raw)
-        except (ValueError, TypeError):
-            raise ValueError(f'Enter {key.replace("_", " ")} as YYYY-MM-DD.')
-        if parsed > today:
-            raise ValueError('Document dates cannot be in the future.')
-        result[key] = parsed.isoformat()
+    result['registration_date'] = document_date(value, 'registration_date', tax_today())
+    result.update(validate_sworn_details(value))
+    return result
+
+
+def document_date(value, key, today):
+    try:
+        parsed = date.fromisoformat(value.get(key))
+    except (ValueError, TypeError):
+        raise ValueError(f'Enter {key.replace("_", " ")} as YYYY-MM-DD.') from None
+    if parsed > today:
+        raise ValueError('Document dates cannot be in the future.')
+    return parsed.isoformat()
+
+
+def validate_sworn_details(value):
+    if not isinstance(value, dict):
+        raise ValueError('Complete the sworn declaration details.')
+    today = tax_today()
+    result = {}
+    for key in ('notarized_date', 'bir_received_date'):
+        result[key] = document_date(value, key, today)
     if result['bir_received_date'] < result['notarized_date']:
         raise ValueError('BIR received date cannot precede notarization.')
     if str(value.get('taxable_year')) != str(today.year):
