@@ -1,4 +1,5 @@
 import Skeleton from '@/components/Skeleton';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import { Text, TextInput } from '@/components/Typography';
 import AddressBook from '@/components/AddressBook';
 import { useCallback, useEffect, useState } from 'react';
@@ -71,7 +72,7 @@ export default function AccountSettingsPanel({ section }: { section: 'account' |
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
     {!!success && <Text accessibilityRole="alert" style={s.success}>{success}</Text>}
     {profile && !loading && (section === 'account' ? <>
-      <View style={s.photoRow}>{avatar ? <Image source={{ uri: avatar }} style={s.avatar} /> : <View style={[s.avatar, s.initial]}><Text style={{ color: '#C15656', fontSize: 26 }}>{profile.username?.slice(0, 1).toUpperCase()}</Text></View>}<View style={{ flex: 1, gap: 8 }}><Text style={s.label}>Profile picture</Text><Button label="Change photo" disabled={busy} onPress={() => run(async () => { const image = await pickSettingsImage(true); if (image) update('profile_image', image); })} /></View></View>
+      <View style={s.photoRow}><ProfileAvatar uri={avatar} style={s.avatar} /><View style={{ flex: 1, gap: 8 }}><Text style={s.label}>Profile picture</Text><Button label="Change photo" disabled={busy} onPress={() => run(async () => { const image = await pickSettingsImage(true); if (image) update('profile_image', image); })} /></View></View>
       <Field label="Username" value={profile.username} onChange={value => update('username', value)} />
       <Field label="Email" value={profile.email} />
       <Field label="Account ID" value={profile.firebase_uid} />
@@ -119,7 +120,7 @@ const s = StyleSheet.create({
   field: { gap: 7 }, label: { fontSize: 13, fontWeight: '600', color: '#4A5568' }, input: { borderWidth: 1, borderColor: '#DCE2E9', padding: 12, borderRadius: 9, minHeight: 46, color: '#3A2D2A', backgroundColor: '#FFF' },
   readonly: { fontSize: 13, lineHeight: 20, color: '#647184', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 9 },
   button: { paddingVertical: 12, paddingHorizontal: 14, minHeight: 44, borderRadius: 9, backgroundColor: '#C15656', alignItems: 'center', justifyContent: 'center' }, buttonText: { fontSize: 13, fontWeight: '700', color: '#FFF', textAlign: 'center' },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 }, avatar: { width: 86, height: 86, borderRadius: 43 }, initial: { backgroundColor: '#FFF0ED', alignItems: 'center', justifyContent: 'center' },
+  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 }, avatar: { width: 86, height: 86, borderRadius: 43, backgroundColor: '#FFF0ED' },
   section: { marginTop: 8, borderTopWidth: 1, borderTopColor: '#EDF2F7', paddingTop: 20, gap: 14 }, record: { padding: 12, borderRadius: 9, backgroundColor: '#F8FAFC', gap: 5 }, copy: { color: '#647184', fontSize: 13, lineHeight: 20 },
   evidence: { width: '100%', height: 260, borderRadius: 10, backgroundColor: '#F8FAFC' }, error: { color: '#B00020', fontSize: 13 }, success: { color: '#286647', fontSize: 13, lineHeight: 20 },
 });

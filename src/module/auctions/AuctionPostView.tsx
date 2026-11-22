@@ -6,8 +6,8 @@ import { auth } from "@/firebase/config";
 import AgreementDocument from "@/module/messages/components/AgreementDocument";
 import API_URL from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Dimensions, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Watermark } from "../artwork/components/Watermark";
@@ -31,6 +31,7 @@ export default function AuctionPostView() {
   }, []);
 
   const [auction, setAuction] = useState<any>(null);
+  const [viewerUid, setViewerUid] = useState(auth.currentUser?.uid);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [bidding, setBidding] = useState(false);
@@ -42,6 +43,7 @@ export default function AuctionPostView() {
   const [imageUnavailable, setImageUnavailable] = useState(false);
 
   const [isTermsExpanded, setIsTermsExpanded] = useState(false);
+  useEffect(() => auth.onAuthStateChanged(user => setViewerUid(user?.uid)), []);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -72,20 +74,24 @@ export default function AuctionPostView() {
     fetchMe();
   }, []);
 
-  const loadDetails = async () => {
+  const loadDetails = useCallback(async () => {
     if (!auctionId) {
       setLoading(false);
       return;
     }
 
     try {
-      let res = await fetch(`${API_URL}/api/auction/${auctionId}/${lookup}`);
+      const viewer = auth.currentUser;
+      const token = await viewer?.getIdToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      let res = await fetch(`${API_URL}/api/auction/${auctionId}/${lookup}`, { headers });
       if (res.status === 404) {
-        res = await fetch(`${API_URL}/api/auctions/${auctionId}/${lookup}`);
+        res = await fetch(`${API_URL}/api/auctions/${auctionId}/${lookup}`, { headers });
       }
       if (res.ok) {
         const data = await res.json();
-        setAuction(data);
+        if (viewer?.uid !== auth.currentUser?.uid) return;
+        setAuction({ ...data, viewerUid: viewer?.uid });
         setImageUnavailable(false);
         setCustomBid(String(data.next_min_bid || ""));
       }
@@ -94,20 +100,32 @@ export default function AuctionPostView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [auctionId, lookup]);
 
   useEffect(() => {
     setAuction(null);
     setLoading(true);
     setTermsAccepted(false);
-    loadDetails();
-  }, [auctionId, lookup]);
+  }, [auctionId, lookup, viewerUid]);
+  useFocusEffect(useCallback(() => {
+    void loadDetails();
+  }, [loadDetails, viewerUid]));
 
   const isExpired = auction?.end_time
     ? new Date(auction.end_time).getTime() <= now
     : false;
   const isSettled = auction?.status === "SETTLED";
+  useEffect(() => {
+    if (isExpired && viewerUid) void loadDetails();
+  }, [isExpired, loadDetails, viewerUid]);
   const firebaseUser = auth.currentUser;
+  const hasCurrentAccess = !!viewerUid && auction?.viewerUid === viewerUid && viewerUid === firebaseUser?.uid;
+  const contractConversationId = hasCurrentAccess ? auction.contract_conversation_id : null;
+  const canSelectWinner = hasCurrentAccess && !!auction.can_select_winner;
+  const openContractChat = () => {
+    if (!contractConversationId || auth.currentUser?.uid !== viewerUid) return;
+    router.push({ pathname: '/messages', params: { conversationId: String(contractConversationId) } });
+  };
   const isArtist = Boolean(
     auction &&
     ((firebaseUser &&
@@ -213,7 +231,7 @@ export default function AuctionPostView() {
   };
 
   const handleSettleAndNegotiate = async () => {
-    if (settling) return;
+    if (settling || !canSelectWinner) return;
 
     try {
       setSettling(true);
@@ -450,11 +468,15 @@ export default function AuctionPostView() {
             <View style={[styles.specRow, !isDesktop && { flexWrap: 'wrap' }]}>
               <Text style={styles.specLabel}>Materials used: </Text>
               <Text style={styles.specValue}>
-                {auction.materials || "Mixed Media"}
+                {auction.is_physical ? auction.materials || 'Not provided' : 'Digital'}
               </Text>
             </View>
 
             {/* Type */}
+            {!!auction.dimensions && <View style={styles.specRow}>
+              <Text style={styles.specLabel}>Dimensions: </Text>
+              <Text style={styles.specValue}>{auction.dimensions}</Text>
+            </View>}
             <View style={[styles.specRow, !isDesktop && { flexWrap: 'wrap' }]}>
               <Text style={styles.specLabel}>Type: </Text>
               <Text style={styles.specValue}>
@@ -511,9 +533,9 @@ export default function AuctionPostView() {
                   <Text style={styles.settledStatusAmount}>
                     ₱ {auction.current_bid?.toLocaleString()}
                   </Text>
-                  <TouchableOpacity
+                  {(contractConversationId || canSelectWinner) ? <TouchableOpacity
                     style={styles.settleBtn}
-                    onPress={handleSettleAndNegotiate}
+                    onPress={contractConversationId ? openContractChat : handleSettleAndNegotiate}
                     disabled={settling}
                   >
                     {settling ? (
@@ -527,13 +549,13 @@ export default function AuctionPostView() {
                           style={{ marginRight: 6 }}
                         />
                         <Text style={[styles.settleBtnText, !isDesktop && { flexShrink: 1, textAlign: 'center' }]}>
-                          {isArtist
+                          {contractConversationId
                             ? "Review Terms & Chat"
-                            : "Proceed to Contract & Checkout"}
+                            : "Select Auction Winner"}
                         </Text>
                       </>
                     )}
-                  </TouchableOpacity>
+                  </TouchableOpacity> : null}
                 </View>
               ) : (
                 <View style={styles.activeBiddingBlock}>

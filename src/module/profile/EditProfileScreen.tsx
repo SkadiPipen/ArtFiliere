@@ -12,7 +12,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Camera } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EditProfile() {
@@ -222,12 +223,7 @@ export default function EditProfile() {
             <View style={styles.coverBanner}><ProfileCover uri={form.coverImage} /></View>
             <View style={styles.avatarSection}>
               <TouchableOpacity style={styles.avatarWrap} onPress={pickImage} activeOpacity={0.8}>
-                <Image
-                  source={{
-                    uri: form.profileImage || 'https://i.pravatar.cc/150?u=default',
-                  }}
-                  style={styles.avatar}
-                />
+                <ProfileAvatar uri={form.profileImage} style={styles.avatar} />
                 <View style={styles.cameraBadge}>
                   <Camera color="#fff" size={16} />
                 </View>

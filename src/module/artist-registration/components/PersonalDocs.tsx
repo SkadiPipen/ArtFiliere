@@ -1,10 +1,15 @@
 import CalendarDateField from '@/components/CalendarDateField';
 import { Text, TextInput } from '@/components/Typography';
+import CalendarDateField from '@/components/CalendarDateField';
+import { parseDateValue } from '@/components/calendarDateValue';
 import * as DocumentPicker from "expo-document-picker";
 import { FilePlus, Square, SquareCheck } from "lucide-react-native";
 import React from "react";
 import { Alert, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { DocumentDetails, DocumentFile } from "@/module/artist-registration/types";
+
+const exampleColor = '#9B8E88';
+type DocumentDate = 'registration_date' | 'notarized_date' | 'bir_received_date';
 
 interface Props {
   details: DocumentDetails;
@@ -94,7 +99,20 @@ export default function PersonalDocs({
   const field = (key: keyof DocumentDetails, label: string, placeholder: string) => (
     <View style={styles.field} key={key}>
       <Text style={styles.label}>{label} *</Text>
-      <TextInput accessibilityLabel={label} style={styles.input} value={String(details[key] || '')} onChangeText={value => setDetails({ ...details, [key]: value })} placeholder={placeholder} placeholderTextColor="#A39690" />
+      <TextInput accessibilityLabel={label} style={styles.input} value={String(details[key] || '')} onChangeText={value => setDetails({ ...details, [key]: value })} placeholder={`e.g. ${placeholder}`} placeholderTextColor={exampleColor} />
+    </View>
+  );
+  const dateField = (key: DocumentDate, label: string) => (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label} *</Text>
+      <CalendarDateField
+        label={label}
+        value={details[key]}
+        onChange={value => setDetails({ ...details, [key]: value })}
+        minimumDate={key === 'bir_received_date' ? parseDateValue(details.notarized_date) ?? undefined : undefined}
+        maximumDate={new Date()}
+        placeholder="Select date"
+      />
     </View>
   );
   const upload = (type: 'bir' | 'sworn', doc: DocumentFile | null) => (
@@ -109,21 +127,21 @@ export default function PersonalDocs({
       <View style={styles.card}>
         <Text style={styles.section}>Artist profile</Text>
         <View style={styles.row}>
-          <View style={styles.field}><Text style={styles.label}>Default hourly rate (PHP) *</Text><TextInput accessibilityLabel="Default hourly rate" style={styles.input} keyboardType="decimal-pad" value={hourlyRate} onChangeText={setHourlyRate} placeholder="120.00" /><Text style={styles.hint}>Prefills your future artwork pricing; you can adjust it per post.</Text></View>
-          <View style={styles.field}><Text style={styles.label}>TIN (9 digits) *</Text><TextInput accessibilityLabel="TIN" style={styles.input} keyboardType="number-pad" maxLength={11} value={tinNum.join('')} onChangeText={value => setTinNum(value.replace(/\D/g, '').slice(0, 9).padEnd(9, ' ').split('').map(v => v.trim()))} placeholder="123456789" /></View>
+          <View style={styles.field}><Text style={styles.label}>Default hourly rate (PHP) *</Text><TextInput accessibilityLabel="Default hourly rate" style={styles.input} keyboardType="decimal-pad" value={hourlyRate} onChangeText={setHourlyRate} placeholder="e.g. 120.00" placeholderTextColor={exampleColor} /><Text style={styles.hint}>Prefills your future artwork pricing; you can adjust it per post.</Text></View>
+          <View style={styles.field}><Text style={styles.label}>TIN (9 digits) *</Text><TextInput accessibilityLabel="TIN" style={styles.input} keyboardType="number-pad" maxLength={11} value={tinNum.join('')} onChangeText={value => setTinNum(value.replace(/\D/g, '').slice(0, 9).padEnd(9, ' ').split('').map(v => v.trim()))} placeholder="e.g. 123456789" placeholderTextColor={exampleColor} /></View>
         </View>
-        <Text style={styles.label}>Artist bio</Text><TextInput accessibilityLabel="Artist bio" style={[styles.input, { minHeight: 90, textAlignVertical: 'top' }]} multiline value={bio} onChangeText={setBio} placeholder="Tell us about your work and artistic style" />
+        <Text style={styles.label}>Artist bio</Text><TextInput accessibilityLabel="Artist bio" style={[styles.input, { minHeight: 90, textAlignVertical: 'top' }]} multiline value={bio} onChangeText={setBio} placeholder="e.g. I paint watercolor landscapes inspired by my hometown." placeholderTextColor={exampleColor} />
       </View>
       <View style={styles.card}>
         <Text style={styles.section}>BIR Certificate of Registration</Text><Text style={styles.hint}>Form 2303 ? Upload your current registration record. No expiry date is requested for this certificate.</Text>
         {upload('bir', birDoc)}
-        {field('registered_name', 'BIR registered name', 'Name exactly as registered')}
-        <View style={styles.row}>{field('rdo_code', 'RDO code', 'e.g. 039')}<View style={{ flex: 1 }}><Text>Registration date</Text><CalendarDateField label="Registration date" value={details.registration_date} onChange={registration_date => setDetails({ ...details, registration_date })} maximumDate={new Date()} /></View></View>
+        {field('registered_name', 'BIR registered name', 'Maria Santos')}
+        <View style={styles.row}>{field('rdo_code', 'RDO code', '039')}{dateField('registration_date', 'Registration date')}</View>
       </View>
       <View style={styles.card}>
-        <Text style={styles.section}>Sworn declaration of gross remittances</Text><Text style={styles.hint}>RMC 8-2024 Annex A ? Upload the notarized, BIR-received declaration for the current taxable year. Declare remittances across all marketplaces and payment providers.</Text>
+        <Text style={styles.section}>Sworn declaration of gross remittances</Text><Text style={styles.hint}>RMC 8-2024 Annex A. Upload the notarized, BIR-received declaration for the current taxable year. Declare remittances across all marketplaces and payment providers.</Text>
         {upload('sworn', swornDoc)}
-        <View style={styles.row}>{field('taxable_year', 'Taxable year', String(new Date().getFullYear()))}<View style={{ flex: 1 }}><Text>Notarization date</Text><CalendarDateField label="Notarization date" value={details.notarized_date} onChange={notarized_date => setDetails({ ...details, notarized_date })} maximumDate={new Date()} /></View><View style={{ flex: 1 }}><Text>BIR received date</Text><CalendarDateField label="BIR received date" value={details.bir_received_date} onChange={bir_received_date => setDetails({ ...details, bir_received_date })} maximumDate={new Date()} /></View></View>
+        <View style={styles.row}>{field('taxable_year', 'Taxable year', String(new Date().getFullYear()))}{dateField('notarized_date', 'Notarization date')}{dateField('bir_received_date', 'BIR received date')}</View>
         <Text style={styles.label}>Annual gross remittances stated in the declaration *</Text>
         <View style={styles.row}>{([['not_exceed_500000', 'Do not exceed PHP 500,000'], ['exceed_500000', 'Exceed PHP 500,000']] as const).map(([value, label]) => <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: details.remittance_status === value }} key={value} style={[styles.choice, details.remittance_status === value && styles.selected]} onPress={() => setDetails({ ...details, remittance_status: value })}>{details.remittance_status === value ? <SquareCheck size={21} color="#B74F4B" /> : <Square size={21} color="#A78C80" />}<Text style={[styles.choiceText, { flexShrink: 1 }]}>{label}</Text></TouchableOpacity>)}</View>
         <Text style={styles.hint}>Use the declaration for the applicable year. HR will review the uploaded document.</Text>

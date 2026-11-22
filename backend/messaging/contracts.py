@@ -146,7 +146,7 @@ class ContractsView(AuthenticatedAPIView):
     def post(self, request, artwork_id):
         user = self.get_request_user(request)
         # Serialize proposals for an artwork so only one current revision exists per buyer.
-        artwork = Artwork.objects.select_for_update().filter(id=artwork_id, status=Artwork.Status.APPROVED).first()
+        artwork = Artwork.objects.select_for_update().filter(id=artwork_id, status=Artwork.Status.APPROVED).exclude(sale_type=Artwork.PORTFOLIO_ONLY).first()
         if not artwork:
             return Response({"error": "Artwork is unavailable."}, status=404)
         if str(artwork.sale_type).lower() == 'auction':

@@ -3,11 +3,12 @@ import ProfileCover from '@/components/ProfileCover';
 import * as Linking from 'expo-linking';
 import { Copy, Share2, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, View, useWindowDimensions } from 'react-native';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import { Modal, Platform, Pressable, ScrollView, Share, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Artist = { id: number | string; name?: string; username: string; bio?: string; cover_image?: string };
-export default function ArtistShareCard({ artist, avatarUri, onClose }: { artist: Artist; avatarUri: string; onClose: () => void }) {
+export default function ArtistShareCard({ artist, avatarUri, onClose }: { artist: Artist; avatarUri?: string | null; onClose: () => void }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [feedback, setFeedback] = useState('');
@@ -39,7 +40,7 @@ export default function ArtistShareCard({ artist, avatarUri, onClose }: { artist
         <ScrollView contentContainerStyle={s.content}>
           <View style={s.cover}><ProfileCover uri={artist.cover_image} /><Pressable accessibilityRole="button" accessibilityLabel="Close share card" onPress={onClose} style={s.close}><X size={18} color="#62493E" /></Pressable></View>
           <View style={s.identity}>
-            <Image source={{ uri: avatarUri }} accessibilityLabel={`${artist.name || artist.username} profile photo`} style={s.avatar} />
+            <ProfileAvatar uri={avatarUri} accessibilityLabel={`${artist.name || artist.username} profile photo`} style={s.avatar} />
             <Text style={s.name}>{artist.name || artist.username}</Text>
             <Text style={s.handle}>@{artist.username}</Text>
             <Text style={s.bio}>{artist.bio?.trim() || 'This artist has not added a bio yet.'}</Text>

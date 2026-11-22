@@ -1,14 +1,16 @@
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import ProfileCover from '@/components/ProfileCover';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import ResellerBadge from '@/components/ResellerBadge';
 import { pickProfileImage } from '@/services/profileImages';
 import API_URL from '@/services/api';
 import { auth } from '@/firebase/config';
+import useAccountHeaderPanels from '@/module/home/components/useAccountHeaderPanels';
 import { useEffect, useState } from 'react';
 import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
-import { Bell, Camera, Edit3, FileText, Folder, Settings, Paintbrush, ArrowRight, Store, ChevronDown, X } from "lucide-react-native";
-import { Alert, Image, Modal, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Bell, Camera, Edit3, Images, Folder, Settings, Paintbrush, ArrowRight, Store, ChevronDown, X } from "lucide-react-native";
+import { Modal, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface ProfileHeaderProps {
@@ -27,6 +29,7 @@ export default function ProfileHeader({
   onCoverSaved,
 }: ProfileHeaderProps) {
   const router = useRouter();
+  const { openFiles, openNotifications, unreadCount, panels } = useAccountHeaderPanels();
   const { width } = useWindowDimensions();
   const compactEdit = width < 768;
   const mobile = width < 600;
@@ -90,19 +93,25 @@ export default function ProfileHeader({
             <View style={styles.iconGroup}>
               <TouchableOpacity
                 style={styles.iconBtn}
-                onPress={() => Alert.alert("Documents", "Opening Docs...")}
+                accessibilityRole="button"
+                accessibilityLabel={normalizedRole === 'artist' ? 'My portfolio' : 'My purchases'}
+                onPress={() => router.push(normalizedRole === 'artist' ? '/my-portfolio' : '/purchases')}
               >
-                <FileText color="#70482F" size={20} />
+                <Images color="#70482F" size={20} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconBtn}
-                onPress={() => Alert.alert("Folders", "Opening Folders...")}
+                accessibilityRole="button"
+                accessibilityLabel="Licenses and agreements"
+                onPress={openFiles}
               >
                 <Folder color="#70482F" size={20} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconBtn}
-                onPress={() => Alert.alert("Notifications", "No new alerts")}
+                accessibilityRole="button"
+                accessibilityLabel={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+                onPress={openNotifications}
               >
                 <Bell color="#70482F" size={20} />
               </TouchableOpacity>
@@ -119,13 +128,8 @@ export default function ProfileHeader({
           <View style={[styles.profileActions, mobile && styles.mobileActions]}>
           <View style={[styles.profileContent, mobile && styles.mobileProfile]}>
             <View style={[styles.avatarContainer, mobile && styles.mobileAvatar]}>
-              <Image
-                source={{
-                  uri:
-                    profileData?.profile_image || profileData?.profileImage ||
-                    user?.photoURL ||
-                    "https://i.pravatar.cc/150?u=incognito",
-                }}
+              <ProfileAvatar
+                uri={profileData?.profile_image || profileData?.profileImage || user?.photoURL}
                 style={styles.avatar}
               />
             </View>
@@ -207,7 +211,7 @@ export default function ProfileHeader({
             </Modal>
         </View>
       </SafeAreaView>
-
+      {panels}
     </Pressable>
   );
 }

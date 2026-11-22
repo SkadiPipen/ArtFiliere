@@ -3,6 +3,7 @@ import base64
 from io import BytesIO
 from PIL import Image, ImageDraw, UnidentifiedImageError
 from artworks.serializers import ArtworkSerializer
+from artworks.categories import CATEGORIES
 from commissions.models import CommissionRequest, CommissionSubmission
 from fulfillment.certificates import commission_completed
 
@@ -51,10 +52,14 @@ def artist_portfolio(artist, *, own=False):
             image = item.get('imageDataUri') or item.get('imageUri')
             if not isinstance(image, str) or not image.startswith(('data:image/jpeg;base64,', 'data:image/png;base64,', 'data:image/webp;base64,', 'data:image/jpg;base64,')):
                 continue
+            categories = [key for key in item.get('categories', []) if isinstance(key, str) and key in CATEGORIES]
             entries.append({
                 'id': f'registration-{application.pk}-{index}', 'source': 'registration', 'artist_id': artist.pk,
                 'title': item['title'], 'description': item.get('description') or '', 'category': 'Portfolio sample',
                 'image_data': image, 'status': 'approved', 'is_for_sale': False, 'portfolio_date': application.submitted_at.isoformat(),
+                'art_type': item.get('art_type'), 'medium': item.get('medium'), 'dimensions': item.get('dimensions'),
+                'categories': categories, 'category_labels': [CATEGORIES[key]['label'] for key in categories],
+                'tags': item.get('tags', []),
             })
     commissions = CommissionRequest.objects.filter(artist=artist, status='COMPLETE').prefetch_related('milestones')
     for commission in commissions:

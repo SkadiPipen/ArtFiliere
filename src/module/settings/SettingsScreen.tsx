@@ -1,13 +1,13 @@
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
+import TransactionHeader from '@/components/TransactionHeader';
 import { AuthContext } from '@/context/AuthContext';
 import API_URL from '@/services/api';
 import { auth } from "@/firebase/config";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import {
-  ArrowLeft,
   BadgePercent,
   ChevronRight,
   CreditCard,
@@ -84,19 +84,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerInner}>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => goBackOr('/(home)/profile')}
-          >
-            <ArrowLeft color="#fff" size={22} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>User Settings</Text>
-          <View style={{ width: 28 }} />
-        </View>
-      </View>
+      <TransactionHeader title="User Settings" onBack={() => goBackOr('/(home)/profile')} />
 
       {Platform.OS === 'web' && isDesktop && createElement('style', null, `
         #settings-desktop-menu {
@@ -282,23 +270,6 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.pageBackground },
-  header: {
-    backgroundColor: "#C15656",
-    width: "100%",
-    alignItems: "center",
-    paddingVertical: 14,
-    elevation: 3,
-  },
-  headerInner: {
-    width: "100%",
-    maxWidth: 1100,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerBtn: { padding: 4 },
-  headerTitle: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   scrollContent: {
     alignItems: "center",
     paddingVertical: 24,

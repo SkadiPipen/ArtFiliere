@@ -1,12 +1,13 @@
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
-
 from authentication.views import AuthenticatedAPIView
-from authentication.permissions import IsHR
+from authentication.permissions import IsAuthenticatedUser, IsHR
+from artworks.models import Artwork
+from artworks.views import ArtworkTagSuggestionView
 from users.models import User
 from .models import ArtistApplication, ArtistApplicationLog
 from .document_details import validate_document_details
+from .portfolio_review import prepare_portfolio
 
 
 def submitted_document(value, fallback_name):
@@ -24,10 +25,35 @@ def document_response(data_uri, name, fallback_name):
     }
 
 
+class PortfolioTagSuggestionView(ArtworkTagSuggestionView):
+    permission_classes = [IsAuthenticatedUser]
+
+
+class PortfolioMatchPreviewView(AuthenticatedAPIView):
+    permission_classes = [IsHR]
+
+    def get(self, request, application_id, sample_index, match_index):
+        application = ArtistApplication.objects.filter(pk=application_id).first()
+        try:
+            match = application.portfolio[sample_index]['similarity_matches'][match_index]
+            reference = match['reference']
+            if 'artwork_id' in reference:
+                image = Artwork.objects.filter(pk=reference['artwork_id'], status=Artwork.Status.APPROVED).values_list('image_data', flat=True).first()
+            else:
+                portfolio = ArtistApplication.objects.filter(pk=reference['application_id'], status=ArtistApplication.ApprovalStatus.APPROVED).values_list('portfolio', flat=True).first()
+                item = portfolio[reference['sample_index']]
+                image = item.get('imageDataUri') or item.get('imageUri')
+        except (AttributeError, IndexError, KeyError, TypeError):
+            image = None
+        if not image:
+            return Response({'error': 'The matching image is unavailable.'}, status=404)
+        return Response({'image': image, 'title': match['title']}, headers={'Cache-Control': 'private, no-store'})
+
+
 class SubmitArtistApplicationView(AuthenticatedAPIView):
     def get_permissions(self):
         if self.request.method == "POST":
-            return [AllowAny()]
+            return [IsAuthenticatedUser()]
         return [IsHR()]
 
     def get(self, request):
@@ -56,6 +82,9 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
         )
 
     def post(self, request):
+        user = self.get_request_user(request)
+        if getattr(user, 'view_only', False):
+            return Response({'error': 'Your account has view-only access.'}, status=403)
         firebase_uid = request.data.get("firebase_uid")
         hourly_rate = request.data.get("hourly_rate")
         tin_number = request.data.get("tinNum", "").replace("-", "")
@@ -101,12 +130,12 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if firebase_uid != user.firebase_uid:
+            return Response({'error': 'Submit the application from your own account.'}, status=403)
         try:
-            user = User.objects.get(firebase_uid=firebase_uid)
-        except User.DoesNotExist:
-            return Response(
-                {"error": "User not found in database."}, status=status.HTTP_404_NOT_FOUND
-            )
+            portfolio = prepare_portfolio(portfolio, user)
+        except ValueError as error:
+            return Response({'error': str(error)}, status=400)
 
         previous_application = ArtistApplication.objects.filter(user=user).only("status").first()
 
@@ -138,6 +167,7 @@ class SubmitArtistApplicationView(AuthenticatedAPIView):
             {"message": "Application submitted successfully.", "status": application.status},
             status=status.HTTP_201_CREATED,
         )
+
 
     def patch(self, request, application_id):
         user = self.get_request_user(request)

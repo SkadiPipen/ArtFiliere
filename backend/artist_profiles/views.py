@@ -62,6 +62,7 @@ class ArtistFollowView(AuthenticatedAPIView):
             relationship.delete()
         return Response({
             'is_following': relationship.exists(), 'can_follow': viewer.pk != artist.pk and not getattr(viewer, 'view_only', False),
+            'is_self': viewer.pk == artist.pk,
             'followers_count': artist.artist_followers.count(),
         }, headers={'Cache-Control': 'private, no-store'})
 
@@ -108,6 +109,7 @@ class ArtistDirectoryView(APIView):
                 "id": artist.id,
                 "name": f"{artist.first_name} {artist.last_name}".strip() or artist.username,
                 "username": artist.username,
+                "profile_image": artist.profile_image,
                 "bio": artist.bio if artist.bio is not None else ((application.bio or "") if application else ""),
                 "average_rating": rating,
                 "rating_count": stats.get('rating_count', 0),

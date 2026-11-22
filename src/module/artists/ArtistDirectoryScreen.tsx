@@ -1,4 +1,5 @@
 import Skeleton from '@/components/Skeleton';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
@@ -13,6 +14,7 @@ type Artist = {
   id: number;
   name: string;
   username: string;
+  profile_image: string | null;
   bio: string;
   is_accepting_commissions: boolean;
   average_rating: number | null;
@@ -134,11 +136,7 @@ export default function ArtistDirectoryScreen() {
                 })
               }
             >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {artist.name.slice(0, 1).toUpperCase()}
-                </Text>
-              </View>
+              <ProfileAvatar uri={artist.profile_image} style={styles.avatar} />
               <View style={styles.info}>
                 <View style={styles.nameLine}>
                   <Text style={styles.name}>{artist.name}</Text>
@@ -255,11 +253,8 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "#F4D8CC",
   },
-  avatarText: { color: "#B5514D", fontSize: 21, fontWeight: "800" },
   info: { flex: 1, minWidth: 0 },
   nameLine: { flexDirection: "row", alignItems: "center", gap: 7 },
   name: { color: "#3A2D2A", fontSize: 15, fontWeight: "800", flexShrink: 1 },

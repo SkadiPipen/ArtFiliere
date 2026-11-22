@@ -103,6 +103,8 @@ class AgreementCheckoutView(AuthenticatedAPIView):
             return Response({"error": "An artwork must be attached to the agreement before payment."}, status=400)
         if agreement.artwork.status != Artwork.Status.APPROVED or agreement.artwork.artist_id != agreement.artist_id or agreement.artist_id == buyer.id:
             return Response({"error": "Artwork is unavailable for this purchase."}, status=409)
+        if agreement.artwork.sale_type == Artwork.PORTFOLIO_ONLY:
+            return Response({"error": "Portfolio-only artwork is unavailable for purchase."}, status=409)
         existing = PaymentSession.objects.filter(agreement=agreement, status__in=[PaymentSession.Status.PENDING, PaymentSession.Status.PAID]).first()
         if existing and existing.is_simulated and existing.status == PaymentSession.Status.PAID:
             return Response({"simulated": True, "purchase_id": existing.id})
