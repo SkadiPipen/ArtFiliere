@@ -6,6 +6,7 @@ export type SpotlightTourProps = {
   step: number;
   onNext: () => void;
   onClose: () => void;
+  scope?: HTMLElement;
 };
 
 export default function SpotlightTour(_props: SpotlightTourProps) {
