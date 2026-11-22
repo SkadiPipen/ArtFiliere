@@ -84,6 +84,15 @@ class AuctionSigningTests(TestCase):
         for nonparticipant in (None, outsider):
             self.assertIsNone(details(nonparticipant)['contract_conversation_id'])
 
+    def test_rejects_auction_start_before_today(self):
+        payload = {**self.payload, 'starting_time': (timezone.now() - timezone.timedelta(days=1)).isoformat()}
+        _, digest = request_document(self.artist, payload)
+        payload.update(auction_signature_name='Artist Name', auction_signature_consent=True,
+                       auction_document_hash=digest, signature_strokes=[[[0.1, 0.1], [0.3, 0.5], [0.5, 0.1]]])
+        response = self.call(ArtworkView, self.artist, payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['error'], 'The auction start date cannot be before today.')
+
     def test_preview_endpoint_returns_full_signable_document_for_each_delivery_type(self):
         import hashlib
         for delivery in ('physical', 'digital'):

@@ -872,6 +872,13 @@ export default function CommissionsScreen() {
     </TouchableOpacity>
   );
 
+  const refreshButton = (
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh commissions" disabled={loading} onPress={() => void fetchCommissions()}
+      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: loading ? .5 : 1 }}>
+      {loading ? <ActivityIndicator color={COLORS.red} /> : <RefreshCw size={20} color={COLORS.redDark} />}
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={s.pageContainer} edges={["top", "left", "right"]}>
       {/* MOBILE TOP NAVIGATION BAR (< 960px) */}
@@ -995,7 +1002,7 @@ export default function CommissionsScreen() {
         {/* MIDDLE COLUMN: FEED OF COMMISSIONS */}
         <View id="commissions-list" style={[s.feedColumn, !isDesktop && s.feedColumnMobile]}>
           {isDesktop && (
-            <View style={s.feedHeader}>
+            <View style={[s.feedHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
               <Text style={s.feedHeaderText}>
                 {role === "artist" ? "Commissions Received" : "Commissions Sent"}
               </Text>

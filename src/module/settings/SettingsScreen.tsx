@@ -35,15 +35,19 @@ export default function SettingsScreen() {
   const showDeclaration = !!user && user.uid === artistUid;
   useEffect(() => {
     if (!user) return;
-    let active = true;
-    void user.getIdToken().then(token => fetch(`${API_URL}/auth/me/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })).then(async response => {
+    const controller = new AbortController();
+    const loadRole = async () => {
+      const token = await user.getIdToken();
+      if (controller.signal.aborted) return;
+      const response = await fetch(`${API_URL}/auth/me/`, {
+        headers: { Authorization: `Bearer ${token}` }, signal: controller.signal,
+      });
       if (!response.ok) return;
       const profile = await response.json();
-      if (active) setArtistUid(profile.role === 'artist' ? user.uid : null);
-    }).catch(() => undefined);
-    return () => { active = false; };
+      if (!controller.signal.aborted) setArtistUid(profile.role === 'artist' ? user.uid : null);
+    };
+    void loadRole().catch(() => undefined);
+    return () => controller.abort();
   }, [user]);
 
   const [activeTab, setActiveTab] = useState<TabType>("account");
@@ -154,13 +158,15 @@ export default function SettingsScreen() {
               {!isDesktop && <ChevronRight color="#CBD5E0" size={18} />}
             </TouchableOpacity>
 
-            {showDeclaration && <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: activeTab === 'declaration' }} style={[styles.navItem, activeTab === 'declaration' && styles.activeNavItem]} onPress={() => setActiveTab('declaration')}>
-              <View style={styles.navItemLeft}>
-                <FileCheck2 color={activeTab === 'declaration' ? COLORS.red : '#718096'} size={18} />
-                <Text style={[styles.navText, activeTab === 'declaration' && styles.activeNavText]}>Sworn Declaration</Text>
-              </View>
-              {!isDesktop && <ChevronRight color="#CBD5E0" size={18} />}
-            </TouchableOpacity>}
+            {showDeclaration && (
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: activeTab === 'declaration' }} style={[styles.navItem, activeTab === 'declaration' && styles.activeNavItem]} onPress={() => setActiveTab('declaration')}>
+                <View style={styles.navItemLeft}>
+                  <FileCheck2 color={activeTab === 'declaration' ? COLORS.red : '#718096'} size={18} />
+                  <Text style={[styles.navText, { flexShrink: 1 }, activeTab === 'declaration' && styles.activeNavText]}>Sworn Declaration</Text>
+                </View>
+                {!isDesktop && <ChevronRight color="#CBD5E0" size={18} />}
+              </TouchableOpacity>
+            )}
 
             {/* Billing tab, user can customize their payment bills here */}
             <TouchableOpacity
