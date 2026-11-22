@@ -99,6 +99,7 @@ export default function RegisterArtistScreen() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${await user.getIdToken()}`,
           },
           body: JSON.stringify(payload),
         },

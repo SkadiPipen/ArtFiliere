@@ -3,14 +3,42 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIRequestFactory
+from artist_applications.models import ArtistApplication
+from artworks.tests import image_data_url
 from commissions.models import CommissionRequest
 from fulfillment.models import PurchaseReview
 from users.models import User
 from .statistics import profile_counts
-from .views import ArtistFollowView, ArtistProfileView
+from .views import ArtistFollowView, ArtistProfileView, MyPortfolioView
 
 
 class PublicArtistProfileTests(TestCase):
+    def test_approved_registration_samples_appear_in_both_portfolios(self):
+        artist = User.objects.create(firebase_uid='sample', username='sample', email='sample@example.test', role='artist')
+        image = image_data_url()
+        application = ArtistApplication.objects.create(
+            user=artist, hourly_rate=150, portfolio=[{
+                'title': 'Ink study', 'imageDataUri': image, 'tags': ['ink'], 'medium': 'Ink on paper',
+                'dimensions': '30 × 40 cm', 'categories': ['drawing'], 'similarity_matches': [{'score': 1.0}],
+            }],
+        )
+        factory = APIRequestFactory()
+        public = ArtistProfileView.as_view()
+        self.assertEqual(public(factory.get('/'), artist_id=artist.pk).data['portfolio'], [])
+
+        application.status = ArtistApplication.ApprovalStatus.APPROVED
+        application.save(update_fields=['status'])
+        sample, = public(factory.get('/'), artist_id=artist.pk).data['portfolio']
+        self.assertEqual(sample['title'], 'Ink study')
+        self.assertEqual(sample['image_data'], image)
+        self.assertEqual(sample['source'], 'registration')
+        self.assertFalse(sample['is_for_sale'])
+        self.assertEqual(sample['medium'], 'Ink on paper')
+        self.assertEqual(sample['tags'], ['ink'])
+        self.assertNotIn('similarity_matches', sample)
+        with patch.object(MyPortfolioView, 'get_request_user', return_value=artist):
+            self.assertEqual(MyPortfolioView.as_view()(factory.get('/')).data, [sample])
+
     def test_follow_counts_and_verified_review_count(self):
         artist = User.objects.create(firebase_uid='followed', username='followed', email='followed@example.test', role='artist')
         buyer = User.objects.create(firebase_uid='follower', username='follower', email='follower@example.test')

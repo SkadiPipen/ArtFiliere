@@ -51,6 +51,8 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "category_labels",
             "tags",
             "art_type",
+            "medium",
+            "dimensions",
             "price",
             "image_data",
             "additional_images",

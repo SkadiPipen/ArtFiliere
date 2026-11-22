@@ -1,6 +1,7 @@
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import TransactionHeader from '@/components/TransactionHeader';
+import TourLauncher from '@/components/TourLauncher';
 import { Text, TextInput } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, FileText, Clock, CreditCard } from 'lucide-react-native';
@@ -12,6 +13,7 @@ import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import { preparePaymentWindow } from '@/services/paymentReturn';
+import { purchaseRequest } from '@/services/purchases';
 
 const box = { padding: 16, borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 12, gap: 12, backgroundColor: '#fff' };
 const input = { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 8 };
@@ -20,7 +22,7 @@ const readable = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, 
 const displayDate = (value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 type Evidence = { name: string; data: string };
 type Period = { platform_fee?: string; total_amount?: string; admin_review?: boolean; report_due_on?: string; report_overdue?: boolean; payment_status?: string; id: number; agreement_id: number; title: string; is_buyer: boolean; starts_on: string; ends_on: string; due_on: string; status: string; overdue: boolean; can_submit: boolean; basis: string; amount: string | null; metrics: Record<string, string>; review_note: string; collection_error: string; evidence: { name: string; path: string }[]; history: { action: string; at: string; amount?: string; note?: string }[] };
-type License = { admin_review?: boolean; id: number; title: string; is_buyer: boolean; configured: boolean; mandate_status: string };
+type License = { admin_review?: boolean; id: number; title: string; is_buyer: boolean; configured: boolean; mandate_status: string; compensation_type: string; starts_on?: string | null; ends_on?: string | null };
 async function request(path = '', method = 'GET', body?: object) {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw Error('Please sign in again.');
@@ -55,7 +57,7 @@ export async function viewEvidence(path: string) {
   }
 }
 
-function ReportCard({ report, reload }: { report: Period; reload: () => Promise<void> }) {
+function ReportCard({ report, reload, tourTarget }: { report: Period; reload: () => Promise<void>; tourTarget: boolean }) {
   const [metrics, setMetrics] = useState<Record<string, string>>(report.metrics);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [files, setFiles] = useState<Evidence[]>([]);
@@ -90,7 +92,7 @@ function ReportCard({ report, reload }: { report: Period; reload: () => Promise<
       <View style={{ flex: 1, gap: 4 }}><Text style={styles.eyebrow}>Report #{report.id}</Text><Text style={styles.reportTitle}>{report.title}</Text></View>
       <View style={[styles.statusBadge, report.overdue && styles.overdueBadge]}><Text style={{ color: report.overdue ? '#9F3030' : '#79504A', fontWeight: '700', fontSize: 12 }}>{readable(report.status)}{report.overdue ? ' / Overdue' : ''}</Text></View>
     </View>
-    <View style={styles.infoBox}>
+    <View id={tourTarget ? 'royalty-tour-report' : undefined} style={styles.infoBox}>
       <View style={styles.sectionHeading}><FileText size={18} color="#A84B46" /><Text style={styles.sectionTitle}>Reporting Period</Text></View>
       <Text style={styles.periodText}>{displayDate(report.starts_on)} to {displayDate(report.ends_on)}</Text>
       <Text style={styles.muted}>End date excluded</Text>
@@ -100,7 +102,7 @@ function ReportCard({ report, reload }: { report: Period; reload: () => Promise<
       <View style={[styles.dateTile, report.overdue && styles.overdueBadge]}><CreditCard size={17} color="#A84B46" /><Text style={styles.tileLabel}>Payment Due</Text><Text style={styles.tileValue}>{displayDate(report.due_on)}</Text></View>
     </View>
     <Text style={styles.muted}>Deadlines use UTC.</Text>
-    <View style={styles.amountBox}>
+    <View id={tourTarget && !report.admin_review ? 'royalty-tour-payment' : undefined} style={styles.amountBox}>
       <Text style={styles.tileLabel}>Calculated Royalty</Text>
       <Text style={styles.amount}>{report.amount !== null ? `PHP ${Number(report.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Awaiting Report'}</Text>
       {report.amount !== null && Number(report.platform_fee) > 0 && <><Text>Platform royalty fee: PHP {report.platform_fee}</Text><Text style={{ fontWeight: '700' }}>Buyer total: PHP {report.total_amount}</Text><Text>The artist receives the full royalty shown above.</Text></>}
@@ -121,7 +123,7 @@ function ReportCard({ report, reload }: { report: Period; reload: () => Promise<
       <TextInput accessibilityLabel="Artist review note" placeholder="Review note (required for rejection)" value={note} onChangeText={setNote} multiline maxLength={1000} style={input} />
       {['approve', 'reject'].map(action => <Pressable disabled={busy} key={action} onPress={() => run(() => request(`periods/${report.id}/`, 'PATCH', { action, note }))}><Text style={link}>{action === 'approve' ? 'Approve reported amount' : 'Reject and request corrections'}</Text></Pressable>)}
     </>}
-    {report.admin_review && <View style={styles.paymentBox}>
+    {report.admin_review && <View id={tourTarget ? 'royalty-tour-payment' : undefined} style={styles.paymentBox}>
       <View style={styles.sectionHeading}><CreditCard size={18} color="#A84B46" /><Text style={styles.sectionTitle}>Payment</Text></View>
       <Text style={styles.tileValue}>{readable(report.payment_status || 'not_started')}</Text>
       <Text style={styles.muted}>Funds are released to the artist wallet after admin verification.</Text>
@@ -164,18 +166,41 @@ function MandateCard({ license, enabled, reload }: { license: License; enabled: 
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [contract, setContract] = useState<{ document: string; fully_signed: boolean } | null>(null);
+  const [previewError, setPreviewError] = useState('');
+  const togglePreview = async () => {
+    setPreviewOpen(!previewOpen);
+    if (previewOpen || contract) return;
+    setPreviewError('');
+    try {
+      setContract(await purchaseRequest(`users/contracts/${license.id}/sign/`));
+    } catch (error) {
+      setPreviewError(error instanceof Error ? error.message : 'Unable to load the contract.');
+    }
+  };
   const act = async (action: string) => {
     setBusy(true); setError('');
     try { const result = await request(`agreements/${license.id}/mandate/`, 'POST', { action, consent }); if (result.url) await Linking.openURL(result.url); await reload(); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
   return <View style={box}>
-    <Text style={{ fontWeight: '700' }}>{license.title} · Agreement #{license.id}</Text>
-    <Text>{license.admin_review ? 'Payment flow: buyer checkout, funds held for admin verification' : 'Payment authorization: ' + license.mandate_status.replaceAll('_', ' ')}</Text>
+    <View style={styles.sectionHeading}><FileText size={18} color={COLORS.redDark} /><Text style={styles.eyebrow}>Contract preview</Text></View>
+    <Text style={styles.reportTitle}>{license.title}</Text>
+    <Text style={styles.muted}>{license.compensation_type === 'hybrid' ? 'Upfront payment and royalties' : 'Royalty agreement'}</Text>
+    {license.starts_on && <Text style={styles.periodText}>License starts {displayDate(license.starts_on)}{license.ends_on ? ` · Expires ${displayDate(license.ends_on)}` : ''}</Text>}
+    <Pressable accessibilityRole="button" accessibilityState={{ expanded: previewOpen }} onPress={() => void togglePreview()}>
+      <Text style={link}>{previewOpen ? 'Hide contract' : 'Read contract'}</Text>
+    </Pressable>
+    {previewOpen && <View style={styles.infoBox}>
+      {previewError ? <Text accessibilityRole="alert" style={styles.errorText}>{previewError}</Text>
+        : contract ? <><Text style={styles.eyebrow}>{contract.fully_signed ? 'Signed contract' : 'Accepted terms'}</Text><Text selectable style={{ lineHeight: 22 }}>{contract.document}</Text></>
+        : <ActivityIndicator accessibilityLabel="Loading contract" />}
+    </View>}
     {license.admin_review === undefined && <Text style={{ color: '#A00020' }}>Payment workflow information is missing. Restart the backend and reload this page before continuing.</Text>}
     {!license.configured && <Text>This signed agreement has no structured reporting rules. Agree and sign revised terms before automatic reporting can begin.</Text>}
-    {license.admin_review && <Text>Buyer submits a report, pays through checkout, and a platform administrator verifies the evidence before releasing funds. No linked payment method is required.</Text>}
     {license.is_buyer && license.configured && license.admin_review === false && <>
+      <Text style={styles.sectionTitle}>Payment authorization · {readable(license.mandate_status)}</Text>
       {!enabled && <Text>Automatic collection is awaiting merchant payment-channel setup. Reports and evidence review remain available.</Text>}
       {license.mandate_status !== 'active' && <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: consent }} onPress={() => setConsent(!consent)}><Text>{consent ? '☑' : '☐'} I authorize variable royalty payments calculated from my reports and approved by the artist, on or after each due date. I will link my payment method securely with Xendit. I may revoke future collection here; charges already initiated may still settle, and agreed debts remain due.</Text></Pressable>}
       {license.mandate_status !== 'active' && <Pressable disabled={busy || !enabled || !consent} onPress={() => act('link')}><Text style={link}>Link / update authorized payment method</Text></Pressable>}
@@ -192,15 +217,25 @@ export default function RoyaltyReports() {
   const [error, setError] = useState('');
   const load = useCallback(async () => { try { setData(await request()); setError(''); } catch (e: any) { setError(e.message); } }, []);
   useEffect(() => { const unsubscribe = auth.onAuthStateChanged(user => { if (user) load(); else setError('Please sign in to view royalty reports.'); }); return unsubscribe; }, [load]);
+  const agreements = data?.agreements.filter(license => !agreementId || String(license.id) === agreementId) ?? [];
+  const periods = data?.periods.filter(period => !agreementId || String(period.agreement_id) === agreementId) ?? [];
   return <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
     <TransactionHeader title="Royalty Reports & Payments" onBack={() => goBackOr('/(home)/settings')} onRefresh={() => { void load(); }} />
+    {!!agreements.length && <TourLauncher label="Royalties tutorial" steps={[
+      { target: 'royalty-tour-contract', instruction: 'Royalties are payments based on how licensed artwork is used or sold. Open the contract to check how yours are calculated and when they are due.' },
+      ...(periods.length ? [
+        { target: 'royalty-tour-report', instruction: 'Each report covers one period. After it closes, the buyer submits sales or usage figures and supporting evidence by the report due date.' },
+        { target: 'royalty-tour-payment', instruction: periods[0].admin_review
+          ? 'The buyer pays through checkout. Funds are held until an admin verifies the report and releases the payment to the artist wallet.'
+          : 'The artist reviews the reported amount. For agreements with automatic collection, the buyer can authorize a payment method in the contract card above.' },
+      ] : []),
+    ]} />}
     <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 28, gap: 16, width: '100%', maxWidth: 850, alignSelf: 'center' }}>
-    <Text>Submit evidence after each reporting period closes. Your report deadline is seven days before payment is due. For admin-reviewed reports, pay through checkout; verified funds are held until an administrator verifies the report and releases them to the artist wallet.</Text>
     {!!error && <Text accessibilityRole="alert" style={{ color: '#A00020' }}>{error}</Text>}
     {!data && !error && <ActivityIndicator />}
-    {data && !data.agreements.length && <Text>No accepted royalty agreements yet.</Text>}
-    {data?.agreements.filter(license => !agreementId || String(license.id) === agreementId).map(license => <MandateCard key={license.id} license={license} enabled={data.collection_enabled} reload={load} />)}
-    {data?.periods.filter(period => !agreementId || String(period.agreement_id) === agreementId).map(period => <ReportCard key={period.id} report={period} reload={load} />)}
+    {data && !agreements.length && <Text>No accepted royalty agreements to display.</Text>}
+    {agreements.map((license, index) => <View key={license.id} id={index === 0 ? 'royalty-tour-contract' : undefined}><MandateCard license={license} enabled={!!data?.collection_enabled} reload={load} /></View>)}
+    {periods.map((period, index) => <ReportCard key={period.id} report={period} reload={load} tourTarget={index === 0} />)}
   </ScrollView></SafeAreaView>;
 }
 

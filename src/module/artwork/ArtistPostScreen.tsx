@@ -1,7 +1,9 @@
 import AuctionScheduleField from './components/AuctionScheduleField';
+import ArtworkSizeFields from './components/ArtworkSizeFields';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
+import TransactionHeader from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import CategoryPicker from './components/CategoryPicker';
 import { categoryLabel, MAX_ARTWORK_CATEGORIES } from '@/services/artworkCategories';
@@ -16,8 +18,8 @@ import AgreementDocument, {
   type AgreementTerms,
 } from "@/module/messages/components/AgreementDocument";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { ArrowLeft, ImagePlus, Plus, Sparkles, X } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ImagePlus, Plus, Sparkles, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,6 +35,7 @@ type ToastState = {
 
 export default function ArtistPostScreen() {
   const router = useRouter();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const { width } = useWindowDimensions();
   const [pageWidth, setPageWidth] = useState(width);
   const [imageData, setImageData] = useState("");
@@ -107,6 +110,8 @@ export default function ArtistPostScreen() {
   const [hourlyRate, setHourlyRate] = useState("");
   const [materials, setMaterials] = useState("0");
   const [artType, setArtType] = useState("Physical");
+  const [medium, setMedium] = useState('');
+  const [dimensions, setDimensions] = useState('');
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [selectedAiTags, setSelectedAiTags] = useState<string[]>([]);
   const [customTags, setCustomTags] = useState<string[]>([]);
@@ -118,9 +123,10 @@ export default function ArtistPostScreen() {
     message: "",
     type: "success",
   });
-  const [saleType, setSaleType] = useState<"Auction" | "Direct Sell">(
-    "Auction",
+  const [saleType, setSaleType] = useState<"Auction" | "Direct Sell" | "Portfolio Only">(
+    mode === 'portfolio' ? 'Portfolio Only' : 'Auction',
   );
+  const portfolioOnly = saleType === 'Portfolio Only';
 
   useEffect(() => {
     let active = true;
@@ -407,6 +413,9 @@ export default function ArtistPostScreen() {
       );
     }
 
+    if (!dimensions.trim() || (artType === 'Physical' && !medium.trim())) {
+      return showToast('Enter the dimensions and, for physical artwork, the medium used.', 'error');
+    }
     if (saleType === "Direct Sell") {
       if (Number(hours) <= 0 || Number(hourlyRate) <= 0) {
         return showToast(
@@ -414,7 +423,7 @@ export default function ArtistPostScreen() {
           "error",
         );
       }
-    } else if (Number(price) <= 0) {
+    } else if (saleType === 'Auction' && Number(price) <= 0) {
       return showToast("Enter a valid starting bid.", "error");
     }
 
@@ -457,12 +466,14 @@ export default function ArtistPostScreen() {
         categories,
         selected_ai_tags: selectedAiTags,
         custom_tags: customTags,
-        price,
+        price: portfolioOnly ? undefined : price,
         sale_type: saleType,
         hours,
         hourly_rate: hourlyRate,
         material_cost: materials,
         art_type: artType.toLowerCase(),
+        medium: artType === 'Digital' ? 'Digital' : medium.trim(),
+        dimensions: dimensions.trim(),
         auction_license_type: auctionLicenseType,
         auction_exclusivity: auctionExclusivity,
         auction_delivery_type: auctionDeliveryType,
@@ -506,7 +517,7 @@ export default function ArtistPostScreen() {
           : "Sent to the Creative Moderator for review.",
         "success",
       );
-      setTimeout(() => router.replace("/(home)"), 500);
+      setTimeout(() => router.replace(portfolioOnly ? '/my-portfolio' : '/(home)'), 500);
     } catch (error: any) {
       showToast(error.message || "Please try again.", "error");
     } finally {
@@ -533,13 +544,7 @@ export default function ArtistPostScreen() {
           <Pressable accessibilityRole="button" onPress={() => { setSubmissionResult(null); router.replace('/(home)'); }} style={{ padding: 14, borderRadius: 10, backgroundColor: '#B95353' }}><Text style={{ color: '#FFF', fontWeight: '700', textAlign: 'center' }}>Done</Text></Pressable>
         </View></View>
       </Modal>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <ArrowLeft color={COLORS.red} size={24} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create a post</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <TransactionHeader title="Create a post" onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={[styles.card, pageWidth < 700 && styles.cardMobile]}>
           <View style={[styles.assetsPanel, pageWidth < 700 && styles.panelMobile]}>
@@ -595,8 +600,12 @@ export default function ArtistPostScreen() {
               </>}
             </View>}
             <View style={styles.rule} />
-            <Text style={styles.soldTitle}>SOLD VIA</Text>
+            <Text style={styles.soldTitle}>Post type</Text>
             <View style={styles.saleRow}>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: portfolioOnly }}
+                onPress={() => setSaleType('Portfolio Only')} style={portfolioOnly ? styles.saleSelected : styles.saleOption}>
+                <Text style={portfolioOnly ? styles.saleSelectedText : styles.saleOptionText}>Portfolio only</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setSaleType("Auction")}
                 style={
@@ -631,10 +640,11 @@ export default function ArtistPostScreen() {
                       : styles.saleOptionText
                   }
                 >
-                  Sell & Buy
+                  Sell artwork
                 </Text>
               </TouchableOpacity>
             </View>
+            {portfolioOnly && <Text style={styles.pricingHint}>After review, this work appears in your portfolio for display.</Text>}
           </View>
 
           <View
@@ -676,6 +686,8 @@ export default function ArtistPostScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+            <ArtworkSizeFields digital={artType === 'Digital'} medium={medium} dimensions={dimensions}
+              onMediumChange={setMedium} onDimensionsChange={setDimensions} />
             <View style={styles.tagHeader}>
               <Text style={styles.label}>AI tag suggestions:</Text>
               {generatingTags && (
@@ -714,6 +726,16 @@ export default function ArtistPostScreen() {
                 </Text>
               )}
             </View>
+            <TouchableOpacity
+              style={styles.generateButton}
+              onPress={generateTags}
+              disabled={generatingTags || description.trim().length < 20}
+            >
+              <Sparkles size={14} color={COLORS.red} />
+              <Text style={styles.generateText}>
+                {generatingTags ? "Generating tags..." : "Generate tags"}
+              </Text>
+            </TouchableOpacity>
             <Text style={styles.label}>Manual tags:</Text>
             <Text style={styles.tagHint}>
               Add terms the AI missed, such as a specific subject or technique.
@@ -761,17 +783,6 @@ export default function ArtistPostScreen() {
               multiline
               placeholder="Tell buyers about this piece..."
             />
-            <TouchableOpacity
-              style={styles.generateButton}
-              onPress={generateTags}
-              disabled={generatingTags || description.trim().length < 20}
-            >
-              <Sparkles size={14} color={COLORS.red} />
-              <Text style={styles.generateText}>
-                {generatingTags ? "Generating tags..." : "Generate tags"}
-              </Text>
-            </TouchableOpacity>
-
             {/* Conditional Auction (shown only if artist choose auction in sold via) */}
             {saleType === "Auction" && (
               <View style={styles.auctionBox}>
@@ -804,8 +815,10 @@ export default function ArtistPostScreen() {
 
             <View style={styles.rule} />
             <CategoryPicker value={categories} onChange={setCategories} />
-            <View style={styles.rule} />
-            <Text style={styles.pricingTitle}>PRICING</Text>
+            {!portfolioOnly && <>
+              <View style={styles.rule} />
+              <Text style={styles.pricingTitle}>PRICING</Text>
+            </>}
 
             {saleType === "Auction" && (
               <>
@@ -881,12 +894,12 @@ export default function ArtistPostScreen() {
                 only after a successful auction payment.
               </Text>
             )}
-            <Text style={styles.pricePreview}>
+            {!portfolioOnly && <Text style={styles.pricePreview}>
               {saleType === "Auction"
                 ? "Starting bid"
                 : "Calculated listing price"}:
               Php. {price || "0000.00"}
-            </Text>
+            </Text>}
 
             <TouchableOpacity
               style={styles.submit}
@@ -976,17 +989,6 @@ export default function ArtistPostScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.pageBackground },
-  header: {
-    height: 58,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderColor: "#E7D8D0",
-  },
-  headerTitle: { fontSize: 22, fontFamily: "LoraSemiBold", color: COLORS.redDark },
   scroll: { padding: 18, alignItems: "center" },
   card: {
     width: "100%",
@@ -1057,7 +1059,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   soldTitle: { color: COLORS.red, fontWeight: "900", fontSize: 17 },
-  saleRow: { flexDirection: "row", gap: 12, marginTop: 14 },
+  saleRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 14 },
   saleSelected: {
     backgroundColor: COLORS.red,
     borderRadius: 16,

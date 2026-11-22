@@ -1,6 +1,8 @@
 from unittest.mock import patch
 from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIRequestFactory
+from artist_profiles.portfolio import artist_portfolio
+from cart.views import CartView
 from users.models import User
 from .categories import CATEGORIES, MAX_CATEGORIES, category_ids, validate_categories
 from .models import Artwork
@@ -52,6 +54,27 @@ class CategoryPostingTests(TestCase):
         self.assertEqual(artwork.categories, ['illustration', 'painting', 'collage'])
         result = ArtworkSerializer(artwork).data
         self.assertEqual(result['category_labels'], ['Illustration', 'Painting', 'Collage'])
+
+    def test_portfolio_only_posts_skip_pricing_and_stay_out_of_the_cart_and_feed(self):
+        result = self.post({'category': 'Painting', 'sale_type': Artwork.PORTFOLIO_ONLY,
+                            'art_type': 'physical', 'dimensions': '30 × 40 cm', 'medium': 'Acrylic on canvas',
+                            'price': None, 'hours': None, 'hourly_rate': None})
+        self.assertEqual(result.status_code, 201, result.data)
+        artwork = Artwork.objects.get()
+        self.assertEqual(artwork.price, 0)
+        self.assertEqual(artwork.medium, 'Acrylic on canvas')
+        self.assertEqual(artwork.dimensions, '30 × 40 cm')
+        self.assertEqual(artwork.status, Artwork.Status.PENDING)
+        self.assertEqual(artist_portfolio(self.artist), [])
+
+        Artwork.objects.filter(pk=artwork.pk).update(status=Artwork.Status.APPROVED)
+        self.assertEqual(artist_portfolio(self.artist)[0]['id'], artwork.pk)
+        factory = APIRequestFactory()
+        self.assertEqual(ArtworkView.as_view()(factory.get('/')).data, [])
+        buyer = User.objects.create(firebase_uid='portfolio-buyer', username='portfolio-buyer', email='portfolio@buyer.test')
+        with patch.object(CartView, 'get_request_user', return_value=buyer):
+            response = CartView.as_view()(factory.post('/', {'listing_id': artwork.pk}, format='json'))
+        self.assertEqual(response.status_code, 400)
 
     def test_invalid_categories_cannot_be_posted_by_bypassing_picker(self):
         response = self.post({'categories': ['not-a-category']})

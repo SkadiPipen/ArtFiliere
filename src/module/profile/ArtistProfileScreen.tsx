@@ -5,6 +5,8 @@ import ProductImage from '@/components/ProductImage';
 import ArtistShareCard from './components/ArtistShareCard';
 import ProfileCover from '@/components/ProfileCover';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import ContentModal from '@/components/ContentModal';
+import ViewPostPage from '@/module/artwork/ViewPostScreen';
 import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import { chatService } from '@/module/chat-negotiations/chats';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
@@ -323,7 +325,7 @@ export default function ArtistProfileScreen() {
                       style={[s.card, pageWidth < 768 && { width: '48%', minWidth: 0 }]}
                       activeOpacity={0.85}
                       onPress={() =>
-                        item.source === 'commission' ? setPortfolioPreview(item) : router.push({
+                        item.source === 'commission' || item.source === 'registration' ? setPortfolioPreview(item) : router.push({
                           pathname: '/(home)/view-post' as any,
                           params: {
                             artworkId: String(item.id),
@@ -352,7 +354,7 @@ export default function ArtistProfileScreen() {
                           {item.title}
                         </Text>
                         <Text style={s.price}>
-                          {item.source === 'commission' ? 'Completed commission' : `₱ ${Number(item.price || 0).toLocaleString()}`}
+                          {item.source === 'commission' ? 'Completed commission' : item.source === 'registration' ? 'Portfolio sample' : item.sale_type === 'Portfolio Only' ? 'Portfolio only' : `₱ ${Number(item.price || 0).toLocaleString()}`}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -374,14 +376,9 @@ export default function ArtistProfileScreen() {
         </View>
       </ScrollView>
 
-      <Modal visible={!!portfolioPreview} transparent animationType="fade" onRequestClose={() => setPortfolioPreview(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 24 }}>
-          <TouchableOpacity accessibilityRole="button" onPress={() => setPortfolioPreview(null)}><Text style={{ color: 'white', textAlign: 'right', padding: 16 }}>Close</Text></TouchableOpacity>
-          <Text style={{ color: 'white', fontSize: 20 }}>{portfolioPreview?.title}</Text>
-          {!!portfolioPreview?.image_data && <ProductImage source={{ uri: portfolioPreview.image_data }} resizeMode="contain" style={{ width: '100%', height: '70%' }} />}
-          <Text style={{ color: 'white' }}>Completed commission</Text>
-        </View>
-      </Modal>
+      {portfolioPreview && <ContentModal visible animationType="fade" accessibilityLabel="Portfolio preview" onRequestClose={() => setPortfolioPreview(null)}>
+        <ViewPostPage preview={portfolioPreview} onClose={() => setPortfolioPreview(null)} />
+      </ContentModal>}
       {/* 4. Commission Request Modal */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={s.modalOverlay}>

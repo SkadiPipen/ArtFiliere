@@ -4,6 +4,7 @@ from users.models import User
 
 
 class Artwork(models.Model):
+    PORTFOLIO_ONLY = 'Portfolio Only'
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         APPROVED = "approved", "Approved"
@@ -23,6 +24,8 @@ class Artwork(models.Model):
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     material_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     art_type = models.CharField(max_length=10, default="digital")
+    medium = models.CharField(max_length=120, blank=True, default='')
+    dimensions = models.CharField(max_length=120, blank=True, default='')
     image_data = models.TextField()
     additional_images = models.JSONField(default=list, blank=True)
     status = models.CharField(

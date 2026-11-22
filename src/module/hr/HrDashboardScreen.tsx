@@ -7,6 +7,8 @@ import ResellerApprovals from '@/module/admin/ResellerApprovals';
 import ModeratorEvaluation from './ModeratorEvaluation';
 import Svg, { Circle } from 'react-native-svg';
 import { Text, TextInput } from '@/components/Typography';
+import { purchaseRequest } from '@/services/purchases';
+import { categoryLabel } from '@/services/artworkCategories';
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
@@ -40,6 +42,13 @@ type ArtistApplication = {
     description?: string;
     imageDataUri?: string;
     imageUri?: string;
+    art_type?: string;
+    medium?: string;
+    dimensions?: string;
+    categories?: string[];
+    tags?: string[];
+    similarity_match_count?: number;
+    similarity_matches?: { title: string; artist: string; score: number; exact: boolean }[];
   }>;
   tin_number?: string;
   document_details?: Record<string, string | number | boolean>;
@@ -109,7 +118,25 @@ export default function HrDashboardScreen() {
   const [portfolioPreview, setPortfolioPreview] = useState<{
     title: string;
     uri: string;
+    reference?: { title: string; image: string };
   } | null>(null);
+  const [matchError, setMatchError] = useState('');
+  const [matchLoading, setMatchLoading] = useState(false);
+  useEffect(() => setMatchError(''), [selectedApplication?.id]);
+
+  const comparePortfolioMatch = async (sampleIndex: number, matchIndex: number, title: string, uri: string) => {
+    if (!selectedApplication || matchLoading) return;
+    setMatchLoading(true);
+    setMatchError('');
+    try {
+      const reference = await purchaseRequest(`users/artist-applications/${selectedApplication.id}/portfolio-match/${sampleIndex}/${matchIndex}/`);
+      setPortfolioPreview({ title, uri, reference });
+    } catch (error) {
+      setMatchError(error instanceof Error ? error.message : 'Could not load the matching artwork.');
+    } finally {
+      setMatchLoading(false);
+    }
+  };
 
   const getToken = async () => {
     const user = auth.currentUser;
@@ -488,6 +515,7 @@ export default function HrDashboardScreen() {
                   {selectedApplication.bio || "No bio provided."}
                 </Text>
                 <Text style={styles.detailLabel}>Portfolio</Text>
+                {!!matchError && <Text accessibilityRole="alert" style={{ color: COLORS.redDark }}>{matchError}</Text>}
                 {selectedApplication.portfolio.length ? (
                   <ScrollView
                     horizontal
@@ -532,6 +560,20 @@ export default function HrDashboardScreen() {
                               {item.description}
                             </Text>
                           )}
+                          {!!item.medium && <Text style={styles.portfolioDescription}>Medium: {item.medium}</Text>}
+                          {!!item.dimensions && <Text style={styles.portfolioDescription}>Dimensions: {item.dimensions}</Text>}
+                          {!!item.categories?.length && <Text style={styles.portfolioDescription}>Categories: {item.categories.map(category => categoryLabel(category)).join(', ')}</Text>}
+                          {!!item.tags?.length && <Text style={styles.portfolioDescription}>Tags: {item.tags.map(tag => tag.replace(/_/g, ' ')).join(', ')}</Text>}
+                          <Text style={styles.portfolioTitle}>
+                            {item.similarity_match_count === undefined ? 'Similarity check unavailable for this submission' :
+                              item.similarity_match_count ? `${item.similarity_match_count} potential matches` : 'No potential matches found'}
+                          </Text>
+                          {item.similarity_matches?.map((match, matchIndex) => <TouchableOpacity key={matchIndex} accessibilityRole="button" disabled={matchLoading || !imageUri} onPress={() => void comparePortfolioMatch(index, matchIndex, item.title || 'Portfolio artwork', imageUri || '')}>
+                            <Text style={[styles.portfolioDescription, { color: COLORS.redDark }]}>
+                              {match.exact ? 'Exact file match' : `${Math.round(match.score * 100)}% similarity`} · {match.title} by @{match.artist}
+                            </Text>
+                            <Text style={styles.previewCloseText}>Compare images</Text>
+                          </TouchableOpacity>)}
                         </View>
                       );
                     })}
@@ -666,7 +708,10 @@ export default function HrDashboardScreen() {
             onPress={(event) => event.stopPropagation()}
           >
             <Text style={styles.previewTitle}>{portfolioPreview?.title}</Text>
-            {portfolioPreview?.uri ? (
+            {portfolioPreview?.reference ? <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}><Text style={styles.portfolioTitle}>Submitted sample</Text><Image source={{ uri: portfolioPreview.uri }} style={styles.previewImage} resizeMode="contain" /></View>
+              <View style={{ flex: 1 }}><Text style={styles.portfolioTitle}>{portfolioPreview.reference.title}</Text><Image source={{ uri: portfolioPreview.reference.image }} style={styles.previewImage} resizeMode="contain" /></View>
+            </View> : portfolioPreview?.uri ? (
               <Image
                 source={{ uri: portfolioPreview.uri }}
                 style={styles.previewImage}

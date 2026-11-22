@@ -6,13 +6,38 @@ const { createPortal } = require('react-dom') as {
   createPortal: (children: ReactNode, container: HTMLElement) => ReactPortal;
 };
 const padding = 12;
+const gap = 19;
 
-export default function SpotlightTour({ label, steps, step, onNext, onClose }: SpotlightTourProps) {
+function visibleBounds(element: HTMLElement) {
+  const bounds = element.getBoundingClientRect();
+  let left = Math.max(0, bounds.left);
+  let top = Math.max(0, bounds.top);
+  let right = Math.min(window.innerWidth, bounds.right);
+  let bottom = Math.min(window.innerHeight, bounds.bottom);
+  for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+    const { overflowX, overflowY } = getComputedStyle(parent);
+    if (overflowX === 'visible' && overflowY === 'visible') continue;
+    const bounds = parent.getBoundingClientRect();
+    if (overflowX !== 'visible') {
+      left = Math.max(left, bounds.left + parent.clientLeft);
+      right = Math.min(right, bounds.left + parent.clientLeft + parent.clientWidth);
+    }
+    if (overflowY !== 'visible') {
+      top = Math.max(top, bounds.top + parent.clientTop);
+      bottom = Math.min(bottom, bounds.top + parent.clientTop + parent.clientHeight);
+    }
+  }
+  return right > left && bottom > top ? new DOMRect(left, top, right - left, bottom - top) : undefined;
+}
+
+export default function SpotlightTour({ label, steps, step, onNext, onClose, scope }: SpotlightTourProps) {
   const { target, instruction, closeOnActivate } = steps[step];
   const last = step === steps.length - 1;
   const card = useRef<HTMLElement>(null);
   const scrollOrigins = useRef(new Map<Element, { top: number; left: number }>());
-  const [layout, setLayout] = useState<{ rect?: DOMRect; width: number; height: number; cardHeight: number }>();
+  const [layout, setLayout] = useState<{ target: string; rect?: DOMRect; width: number; height: number; cardHeight: number }>();
+  const close = useRef(onClose);
+  useLayoutEffect(() => { close.current = onClose; }, [onClose]);
 
   useLayoutEffect(() => {
     const page = window.location.href;
@@ -28,80 +53,80 @@ export default function SpotlightTour({ label, steps, step, onNext, onClose }: S
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let frame = 0;
-    let scrollingToTarget = true;
+    let control: HTMLElement | undefined;
+    let previousLayout: typeof layout;
+    const selector = `#${CSS.escape(target)}`;
+    const root = scope ?? document;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const activate = () => close.current();
+    const hasBox = (element: HTMLElement) => element.getClientRects().length > 0 && getComputedStyle(element).visibility === 'visible';
+
     function measure() {
-      const rect = document.getElementById(target)?.getBoundingClientRect();
-      const visible = rect?.width && rect.height && rect.bottom > 0 && rect.top < window.innerHeight;
-      setLayout((previous) => ({
-        rect: visible ? rect : rect && scrollingToTarget ? previous?.rect : undefined,
+      const nextControl = control?.isConnected && hasBox(control)
+        ? control
+        : Array.from(root.querySelectorAll<HTMLElement>(selector)).find(hasBox);
+      if (nextControl !== control) {
+        control?.removeEventListener('click', activate);
+        control = nextControl;
+        const origins = scrollOrigins.current;
+        for (let element = control?.parentElement; element; element = element.parentElement) {
+          const canScroll = element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth;
+          if ((canScroll || element === document.scrollingElement) && !origins.has(element)) {
+            origins.set(element, { top: element.scrollTop, left: element.scrollLeft });
+          }
+        }
+        control?.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'center', inline: 'nearest' });
+        if (closeOnActivate) control?.addEventListener('click', activate);
+      }
+      const rect = control ? visibleBounds(control) : undefined;
+      const nextLayout = {
+        target, rect,
         width: window.innerWidth,
         height: window.innerHeight,
         cardHeight: card.current?.offsetHeight ?? 120,
-      }));
-    }
-    function schedule() {
-      cancelAnimationFrame(frame);
+      };
+      const oldRect = previousLayout?.rect;
+      if (!previousLayout || previousLayout.width !== nextLayout.width || previousLayout.height !== nextLayout.height ||
+          previousLayout.cardHeight !== nextLayout.cardHeight || oldRect?.x !== rect?.x || oldRect?.y !== rect?.y ||
+          oldRect?.width !== rect?.width || oldRect?.height !== rect?.height) {
+        previousLayout = nextLayout;
+        setLayout(nextLayout);
+      }
       frame = requestAnimationFrame(measure);
     }
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const control = document.getElementById(target);
-    const origins = scrollOrigins.current;
-    for (let element = control?.parentElement; element; element = element.parentElement) {
-      const canScroll = element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth;
-      if ((canScroll || element === document.scrollingElement) && !origins.has(element)) {
-        origins.set(element, { top: element.scrollTop, left: element.scrollLeft });
-      }
-    }
-    control?.scrollIntoView({
-      behavior: reducedMotion ? 'instant' : 'smooth',
-      block: 'center',
-      inline: 'nearest',
-    });
-    const settle = window.setTimeout(() => {
-      scrollingToTarget = false;
-      schedule();
-    }, reducedMotion ? 0 : 700);
-    const observer = new ResizeObserver(schedule);
-    if (card.current) observer.observe(card.current);
-    window.addEventListener('resize', schedule);
-    window.addEventListener('scroll', schedule, true);
-    schedule();
+    measure();
     return () => {
-      window.clearTimeout(settle);
       cancelAnimationFrame(frame);
-      observer.disconnect();
-      window.removeEventListener('resize', schedule);
-      window.removeEventListener('scroll', schedule, true);
+      control?.removeEventListener('click', activate);
     };
-  }, [target]);
+  }, [target, scope, closeOnActivate]);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      onClose();
+      close.current();
     };
     window.addEventListener('keydown', closeOnEscape, true);
-    const control = closeOnActivate ? document.getElementById(target) : null;
-    control?.addEventListener('click', onClose);
     return () => {
       window.removeEventListener('keydown', closeOnEscape, true);
-      control?.removeEventListener('click', onClose);
     };
-  }, [closeOnActivate, onClose, target]);
+  }, []);
 
   if (typeof document === 'undefined') return null;
-  const { rect, width, height, cardHeight } = layout ?? { width: window.innerWidth, height: window.innerHeight, cardHeight: 120 };
+  const { rect, width, height, cardHeight } = layout?.target === target ? layout : { rect: undefined, width: window.innerWidth, height: window.innerHeight, cardHeight: 120 };
   const cardWidth = Math.min(254, width - padding * 2);
   const center = rect ? rect.left + rect.width / 2 : width / 2;
-  const beside = !!rect && rect.left < width / 3 && rect.right + 19 + cardWidth <= width - padding;
-  const x = beside ? rect.right + 19 : Math.max(padding, Math.min(center - cardWidth / 2, width - cardWidth - padding));
-  const below = !!rect && rect.bottom + cardHeight + 19 <= height - padding;
+  const besideRight = !!rect && rect.right + gap + cardWidth <= width - padding;
+  const besideLeft = !!rect && !besideRight && rect.left - gap - cardWidth >= padding;
+  const x = besideRight ? rect.right + gap : besideLeft ? rect.left - gap - cardWidth : Math.max(padding, Math.min(center - cardWidth / 2, width - cardWidth - padding));
+  const below = !!rect && (rect.bottom + cardHeight + gap <= height - padding ||
+    (rect.top - cardHeight - gap < padding && height - rect.bottom >= rect.top));
   const centerY = rect ? rect.top + rect.height / 2 : height / 2;
-  const preferredY = rect && !beside ? (below ? rect.bottom + 19 : rect.top - cardHeight - 19) : centerY - cardHeight / 2;
+  const preferredY = rect && !besideRight && !besideLeft ? (below ? rect.bottom + gap : rect.top - cardHeight - gap) : centerY - cardHeight / 2;
   const y = Math.max(padding, Math.min(preferredY, height - cardHeight - padding));
   const arrowX = Math.max(12, Math.min(center - x - 5, cardWidth - 22));
   const arrowY = Math.max(10, Math.min(centerY - y - 5, cardHeight - 20));
@@ -118,22 +143,12 @@ export default function SpotlightTour({ label, steps, step, onNext, onClose }: S
 
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none', fontFamily: 'NunitoSans, sans-serif' }}>
-      <style>{`
-        @media (prefers-reduced-motion: no-preference) {
-          .artfilier-tour-slide {
-            transition-property: left, top, width, height;
-            transition-duration: 160ms;
-            transition-timing-function: cubic-bezier(.22, .68, .36, 1);
-          }
-        }
-      `}</style>
-      {shade.map((area, index) => <div key={index} aria-hidden="true" className="artfilier-tour-slide" style={{ position: 'absolute', ...area, background: '#21151BD1', pointerEvents: 'auto' }} />)}
+      {shade.map((area, index) => <div key={index} aria-hidden="true" style={{ position: 'absolute', ...area, background: '#21151BD1', pointerEvents: 'auto' }} />)}
       {rect && (
         <>
-          <div aria-hidden="true" className="artfilier-tour-slide" style={{ position: 'absolute', left, top, width: right - left, height: bottom - top, boxSizing: 'border-box', border: `5px double ${COLORS.red}`, borderRadius: 8 }} />
+          <div aria-hidden="true" style={{ position: 'absolute', left, top, width: right - left, height: bottom - top, boxSizing: 'border-box', border: `5px double ${COLORS.red}`, borderRadius: 8 }} />
           <svg
             aria-hidden="true"
-            className="artfilier-tour-slide"
             viewBox="0 0 34 68"
             fill={COLORS.red}
             style={{ position: 'absolute', left: Math.max(0, left - 13), top: Math.max(0, Math.min(height - 48, (top + bottom - 48) / 2)), width: 24, height: 48, filter: 'drop-shadow(0 0 2px #FFF9F3)' }}
@@ -144,9 +159,9 @@ export default function SpotlightTour({ label, steps, step, onNext, onClose }: S
         </>
       )}
       <button type="button" aria-label={`Close ${label}`} onClick={onClose} style={{ position: 'absolute', top: 12, left: 12, zIndex: 1, background: '#302329', color: '#fff', border: '1px solid #FFFFFF80', borderRadius: 6, width: 36, height: 36, fontSize: 24, cursor: 'pointer', pointerEvents: 'auto' }}>×</button>
-      <section ref={card} aria-label={label} className="artfilier-tour-slide" style={{ position: 'absolute', left: x, top: y, width: cardWidth, boxSizing: 'border-box', pointerEvents: 'auto' }}>
+      <section ref={card} aria-label={label} style={{ position: 'absolute', left: x, top: y, width: cardWidth, boxSizing: 'border-box', pointerEvents: 'auto' }}>
         <div style={{ position: 'relative', background: '#FFF9F3', color: '#35272A', padding: 12, borderRadius: 6, boxShadow: '0 3px 14px #0005' }}>
-          {rect && <span aria-hidden="true" style={{ position: 'absolute', ...(beside ? { left: -5, top: arrowY } : { left: arrowX, [below ? 'top' : 'bottom']: -5 }), width: 10, height: 10, background: '#FFF9F3', transform: 'rotate(45deg)' }} />}
+          {rect && <span aria-hidden="true" style={{ position: 'absolute', ...(besideRight || besideLeft ? { [besideRight ? 'left' : 'right']: -5, top: arrowY } : { left: arrowX, [below ? 'top' : 'bottom']: -5 }), width: 10, height: 10, background: '#FFF9F3', transform: 'rotate(45deg)' }} />}
           <div aria-live="polite" style={{ fontSize: 14, lineHeight: '19px' }}>{instruction}</div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 12 }}>
             <span>{step + 1}/{steps.length}</span>

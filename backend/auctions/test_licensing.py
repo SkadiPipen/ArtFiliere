@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from datetime import datetime
 from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
@@ -6,6 +7,7 @@ from django.core.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory
 from users.models import User
 from artworks.models import Artwork
+from artworks.test_screening import screening
 from artworks.views import ArtworkView, AuctionAgreementPreviewView
 from artworks.tests import image_data_url
 from messaging.models import AgreementTemplate
@@ -36,9 +38,21 @@ class AuctionSigningTests(TestCase):
     def submit(self):
         document, digest = request_document(self.artist, self.payload)
         payload = {**self.payload, 'auction_signature_name':'Artist Name', 'auction_signature_consent':True, 'auction_document_hash':digest, 'signature_strokes':[[[0.1,0.1],[0.3,0.5],[0.5,0.1]]]}
-        response = self.call(ArtworkView, self.artist, payload)
+        with patch('artworks.views.screen_upload', return_value=screening()):
+            response = self.call(ArtworkView, self.artist, payload)
         self.assertEqual(response.status_code, 201, response.data)
         return AuctionListing.objects.get(), document, payload
+
+    def test_auction_start_is_checked_against_the_manila_date(self):
+        now = datetime.fromisoformat('2026-11-23T00:30:00+08:00')
+        payload = {**self.payload, 'starting_time': '2026-11-22T23:55:00+08:00', 'end_time': '2026-11-23T10:00:00+08:00'}
+        _, digest = request_document(self.artist, payload)
+        payload.update(auction_signature_name='Artist Name', auction_signature_consent=True,
+                       auction_document_hash=digest, signature_strokes=[[[0.1, 0.1], [0.3, 0.5], [0.5, 0.1]]])
+        with patch('artworks.views.timezone.now', return_value=now):
+            response = self.call(ArtworkView, self.artist, payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['error'], 'The auction start date cannot be before today.')
 
     def test_past_auction_chat_requires_both_signatures_and_participation(self):
         outsider = User.objects.create(username='outside-bidder', email='outside@example.com', firebase_uid='outside-bidder')
