@@ -339,7 +339,7 @@ export default function AuctionPostView() {
             onPress={handleBack}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back" size={26} color="#844038" />
+            <Ionicons name="chevron-back" size={26} color={COLORS.redDark} />
           </TouchableOpacity>
 
           <View style={[styles.topCenterContainer, !isDesktop && styles.mobileTopCenter]}>
@@ -470,7 +470,7 @@ export default function AuctionPostView() {
               <Ionicons
                 name="document-text-outline"
                 size={14}
-                color="#844038"
+                color={COLORS.redDark}
               />
               <Text style={styles.licenseBtnText}>
                 View Terms & Agreements →
@@ -493,7 +493,7 @@ export default function AuctionPostView() {
                 <Ionicons
                   name={termsAccepted ? "checkbox" : "square-outline"}
                   size={19}
-                  color="#844038"
+                  color={COLORS.redDark}
                 />
                 <Text style={styles.termsAcceptanceText}>
                   I accept these auction terms if I win.
@@ -662,10 +662,10 @@ const styles = StyleSheet.create({
   imageFallbackText: { color: "#806D63", fontWeight: "700" },
   termsModal: { width: "92%", maxWidth: 650, maxHeight: "86%", backgroundColor: "#FFFDF8", borderRadius: 15, padding: 16 },
   termsClose: { alignSelf: "center", paddingVertical: 12, paddingHorizontal: 22 },
-  termsCloseText: { color: "#844038", fontWeight: "800" },
+  termsCloseText: { color: COLORS.redDark, fontWeight: "800" },
   container: {
     flex: 1,
-    backgroundColor: "#F8F1E3",
+    backgroundColor: COLORS.pageBackground,
     position: "relative",
   },
   bgGlowTop: {
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: "40%",
-    backgroundColor: "#EFE1CA",
+    backgroundColor: COLORS.roseLight,
     opacity: 0.6,
   },
   scrollContent: {
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F8F1E3",
+    backgroundColor: COLORS.pageBackground,
   },
 
   // TOP BAR
@@ -727,19 +727,19 @@ const styles = StyleSheet.create({
   endsOnText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#844038",
+    color: COLORS.redDark,
   },
   timerPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E48A64",
+    backgroundColor: COLORS.red,
     paddingHorizontal: 14,
     paddingVertical: 5,
     borderRadius: 16,
     gap: 5,
   },
   endedPill: {
-    backgroundColor: "#844038",
+    backgroundColor: COLORS.redDark,
   },
   timerText: {
     fontSize: 12,
@@ -796,18 +796,18 @@ const styles = StyleSheet.create({
 
   // LEFT PANEL (TOP BIDDERS)
   topBiddersCard: {
-    backgroundColor: "#ECE3D4",
+    backgroundColor: COLORS.roseLight,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#DFCDB8",
+    borderColor: COLORS.border,
     width: "100%",
     minHeight: 180,
   },
   topBiddersTitle: {
     fontSize: 15,
     fontWeight: "bold",
-    color: "#844038",
+    color: COLORS.redDark,
     marginBottom: 12,
   },
   biddersList: {
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
   },
   bidderMaskedText: {
     fontSize: 12,
-    color: "#844038",
+    color: COLORS.redDark,
     fontWeight: "600",
   },
   emptyBiddersText: {
@@ -859,13 +859,13 @@ const styles = StyleSheet.create({
   currentBidLabel: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#844038",
+    color: COLORS.redDark,
     letterSpacing: 0.5,
   },
   currentBidAmount: {
     fontSize: 24,
     fontWeight: "900",
-    color: "#844038",
+    color: COLORS.redDark,
     marginTop: 2,
   },
 
@@ -876,18 +876,18 @@ const styles = StyleSheet.create({
   artTitleText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#844038",
+    color: COLORS.redDark,
     marginBottom: 6,
   },
   byLabel: {
     fontSize: 13,
     fontWeight: "normal",
-    color: "#844038",
+    color: COLORS.redDark,
   },
   byArtistLink: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#844038",
+    color: COLORS.redDark,
     textDecorationLine: "underline",
   },
   tagsContainer: {
@@ -897,7 +897,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   tagPill: {
-    backgroundColor: "#E48A64",
+    backgroundColor: COLORS.red,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
   },
   bodyDescription: {
     fontSize: 12,
-    color: "#844038",
+    color: COLORS.redDark,
     lineHeight: 18,
     marginVertical: 4,
   },
@@ -921,11 +921,11 @@ const styles = StyleSheet.create({
   specLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#844038",
+    color: COLORS.redDark,
   },
   specValue: {
     fontSize: 12,
-    color: "#844038",
+    color: COLORS.redDark,
   },
   licenseBtn: {
     flexDirection: "row",
@@ -934,14 +934,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#DFCDB8",
-    backgroundColor: "#F3EADB",
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.roseLight,
     marginTop: 6,
     marginBottom: 8,
   },
   licenseBtnText: {
     fontSize: 11,
-    color: "#844038",
+    color: COLORS.redDark,
     fontWeight: "700",
     marginLeft: 6,
   },
@@ -975,7 +975,7 @@ const styles = StyleSheet.create({
   pastBidLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#844038",
+    color: COLORS.redDark,
     marginBottom: 2,
   },
   buttonActionRow: {
@@ -984,7 +984,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rebidBtn: {
-    backgroundColor: "#9B906E",
+    backgroundColor: COLORS.textMuted,
     borderRadius: 6,
     paddingHorizontal: 16,
     paddingVertical: 9,
@@ -1066,7 +1066,7 @@ const styles = StyleSheet.create({
     color: "#777",
     marginBottom: 16,
   },
-  suggestionLabel: { color: "#844038", fontSize: 12, fontWeight: "800", marginBottom: 7 },
+  suggestionLabel: { color: COLORS.redDark, fontSize: 12, fontWeight: "800", marginBottom: 7 },
   suggestionRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 12 },
   suggestionChip: { borderWidth: 1, borderColor: "#D9A59B", backgroundColor: "#FFF4F1", borderRadius: 16, paddingHorizontal: 10, paddingVertical: 7 },
   suggestionChipText: { color: "#A04E46", fontSize: 12, fontWeight: "800" },
@@ -1099,7 +1099,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   agreementPreviewContainer: {
-    backgroundColor: "#F9F4EB",
+    backgroundColor: COLORS.pageBackground,
     borderRadius: 8,
     padding: 10,
     borderWidth: 1,
@@ -1114,7 +1114,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   seeMoreText: {
-    color: "#844038",
+    color: COLORS.redDark,
     fontSize: 11,
     fontWeight: "800",
   },

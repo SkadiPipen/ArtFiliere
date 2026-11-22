@@ -1,3 +1,4 @@
+import CalendarDateField from '@/components/CalendarDateField';
 import ContentModal from '@/components/ContentModal';
 import { PlatformDefaultsProvider, useOptionalPlatformDefaults, usePlatformDefaults } from '@/services/platformDefaults';
 import { Text, TextInput } from '@/components/Typography';
@@ -119,7 +120,7 @@ function ConfiguredCompensationSettings({ enabled, category, terms, onChange, on
         <Text>{terms.subtype === 'installment_payments' ? 'Payment name' : terms.subtype === 'milestone_payments' ? 'Milestone / work to complete' : 'Deliverable / file or artwork'}</Text>
         <TextInput accessibilityLabel={`Payment ${index + 1} name`} value={entry.name} onChangeText={name => editEntry(index, { name })} maxLength={200} style={inputStyle} />
         <Text>Amount (PHP)<RequiredMark /></Text><TextInput accessibilityLabel={`Payment ${index + 1} amount`} value={entry.amount} onChangeText={amount => editEntry(index, { amount })} keyboardType="decimal-pad" style={inputStyle} />
-        <Text>Payment due date (YYYY-MM-DD)<RequiredMark /></Text><TextInput accessibilityLabel={`Payment ${index + 1} due date`} value={entry.due_date} onChangeText={due_date => editEntry(index, { due_date })} placeholder="2026-12-31" maxLength={10} style={inputStyle} />
+        <Text>Payment due date<RequiredMark /></Text><CalendarDateField label={`Payment ${index + 1} due date`} value={entry.due_date} onChange={due_date => editEntry(index, { due_date })} />
         {terms.subtype !== 'installment_payments' && <><Text>Completion and acceptance requirements<RequiredMark /></Text><TextInput accessibilityLabel={`Payment ${index + 1} acceptance requirements`} value={entry.acceptance} onChangeText={acceptance => editEntry(index, { acceptance })} multiline maxLength={500} style={inputStyle} /></>}
         {entries.length > 1 && <Pressable onPress={() => update({ entries: entries.filter((_, i) => i !== index) })}><Text style={{ color: '#C15656' }}>Remove payment</Text></Pressable>}
       </View>)}

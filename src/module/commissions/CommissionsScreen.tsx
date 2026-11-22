@@ -19,6 +19,7 @@ import {
   ImageIcon,
   MessageCircle,
   Paintbrush,
+  RefreshCw,
   Trash2,
   Truck,
   UploadCloud,
@@ -839,15 +840,25 @@ export default function CommissionsScreen() {
     selectedCommission?.buyer_name ||
     "Client";
 
+  const refreshButton = (
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh commissions" disabled={loading} onPress={() => void fetchCommissions()}
+      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: loading ? .5 : 1 }}>
+      {loading ? <ActivityIndicator color={COLORS.red} /> : <RefreshCw size={20} color={COLORS.redDark} />}
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={s.pageContainer} edges={["top", "left", "right"]}>
       {/* MOBILE TOP NAVIGATION BAR (< 960px) */}
       {!isDesktop && (
         <View style={s.mobileTopNav}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from Commissions" onPress={handleBack} style={s.mobileBrandRow}>
-            <ArrowLeft color="#000000" size={22} />
-            <Text style={s.brandTitle}>Commissions</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from Commissions" onPress={handleBack} style={s.mobileBrandRow}>
+              <ArrowLeft color="#000000" size={22} />
+              <Text style={s.brandTitle}>Commissions</Text>
+            </TouchableOpacity>
+            {refreshButton}
+          </View>
           {isArtist ? (
             <View style={s.mobilePillRow}>
               <TouchableOpacity
@@ -959,10 +970,11 @@ export default function CommissionsScreen() {
         {/* MIDDLE COLUMN: FEED OF COMMISSIONS */}
         <View id="commissions-list" style={[s.feedColumn, !isDesktop && s.feedColumnMobile]}>
           {isDesktop && (
-            <View style={s.feedHeader}>
+            <View style={[s.feedHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
               <Text style={s.feedHeaderText}>
                 {role === "artist" ? "Incoming Jobs" : "My Commission Requests"}
               </Text>
+              {refreshButton}
             </View>
           )}
 

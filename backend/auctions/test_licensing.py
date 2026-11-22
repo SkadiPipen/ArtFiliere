@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory
 from users.models import User
 from artworks.models import Artwork
+from artworks.test_screening import screening
 from artworks.views import ArtworkView, AuctionAgreementPreviewView
 from artworks.tests import image_data_url
 from messaging.models import AgreementTemplate
@@ -36,9 +37,19 @@ class AuctionSigningTests(TestCase):
     def submit(self):
         document, digest = request_document(self.artist, self.payload)
         payload = {**self.payload, 'auction_signature_name':'Artist Name', 'auction_signature_consent':True, 'auction_document_hash':digest, 'signature_strokes':[[[0.1,0.1],[0.3,0.5],[0.5,0.1]]]}
-        response = self.call(ArtworkView, self.artist, payload)
+        with patch('artworks.views.screen_upload', return_value=screening()):
+            response = self.call(ArtworkView, self.artist, payload)
         self.assertEqual(response.status_code, 201, response.data)
         return AuctionListing.objects.get(), document, payload
+
+    def test_rejects_auction_start_before_today(self):
+        payload = {**self.payload, 'starting_time': (timezone.now() - timezone.timedelta(days=1)).isoformat()}
+        _, digest = request_document(self.artist, payload)
+        payload.update(auction_signature_name='Artist Name', auction_signature_consent=True,
+                       auction_document_hash=digest, signature_strokes=[[[0.1, 0.1], [0.3, 0.5], [0.5, 0.1]]])
+        response = self.call(ArtworkView, self.artist, payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['error'], 'The auction start date cannot be before today.')
 
     def test_preview_endpoint_returns_full_signable_document_for_each_delivery_type(self):
         import hashlib

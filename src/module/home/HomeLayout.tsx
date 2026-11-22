@@ -11,7 +11,7 @@ export default function HomeLayout() {
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === 'web' && width >= 768;
   const pathname = usePathname();
-  const standaloneOnMobile = ['/report-management', '/artists', '/artist-profile', '/commissions', '/commission-detail'].includes(pathname) || pathname.startsWith('/artist/');
+  const standaloneOnMobile = ['/report-management', '/artists', '/artist-profile', '/artist-post', '/auction-post', '/commissions', '/commission-detail', '/royalty-reports', '/support'].includes(pathname) || pathname.startsWith('/artist/');
   const [earningsOpen, setEarningsOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   useEffect(() => { setEarningsOpen(false); }, [pathname]);

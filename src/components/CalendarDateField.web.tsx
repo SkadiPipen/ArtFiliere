@@ -3,10 +3,10 @@ import { dateValue } from './calendarDateValue';
 import { COLORS } from '@/constants/colors';
 import { useState } from 'react';
 
-export default function CalendarDateField({ value, onChange, label, minimumDate, maximumDate, appearance }: CalendarDateFieldProps) {
+export default function CalendarDateField({ value, onChange, label, minimumDate, maximumDate, appearance, disabled }: CalendarDateFieldProps) {
   const [focused, setFocused] = useState(false);
   const showPlaceholder = appearance === 'signup' && !value && !focused;
-  return <div style={{ position: 'relative', width: '100%' }}><input type="date" aria-label={label} value={value} min={minimumDate ? dateValue(minimumDate) : undefined} max={maximumDate ? dateValue(maximumDate) : undefined}
+  return <div style={{ position: 'relative', width: '100%' }}><input disabled={disabled} type="date" aria-label={label} value={value} min={minimumDate ? dateValue(minimumDate) : undefined} max={maximumDate ? dateValue(maximumDate) : undefined}
     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
     onChange={event => onChange(event.currentTarget.value)}
     onClick={event => { try { event.currentTarget.showPicker?.(); } catch { /* The browser can still open its built-in date control. */ } }}

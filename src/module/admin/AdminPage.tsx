@@ -127,6 +127,7 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
       {!!refreshError && <Text style={workspace.error}>{refreshError}</Text>}
       {!section ? children : section === 'lookup' ? <ArtworkCodeLookup /> : <ScrollView key={section} contentContainerStyle={workspace.content}>
         {section === 'users' && <UserManagement />}
+        {section === 'deadlines' && <RenewalsAndDeadlines />}
         {section === '/reseller-approvals' && <ResellerApprovals workspace />}
         {section === '/admin-moderator-approvals' && <ModeratorEvaluation admin />}
         {section === '/admin-driver-approvals' && <ModeratorEvaluation admin driver />}

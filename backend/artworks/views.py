@@ -1,5 +1,6 @@
 from messaging.platform_defaults import current_defaults
 from decimal import Decimal, InvalidOperation
+from zoneinfo import ZoneInfo
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -174,14 +175,18 @@ class ArtworkView(AuthenticatedAPIView):
             auction_end_time = parse_datetime(request.data.get("end_time") or "")
             if not auction_start_time or not auction_end_time:
                 return Response({"error": "Choose both an auction start and end date."}, status=status.HTTP_400_BAD_REQUEST)
+            manila = ZoneInfo('Asia/Manila')
+            now = timezone.now()
             if timezone.is_naive(auction_start_time):
-                auction_start_time = timezone.make_aware(auction_start_time)
+                auction_start_time = timezone.make_aware(auction_start_time, manila)
             if timezone.is_naive(auction_end_time):
-                auction_end_time = timezone.make_aware(auction_end_time)
-            if auction_start_time.date() < timezone.localdate():
+                auction_end_time = timezone.make_aware(auction_end_time, manila)
+            if timezone.localdate(auction_start_time, manila) < timezone.localdate(now, manila):
                 return Response({"error": "The auction start date cannot be before today."}, status=status.HTTP_400_BAD_REQUEST)
             if auction_end_time <= auction_start_time:
                 return Response({"error": "The auction end date must be later than the start date."}, status=status.HTTP_400_BAD_REQUEST)
+            if auction_end_time <= now:
+                return Response({"error": "The auction must end in the future."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             if sale_type == "Auction":

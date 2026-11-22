@@ -1,3 +1,4 @@
+import CalendarDateField from '@/components/CalendarDateField';
 import { Text, TextInput } from '@/components/Typography';
 import * as DocumentPicker from "expo-document-picker";
 import { FilePlus, Square, SquareCheck } from "lucide-react-native";
@@ -117,12 +118,12 @@ export default function PersonalDocs({
         <Text style={styles.section}>BIR Certificate of Registration</Text><Text style={styles.hint}>Form 2303 ? Upload your current registration record. No expiry date is requested for this certificate.</Text>
         {upload('bir', birDoc)}
         {field('registered_name', 'BIR registered name', 'Name exactly as registered')}
-        <View style={styles.row}>{field('rdo_code', 'RDO code', 'e.g. 039')}{field('registration_date', 'Registration date', 'YYYY-MM-DD')}</View>
+        <View style={styles.row}>{field('rdo_code', 'RDO code', 'e.g. 039')}<View style={{ flex: 1 }}><Text>Registration date</Text><CalendarDateField label="Registration date" value={details.registration_date} onChange={registration_date => setDetails({ ...details, registration_date })} maximumDate={new Date()} /></View></View>
       </View>
       <View style={styles.card}>
         <Text style={styles.section}>Sworn declaration of gross remittances</Text><Text style={styles.hint}>RMC 8-2024 Annex A ? Upload the notarized, BIR-received declaration for the current taxable year. Declare remittances across all marketplaces and payment providers.</Text>
         {upload('sworn', swornDoc)}
-        <View style={styles.row}>{field('taxable_year', 'Taxable year', String(new Date().getFullYear()))}{field('notarized_date', 'Notarization date', 'YYYY-MM-DD')}{field('bir_received_date', 'BIR received date', 'YYYY-MM-DD')}</View>
+        <View style={styles.row}>{field('taxable_year', 'Taxable year', String(new Date().getFullYear()))}<View style={{ flex: 1 }}><Text>Notarization date</Text><CalendarDateField label="Notarization date" value={details.notarized_date} onChange={notarized_date => setDetails({ ...details, notarized_date })} maximumDate={new Date()} /></View><View style={{ flex: 1 }}><Text>BIR received date</Text><CalendarDateField label="BIR received date" value={details.bir_received_date} onChange={bir_received_date => setDetails({ ...details, bir_received_date })} maximumDate={new Date()} /></View></View>
         <Text style={styles.label}>Annual gross remittances stated in the declaration *</Text>
         <View style={styles.row}>{([['not_exceed_500000', 'Do not exceed PHP 500,000'], ['exceed_500000', 'Exceed PHP 500,000']] as const).map(([value, label]) => <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: details.remittance_status === value }} key={value} style={[styles.choice, details.remittance_status === value && styles.selected]} onPress={() => setDetails({ ...details, remittance_status: value })}>{details.remittance_status === value ? <SquareCheck size={21} color="#B74F4B" /> : <Square size={21} color="#A78C80" />}<Text style={[styles.choiceText, { flexShrink: 1 }]}>{label}</Text></TouchableOpacity>)}</View>
         <Text style={styles.hint}>Use the declaration for the applicable year. HR will review the uploaded document.</Text>

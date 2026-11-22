@@ -167,16 +167,16 @@ export default function ProfileHeader({
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => router.push('/(home)/edit-profile')} style={[styles.editBtn, styles.editIconBtn]}><Edit3 color="#A24F41" size={16} /></TouchableOpacity>
               </View>}
               {mobile ? <View style={styles.mobileStats}>
-                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>25</Text><Text style={styles.mobileStatLabel}>Reviews</Text></View>
-                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>19</Text><Text style={styles.mobileStatLabel}>Followers</Text></View>
-                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>3</Text><Text style={styles.mobileStatLabel}>Following</Text></View>
+                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>{profileData?.reviews_count ?? 0}</Text><Text style={styles.mobileStatLabel}>Reviews</Text></View>
+                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>{profileData?.followers_count ?? 0}</Text><Text style={styles.mobileStatLabel}>Followers</Text></View>
+                <View style={styles.mobileStat}><Text style={styles.mobileStatCount}>{profileData?.following_count ?? 0}</Text><Text style={styles.mobileStatLabel}>Following</Text></View>
               </View> : (
               <View style={styles.statsRow}>
-                <Text style={styles.statText}>25 Reviews</Text>
+                <Text style={styles.statText}>{profileData?.reviews_count ?? 0} Reviews</Text>
                 <Text style={styles.statDot}>•</Text>
-                <Text style={styles.statText}>19 Followers</Text>
+                <Text style={styles.statText}>{profileData?.followers_count ?? 0} Followers</Text>
                 <Text style={styles.statDot}>•</Text>
-                <Text style={styles.statText}>3 Following</Text>
+                <Text style={styles.statText}>{profileData?.following_count ?? 0} Following</Text>
               </View>
               )}
             </View>
