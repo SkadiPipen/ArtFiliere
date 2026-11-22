@@ -39,7 +39,7 @@ class ProvenanceView(AuthenticatedAPIView):
         data['can_download_original'] = bool(user and record.registered_at and record.current_owner_id == user.pk)
         data['original_filename'] = record.commission_asset.submission.filename if record.commission_asset_id else f'artwork-{record.pk}.' + {'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/webp': 'webp'}.get(record.original_artwork.image_data.split(';', 1)[0].removeprefix('data:'), 'png')
         response = Response(enrich(record, data, user))
-        if not user or user.role not in ('platform_admin', 'creative_moderator', 'customer_support'):
+        if not user or user.role != 'platform_admin':
             # Creator credit is public. Other holders' transactions/licences are
             # available through the audited staff dossier, not the buyer page.
             owner = bool(user and record.current_owner_id == user.pk)
@@ -77,12 +77,58 @@ class CreatorAttributionView(AuthenticatedAPIView):
         return response
 
 
+class ArtworkVerificationView(AuthenticatedAPIView):
+    def get(self, request, artwork_id):
+        from .artwork_history import context, person
+        user = self.get_request_user(request)
+        if not user or user.role not in ('platform_admin', 'creative_moderator'):
+            raise PermissionDenied('Creative moderator or administrator access is required.')
+        artwork, record, asset, ids, creator = context(artwork_id)
+        response = Response({
+            'title': artwork.title if artwork else asset.commission.title,
+            'created_by': person(creator),
+            'creator_verification': 'reviewed' if record and record.creator_verified else 'claimed',
+            'disputed': bool(record and record.disputed),
+            'registration_status': 'confirmed' if record and record.registered_at else 'pending' if record else 'not_registered',
+        })
+        response['Cache-Control'] = 'private, no-store'
+        return response
+
+
+class ArtworkInvestigationListView(AuthenticatedAPIView):
+    def get(self, request):
+        from django.db.models import Q
+        user = self.get_request_user(request)
+        if not user or user.role != 'platform_admin':
+            raise PermissionDenied('Administrator access is required for artwork investigations.')
+        try:
+            page = int(request.query_params.get('page', '1'))
+            if not 1 <= page <= 1000000:
+                raise ValueError()
+        except (TypeError, ValueError):
+            raise ValidationError('Choose a valid artwork page.')
+        query = request.query_params.get('q', '').strip()[:200]
+        rows = Artwork.objects.select_related('artist').order_by('-created_at', '-pk')
+        if query:
+            match = Q(title__icontains=query) | Q(artist__username__icontains=query)
+            if query.isascii() and query.isdecimal() and len(query) <= 18:
+                match |= Q(pk=int(query))
+            rows = rows.filter(match)
+        start = (page - 1) * 25
+        results = list(rows[start:start + 26])
+        response = Response({'items': [{'id': row.pk, 'title': row.title, 'artist': row.artist.username,
+                                       'status': row.status} for row in results[:25]],
+                             'page': page, 'next_page': page + 1 if len(results) > 25 else None})
+        response['Cache-Control'] = 'private, no-store'
+        return response
+
+
 class ArtworkHistoryView(AuthenticatedAPIView):
     def get(self, request, artwork_id):
-        from .artwork_history import STAFF_ROLES, dossier
+        from .artwork_history import dossier
         user = self.get_request_user(request)
-        if not user or user.role not in STAFF_ROLES:
-            raise PermissionDenied('Creative moderator, support or administrator access is required.')
+        if not user or user.role != 'platform_admin':
+            raise PermissionDenied('Administrator access is required for artwork investigations.')
         try:
             page = int(request.query_params.get('page', '1'))
             if not 1 <= page <= 1000000:
@@ -150,7 +196,7 @@ class ProvenanceReviewQueueView(AuthenticatedAPIView):
         reviews = ProvenanceReview.objects.filter(status='pending').select_related('record', 'requested_by').order_by('created_at')[:100]
         failed = ProvenanceEvent.objects.filter(status='failed').select_related('record').order_by('created_at')[:100]
         return Response({'reviews': [{'id': r.pk, 'artwork_id': str(r.record_id), 'requested_by': r.requested_by.username, 'reason': r.reason} for r in reviews],
-                         'failed_transactions': [{'id': str(e.pk), 'artwork_id': str(e.record_id), 'kind': e.kind} for e in failed]})
+                         'failed_transactions': [{'id': str(e.pk), 'artwork_id': str(e.record_id), 'kind': e.kind} for e in failed] if user.role == 'platform_admin' else []})
 
 
 class ProvenanceResaleView(AuthenticatedAPIView):
@@ -194,8 +240,8 @@ class ProvenanceResaleView(AuthenticatedAPIView):
 class ProvenanceReviewView(AuthenticatedAPIView):
     def get(self, request, artwork_id):
         user = self.get_request_user(request)
-        if not user or user.role not in ('platform_admin', 'creative_moderator', 'customer_support'):
-            raise PermissionDenied('Moderator access is required.')
+        if not user or user.role not in ('platform_admin', 'creative_moderator'):
+            raise PermissionDenied('Creative moderator or administrator access is required.')
         return Response(list(get_record(artwork_id).reviews.values('id', 'reason', 'evidence_links', 'proposed_creator_id', 'status', 'requested_by_id', 'reviewed_by_id', 'decision_note', 'created_at')))
 
     @transaction.atomic

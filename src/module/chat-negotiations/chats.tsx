@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import useChatAutoScroll from '@/hooks/useChatAutoScroll';
 import { Text, TextInput } from '@/components/Typography';
@@ -19,7 +20,7 @@ import type { Artwork } from './types';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, doc, getDoc, onSnapshot, orderBy, query, setDoc, updateDoc, increment, writeBatch, runTransaction } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../../firebase/config';
 import API_URL from '@/services/api';
 import { purchaseRequest } from '@/services/purchases';
@@ -549,7 +550,7 @@ export function ChatWindow({
     if (loading) {
       return (
         <View style={styles.chatLoadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.redDark} />
+          <Skeleton layout="list" />
         </View>
       );
     }

@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import { fetchDeliveryDetailsApi, fetchDeliveryHistory } from '@/services/deliveryApi';
@@ -233,7 +234,7 @@ export default function RiderHistoryScreen() {
 
       {/* History List */}
       {loading ? (
-        <ActivityIndicator size="large" color="#BC5454" style={{ marginTop: 40 }} />
+        <Skeleton layout="list" />
       ) : (
         <FlatList
           data={filteredOrders}

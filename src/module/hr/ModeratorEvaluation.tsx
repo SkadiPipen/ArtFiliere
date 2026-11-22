@@ -1,5 +1,6 @@
+import Skeleton from '@/components/Skeleton';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { ArrowLeft, CheckCircle2, Clock3, FileText, Search, ShieldCheck, UserPlus, X, XCircle } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Text, TextInput } from '@/components/Typography';
@@ -143,7 +144,7 @@ export default function ModeratorEvaluation({ admin = false, driver = false }: {
   const rows = (data?.applications || []).filter(item => (filter === 'all' || item.status === filter) && `${item.profile.name} ${item.profile.email} ${item.profile.username} ${roleName(item.requested_role)}`.toLowerCase().includes(search.toLowerCase()));
   return <View style={{ gap: 20, paddingBottom: 28 }}>
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-    {loading && <ActivityIndicator color="#B95552" />}
+    {loading && <Skeleton layout="list" />}
     {selected ? <>
       <Pressable accessibilityRole="button" onPress={() => { setSelected(null); setError(''); }} style={s.back}><ArrowLeft size={20} color="#A74646" /><Text style={s.link}>Back to {noun} evaluation</Text></Pressable>
       <View style={s.row}><Text style={s.title}>{driver ? 'Driver' : 'Moderator'} application #{selected.id}</Text><Badge status={selected.status} />{button('Reload application', () => void open(selected), true)}</View>
@@ -212,7 +213,7 @@ export default function ModeratorEvaluation({ admin = false, driver = false }: {
     </>}
     <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={closePreview}><View style={s.overlay}><View style={s.preview}>
       <View style={s.row}><Text style={[s.heading, { flex: 1 }]}>{preview?.label || 'Application attachment'}</Text><Pressable accessibilityRole="button" accessibilityLabel="Close preview" onPress={closePreview}><X size={24} color="#A74646" /></Pressable></View>
-      {previewError ? <Text style={s.error}>{previewError}</Text> : preview ? <View style={{ flex: 1, minHeight: 300 }}><PrivateDocumentPreview {...preview} /></View> : <ActivityIndicator color="#A74646" />}
+      {previewError ? <Text style={s.error}>{previewError}</Text> : preview ? <View style={{ flex: 1, minHeight: 300 }}><PrivateDocumentPreview {...preview} /></View> : <Skeleton layout="list" />}
       {selected && preview && Platform.OS !== 'web' && preview.mime === 'application/pdf' && button('Open PDF', () => { const doc = selected.documents.find(value => value.name === preview.label); if (doc) void downloadProtectedFile(`${endpoint}${selected.id}/documents/${doc.index}/`, doc.name, doc.mime).catch(e => setPreviewError(e.message)); })}
     </View></View></Modal>
   </View>;
@@ -222,7 +223,7 @@ function ModeratorStatusChart({ applications, loading, driver }: { applications:
   const segments = ['pending', 'under_review', 'sent_to_admin', 'approved', 'rejected'].map(status => ({ status, count: applications.filter(item => item.status === status).length, color: status === 'approved' ? '#79965E' : stateColor(status) }));
   const circumference = 2 * Math.PI * 66;
   return <View style={{ gap: 12 }}><Text style={s.heading}>Application overview</Text><Text style={s.muted}>All {driver ? 'driver' : 'moderator'} applications</Text>
-    {loading ? <ActivityIndicator color="#B95552" /> : <>
+    {loading ? <Skeleton layout="list" /> : <>
       <View style={{ alignSelf: 'center', width: 184, height: 184 }} accessibilityRole="image" accessibilityLabel={segments.map(item => `${labels[item.status]}: ${item.count}`).join(', ')}>
         <Svg width={184} height={184} viewBox="0 0 184 184"><Circle cx={92} cy={92} r={66} fill="none" stroke="#F3E8E0" strokeWidth={22} />{segments.map((item, index) => {
           const length = total ? item.count / total * circumference : 0;

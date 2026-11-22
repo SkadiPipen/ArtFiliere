@@ -9,13 +9,14 @@ New original-artwork submissions are checked server-side, even if the client ski
 | AI score below 0.80 | Normal pending artwork review; not certified human-made |
 | Any image at or above 0.80 | Held pending and unpublished for evidence review; labelled potentially AI-generated |
 | Identical file already submitted | Automatically declined; reference and attempted submission retained privately |
-| Cover visual similarity at or above 0.80 to an approved original | Automatically declined with read-only reference evidence |
+| Visual similarity >=0.90 AND strong geometry AND multiple hash signals agree | Auto-declined and unpublished as suspected duplicate; moderator reconsideration and artist appeal available |
+| Review-worthy similarity below 0.90 or without strong corroboration | Pending moderator review; no visual auto-decline |
 | Lower review-worthy similarity | Pending; moderator resolves matches before approval |
 | Detector cannot load or execute | HTTP 503; no unchecked submission accepted |
 
 The runtime AI review threshold remains `ARTWORK_AUTO_AI_THRESHOLD = 0.80` (legacy setting name). High scores trigger evidence review rather than automatic rejection. AI screening uses TruthScan only. The visual-similarity threshold remains a separate business rule, not a calibrated probability of plagiarism. These scores are never percentages of how much an artwork is AI-generated or plagiarised. Shared subject matter, style and simple outlines can cause false similarity blocks; evaluate the similarity rule against representative real uploads before relying on its error rate.
 
-High AI scores require documented evidence review before approval and are not automatic rejection decisions. A moderator may clear the AI flag after recording a supporting evidence note, or decline the artwork. Run `python manage.py reopen_ai_holds` to move previous AI-only automatic declines into this private review workflow while preserving their previous decision in the audit log and screening metadata. Similarity/identical-file automatic blocks remain read-only in the Auto-blocked tab. Non-public artwork detail is accessible only to its owner and creative moderators.
+High AI scores require documented evidence review before approval and are not automatic rejection decisions. A moderator may clear the AI flag after recording a supporting evidence note, or decline the artwork. Run `python manage.py reopen_ai_holds` to move previous AI-only automatic declines into this private review workflow while preserving their previous decision in the audit log and screening metadata. Identical-file blocks remain read-only. High-similarity auto-declines may be reconsidered with documented authorship or permission evidence. Non-public artwork detail is accessible only to its owner and creative moderators.
 
 Exact-duplicate attempts retain a null unique SHA-256 field so they cannot replace the original's fingerprint/provenance identity. Their match links to the original at confidence 1.0. Existing approved works are not retrospectively blocked by this update.
 
@@ -54,3 +55,34 @@ Endpoints under `/api/users/`:
 ## Admin sales graph
 
 The existing admin analytics response includes `artwork_sales`: calendar week-to-date (Monday onward) and month-to-date series in Asia/Manila time. Digital and physical purchase counts are shown separately and together. Count means payment transactions, not unique artwork files; digital non-exclusive licenses can sell repeatedly. Includes paid auction/artwork purchases; excludes pending, refunded, simulated, undated and future-dated payments. Commissions remain in the separate existing commission metrics. The React Native SVG chart works with the Expo web/mobile component system without a web-only chart dependency.
+
+
+## geometry-v2 copy-detection evidence
+
+New comparisons use pHash, dHash and edge hashes across eight orientations (four right-angle rotations, with and without mirroring). The winning hash distances come from the same orientation. ORB matches use a Hamming-distance ceiling, a two-neighbor ratio test in both directions, reciprocal correspondence, and a RANSAC homography. At least eight inliers, 55% inlier agreement and 2% spatial coverage on both images are required before any ORB score is accepted. Input geometry is bounded to 960 pixels on the longest edge. Crops can match through local geometry; low-detail or severely edited copies may still be missed. No CLIP/SSCD model is used.
+
+The new score is a heuristic index: max(0.35*p + 0.25*d + 0.40*g, 0.45*edge + 0.55*g), with hash indices max(0, 1-distance/20), and g=min(verified-feature-ratio/0.2, 1). Hash or edge agreement alone cannot reach 0.80. Palette similarity is display context only. Existing historical matches retain their original values; empty match_evidence means legacy evidence, not geometry-v2.
+
+`ARTWORK_SIMILARITY_AUTO_BLOCK_ENABLED` defaults to true for the provisional 90% policy. It can be disabled through the environment. Blocking requires the score cutoff PLUS at least 16 geometrically verified inliers, at least 65% inlier agreement, 8% coverage on both images, and at least two agreeing hash measures (pHash <=8, dHash <=10, edge <=6). These are provisional engineering safeguards, not research-validated thresholds. Strong copies can still be legitimate uploads: keep review/appeal available. Exact-file duplicate protection remains independent. The 90% similarity setting is a provisional publication-policy cutoff, not a calibrated plagiarism probability. AI screening remains a separate 80% review rule.
+
+Apply migrations before running the updated server: `python manage.py migrate`. New matches store algorithm version, orientation, inlier counts/ratios and coverage in `match_evidence`. Moderators can inspect that spatial evidence. No old measurements are rewritten. Matching remains synchronous and compares against the approved catalogue, including references missing older cached hashes; use a background candidate index before large-scale deployment.
+
+### Evaluate your threshold
+
+Prepare a UTF-8 CSV with columns `left,right,label,split,group`. Paths are relative to the CSV. Labels are `copy` or `independent`; splits are `calibration` or `test`; group identifies the original-artwork family. Put every variant of an original in one split. The tool rejects shared groups and byte-identical images across splits, but cannot discover mislabeled families for you. Both splits should contain modified copies, unrelated art and difficult independent works sharing styles, palettes, shapes and subjects. Include low-detail work and authorized duplicates when evaluating the platform policy separately.
+
+Run from backend:
+
+```
+python manage.py evaluate_similarity path/to/pairs.csv --split calibration --thresholds 0.80,0.85,0.90,0.95 --output calibration.json
+python manage.py evaluate_similarity path/to/pairs.csv --split test --thresholds CHOSEN_THRESHOLD --output heldout.json
+```
+
+Choose a threshold on calibration only and freeze it before the test run. The report includes per-pair TP/FP/TN/FN, precision, recall, false-positive rate, algorithm version and raw evidence. Precision is null if there are no positive predictions; it is never reported as 100% in that case. Exact byte matches use the same separate duplicate rule as production. Other predictions require the full multi-signal gate. These are labeled-pair measurements, not end-to-end catalogue accuracy, copyright judgments, or guaranteed production error rates. No representative real-artwork dataset has been evaluated yet. Synthetic regression tests are software checks only. Reports refuse to overwrite existing files and do not change application records.
+
+
+### Auto-decline and appeal workflow
+
+New submissions at or above 0.90 are automatically declined only if the geometry-v2 multi-signal gate also passes. The reason explicitly says suspected duplicate, explains that similarity is not proof of plagiarism, and directs the artist to appeal. The upload result has an Appeal auto-decline action; Activities also links each declined artwork to the existing rejected-artwork support concern. Appeals are private, ownership-scoped, routed to Creative Moderator concern queues and deduplicated while active. The moderator can inspect the Auto-blocked tab without waiting for an appeal, approve with a recorded authorship/permission explanation, or uphold rejection with a reason. Approval clears the block and resolves linked active appeals; the original automatic decision and match measurements remain in history. Exact-file duplicate protection remains independent and read-only. No existing submissions are retrospectively declined.
+
+Every geometry-v2 match records the policy threshold and whether blocking was enabled at submission. Displays use that stored threshold rather than rewriting historical assessments when settings change. This policy is user-selected and still requires representative held-out testing before claiming a measured error rate. Restart Django after changing the policy settings.

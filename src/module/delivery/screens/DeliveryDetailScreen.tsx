@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
@@ -253,7 +254,7 @@ export default function DeliveryDetailScreen() {
     if (loading) {
         return (
             <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#BC5454" />
+                <Skeleton layout="form" />
                 <Text style={styles.loadingText}>Loading Delivery Details...</Text>
             </View>
         );

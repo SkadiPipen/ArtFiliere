@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import TourLauncher from '@/components/TourLauncher';
 import { goBackOr } from '@/services/navigation';
@@ -982,11 +983,7 @@ export default function CommissionsScreen() {
             <TouchableOpacity onPress={() => void fetchCommissions()}><Text style={{ color: '#C15656', fontWeight: '700' }}>Retry loading commissions</Text></TouchableOpacity>
           </View>}
           {loading ? (
-            <ActivityIndicator
-              color="#E67E22"
-              size="large"
-              style={{ marginTop: 40 }}
-            />
+            <Skeleton layout="list" />
           ) : (
             <FlatList
               data={commissions}
@@ -1163,10 +1160,7 @@ export default function CommissionsScreen() {
                 </Text>
 
                 {loadingDelivery ? (
-                  <ActivityIndicator
-                    color="#27AE60"
-                    style={{ marginTop: 40 }}
-                  />
+                  <Skeleton layout="list" />
                 ) : (
                   <View style={s.mapWrapper}>
                     <View style={s.mapContainer}>
@@ -1275,10 +1269,7 @@ export default function CommissionsScreen() {
                 </Text>
 
                 {loadingTrack ? (
-                  <ActivityIndicator
-                    color="#C15656"
-                    style={{ marginTop: 40 }}
-                  />
+                  <Skeleton layout="list" />
                 ) : (
                   <>
                     <View style={s.trackBarContainer}>
@@ -1477,10 +1468,7 @@ export default function CommissionsScreen() {
                   </View>
 
                   {loadingDelivery ? (
-                    <ActivityIndicator
-                      color="#27AE60"
-                      style={{ marginTop: 40 }}
-                    />
+                    <Skeleton layout="list" />
                   ) : (
                     <View style={s.mapWrapper}>
                       <View style={s.mapContainer}>
@@ -1589,10 +1577,7 @@ export default function CommissionsScreen() {
                   </View>
 
                   {loadingTrack ? (
-                    <ActivityIndicator
-                      color="#C15656"
-                      style={{ marginTop: 40 }}
-                    />
+                    <Skeleton layout="list" />
                   ) : (
                     <>
                       <View style={s.trackBarContainer}>

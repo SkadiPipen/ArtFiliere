@@ -37,3 +37,16 @@ assert.match(flow({ ...funded, status: 'STAGE_3', milestones: [final] }).descrip
 assert.equal(flow({ ...physical, status: 'COMPLETE' }).step, 5);
 assert.match(flow({ ...physical, status: 'COMPLETE' }).description, /Payout confirmation is shown separately/);
 console.log('Buyer commission flow checks passed: signature and payment gates, payout labels, revision allowance, digital review, physical delivery, completion.');
+
+const { artistCommissionFlow: artistFlow } = moduleExports;
+assert.equal(artistFlow(base).action, 'reload');
+assert.equal(artistFlow({ ...base, fully_signed: false }).action, 'agreement');
+assert.equal(artistFlow({ ...base, agreement_id: null, status: 'NEGOTIATING' }).action, 'proposal');
+assert.equal(artistFlow({ ...base, funding_pending: true }).action, 'reload');
+assert.match(artistFlow({ ...funded, milestones: [{ id: 1, number: 1, status: 'REVISION_REQUESTED' }] }).title, /revision request/);
+assert.match(artistFlow({ ...funded, milestones: [{ id: 1, number: 1, status: 'SUBMITTED' }] }).title, /buyer’s review/);
+assert.equal(artistFlow({ ...funded, disputed: true }).action, 'help');
+assert.equal(artistFlow({ ...funded, status: 'CANCELLED' }).action, 'none');
+assert.match(artistFlow({ ...physical, milestones: [{ ...final, delivery_ready_at: '2026-11-04' }] }).title, /delivery and final inspection/);
+assert.equal(artistFlow({ ...funded, status: 'COMPLETE' }).step, 5);
+console.log('Artist commission guidance checks passed: proposal, signatures, buyer funding, submission, revisions, delivery, completion, and dispute states.');

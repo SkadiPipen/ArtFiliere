@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { Text, TextInput } from '@/components/Typography';
 import CommissionDeliveryPanel from './CommissionDeliveryPanel';
 import { auth } from '@/firebase/config';
@@ -142,7 +143,7 @@ export default function CommissionProgressPanel({ id, onUpdated, onRevisionLayou
     finally { setBusy(false); }
   };
 
-  if (!data) return <View style={{ padding: 20 }}>{error ? <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{error}</Text> : <ActivityIndicator color="#C15656" />}</View>;
+  if (!data) return <View style={{ padding: 20 }}>{error ? <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{error}</Text> : <Skeleton layout="form" />}</View>;
 
   const current = data.status === `STAGE_${stage?.number}`;
   const canRevise = !data.is_artist && current && stage?.status === 'SUBMITTED' && !stage.revision_used && !stage.delivery_ready_at && !data.disputed;

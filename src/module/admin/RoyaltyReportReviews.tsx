@@ -1,9 +1,10 @@
+import Skeleton from '@/components/Skeleton';
 import { adminType, adminSurfaces } from './adminDesign';
 import { useAdminRefresh } from './AdminRefresh';
 import { Text, TextInput } from '@/components/Typography';
 import { markAdminQueueRead } from '@/services/adminNotifications';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
+import { Modal, Pressable, View } from 'react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
@@ -51,5 +52,5 @@ export default function RoyaltyReportReviews() {
   const load = useCallback(async () => { try { const result: Report[] = await request(); setRows(result); void markAdminQueueRead('royalty_report', result.map(row => row.id)); setError(''); } catch (e: any) { setError(e.message); } finally { setLoading(false); } }, []);
   const adminWorkspace = useAdminRefresh(load);
   useEffect(() => { void load(); }, [load]);
-  return <View style={{ gap: 14 }}><Text style={adminType.sectionTitle}>Royalty report verification</Text><Text>Buyer payments stay held until you verify the report and release them.</Text>{!adminWorkspace && <Pressable onPress={load}><Text style={{ color: '#A33F45', fontWeight: '700' }}>Refresh royalty reviews</Text></Pressable>}{loading && <ActivityIndicator />}{!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}{!loading && !error && !rows.length && <Text>No royalty reports awaiting review.</Text>}{rows.map(report => <ReviewCard key={report.id} report={report} refresh={load} />)}</View>;
+  return <View style={{ gap: 14 }}><Text style={adminType.sectionTitle}>Royalty report verification</Text><Text>Buyer payments stay held until you verify the report and release them.</Text>{!adminWorkspace && <Pressable onPress={load}><Text style={{ color: '#A33F45', fontWeight: '700' }}>Refresh royalty reviews</Text></Pressable>}{loading && <Skeleton layout="list" />}{!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}{!loading && !error && !rows.length && <Text>No royalty reports awaiting review.</Text>}{rows.map(report => <ReviewCard key={report.id} report={report} refresh={load} />)}</View>;
 }

@@ -11,8 +11,8 @@ class FingerprintLookupView(AuthenticatedAPIView):
 
     def post(self, request):
         actor = self.get_request_user(request)
-        if actor.role not in ('platform_admin', 'customer_support', 'creative_moderator'):
-            return Response({'error': 'Creative moderator, admin or customer support access is required.'}, status=403)
+        if actor.role not in ('platform_admin', 'creative_moderator'):
+            return Response({'error': 'Creative moderator or administrator access is required.'}, status=403)
         try:
             record = find_code(request.data.get('code', ''))
         except ValueError:
@@ -47,11 +47,14 @@ class FingerprintLookupView(AuthenticatedAPIView):
         license_data = record.license_snapshot
         if actor.role == 'creative_moderator':
             license_data = {key: value for key, value in license_data.items()
-                            if key in ('reference', 'agreement_id', 'license_type', 'exclusivity', 'license_scope')}
+                            if key in ('reference', 'agreement_id', 'license_type', 'exclusivity')}
+        blockchain = proof_details(record)
+        if actor.role == 'creative_moderator':
+            blockchain = {'status': blockchain['status']}
         response = Response({'code': copy_code(record), 'source': record.source_key,
                              'artwork': artwork, 'buyer': person(record.buyer),
                              'artist': person(record.artist), 'license': license_data,
-                             'blockchain': proof_details(record),
+                             'blockchain': blockchain,
                              'issued_at': record.issued_at.isoformat()})
         response['Cache-Control'] = 'private, no-store'
         return response

@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
@@ -10,7 +11,7 @@ import API_URL from "@/services/api";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, ChevronLeft, ChevronRight, Plus } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Artwork = {
@@ -164,7 +165,7 @@ export default function MyPortfolioScreen() {
           )}
         </ScrollView>
         {loading ? (
-          <ActivityIndicator color="#BC5555" size="large" style={s.loader} />
+          <Skeleton layout="cards" />
         ) : visibleArtworks.length ? (
           <View style={[s.grid, desktop && s.desktopGrid]}>
             {pageArtworks.map((artwork) => (

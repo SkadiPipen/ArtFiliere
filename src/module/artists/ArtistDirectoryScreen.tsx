@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
@@ -5,7 +6,7 @@ import API_URL from "@/services/api";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Star } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Artist = {
@@ -120,11 +121,7 @@ export default function ArtistDirectoryScreen() {
           </TouchableOpacity>
         </View>
         {loading ? (
-          <ActivityIndicator
-            color="#C15656"
-            size="large"
-            style={styles.loader}
-          />
+          <Skeleton layout="cards" />
         ) : artists.length ? (
           artists.map((artist) => (
             <TouchableOpacity

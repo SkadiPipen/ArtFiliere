@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackToWorkspace } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
@@ -207,7 +208,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
     {!embedded && <View style={s.header}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={close} style={s.iconButton}><ArrowLeft size={23} color="#62493E" /></TouchableOpacity><View style={{ flex: 1 }}><Text style={s.brand}>ArtFilier</Text><Text style={s.muted}>{moderator ? `${catalog?.department_label || 'Moderator'} reports` : 'Support & account safety'}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh customer support" disabled={busy} style={[s.iconButton, busy && s.disabled]} onPress={() => { if (selected) run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))); else if (mode === 'tickets' && catalog) run(() => loadTickets()); else loadCatalog(); }}><RefreshCw size={22} color="#984E43" /></TouchableOpacity></View>}
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.content, embedded && s.workspaceContent]}>
       {!selected && <View style={[s.hero, embedded && s.workspaceHero]}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><ShieldCheck size={30} color="#BC5555" /><Text accessibilityRole="header" style={[s.heroTitle, embedded && s.workspaceHeroTitle, { flex: 1 }]}>{moderator ? (selected ? 'Report Details' : 'Concern Queues') : 'Customer Support'}</Text></View><Text style={[s.heroCopy, embedded && s.workspaceHeroCopy]}>{moderator ? 'Choose a queue, review the concern, and reply to the member.' : 'Guided help and report tracking'}</Text></View>}
-      {!catalog ? <><Text>{authLoading ? 'Checking your session...' : user ? 'Connecting to customer support...' : 'Sign in to view help and your reports.'}</Text>{!authLoading && <Button disabled={busy} onPress={loadCatalog}>Retry connection</Button>}{!authLoading && !user && <Button onPress={() => router.push('/login')}>Sign in</Button>}</> : moderator && !catalog.is_moderator ? <Text>Moderator access is required.</Text> : <>
+      {!catalog ? <>{(authLoading || (!!user && busy)) && <Skeleton layout="list" />}<Text>{authLoading ? 'Checking your session...' : user ? 'Connecting to customer support...' : 'Sign in to view help and your reports.'}</Text>{!authLoading && <Button disabled={busy} onPress={loadCatalog}>Retry connection</Button>}{!authLoading && !user && <Button onPress={() => router.push('/login')}>Sign in</Button>}</> : moderator && !catalog.is_moderator ? <Text>Moderator access is required.</Text> : <>
         {!moderator && <View style={s.row}><Button disabled={busy} primary={mode === 'new'} onPress={() => { setMode('new'); setSelected(null); }}>New Report / FAQs</Button><Button disabled={busy} primary={mode === 'tickets'} onPress={() => { setMode('tickets'); setSelected(null); run(() => loadTickets()); }}>My Reports</Button></View>}
         {assignments && mode === 'tickets' && !selected && <View style={s.queuePanel}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={s.queueTabs}>
@@ -344,7 +345,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
           {tickets.next_offset !== null && <Button disabled={busy} onPress={() => run(() => loadTickets(tickets.next_offset!))}>More reports</Button>}
         </>}
       </>}
-      {busy && <ActivityIndicator accessibilityLabel="Loading support" color="#C15656" />}
+      {busy && catalog && (mode === 'tickets' && !selected && !tickets.results.length ? <Skeleton layout="list" /> : <ActivityIndicator accessibilityLabel="Loading support" color="#C15656" />)}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
     </ScrollView>
   </KeyboardAvoidingView></SafeAreaView>;

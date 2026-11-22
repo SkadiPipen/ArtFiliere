@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { Text, TextInput } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, View } from 'react-native';
@@ -7,10 +8,11 @@ import { settingsRequest, openSettingsDocument } from '@/module/settings/setting
 type RecordUpdate = { id: number; artist_name: string; tin_number: string; expires_on: string | null; status: string; review_note: string; submitted_at: string; evidence_image?: string; current_tin?: string; current_expiry?: string | null; current_evidence?: string };
 const button = { padding: 12, minHeight: 44, borderWidth: 1, borderColor: '#E5C9BD', borderRadius: 9, backgroundColor: '#FFF5F1' };
 export default function ArtistRecordReviews() {
+  const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<RecordUpdate[]>([]), [selected, setSelected] = useState<RecordUpdate | null>(null);
   const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [note, setNote] = useState('');
-  const load = useCallback(async () => { try { setItems(await settingsRequest('bir/reviews/')); setError(''); } catch (e: any) { setError(e.message); } }, []);
-  useEffect(() => auth.onAuthStateChanged(user => { if (user) load(); else { setItems([]); setSelected(null); } }), [load]);
+  const load = useCallback(async () => { setLoading(true); try { setItems(await settingsRequest('bir/reviews/')); setError(''); } catch (e: any) { setError(e.message); } finally { setLoading(false); } }, []);
+  useEffect(() => auth.onAuthStateChanged(user => { if (user) load(); else { setItems([]); setSelected(null); setLoading(false); } }), [load]);
   async function detail(id: number) { setBusy(true); setError(''); try { setSelected(await settingsRequest(`bir/reviews/${id}/`)); setNote(''); } catch (e: any) { setError(e.message); } finally { setBusy(false); } }
   async function review(action: string) {
     if (!selected) return;
@@ -21,8 +23,8 @@ export default function ArtistRecordReviews() {
   return <View style={{ backgroundColor: '#FFF', padding: 16, borderRadius: 14, borderWidth: 1, borderColor: '#E8DDD5', gap: 12, marginBottom: 16 }}>
     <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={button}><Text style={{ color: '#A34A40', fontWeight: '700' }}>{open ? 'Hide' : 'Review'} BIR registration updates ({items.filter(item => item.status === 'pending').length} pending)</Text></Pressable>
     {!!error && !selected && <Text accessibilityRole="alert" style={{ color: '#B00020' }}>{error}</Text>}
-    {busy && <ActivityIndicator color="#C15656" />}
-    {open && <><Pressable onPress={load} style={button}><Text>Refresh document updates</Text></Pressable>{!items.length && <Text>No BIR registration updates.</Text>}{items.map(item => <Pressable disabled={busy} key={item.id} onPress={() => detail(item.id)} style={button}><Text style={{ fontWeight: '600' }}>{item.artist_name} · {item.status}</Text><Text>TIN: {item.tin_number}</Text><Text>Submitted: {new Date(item.submitted_at).toLocaleString()}</Text></Pressable>)}</>}
+    {loading ? <Skeleton layout="list" /> : busy && <ActivityIndicator color="#C15656" />}
+    {open && <><Pressable onPress={load} style={button}><Text>Refresh document updates</Text></Pressable>{!loading && !items.length && <Text>No BIR registration updates.</Text>}{items.map(item => <Pressable disabled={busy} key={item.id} onPress={() => detail(item.id)} style={button}><Text style={{ fontWeight: '600' }}>{item.artist_name} · {item.status}</Text><Text>TIN: {item.tin_number}</Text><Text>Submitted: {new Date(item.submitted_at).toLocaleString()}</Text></Pressable>)}</>}
     <Modal visible={!!selected} onRequestClose={() => { if (!busy) setSelected(null); }} animationType="slide">
       {selected && <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 50, paddingBottom: 80, gap: 16, maxWidth: 850, width: '100%', alignSelf: 'center' }}>
         <Pressable disabled={busy} onPress={() => setSelected(null)} style={button}><Text>Close review</Text></Pressable>

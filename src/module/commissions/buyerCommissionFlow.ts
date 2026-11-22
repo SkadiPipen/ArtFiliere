@@ -69,3 +69,49 @@ export function buyerCommissionFlow(data: any, now = Date.now()) {
   if (data.status === 'CANCELLED') { title = 'Commission cancelled'; description = 'The commission is closed. Contact Customer Service for any payment or refund questions.'; action = 'none'; }
   return { step, physical, title, description, action, milestoneId: current?.id ?? final?.id };
 }
+
+
+// Artist guidance uses the same progress stages without exposing buyer payment actions.
+export function artistCommissionFlow(data: any) {
+  const flow = buyerCommissionFlow(data);
+  const current = (data.milestones || []).find((m: any) => !m.approved_at && m.status !== 'APPROVED');
+  if (data.disputed || data.status === 'CANCELLED') return flow;
+  let title = 'Review the buyer’s commission request';
+  let description = 'Review the scope, completion date, license, and milestones before accepting or sending a counter-offer.';
+  let action = 'proposal';
+  if (!data.agreement_id) {
+    if (data.proposal?.is_proposer) {
+      title = 'Waiting for the buyer to review your proposal';
+      description = 'The buyer can accept, decline, or send a counter-offer. Review your current terms below.';
+    }
+  } else if (!data.fully_signed) {
+    title = 'Review the agreement and signatures';
+    description = 'The artist signs first, followed by the buyer. Begin production only after payment is verified.';
+    action = 'agreement';
+  } else if (!data.funded_at) {
+    title = data.funding_pending ? 'Waiting for payment confirmation' : 'Waiting for the buyer to fund the commission';
+    description = 'Both parties have signed. The buyer must fund the full agreed total before production begins.';
+    action = 'reload';
+  } else if (data.status === 'COMPLETE') {
+    title = 'Commission completed';
+    description = 'The buyer has approved the final stage. Review the files and each stage’s payout confirmation below.';
+    action = 'review';
+  } else if (current?.status === 'REVISION_REQUESTED') {
+    title = 'Review the buyer’s revision request';
+    description = 'Read the consolidated feedback, reply, and upload the revised artwork for the active stage.';
+    action = 'review';
+  } else if (current?.status === 'SUBMITTED') {
+    title = 'Waiting for the buyer’s review';
+    description = 'Your submission is ready for review. Follow the buyer’s feedback and the stage’s payment status below.';
+    if (flow.physical && current.number === 3 && current.delivery_ready_at) {
+      title = 'Follow delivery and final inspection';
+      description = 'Review delivery updates below. The buyer confirms receipt and inspects the artwork before final approval.';
+    }
+    action = 'review';
+  } else {
+    title = `Work on ${current?.label || (current ? `Stage ${current.number}` : 'the active stage')}`;
+    description = 'Payment is verified. Open the active stage to upload your artwork and submit it for the buyer’s review.';
+    action = 'review';
+  }
+  return { ...flow, title, description, action };
+}

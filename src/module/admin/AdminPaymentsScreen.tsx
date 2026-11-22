@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import AdminTabs from './AdminTabs';
 import { adminType, adminSurfaces } from './adminDesign';
 import { Banknote, Search, FileCheck2 } from 'lucide-react-native';
@@ -6,7 +7,7 @@ import RoyaltyReportReviews from './RoyaltyReportReviews';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import AdminPage from './AdminPage';
 
 type Payment = { id: number; reference_id: string; status: string; artwork: string; artist: string; buyer: string; gross_amount: string; artist_amount: string; platform_fee: string; can_release: boolean };
@@ -57,7 +58,7 @@ export default function AdminPaymentsScreen() {
     <TextInput accessibilityLabel="Search payments" placeholder="Search artwork, buyer, artist, reference or payment ID" value={search} onChangeText={value => { setSearch(value); setPage(1); }} style={s.search} /></View>
     <View style={s.filters}>{['all', 'pending', 'paid', 'refunded', 'expired'].map(value => <TouchableOpacity key={value} onPress={() => { setStatus(value); setPage(1); }} style={[s.filter, value === status && s.active]}><Text style={{ color: value === status ? '#FFF' : '#746865', textTransform: 'capitalize' }}>{value}</Text></TouchableOpacity>)}</View></View>
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-    {loading ? <ActivityIndicator color="#C15656" /> : <>
+    {loading ? <Skeleton layout="list" /> : <>
       <Text style={s.note}>{total} matching transactions</Text>
       {rows.map(payment => <View style={s.card} key={payment.id}>
         <View style={s.top}><View style={{ flex: 1, gap: 6 }}><Text style={s.artwork}>{payment.artwork}</Text><Text selectable style={s.note}>Payment #{payment.id} | {payment.reference_id}</Text></View><View style={[s.badge, payment.status === 'paid' && { backgroundColor: '#EAF3EC' }]}><Text style={[s.status, payment.status === 'paid' && { color: '#477452' }]}>{payment.status}</Text></View></View>

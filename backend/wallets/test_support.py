@@ -328,3 +328,27 @@ class SupportTests(TestCase):
         self.assertTrue(all(row['profile_image'] is None for row in rows))
         self.assertTrue(all(set(row) == {'username', 'profile_image'} for row in rows))
         cache.clear()
+
+
+    def test_similarity_auto_decline_can_be_appealed_and_reconsidered_with_evidence(self):
+        from artworks.models import ArtworkSimilarityMatch, ArtworkReviewLog
+        creative = User.objects.create(username='creative_similarity', firebase_uid='creative_similarity',
+                                       email='creative_similarity@example.com', role='creative_moderator')
+        reference = Artwork.objects.create(artist=self.other, title='Reference', price=50, status='approved')
+        self.art.status = 'declined'
+        self.art.automated_block_reason = 'high_similarity'
+        self.art.decline_reason = 'Suspected duplicate: 93% similarity. You may appeal.'
+        self.art.save()
+        ArtworkSimilarityMatch.objects.create(artwork=self.art, reference_artwork=reference, phash_distance=1,
+            dhash_distance=1, confidence_score=.93, review_status='auto_blocked')
+        self.assertEqual(self.report(self.other, concern='rejected_artwork', reference_id=self.art.pk).status_code, 400)
+        appeal = self.report(self.artist, concern='rejected_artwork', reference_id=self.art.pk).data['id']
+        self.assertEqual(self.review_appealed_artwork(creative, status='approved').status_code, 400)
+        note = 'Reviewed original process files and permission from the recorded creator.'
+        result = self.review_appealed_artwork(creative, status='approved', review_note=note)
+        self.assertEqual(result.status_code, 200)
+        self.art.refresh_from_db()
+        self.assertEqual(self.art.status, 'approved')
+        self.assertEqual(self.art.automated_block_reason, '')
+        self.assertEqual(SupportTicket.objects.get(pk=appeal).status, 'resolved')
+        self.assertTrue(ArtworkReviewLog.objects.filter(artwork=self.art, actor=creative, action='approved', reason=note).exists())

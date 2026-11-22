@@ -1,7 +1,8 @@
+import Skeleton from '@/components/Skeleton';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest } from '@/services/purchases';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import ProvenancePanel from './ProvenancePanel';
 
 const readable = (value: any) => String(value ?? '').replace(/_/g, ' ');
@@ -142,7 +143,7 @@ export default function ArtworkHistoryPanel({ artworkId, buttonLabel = 'View ful
             {!!data.next_page && <TouchableOpacity disabled={busy} onPress={() => void load(data.next_page)} style={s.button}><Text style={s.buttonText}>Load more history</Text></TouchableOpacity>}
             <ProvenancePanel artworkId={artworkId} />
           </>}
-          {busy ? <ActivityIndicator /> : <TouchableOpacity onPress={() => void load()}><Text>Refresh history</Text></TouchableOpacity>}
+          {busy ? <Skeleton layout="list" /> : <TouchableOpacity onPress={() => void load()}><Text>Refresh history</Text></TouchableOpacity>}
         </ScrollView>
       </View></View>
     </Modal>

@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import { auth } from "@/firebase/config";
@@ -10,7 +11,7 @@ import API_URL from "@/services/api";
 import { useRouter, useFocusEffect } from "expo-router";
 import { signOut, User } from "firebase/auth";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
 export default function UserProfile() {
   const router = useRouter();
@@ -126,7 +127,7 @@ export default function UserProfile() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#C15656" />
+        <Skeleton layout="profile" />
       </View>
     );
   }

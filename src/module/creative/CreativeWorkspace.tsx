@@ -2,14 +2,13 @@ import { staffWorkspaceStyles as s } from '@/components/staffWorkspaceStyles';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Palette, LayoutDashboard, Inbox, UserCog, ShieldCheck, Brush, LogOut, ChevronRight, Info, type LucideIcon } from 'lucide-react-native';
+import { Palette, LayoutDashboard, Inbox, UserCog, Brush, LogOut, ChevronRight, Info, type LucideIcon } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
-import SupportScreen from '@/module/support/SupportScreen';
+import CreativeConcernQueues from './CreativeConcernQueues';
 import CreativeDashboardScreen from './CreativeDashboardScreen';
 import ArtistRecordReviews from './ArtistRecordReviews';
-import AttributionReviewsScreen from '@/module/blockchain/AttributionReviewsScreen';
 import { useLocalSearchParams } from 'expo-router';
 
 const sections = [
@@ -17,17 +16,16 @@ const sections = [
   { id: 'artworks', label: 'Artwork reviews', icon: Brush },
   { id: 'queues', label: 'Concern queues', icon: Inbox },
   { id: 'records', label: 'Artist records', icon: UserCog },
-  { id: 'attribution', label: 'Attribution & ownership', icon: ShieldCheck },
 ] as const;
 
 type Section = typeof sections[number]['id'];
 
 export default function CreativeWorkspace() {
   const { artworkId, section: requestedSection } = useLocalSearchParams<{ artworkId?: string; section?: string }>();
-  const [section, setSection] = useState<Section>(artworkId ? 'artworks' : requestedSection === 'queues' ? 'queues' : 'overview');
+  const [section, setSection] = useState<Section>(artworkId ? 'artworks' : ['queues', 'attribution'].includes(requestedSection || '') ? 'queues' : 'overview');
   useEffect(() => {
     if (artworkId) setSection('artworks');
-    else if (requestedSection === 'queues') setSection('queues');
+    else if (['queues', 'attribution'].includes(requestedSection || '')) setSection('queues');
   }, [artworkId, requestedSection]);
   const [error, setError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
@@ -58,13 +56,12 @@ export default function CreativeWorkspace() {
       <View style={s.main}>
         <View style={s.topbar}><Palette size={22} color="#B65B50" /><Text style={s.workspace}>Creative moderation workspace</Text><Text style={s.muted}>{current.label}</Text></View>
         {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-        {section === 'queues' ? <SupportScreen moderator embedded onClose={() => navigate('overview')} /> : section === 'artworks' ? <CreativeDashboardScreen embedded /> : section === 'attribution' ? <AttributionReviewsScreen embedded /> : <ScrollView key={section} contentContainerStyle={s.content}>
+        {section === 'queues' ? <CreativeConcernQueues onClose={() => navigate('overview')} /> : section === 'artworks' ? <CreativeDashboardScreen embedded /> : <ScrollView key={section} contentContainerStyle={s.content}>
           <View style={s.hero}><View style={s.titleRow}><current.icon size={30} color="#B65B50" /><Text accessibilityRole="header" style={s.title}>{section === 'overview' ? 'Creative Moderation' : current.label}</Text></View><Text style={s.intro}>{section === 'overview' ? 'Review artwork submissions, handle artist concerns, and verify ownership in one workspace.' : 'Review artist registration updates and supporting documents.'}</Text></View>
           {section === 'overview' && <>
             <View style={s.quickRow}>
               {quick('artworks', 'Artwork Reviews', 'Review pending submissions and reconsider declined artwork.', Brush)}
-              {quick('queues', 'Concern Queues', 'Handle plagiarism reports and artwork-rejection appeals.', Inbox)}
-              {quick('attribution', 'Attribution & Ownership', 'Review ownership evidence and blockchain records.', ShieldCheck)}
+              {quick('queues', 'Concern Queues', 'Handle plagiarism reports, attribution disputes, and artwork-rejection appeals.', Inbox)}
             </View>
             <View style={s.notice}><Info size={20} color="#A84B46" /><Text style={[s.muted, { flex: 1 }]}>Accept a concern from the queue to handle it, then continue your assigned cases from the same workspace. Review ownership evidence and similarity matches before recording an artwork decision.</Text></View>
             <View style={s.quickRow}>{quick('records', 'Artist Records', 'Review artist registration and BIR document updates.', UserCog)}</View>

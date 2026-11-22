@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import PrivateDocumentPreview from '@/components/PrivateDocumentPreview';
 import AdminTabs from './AdminTabs';
 import { adminSurfaces } from './adminDesign';
@@ -8,7 +9,7 @@ import { Text, TextInput } from '@/components/Typography';
 import { markAdminQueueRead } from '@/services/adminNotifications';
 import { AuthContext } from '@/context/AuthContext';
 import { useContext, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 
@@ -46,7 +47,7 @@ export default function RoyaltyApprovals({ workspace = false }: { workspace?: bo
     <View style={staffWorkspaceStyles.hero}><View style={staffWorkspaceStyles.titleRow}><Percent size={30} color="#B65B50" /><Text style={staffWorkspaceStyles.title}>Royalty Approvals</Text></View><Text style={staffWorkspaceStyles.intro}>Review business permits and applicant details before enabling royalty licenses. Expand an application to inspect its documents.</Text></View>
     <AdminTabs items={['pending', 'approved', 'rejected', 'all'].map(value => ({ id: value, label: `${value.charAt(0).toUpperCase() + value.slice(1)} (${items.filter(item => value === 'all' || item.status === value).length})` }))} value={filter} onChange={setFilter} />
     {!adminWorkspace && <Pressable onPress={load}><Text style={{ color: '#C15656' }}>Refresh applications</Text></Pressable>}
-    {loading && <ActivityIndicator />}
+    {loading && <Skeleton layout="list" />}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#b00020' }}>{error}</Text>}
     {!loading && !items.filter(item => filter === 'all' || item.status === filter).length && <Text>No royalty applications match this filter.</Text>}
     {items.filter(item => filter === 'all' || item.status === filter).sort((a, b) => Number(b.status === 'pending') - Number(a.status === 'pending')).map(item => <View key={item.id} style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5DAD3', borderRadius: 16, overflow: 'hidden' }}>

@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import BusinessPermitFields from '@/components/BusinessPermitFields';
 import { pickDocument, type PermitDocument } from '@/components/businessPermit';
@@ -60,7 +61,7 @@ export default function RoyaltyApplicationScreen({ onClose, onAccessChange }: { 
     <Text style={s.title}>Royalty payment application</Text>
     <Text style={s.description}>Apply to use royalty-based and hybrid payment options for eligible commercial licenses.</Text>
     <View style={s.notice}><Text style={s.description}>Approved resellers can also use royalty payment options while their business permit is valid. Royalty approval alone does not grant reseller access; you must apply separately to become a reseller.</Text></View>
-    {authLoading || busy ? <ActivityIndicator /> : !user ? <Pressable onPress={() => router.replace('/login')}><Text>Sign in to manage royalty access</Text></Pressable> : null}
+    {authLoading || (busy && !application) ? <Skeleton layout="form" /> : busy ? <ActivityIndicator /> : !user ? <Pressable onPress={() => router.replace('/login')}><Text>Sign in to manage royalty access</Text></Pressable> : null}
     {!!success && <Text accessibilityRole="alert" style={{ color: '#286647' }}>{success}</Text>}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#b00020' }}>{error}</Text>}
     {user && !application && !busy && <Pressable onPress={load}><Text style={{ color: '#C15656' }}>Retry loading application</Text></Pressable>}

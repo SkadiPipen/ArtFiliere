@@ -61,7 +61,7 @@ export default function ArtistPostScreen() {
     })();
     return () => controller.abort();
   }, [screeningRetry]);
-  const [submissionResult, setSubmissionResult] = useState<{ blocked: boolean; message: string } | null>(null);
+  const [submissionResult, setSubmissionResult] = useState<{ blocked: boolean; message: string; artworkId?: number; reason?: string } | null>(null);
   const [additionalImages, setAdditionalImages] = useState<string[]>([
     "",
     "",
@@ -497,7 +497,7 @@ export default function ArtistPostScreen() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       if (data.automated_block_reason || data.ai_screening?.status === 'review_required') {
-        setSubmissionResult({ blocked: !!data.automated_block_reason, message: data.message || 'Your submission is held for review and is not published.' });
+        setSubmissionResult({ blocked: !!data.automated_block_reason, artworkId: data.id, reason: data.automated_block_reason, message: data.message || 'Your submission is held for review and is not published.' });
         return;
       }
       showToast(
@@ -524,6 +524,12 @@ export default function ArtistPostScreen() {
         <View style={{ flex: 1, backgroundColor: '#0006', alignItems: 'center', justifyContent: 'center', padding: 24 }}><View style={{ width: '100%', maxWidth: 500, backgroundColor: '#FFFDF8', borderRadius: 16, padding: 24, gap: 18 }}>
           <Text style={{ fontSize: 22, fontWeight: '800', color: '#A74646' }}>{submissionResult?.blocked ? 'Artwork not published' : 'Held for AI review'}</Text>
           <Text>{submissionResult?.message}</Text><Text>The submission is saved privately in your artwork history.</Text>
+            {submissionResult?.reason === 'high_similarity' && !!submissionResult.artworkId && <Pressable accessibilityRole="button" onPress={() => {
+              const artworkId = String(submissionResult.artworkId);
+              setSubmissionResult(null);
+              router.replace({ pathname: '/support', params: { artworkId } });
+            }} style={{ padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#B95353' }}><Text style={{ color: '#A74646', fontWeight: '700', textAlign: 'center' }}>Appeal auto-decline</Text></Pressable>}
+
           <Pressable accessibilityRole="button" onPress={() => { setSubmissionResult(null); router.replace('/(home)'); }} style={{ padding: 14, borderRadius: 10, backgroundColor: '#B95353' }}><Text style={{ color: '#FFF', fontWeight: '700', textAlign: 'center' }}>Done</Text></Pressable>
         </View></View>
       </Modal>

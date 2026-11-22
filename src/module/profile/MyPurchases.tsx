@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import ProductImage from '@/components/ProductImage';
 import TransactionHeader from '@/components/TransactionHeader';
@@ -12,7 +13,7 @@ import SigningModal from '@/module/chat-negotiations/SigningModal';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
 import { downloadPurchase, downloadProtectedFile, downloadCertificate, downloadLicensePdf, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Purchase = {
@@ -136,7 +137,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             <Text style={s.statusTabText}>{value.charAt(0).toUpperCase() + value.slice(1)}</Text>
           </TouchableOpacity>)}
         </View>
-        {loading ? <ActivityIndicator /> : null}
+        {loading ? <Skeleton layout="list" /> : null}
         {Boolean(error) ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
         {!loading && rows.length === 0 ? <Text>No purchases in this category yet.</Text> : null}
 
