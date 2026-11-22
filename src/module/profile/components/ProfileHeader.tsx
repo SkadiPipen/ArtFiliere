@@ -1,5 +1,6 @@
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
 import ProfileCover from '@/components/ProfileCover';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import ResellerBadge from '@/components/ResellerBadge';
 import { pickProfileImage } from '@/services/profileImages';
 import API_URL from '@/services/api';
@@ -9,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { Text } from '@/components/Typography';
 import { useRouter } from "expo-router";
 import { Bell, Camera, Edit3, Images, Folder, Settings, Paintbrush, ArrowRight, Store, ChevronDown, X } from "lucide-react-native";
-import { Image, Modal, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface ProfileHeaderProps {
@@ -127,13 +128,8 @@ export default function ProfileHeader({
           <View style={[styles.profileActions, mobile && styles.mobileActions]}>
           <View style={[styles.profileContent, mobile && styles.mobileProfile]}>
             <View style={[styles.avatarContainer, mobile && styles.mobileAvatar]}>
-              <Image
-                source={{
-                  uri:
-                    profileData?.profile_image || profileData?.profileImage ||
-                    user?.photoURL ||
-                    "https://i.pravatar.cc/150?u=incognito",
-                }}
+              <ProfileAvatar
+                uri={profileData?.profile_image || profileData?.profileImage || user?.photoURL}
                 style={styles.avatar}
               />
             </View>

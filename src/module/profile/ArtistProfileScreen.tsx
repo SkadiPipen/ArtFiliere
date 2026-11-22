@@ -4,6 +4,7 @@ import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
 import ArtistShareCard from './components/ArtistShareCard';
 import ProfileCover from '@/components/ProfileCover';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import { chatService } from '@/module/chat-negotiations/chats';
 import { readApiResponse } from '@/module/chat-negotiations/contracts';
@@ -16,7 +17,7 @@ import { AuthContext } from '@/context/AuthContext';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, MessageCircle, Paintbrush, Share2, X } from "lucide-react-native";
 import { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AvailabilityCalendar from '@/module/commissions/AvailabilityCalendar';
@@ -190,10 +191,7 @@ export default function ArtistProfileScreen() {
     );
   }
 
-  const avatarUri =
-    artist.avatar ||
-    artist.profile_image ||
-    "https://api.dicebear.com/7.x/identicon/png?seed=artist&backgroundColor=ffffff";
+  const avatarUri = artist.profile_image || artist.avatar;
 
   const handleBack = () => {
     goBackOr('/artists');
@@ -258,7 +256,7 @@ export default function ArtistProfileScreen() {
         <View style={s.heroCard}>
           <ProfileCover uri={artist.cover_image} />
           <View style={s.heroMain}>
-            <Image source={{ uri: avatarUri }} style={s.avatar} />
+            <ProfileAvatar uri={avatarUri} style={s.avatar} />
 
             <View style={s.heroDetails}>
               <View style={s.artistTags}>

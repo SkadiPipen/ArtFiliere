@@ -2,6 +2,7 @@ import { auth } from '@/firebase/config';
 import { signOut } from 'firebase/auth';
 import { Text } from '@/components/Typography';
 import AppDialog from '@/components/AppDialog';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import { Link, usePathname, useRouter, type Href } from 'expo-router';
 import {
   Clock,
@@ -128,12 +129,10 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
   const { user, readOnly } = useContext(AuthContext);
   const { cartItems } = useCart();
   const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     setProfile(null);
-    setFailedAvatar(null);
 
     if (user) {
       (async () => {
@@ -316,13 +315,7 @@ export default function WebSidebar({ onNavigate }: { onNavigate?: () => void } =
                 compact && { justifyContent: 'center' },
               ])}
             >
-              <View style={styles.avatar}>
-                {avatar && avatar !== failedAvatar ? (
-                  <Image source={{ uri: avatar }} style={styles.avatarImage} onError={() => setFailedAvatar(avatar)} />
-                ) : (
-                  <Text style={styles.initial}>{name.slice(0, 1).toUpperCase()}</Text>
-                )}
-              </View>
+              <ProfileAvatar uri={avatar} style={styles.avatar} />
               {!compact && (
                 <View {...webLabel} style={{ flex: 1 }}>
                   <Text numberOfLines={1} style={styles.accountName}>
@@ -502,15 +495,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: '#F0DED1',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  initial: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#8A5946',
-  },
-  avatarImage: { width: 36, height: 36, borderRadius: 18 },
   accountName: {
     color: '#463A32',
     fontSize: 12,

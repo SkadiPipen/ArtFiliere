@@ -5,6 +5,7 @@ export type CalendarDateFieldProps = {
   minimumDate?: Date;
   maximumDate?: Date;
   appearance?: 'default' | 'signup';
+  placeholder?: string;
 };
 
 // Store calendar dates locally; converting to UTC can shift the selected day.

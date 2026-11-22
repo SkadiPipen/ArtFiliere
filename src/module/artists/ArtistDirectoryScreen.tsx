@@ -1,4 +1,5 @@
 import Skeleton from '@/components/Skeleton';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
@@ -6,7 +7,7 @@ import API_URL from "@/services/api";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Star } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Artist = {
@@ -27,21 +28,6 @@ const sorts = [
   ["completed", "Most completed"],
   ["new", "New artists"],
 ] as const;
-
-function ArtistAvatar({ artist }: { artist: Artist }) {
-  const [failedImage, setFailedImage] = useState<string | null>(null);
-  const image = artist.profile_image;
-
-  return (
-    <View style={styles.avatar}>
-      {image && image !== failedImage ? (
-        <Image source={{ uri: image }} style={styles.avatarImage} onError={() => setFailedImage(image)} />
-      ) : (
-        <Text style={styles.avatarText}>{artist.name.slice(0, 1).toUpperCase()}</Text>
-      )}
-    </View>
-  );
-}
 
 export default function ArtistDirectoryScreen() {
   const router = useRouter();
@@ -150,7 +136,7 @@ export default function ArtistDirectoryScreen() {
                 })
               }
             >
-              <ArtistAvatar artist={artist} />
+              <ProfileAvatar uri={artist.profile_image} style={styles.avatar} />
               <View style={styles.info}>
                 <View style={styles.nameLine}>
                   <Text style={styles.name}>{artist.name}</Text>
@@ -267,12 +253,8 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "#F4D8CC",
   },
-  avatarText: { color: "#B5514D", fontSize: 21, fontWeight: "800" },
-  avatarImage: { width: 54, height: 54, borderRadius: 27 },
   info: { flex: 1, minWidth: 0 },
   nameLine: { flexDirection: "row", alignItems: "center", gap: 7 },
   name: { color: "#3A2D2A", fontSize: 15, fontWeight: "800", flexShrink: 1 },
