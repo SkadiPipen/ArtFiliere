@@ -8,7 +8,7 @@ from fulfillment.models import DownloadFingerprint
 from fulfillment.fingerprint_lookup import FingerprintLookupView
 from . import test_provenance as fixtures
 from .models import BlockchainTransaction, ProvenanceArtwork, ProvenanceListing, SaleTermsSnapshot
-from .provenance_views import ArtworkHistoryView, CreatorAttributionView, ProvenanceView
+from .provenance_views import ArtworkHistoryView, CreatorAttributionView, ProvenanceView, ArtworkVerificationView, ArtworkInvestigationListView, ProvenanceReviewQueueView
 from .sale_terms import capture_sale_terms
 
 
@@ -27,10 +27,9 @@ class ArtworkHistoryTests(TestCase):
             kwargs = {'artwork_id': artwork_id or self.art.pk} if view != FingerprintLookupView else {}
             return view.as_view()(request, **kwargs)
 
-    def test_full_history_is_staff_only_even_for_creator_and_buyer(self):
-        for user in (None, self.artist, self.buyer):
+    def test_full_history_is_admin_only_even_for_creator_and_buyer(self):
+        for user in (None, self.artist, self.buyer, self.moderator()):
             self.assertEqual(self.call(ArtworkHistoryView, user).status_code, 403)
-        self.assertEqual(self.call(ArtworkHistoryView, self.moderator()).status_code, 200)
         self.assertEqual(self.call(ArtworkHistoryView, self.admin).status_code, 200)
 
     def test_creator_endpoint_exposes_only_attribution_and_survives_resale(self):
@@ -58,7 +57,7 @@ class ArtworkHistoryTests(TestCase):
         self.agreement.save()
         BlockchainTransaction.objects.create(artwork=self.art, entity_type='payment', entity_id=payment.pk,
             operation='sale_record', network='local', status='confirmed', transaction_hash='0x' + 'a' * 64, block_number=17)
-        mod = self.moderator()
+        mod = self.admin
         result = self.call(ArtworkHistoryView, mod)
         self.assertEqual(result.status_code, 200)
         sale = result.data['sections']['sales'][0]
@@ -81,7 +80,7 @@ class ArtworkHistoryTests(TestCase):
             snapshot.save()
 
     def test_registration_labels_artist_and_initial_owner_without_a_buyer(self):
-        result = self.call(ArtworkHistoryView, self.moderator())
+        result = self.call(ArtworkHistoryView, self.admin)
         registration = result.data['sections']['ownership_events'][0]
         self.assertEqual(registration['artist']['id'], self.artist.pk)
         self.assertEqual(registration['initial_owner']['id'], self.artist.pk)
@@ -103,7 +102,7 @@ class ArtworkHistoryTests(TestCase):
         ProvenanceListing.objects.create(artwork=resale, record=self.record)
         agreement = self.agreement_for(resale, self.buyer, self.next_buyer, exclusive='non_exclusive')
         second = self.payment_for(agreement)
-        response = self.call(ArtworkHistoryView, self.moderator(), resale.pk)
+        response = self.call(ArtworkHistoryView, self.admin, resale.pk)
         self.assertEqual(response.data['created_by']['id'], self.artist.pk)
         self.assertEqual(set(response.data['listing_ids']), {self.art.pk, resale.pk})
         self.assertEqual({r['id'] for r in response.data['sections']['sales']}, {first.pk, second.pk})
@@ -113,7 +112,7 @@ class ArtworkHistoryTests(TestCase):
     def test_history_before_registration_never_creates_chain_events(self):
         pending = Artwork.objects.create(artist=self.artist, title='Unregistered', price=10, status='pending')
         count = ProvenanceArtwork.objects.count()
-        response = self.call(ArtworkHistoryView, self.moderator(), pending.pk)
+        response = self.call(ArtworkHistoryView, self.admin, pending.pk)
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data['record_id'])
         self.assertEqual(ProvenanceArtwork.objects.count(), count)
@@ -122,7 +121,7 @@ class ArtworkHistoryTests(TestCase):
     def test_history_paginates_without_losing_sales(self):
         for _ in range(26):
             self.payment_for()
-        mod = self.moderator()
+        mod = self.admin
         first = self.call(ArtworkHistoryView, mod)
         second = self.call(ArtworkHistoryView, mod, data={'page': 2})
         self.assertEqual(len(first.data['sections']['sales']), 25)
@@ -131,16 +130,15 @@ class ArtworkHistoryTests(TestCase):
         self.assertIsNone(second.data['next_page'])
         self.assertEqual(self.call(ArtworkHistoryView, mod, data={'page': 'invalid'}).status_code, 400)
 
-    def test_creative_moderator_can_trace_copy_without_signatures_or_contact_details(self):
+    def test_admin_can_trace_copy_with_audited_access(self):
         payment = self.payment_for()
         DownloadFingerprint.objects.create(token='0' * 60 + '1', buyer=self.buyer, artist=self.artist,
             source_key=f'payment:{payment.pk}', source_sha256='a' * 64, issued_at=timezone.now(),
             license_snapshot={'license_type': 'personal', 'terms_snapshot': 'PRIVATE SIGNATURE AND ADDRESS'})
-        mod = self.moderator()
+        mod = self.admin
         result = self.call(FingerprintLookupView, mod, data={'code': 'AF-0000000000000001'}, method='post')
         self.assertEqual(result.status_code, 200)
-        self.assertEqual(result.data['buyer'], {'id': self.buyer.pk, 'username': self.buyer.username})
-        self.assertNotIn('PRIVATE SIGNATURE', str(result.data))
+        self.assertEqual(result.data['buyer']['id'], self.buyer.pk)
         self.assertTrue(ActivityLog.objects.filter(user=mod, action='artwork_code_lookup').exists())
         history = self.call(ArtworkHistoryView, mod)
         self.assertEqual(history.data['sections']['digital_copies'][0]['payment_id'], payment.pk)
@@ -169,7 +167,7 @@ class ArtworkHistoryTests(TestCase):
         CommissionResale.objects.create(artwork=resale, asset=asset, seller=self.buyer)
         CommissionProof.objects.create(commission=commission, asset=asset, registry_id='123',
             record_hash='c' * 64, transaction_hash='0x' + 'd' * 64, block_number=21, status='CONFIRMED')
-        result = self.call(ArtworkHistoryView, self.moderator(), resale.pk)
+        result = self.call(ArtworkHistoryView, self.admin, resale.pk)
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.data['created_by']['id'], self.artist.pk)
         self.assertEqual(result.data['commission']['id'], commission.pk)
@@ -184,9 +182,80 @@ class ArtworkHistoryTests(TestCase):
             due_on=date(2026, 11, 8), terms={}, amount=10, status='paid')
         RoyaltyReceipt.objects.create(period=period, amount=10, provider_payment_id='PRIVATE-RECEIPT-ID')
         RoyaltyFunding.objects.create(period=period, amount=10, reference='test-fund', session_id='PRIVATE-FUND-ID')
-        result = self.call(ArtworkHistoryView, self.moderator())
+        result = self.call(ArtworkHistoryView, self.admin)
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.data['sections']['royalty_receipts'][0]['amount'], '10.00')
         self.assertEqual(len(result.data['sections']['royalty_funding']), 1)
         self.assertNotIn('PRIVATE-RECEIPT-ID', str(result.data))
         self.assertNotIn('PRIVATE-FUND-ID', str(result.data))
+
+    def test_moderator_verification_excludes_investigation_data(self):
+        self.payment_for()
+        mod = self.moderator()
+        response = self.call(ArtworkVerificationView, mod)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.data), {'title', 'created_by', 'creator_verification', 'disputed', 'registration_status'})
+        self.assertEqual(response.data['created_by']['id'], self.artist.pk)
+        self.assertNotIn(self.buyer.username, str(response.data))
+        self.assertEqual(response['Cache-Control'], 'private, no-store')
+        self.assertEqual(self.call(FingerprintLookupView, mod, method='post').status_code, 400)
+        provenance = self.call(ProvenanceView, mod)
+        self.assertEqual(provenance.data['history'], [])
+        self.assertEqual(provenance.data['entitlements'], [])
+        self.assertNotIn('file_hash', provenance.data)
+
+    def test_verification_pending_artwork_and_role_restrictions(self):
+        pending = Artwork.objects.create(artist=self.artist, title='Pending', price=10, status='pending')
+        response = self.call(ArtworkVerificationView, self.moderator(), pending.pk)
+        self.assertEqual(response.data['registration_status'], 'not_registered')
+        for user in (None, self.artist, self.buyer):
+            self.assertEqual(self.call(ArtworkVerificationView, user).status_code, 403)
+
+    def test_admin_investigation_search_and_role_restrictions(self):
+        def request(user, data=None):
+            with patch('authentication.views.AuthenticatedAPIView.get_request_user', return_value=user):
+                return ArtworkInvestigationListView.as_view()(self.factory.get('/', data or {}))
+        for user in (None, self.artist, self.buyer, self.moderator()):
+            self.assertEqual(request(user).status_code, 403)
+        response = request(self.admin, {'q': str(self.art.pk)})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.art.pk, [row['id'] for row in response.data['items']])
+        self.assertEqual(request(self.admin, {'q': 'no-such-artwork'}).data['items'], [])
+        self.assertEqual(request(self.admin, {'page': 'invalid'}).status_code, 400)
+        self.assertEqual(request(self.admin, {'page': 0}).status_code, 400)
+
+    def test_creative_moderator_can_trace_copy_without_private_investigation_fields(self):
+        payment = self.payment_for()
+        DownloadFingerprint.objects.create(token='0' * 60 + '1', buyer=self.buyer, artist=self.artist,
+            source_key=f'payment:{payment.pk}', source_sha256='a' * 64, issued_at=timezone.now(),
+            license_snapshot={'license_type': 'personal', 'terms_snapshot': 'PRIVATE SIGNATURE AND ADDRESS'})
+        mod = self.moderator()
+        response = self.call(FingerprintLookupView, mod, data={'code': 'AF-0000000000000001'}, method='post')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['buyer'], {'id': self.buyer.pk, 'username': self.buyer.username})
+        self.assertEqual(response.data['artwork']['id'], self.art.pk)
+        self.assertEqual(set(response.data['blockchain']), {'status'})
+        self.assertNotIn('PRIVATE SIGNATURE', str(response.data))
+        self.assertNotIn(self.buyer.email, str(response.data))
+        self.assertTrue(ActivityLog.objects.filter(user=mod, action='artwork_code_lookup').exists())
+        self.assertEqual(self.call(ArtworkHistoryView, mod).status_code, 403)
+
+    def test_failed_queue_is_admin_only_and_attribution_disputes_remain_for_creative(self):
+        from .models import ProvenanceEvent, ProvenanceReview
+        item = ProvenanceEvent.objects.filter(record=self.record).first()
+        item.status = 'failed'
+        item.save(update_fields=['status'])
+        review = ProvenanceReview.objects.create(record=self.record, requested_by=self.artist, reason='Incorrect creator claim')
+        mod = self.moderator()
+        def request(user):
+            with patch('authentication.views.AuthenticatedAPIView.get_request_user', return_value=user):
+                return ProvenanceReviewQueueView.as_view()(self.factory.get('/'))
+        response = request(mod)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['failed_transactions'], [])
+        self.assertIn(review.pk, [row['id'] for row in response.data['reviews']])
+        response = request(self.admin)
+        self.assertIn(str(item.pk), [row['id'] for row in response.data['failed_transactions']])
+        self.assertIn(review.pk, [row['id'] for row in response.data['reviews']])
+        for user in (None, self.artist, self.buyer):
+            self.assertEqual(request(user).status_code, 403)

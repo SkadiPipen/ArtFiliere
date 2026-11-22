@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { adminType } from './adminDesign';
 import { Text } from '@/components/Typography';
@@ -11,7 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import AdminPage from "./AdminPage";
 import AdminOverview, { type AdminAnalytics } from './AdminOverview';
 type Payment = {
@@ -65,7 +66,7 @@ export default function PlatformAdminScreen() {
   if (loading)
     return (
       <AdminPage activeTab="dashboard"><View style={s.loading}>
-        <ActivityIndicator color="#C15656" size="large" />
+        <Skeleton layout="dashboard" />
       </View></AdminPage>
     );
   return (

@@ -1,10 +1,11 @@
+import Skeleton from '@/components/Skeleton';
 import { Text } from '@/components/Typography';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
 import { useFocusEffect } from 'expo-router';
 import { useOpenArtistEarnings } from '../ArtistEarningsPanel';
 import { useCallback, useState } from "react";
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function WalletCard() {
   const openEarnings = useOpenArtistEarnings();
@@ -40,7 +41,7 @@ export default function WalletCard() {
       <Text style={styles.walletTitle}>Artist earnings</Text>
       <View style={styles.walletRow}>
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <Skeleton layout="list" count={1} style={{ padding: 0 }} />
         ) : error ? <Text style={styles.pending}>{error}</Text> : (
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text accessibilityLabel={`Available artist earnings, ${available} pesos`} style={styles.currency}>

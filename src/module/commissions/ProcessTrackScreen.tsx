@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
@@ -6,7 +7,7 @@ import API_URL from '@/services/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -48,7 +49,7 @@ export default function ProcessTrackScreen() {
   if (loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator color="#C15656" size="large" />
+        <Skeleton layout="list" />
       </View>
     );
   }

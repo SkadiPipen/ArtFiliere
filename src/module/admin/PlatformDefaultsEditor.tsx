@@ -1,5 +1,6 @@
+import Skeleton from '@/components/Skeleton';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest } from '@/services/purchases';
 import { useAdminRefresh } from './AdminRefresh';
@@ -33,7 +34,7 @@ export default function PlatformDefaultsEditor() {
     try { const { revision: savedRevision, ...data } = await purchaseRequest('users/admin/platform-defaults/', 'POST', { revision, values: { ...values, default_license_duration_months: Number(duration) } }); setValues(data); setRevision(savedRevision); setNotice('Platform defaults saved for new agreements and proposals.'); }
     catch (e: any) { setError(e.message); } finally { setSaving(false); }
   };
-  if (loading) return <ActivityIndicator color="#B65B50" />;
+  if (loading) return <Skeleton layout="form" />;
   return <View style={{ gap: 24 }}>
     {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318' }}>{error}</Text>}
     {!!notice && <Text accessibilityLiveRegion="polite" style={{ color: '#477452' }}>{notice}</Text>}

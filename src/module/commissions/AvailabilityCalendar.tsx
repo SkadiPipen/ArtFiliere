@@ -1,7 +1,8 @@
+import Skeleton from '@/components/Skeleton';
 import { Text } from '@/components/Typography';
 import API_URL from '@/services/api';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export function manilaDate(date: Date) {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
@@ -45,7 +46,7 @@ export default function AvailabilityCalendar({ artistId, selectedDate, onSelect,
       <Text style={s.Dtitle}>{month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
       <TouchableOpacity accessibilityLabel="Next month" onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><Text style={s.arrow}>›</Text></TouchableOpacity>
     </View>
-    {loading && <ActivityIndicator color="#C15656" />}
+    {loading && <Skeleton layout="form" />}
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error} <Text onPress={refresh}>Retry</Text></Text>}
     <View style={s.grid}>
       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <Text key={day} style={s.weekday}>{day}</Text>)}

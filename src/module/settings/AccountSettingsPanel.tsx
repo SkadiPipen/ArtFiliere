@@ -1,7 +1,8 @@
+import Skeleton from '@/components/Skeleton';
 import { Text, TextInput } from '@/components/Typography';
 import AddressBook from '@/components/AddressBook';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { auth } from '@/firebase/config';
 import CalendarDateField from '@/components/CalendarDateField';
@@ -66,7 +67,7 @@ export default function AccountSettingsPanel({ section }: { section: 'account' |
   const avatar = profile?.profile_image || auth.currentUser?.photoURL;
   return <View style={s.panel}>
     <Text style={s.title}>{section === 'account' ? 'Account Settings' : 'Data & Privacy'}</Text>
-    {loading && <ActivityIndicator color="#C15656" />}
+    {loading && <Skeleton layout="form" />}
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
     {!!success && <Text accessibilityRole="alert" style={s.success}>{success}</Text>}
     {profile && !loading && (section === 'account' ? <>

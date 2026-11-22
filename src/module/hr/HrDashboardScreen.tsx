@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { staffWorkspaceStyles as workspace } from '@/components/staffWorkspaceStyles';
 import UserManagement from '@/module/admin/UserManagement';
@@ -6,7 +7,7 @@ import ModeratorEvaluation from './ModeratorEvaluation';
 import Svg, { Circle } from 'react-native-svg';
 import { Text, TextInput } from '@/components/Typography';
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { Alert, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   Users,
   Store,
@@ -360,7 +361,7 @@ export default function HrDashboardScreen() {
 
             {loading ? (
               <View style={styles.loading}>
-                <ActivityIndicator size="large" color="#C15656" />
+                <Skeleton layout="list" />
               </View>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
@@ -425,7 +426,7 @@ export default function HrDashboardScreen() {
                   <Text style={styles.closeLogText}>{logsLoading ? "Loading..." : "Refresh logs"}</Text>
                 </TouchableOpacity>
               </View>
-              {logsLoading ? <ActivityIndicator color="#B65B50" style={{ padding: 28 }} /> : logs.length === 0 ? (
+              {logsLoading ? <Skeleton layout="list" /> : logs.length === 0 ? (
                 <Text style={styles.emptyText}>
                   No activity has been logged yet.
                 </Text>
@@ -709,7 +710,7 @@ function ArtistApplicationChart({ applications, loading }: { applications: Artis
   return <View style={styles.distributionCard}>
     <Text style={styles.panelTitle}>Application overview</Text>
     <Text style={{ color: '#7C6A64', fontSize: 12 }}>All submitted artist applications</Text>
-    {loading ? <ActivityIndicator color="#C15656" style={{ margin: 30 }} /> : <>
+    {loading ? <Skeleton layout="list" /> : <>
       <View style={{ alignSelf: 'center', width: 184, height: 184, marginVertical: 16 }} accessibilityRole="image" accessibilityLabel={`Application overview: ${segments.map(item => `${item.count} ${item.status}`).join(', ')}`}>
         <Svg width={184} height={184} viewBox="0 0 184 184"><Circle cx={92} cy={92} r={66} fill="none" stroke="#F3E8E0" strokeWidth={22} />{segments.map((item, index) => {
           const length = total ? item.count / total * circumference : 0;

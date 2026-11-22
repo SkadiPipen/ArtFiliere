@@ -1,5 +1,5 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
-import AdminTabs from '@/module/admin/AdminTabs';
 import { adminWorkspaceStyles } from '@/module/admin/adminDesign';
 import { useAdminRefresh } from '@/module/admin/AdminRefresh';
 import { ShieldCheck, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react-native';
@@ -8,31 +8,29 @@ import { goBackToWorkspace } from '@/services/navigation';
 import { Text } from '@/components/Typography';
 import { markAdminQueueRead } from '@/services/adminNotifications';
 import { useEffect, useState } from 'react';
-import { router } from 'expo-router';
-import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { purchaseRequest } from '@/services/purchases';
 import { auth } from '@/firebase/config';
 import ProvenancePanel from './ProvenancePanel';
 
-export default function AttributionReviewsScreen({ embedded = false }: { embedded?: boolean }) {
+export default function AttributionReviewsScreen({ embedded = false, mode = 'reviews' }: { embedded?: boolean; mode?: 'reviews' | 'failed' }) {
   const [data, setData] = useState<any>(null);
-  const [tab, setTab] = useState<'reviews' | 'failed'>('reviews');
+  const tab = mode;
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const load = async () => { setLoading(true); try { await auth.authStateReady(); const result = await purchaseRequest('blockchain/attribution-reviews/'); setData(result); void markAdminQueueRead('attribution', result.reviews.map((row: any) => row.id)); void markAdminQueueRead('blockchain', result.failed_transactions.map((row: any) => row.id)); setError(''); } catch (e: any) { setError(e.message); } finally { setLoading(false); } };
+  const load = async () => { setLoading(true); try { await auth.authStateReady(); const result = await purchaseRequest('blockchain/attribution-reviews/'); setData(result); void markAdminQueueRead(tab === 'reviews' ? 'attribution' : 'blockchain', (tab === 'reviews' ? result.reviews : result.failed_transactions).map((row: any) => row.id)); setError(''); } catch (e: any) { setError(e.message); } finally { setLoading(false); } };
   const adminWorkspace = useAdminRefresh(load);
   const workspace = adminWorkspace ? adminWorkspaceStyles : staffStyles;
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { setExpanded(null); setData(null); void load(); }, [mode]);
   return <ScrollView style={{ flex: 1, backgroundColor: COLORS.pageBackground }} contentContainerStyle={embedded ? workspace.content : { padding: 24, gap: 16 }}>
     {!embedded && <>
     <TouchableOpacity onPress={() => void goBackToWorkspace()}><Text>‹ Back</Text></TouchableOpacity>
     </>}
-    <View style={workspace.hero}><View style={workspace.titleRow}><ShieldCheck size={30} color="#B65B50" /><Text style={workspace.title}>Attribution & Ownership Reviews</Text></View><Text style={workspace.intro}>Review supporting evidence independently. Confirmed corrections append to the original claim and preserve its history.</Text></View>
-    <AdminTabs items={[{ id: 'reviews', label: `Ownership reviews${data ? ` (${data.reviews.length})` : ''}`, icon: ShieldCheck }, { id: 'failed', label: `Failed transactions${data ? ` (${data.failed_transactions.length})` : ''}`, icon: AlertCircle }]} value={tab} onChange={setTab} />
+    <View style={workspace.hero}><View style={workspace.titleRow}><ShieldCheck size={30} color="#B65B50" /><Text style={workspace.title}>{tab === 'reviews' ? 'Attribution disputes' : 'Failed blockchain records'}</Text></View><Text style={workspace.intro}>{tab === 'reviews' ? 'Review creator claims and supporting evidence. Confirmed corrections preserve the original claim and its history.' : 'Investigate failed registrations, entitlement transfers, and attribution corrections. These are blockchain recording failures, not necessarily payment failures.'}</Text></View>
     {!adminWorkspace && <TouchableOpacity onPress={() => void load()}><Text style={{ color: '#B74F50' }}>Refresh queue</Text></TouchableOpacity>}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#AD3535' }}>{error}</Text>}
-    {loading && <ActivityIndicator color="#B65B50" />}
+    {loading && <Skeleton layout="list" />}
     {!loading && data && (tab === 'reviews' ? data.reviews : data.failed_transactions).map((row: any) => {
       const key = `${tab}-${row.id}`;
       const open = expanded === key;

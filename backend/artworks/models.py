@@ -120,6 +120,7 @@ class ArtworkSimilarityMatch(models.Model):
     phash_distance = models.PositiveSmallIntegerField()
     dhash_distance = models.PositiveSmallIntegerField()
     edge_hash_distance = models.PositiveSmallIntegerField(default=64)
+    match_evidence = models.JSONField(default=dict, blank=True)
     feature_match_score = models.FloatField(default=0)
     color_similarity_score = models.FloatField(default=0)
     confidence_score = models.FloatField()

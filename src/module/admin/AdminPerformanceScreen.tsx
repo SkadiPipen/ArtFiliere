@@ -1,5 +1,6 @@
+import Skeleton from '@/components/Skeleton';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from 'react-native-svg';
 import { ChartNoAxesCombined, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react-native';
 import { Text } from '@/components/Typography';
@@ -94,7 +95,7 @@ export default function AdminPerformanceScreen() {
       <Text style={[t.label, { flexGrow: 1, flexBasis: 220, maxWidth: 340 }]}>{metric === 'earnings' ? 'Platform fees earned. Held artist funds are excluded.' : 'Payments received before refunds, including delivery.'}</Text>
     </View>
     {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318' }}>{error}</Text>}
-    {loading && <ActivityIndicator color="#B65B50" />}
+    {loading && <Skeleton layout="dashboard" />}
     {current && <>
       <View style={s.metricStrip}>{([{ key: 'earnings', label: 'Platform earnings', currency: true }, { key: 'collected', label: 'Gross collected', currency: true }, { key: 'payments', label: 'Recorded payments', currency: false }, { key: 'average_payment', label: 'Average collected', currency: true }] as const).map(({ key, label, currency }) => <View key={key} style={s.metric}><Text style={t.muted}>{label}</Text><Text style={[t.metric, { fontSize: 23, lineHeight: 30 }]}>{currency ? money(summary![key]) : summary![key].toLocaleString()}</Text><Text style={t.label}>{comparison(Number(summary![key]), Number(previous![key]))}</Text></View>)}</View>
       {channel === 'royalty' && <Text style={t.muted}>Platform earnings show released royalty service fees. Artist royalties released in this period: {money(summary?.artist_royalties || 0)}. Gross collections show verified royalty payments, including funds awaiting release.</Text>}

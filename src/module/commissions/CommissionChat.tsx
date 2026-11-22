@@ -1,9 +1,10 @@
+import Skeleton from '@/components/Skeleton';
 import useChatAutoScroll from '@/hooks/useChatAutoScroll';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest } from '@/services/purchases';
 import { ArrowLeft, Send } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 
 export type CommissionConversation = {
   id: number; title: string; artist: string; buyer: string; artist_id: number; buyer_id: number;
@@ -54,7 +55,7 @@ export default function CommissionChat({ id, onBack }: { id: number; onBack: () 
         <Text style={{ color: '#75655F', marginTop: 4 }}>{conversation?.title} · Commission</Text></View>
     </View>
     {!!error && <Text accessibilityRole="alert" style={{ padding: 12, color: '#A13030' }}>{error}</Text>}
-    {!conversation && !error && <ActivityIndicator style={{ margin: 24 }} color="#C15656" />}
+    {!conversation && !error && <Skeleton layout="list" />}
     <ScrollView ref={autoScroll.ref} contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }} onContentSizeChange={autoScroll.onContentSizeChange} onLayout={autoScroll.onLayout} onScroll={autoScroll.onScroll} scrollEventThrottle={16}>
       {conversation && !conversation.messages.length && <Text style={{ textAlign: 'center', color: '#75655F', padding: 24 }}>No commission messages yet. Start the conversation below.</Text>}
       {conversation?.messages.map(item => <View key={item.id} style={{ alignSelf: item.sender_id === ownId ? 'flex-end' : 'flex-start', maxWidth: '85%', padding: 12, borderRadius: 14, backgroundColor: item.sender_id === ownId ? '#F3E0D3' : '#F4F4F6', gap: 5 }}>

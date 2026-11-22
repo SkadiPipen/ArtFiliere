@@ -31,7 +31,6 @@ export default function EarningsChart({ buckets }: { buckets: EarningsBucket[] }
   const totals = earningsSeries.map(item => ({ ...item, amount: buckets.reduce((sum, bucket) => sum + Number(bucket[item.key]), 0) }));
   const total = totals.reduce((sum, item) => sum + item.amount, 0);
   const circumference = 2 * Math.PI * 54;
-  let offset = 0;
   return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={{ gap: 16, minWidth: 0 }}>
     <View style={{ borderWidth: 1, borderColor: '#EAD4C8', borderRadius: 14, padding: 12, backgroundColor: '#FFFBF8' }}>
       <Text style={{ fontWeight: '700', color: '#824B39', fontSize: 14, marginBottom: 14 }}>Earnings by period</Text>
@@ -51,9 +50,10 @@ export default function EarningsChart({ buckets }: { buckets: EarningsBucket[] }
     </View>
     <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 16, padding: 16, borderWidth: 1, borderColor: '#EAD4C8', borderRadius: 14 }}>
       <Animated.View accessibilityLabel={`Earnings distribution, total ${amount(total)}`} style={{ width: 140, height: 140, opacity: progress, transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }}>
-        <Svg width={140} height={140} viewBox="0 0 140 140"><Circle cx={70} cy={70} r={54} fill="none" stroke="#F6E9E0" strokeWidth={16} />{totals.map(item => {
-          const length = total ? item.amount / total * circumference : 0; const start = offset; offset += length;
-          return <Circle key={item.key} cx={70} cy={70} r={54} fill="none" stroke={item.color} strokeWidth={16} strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-start} rotation={-90} origin="70, 70" />;
+        <Svg width={140} height={140} viewBox="0 0 140 140"><Circle cx={70} cy={70} r={54} fill="none" stroke="#F6E9E0" strokeWidth={16} />{totals.map((item, index) => {
+          const length = total ? item.amount / total * circumference : 0;
+          const start = total ? totals.slice(0, index).reduce((sum, segment) => sum + segment.amount, 0) / total * circumference : 0;
+          return length > 0 ? <Circle key={item.key} cx={70} cy={70} r={54} fill="none" stroke={item.color} strokeWidth={16} strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-start} transform="rotate(-90 70 70)" /> : null;
         })}</Svg>
         <View pointerEvents="none" style={{ position: 'absolute', inset: 0, justifyContent: 'center', alignItems: 'center' }}><Text style={{ fontSize: 10, color: '#937E73' }}>Chart total</Text><Text style={{ fontSize: 13, color: '#824B39', fontWeight: '700' }}>{amount(total)}</Text></View>
       </Animated.View>

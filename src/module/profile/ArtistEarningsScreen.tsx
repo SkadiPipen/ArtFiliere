@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import ProductImage from '@/components/ProductImage';
@@ -7,7 +8,7 @@ import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { exportEarnings } from '@/services/exportEarnings';
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Download, Search, SlidersHorizontal, CalendarDays, ChevronDown, X, ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react-native';
 
@@ -91,7 +92,7 @@ export default function ArtistEarningsScreen({ onBack }: { onBack: () => void })
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.wrap}>{Object.entries(statuses).map(([value, label]) => chip(label, status === value, () => select(() => setStatus(value))))}</ScrollView>
         </View>
         {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-        {loading ? <ActivityIndicator style={{ padding: 40 }} color="#C15656" /> : data && <>
+        {loading ? <Skeleton layout="dashboard" /> : data && <>
           <Text style={s.muted}>Summary follows the selected period, search, and filters.</Text>
           <View style={[s.wrap, { marginVertical: 16 }]}>{[['received', 'Received payouts'], ['available', 'Available in wallet'], ['pending', 'Pending release'], ['processing', 'Processing payout'], ['failed', 'Payout needs attention'], ['fees', 'Platform fees'], ['shipping', 'Delivery charges'], ['refunds', 'Refunded payments']].map(([key, label]) => <View key={key} style={[s.summary, { width: compact ? '47%' : '23%' }]}><Text style={s.muted}>{label}</Text><Text style={s.amount}>{currency(data.summary[key])}</Text></View>)}</View>
           <Text style={s.note}>Received means a recorded payout. Available means funds released to the platform wallet. Unpaid and refunded transactions are excluded from earnings. Delivery charges are shown separately from artist net earnings.</Text>

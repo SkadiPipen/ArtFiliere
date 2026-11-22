@@ -1,9 +1,10 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import ContentModal from '@/components/ContentModal';
 import TransactionHeader from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '@/firebase/config';
 import { Contract, contractRequest } from './contracts';
@@ -34,7 +35,7 @@ export default function OngoingNegotiations({ onClose }: { onClose: () => void }
         <TransactionHeader title="Ongoing Negotiations" onBack={onClose} onRefresh={() => { setLoading(true); setRevision(value => value + 1); }} refreshing={loading} />
         <FlatList data={loading ? [] : rows} keyExtractor={item => String(item.id)} style={{ flex: 1 }} contentContainerStyle={s.content}
           ListHeaderComponent={error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
-          ListEmptyComponent={loading ? <ActivityIndicator style={{ marginTop: 24 }} color="#BC5555" /> : <View style={s.empty}><Text style={s.emptyTitle}>{error ? 'Unable to load negotiations.' : 'No ongoing negotiations.'}</Text></View>}
+          ListEmptyComponent={loading ? <Skeleton layout="list" /> : <View style={s.empty}><Text style={s.emptyTitle}>{error ? 'Unable to load negotiations.' : 'No ongoing negotiations.'}</Text></View>}
           renderItem={({ item }) => <TouchableOpacity accessibilityRole="button" onPress={() => setSelected(item)} style={s.card}>
           <Text style={{ fontWeight: '700', fontSize: 16 }}>{item.title}</Text>
           <Text>{item.buyer} / {item.artist}</Text>

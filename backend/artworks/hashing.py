@@ -59,7 +59,7 @@ def compute_sha256(image_data: str) -> str:
     upload path) will produce the same hash, so this catches byte-for-byte
     duplicate uploads. It does NOT catch resized, recompressed, cropped, or
     otherwise modified copies -- that's what tiers 2-4 (perceptual hashing,
-    CLIP embeddings, ORB) are for.
+    difference/edge hashing and geometrically verified ORB) are for.
     """
     raw_bytes = decode_image_data(image_data)
     return hashlib.sha256(raw_bytes).hexdigest()
@@ -114,19 +114,11 @@ def calculate_phash_distance(hash1: str, hash2: str) -> int:
 
 
 def calculate_feature_match_score(image_data: str, reference_image_data: str) -> float:
-    """Returns a conservative ORB inlier ratio for crops and overlays."""
-    def descriptors(data: str):
-        image = np.array(load_image(data))
-        return cv2.ORB_create(nfeatures=800).detectAndCompute(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), None)
-
+    """Ratio of geometrically verified ORB inliers to the smaller feature set."""
+    from .matching import prepare_image, geometric_match
     try:
-        keypoints_a, descriptors_a = descriptors(image_data)
-        keypoints_b, descriptors_b = descriptors(reference_image_data)
-        if descriptors_a is None or descriptors_b is None or len(keypoints_a) < 8 or len(keypoints_b) < 8:
-            return 0.0
-        matches = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(descriptors_a, descriptors_b)
-        good_matches = [match for match in matches if match.distance <= 45]
-        return round(len(good_matches) / max(1, min(len(keypoints_a), len(keypoints_b))), 4)
+        left, right = prepare_image(image_data), prepare_image(reference_image_data)
+        return max(geometric_match(gray, right['gray'])['feature_score'] for gray in left['feature_images'])
     except (ValueError, cv2.error):
         return 0.0
 
@@ -147,17 +139,13 @@ def calculate_color_similarity_score(image_data: str, reference_image_data: str)
 
 
 def similarity_confidence(phash_distance: int, dhash_distance: int, feature_match_score: float, edge_hash_distance: int | None = None) -> float:
-    """A deliberately conservative ensemble score; 1.0 is a near duplicate."""
-    phash_score = max(0.0, 1 - phash_distance / 20)
-    dhash_score = max(0.0, 1 - dhash_distance / 20)
-    base_score = (0.45 * phash_score) + (0.30 * dhash_score) + (0.25 * min(feature_match_score / 0.2, 1))
-    if edge_hash_distance is None:
-        return round(base_score, 3)
-    edge_score = max(0.0, 1 - edge_hash_distance / 20)
-    # A recolour should retain outlines. This lifts strong edge matches while
-    # keeping weak/ambiguous edge matches in the normal review range.
-    colour_invariant_score = (0.85 * edge_score) + (0.15 * min(feature_match_score / 0.2, 1))
-    return round(max(base_score, colour_invariant_score), 3)
+    """Heuristic index, not a probability. Hashes alone cannot reach 0.80."""
+    p = max(0.0, 1 - phash_distance / 20)
+    d = max(0.0, 1 - dhash_distance / 20)
+    geometry = max(0.0, min(feature_match_score / 0.2, 1.0))
+    base = .35 * p + .25 * d + .40 * geometry
+    edge = max(0.0, 1 - edge_hash_distance / 20) if edge_hash_distance is not None else 0.0
+    return round(max(base, .45 * edge + .55 * geometry), 3)
 
 
 def is_review_worthy(phash_distance: int, dhash_distance: int, feature_match_score: float, confidence: float, edge_hash_distance: int | None = None) -> bool:

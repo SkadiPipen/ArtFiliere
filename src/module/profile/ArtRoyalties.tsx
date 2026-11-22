@@ -1,8 +1,9 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import TransactionHeader from '@/components/TransactionHeader';
 import { Text } from '@/components/Typography';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { auth } from '@/firebase/config';
@@ -44,7 +45,7 @@ export default function ArtRoyalties({ onClose }: { onClose: () => void }) {
       <Text style={{ color: '#81756D', lineHeight: 20 }}>Your royalty-bearing artwork and commission licenses, as buyer or artist.</Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>{(['active', 'expired'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value)} style={{ flex: 1, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: tab === value ? '#E68A50' : '#E5DAD3', backgroundColor: tab === value ? '#FFF0E4' : '#FFFFFF' }}><Text style={{ textAlign: 'center', fontWeight: '700', color: '#70482F' }}>{value === 'active' ? 'Active' : 'Expired'} ({licenses.filter(item => item.license_status === value).length})</Text></Pressable>)}</View>
       <Text style={{ color: '#81756D', fontSize: 12, lineHeight: 19 }}>{tab === 'active' ? 'Includes accepted agreements awaiting signatures or final commission delivery. Each card shows its current status.' : 'Expiry ends the agreed term; outstanding reporting and payment obligations may remain due.'}</Text>
-      {loading && <ActivityIndicator color="#C15656" />}
+      {loading && <Skeleton layout="list" />}
       {!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}
       {!loading && !error && !visible.length && <View style={s.empty}><Text style={{ color: '#81756D', textAlign: 'center' }}>No {tab} royalty licenses yet.</Text></View>}
       {visible.map(item => <View key={item.id} style={s.card}>

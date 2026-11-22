@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { Text } from '@/components/Typography';
 import { COLORS } from '@/constants/colors';
 import TourLauncher from '@/components/TourLauncher';
@@ -81,6 +82,7 @@ export default function Dashboard() {
   const { width } = useWindowDimensions();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState("All");
+  const [artworksLoading, setArtworksLoading] = useState(true);
   const [approvedArtworks, setApprovedArtworks] = useState<ArtItem[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
   const [chatVisible, setChatVisible] = useState(false);
@@ -199,7 +201,8 @@ export default function Dashboard() {
           })),
         ),
       )
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => setArtworksLoading(false));
   }, []));
 
   const webItems = approvedArtworks.filter(item => {
@@ -229,7 +232,7 @@ export default function Dashboard() {
           { paddingBottom: (hasSidebar ? 32 : 120) + insets.bottom },
         ]}
       >
-        {isDesktop ? (
+        {artworksLoading ? <Skeleton layout="cards" count={6} /> : isDesktop ? (
           <View style={styles.desktopContainer}>
             <HeroCarousel onSelect={handleViewPost} />
 

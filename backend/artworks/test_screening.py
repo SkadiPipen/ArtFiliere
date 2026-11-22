@@ -236,3 +236,51 @@ class ArtworkScreeningTests(TestCase):
         self.assertTrue(response.data['external_service'])
         self.assertNotIn('not-a-real-key', str(response.data))
         self.assertEqual(self.call(ArtworkImageScreenView, self.other).status_code, 403)
+
+
+    @override_settings(ARTWORK_SIMILARITY_AUTO_BLOCK_ENABLED=True)
+    def test_optional_similarity_block_requires_strong_geometry_and_hash_agreement(self):
+        self.reference()
+        with patch('artworks.views.similarity_confidence', return_value=.99), patch('artworks.matching.strong_copy_evidence', return_value=False):
+            response = self.submit(image_data=image_data_url(quality=54))
+        self.assertEqual(response.data['status'], 'pending')
+        self.assertFalse(response.data['automated_block_reason'])
+        with patch('artworks.views.similarity_confidence', return_value=.99), patch('artworks.matching.strong_copy_evidence', return_value=True):
+            response = self.submit(image_data=image_data_url(quality=64))
+        self.assertEqual(response.data['status'], 'declined')
+        self.assertEqual(response.data['automated_block_reason'], 'high_similarity')
+        match = ArtworkSimilarityMatch.objects.get(artwork_id=response.data['id'])
+        self.assertEqual(match.match_evidence['algorithm_version'], 'geometry-v2')
+        self.assertEqual(match.review_status, 'auto_blocked')
+
+    @override_settings(ARTWORK_SIMILARITY_AUTO_BLOCK_ENABLED=False)
+    def test_strong_visual_match_stays_pending_until_optional_policy_is_enabled(self):
+        self.reference()
+        with patch('artworks.views.similarity_confidence', return_value=.99), patch('artworks.matching.strong_copy_evidence', return_value=True):
+            response = self.submit(image_data=image_data_url(quality=54))
+        self.assertEqual(response.data['status'], 'pending')
+        self.assertFalse(response.data['automated_block_reason'])
+
+
+    @override_settings(ARTWORK_SIMILARITY_AUTO_BLOCK_ENABLED=True, ARTWORK_AUTO_SIMILARITY_THRESHOLD=.90)
+    def test_ninety_percent_boundary_requires_geometry_and_records_policy(self):
+        self.reference()
+        good = {'algorithm_version': 'geometry-v2', 'phash_distance': 1, 'dhash_distance': 1,
+                'edge_hash_distance': 1, 'feature_match_score': .3, 'confidence_score': .9,
+                'review_worthy': True, 'rotation': 0, 'mirrored': False,
+                'geometry': {'verified': True, 'inliers': 30, 'matches': 35, 'inlier_ratio': .85,
+                             'coverage_left': .4, 'coverage_right': .4}}
+        for score, quality, verified, expected in ((.899, 53, True, 'pending'), (.9, 63, True, 'declined'), (.95, 73, False, 'pending')):
+            evidence = {**good, 'geometry': {**good['geometry'], 'verified': verified}}
+            with self.subTest(score=score, geometry=verified), patch('artworks.matching.compare_images', return_value=evidence), patch('artworks.views.similarity_confidence', return_value=score):
+                response = self.submit(image_data=image_data_url(quality=quality))
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(response.data['status'], expected)
+                match = ArtworkSimilarityMatch.objects.get(artwork_id=response.data['id'])
+                self.assertEqual(match.match_evidence['policy_threshold'], .9)
+                if expected == 'declined':
+                    self.assertEqual(response.data['automated_block_reason'], 'high_similarity')
+                    self.assertIn('Suspected duplicate', response.data['decline_reason'])
+                    self.assertIn('appeal', response.data['decline_reason'])
+                    self.assertEqual(self.call(ArtworkView, None, artwork_id=response.data['id']).status_code, 404)
+                    self.assertTrue(ArtworkReviewLog.objects.filter(artwork_id=response.data['id'], action='auto_blocked').exists())

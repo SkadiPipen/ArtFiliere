@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
@@ -175,7 +176,7 @@ export default function ArtistProfileScreen() {
   if (loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator color="#A84B46" size="large" />
+        <Skeleton layout="profile" />
       </View>
     );
   }

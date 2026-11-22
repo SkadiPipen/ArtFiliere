@@ -24,7 +24,9 @@ TRUTHSCAN_API_KEY = os.getenv('TRUTHSCAN_API_KEY', '').strip()
 TRUTHSCAN_REQUEST_TIMEOUT = 15
 TRUTHSCAN_UPLOAD_TIMEOUT = 40
 TRUTHSCAN_RESULT_CACHE_SECONDS = 7 * 24 * 60 * 60
-ARTWORK_AUTO_SIMILARITY_THRESHOLD = 0.80
+ARTWORK_AUTO_SIMILARITY_THRESHOLD = 0.90
+# Provisional publication policy: 90% plus geometric and multi-signal evidence; appealable.
+ARTWORK_SIMILARITY_AUTO_BLOCK_ENABLED = os.getenv('ARTWORK_SIMILARITY_AUTO_BLOCK_ENABLED', 'true').lower() == 'true'
 # Legacy setting name: high AI scores now require evidence review, not automatic rejection.
 ARTWORK_AUTO_AI_THRESHOLD = 0.80
 

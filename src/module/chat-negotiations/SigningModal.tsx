@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import ContentModal from '@/components/ContentModal';
 import { Text, TextInput } from '@/components/Typography';
@@ -71,7 +72,7 @@ export default function SigningModal({ id, onClose, onSigned }: { id: number; on
     <ScrollView ref={scrollRef} style={s.screen} keyboardShouldPersistTaps="handled" scrollEnabled={Platform.OS === 'web' || !drawing} contentContainerStyle={s.content}>
       <View style={s.pageHeader}><View style={{ flex: 1, gap: 5 }}><Text style={s.eyebrow}>ARTFILIER AGREEMENT</Text><Text accessibilityRole="header" style={s.pageTitle}>Review & sign</Text><Text style={s.description}>Review the terms, add your signature, then confirm your agreement.</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Close agreement" onPress={onClose} style={s.close}><X size={22} color="#775D53" /></TouchableOpacity></View>
       {!!error && <Text style={{ color: '#b00020' }}>{error}</Text>}
-      {!data ? <Text>Loading agreement...</Text> : <>
+      {!data ? <Skeleton layout="form" /> : <>
         <View style={s.section}><View style={s.sectionHeading}><FileText size={21} color="#B55D4C" /><View style={s.headingText}><Text style={s.eyebrow}>01 / REVIEW</Text><Text accessibilityRole="header" style={s.sectionTitle}>Agreement details</Text></View></View><AgreementPaper document={data.document} /><TouchableOpacity accessibilityRole="button" disabled={busy} onPress={preview} style={s.outlineButton}><FileText size={17} color="#A24F41" /><Text style={s.buttonText}>Download license agreement (PDF)</Text></TouchableOpacity></View>
         <View style={s.section}><View style={s.sectionHeading}><ShieldCheck size={21} color="#B55D4C" /><Text accessibilityRole="header" style={s.sectionTitle}>Signing status</Text></View>
         {!!data.artist_presigned_document && <Text>The artist signed the fixed auction terms on {new Date(data.artist_signed_at).toLocaleString()}. Your signature confirms those terms and the completed winner details shown above.</Text>}

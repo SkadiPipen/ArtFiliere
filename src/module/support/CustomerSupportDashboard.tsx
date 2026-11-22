@@ -2,7 +2,7 @@ import { staffWorkspaceStyles as s } from '@/components/staffWorkspaceStyles';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Headset, LayoutDashboard, Inbox, RotateCcw, UserCog, ShieldCheck, Brush, ScanLine, LogOut, ChevronRight, Info, type LucideIcon } from 'lucide-react-native';
+import { Headset, LayoutDashboard, Inbox, RotateCcw, UserCog, ShieldCheck, Brush, LogOut, ChevronRight, Info, type LucideIcon } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Text } from '@/components/Typography';
 import { auth } from '@/firebase/config';
@@ -11,7 +11,6 @@ import AppealReviews from '@/module/moderation/AppealReviews';
 import CommissionWorkspace from '@/module/commissions/CommissionWorkspace';
 import CommissionReviews from '@/module/commissions/CommissionReviews';
 import { AccountActions, ReturnRequests } from '@/module/moderation/ModeratorDashboard';
-import ArtworkCodeLookup from '@/app/artwork-code-lookup';
 
 const sections = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -20,7 +19,6 @@ const sections = [
   { id: 'accounts', label: 'Account requests', icon: UserCog },
   { id: 'appeals', label: 'Restriction appeals', icon: ShieldCheck },
   { id: 'commissions', label: 'Commission reviews', icon: Brush },
-  { id: 'lookup', label: 'Artwork code lookup', icon: ScanLine },
 ] as const;
 type Section = typeof sections[number]['id'];
 
@@ -55,7 +53,7 @@ export default function CustomerSupportDashboard() {
       <View style={s.main}>
         <View style={s.topbar}><Headset size={22} color="#B65B50" /><Text style={s.workspace}>Customer support workspace</Text><Text style={s.muted}>{current.label}</Text></View>
         {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-        {section === 'queues' ? <SupportScreen moderator embedded onClose={() => navigate('overview')} /> : section === 'lookup' ? <ArtworkCodeLookup /> : <ScrollView key={section} contentContainerStyle={s.content}>
+        {section === 'queues' ? <SupportScreen moderator embedded onClose={() => navigate('overview')} /> : <ScrollView key={section} contentContainerStyle={s.content}>
           <View style={s.hero}><View style={s.titleRow}><current.icon size={30} color="#B65B50" /><Text accessibilityRole="header" style={s.title}>{section === 'overview' ? 'Customer Support' : current.label}</Text></View><Text style={s.intro}>{section === 'overview' ? 'Manage buyer and artist concerns, review returns and refunds, and track account requests in one workspace.' : 'Review cases and record decisions in your customer support workspace.'}</Text></View>
           {section === 'overview' && <>
             <View style={s.quickRow}>

@@ -1,10 +1,11 @@
+import Skeleton from '@/components/Skeleton';
 import { useAdminRefresh } from './AdminRefresh';
 import { Text, TextInput } from '@/components/Typography';
 import { purchaseRequest } from '@/services/purchases';
 import { auth } from '@/firebase/config';
 import { Users, Search, RefreshCcw, X, ChevronDown, Check } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 type UserRecord = { id: number; username: string; email: string; first_name: string; last_name: string; contact_number: string; role: string; status: string; joined: string; registration_status: string | null; can_edit: boolean };
 const label = (value: string) => value.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
@@ -44,7 +45,7 @@ export default function UserManagement({ hr = false }: { hr?: boolean }) {
       <DirectoryFilter title="Status" value={status} options={['', 'active', 'restricted']} onChange={value => { setStatus(value); setPage(1); }} />
     </View>
     {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-    {busy ? <ActivityIndicator color="#C15656" /> : data && <View style={s.panel}>
+    {busy ? <Skeleton layout="list" /> : data && <View style={s.panel}>
       <Text style={s.muted}>{data.count} matching accounts</Text>
       {!data.results.length && <Text style={s.empty}>No users match these filters.</Text>}
       {data.results.map(user => <View key={user.id} style={s.userRow}>

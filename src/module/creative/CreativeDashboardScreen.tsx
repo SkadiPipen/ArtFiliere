@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text, TextInput } from '@/components/Typography';
 import ReviewTransition from './ReviewTransition';
@@ -6,7 +7,7 @@ import ZoomableArtwork from '@/module/artwork/components/ZoomableArtwork';
 import ArtistRecordReviews from './ArtistRecordReviews';
 import { auth } from "@/firebase/config";
 import API_URL from "@/services/api";
-import ArtworkHistoryPanel from '@/module/blockchain/ArtworkHistoryPanel';
+import ArtworkVerificationPanel from '@/module/blockchain/ArtworkVerificationPanel';
 import { screeningScoreLabel, type ScreeningScore } from '@/services/artworkScreening';
 import AgreementDocument from "@/module/messages/components/AgreementDocument";
 import AgreementPaper from '@/module/messages/components/AgreementPaper';
@@ -20,7 +21,7 @@ import {
   XCircle,
 } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 
 type Artwork = {
   id: number;
@@ -196,7 +197,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
         {!embedded && <ArtistRecordReviews />}
         <Text style={s.title}>Artwork moderation</Text>
         {!embedded && <>
-        <TouchableOpacity onPress={() => router.push('/attribution-reviews' as any)}><Text style={{ color: '#B74F50', fontWeight: '700', paddingVertical: 12 }}>Attribution & ownership reviews</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/creative-dashboard?section=queues&queue=attribution' as any)}><Text style={{ color: '#B74F50', fontWeight: '700', paddingVertical: 12 }}>Attribution disputes in Concern queues</Text></TouchableOpacity>
         </>}
         <Text style={s.lead}>
           Review automatic similarity assessments and make the final artwork decision. Exact-file publication blocks remain read-only evidence.
@@ -235,7 +236,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
           <TouchableOpacity style={[s.tab, activeTab === 'auto_blocked' && s.tabActive]} onPress={() => setActiveTab('auto_blocked')}><Text style={[s.tabText, activeTab === 'auto_blocked' && s.tabTextActive]}>Auto-blocked ({items.filter(item => !!item.automated_block_reason).length})</Text></TouchableOpacity>
         </View>
         {loading ? (
-          <ActivityIndicator size="large" color="#C15656" style={s.loader} />
+          <Skeleton layout="cards" />
         ) : visibleItems.length ? (
           visibleItems.map((item) => (
             <TouchableOpacity
@@ -268,7 +269,7 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                       {pending(item).length === 1 ? "" : "es"} to review
                     </Text>
                   )}
-                  {!!item.automated_block_reason && <Text style={[s.badge, s.alert]}>Auto-blocked · view only</Text>}
+                  {!!item.automated_block_reason && <Text style={[s.badge, s.alert]}>{item.automated_block_reason === 'high_similarity' ? 'Auto-declined · review available' : 'Auto-blocked · view only'}</Text>}
                   {(item.ai_screening?.status === 'auto_blocked' || (item.ai_screening?.status === 'review_required' && item.ai_screening.review_status !== 'cleared')) && <Text style={[s.badge, s.alert]}>AI flag</Text>}
                 </View>
               </View>
@@ -321,10 +322,10 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                   </Text>
                   <Text style={s.category}>{selected.category}</Text>
                   <Text style={s.description}>{selected.description}</Text>
-                  <ArtworkHistoryPanel artworkId={selected.id} />
+                  <ArtworkVerificationPanel artworkId={selected.id} />
                   </View>
                   <View style={[s.reviewColumn, s.reviewRight, !reviewLandscape && { flex: undefined, width: '100%' }]}>
-                  {!!selected.automated_block_reason && <View style={s.match}><Text style={s.copyResolved}>{readOnlyBlock ? 'Automatically blocked · read-only evidence' : 'Previously held for high similarity · moderator review available'}</Text><Text style={s.detailText}>{selected.automated_block_reason === 'high_ai_score' ? 'The AI model score reached the automatic block threshold. This artwork was not published; no moderator decision is required. The score does not prove artwork origin.' : 'This submission was not published. Review the matched artwork history and ownership evidence. A similarity score does not establish copyright infringement.'}</Text></View>}
+                  {!!selected.automated_block_reason && <View style={s.match}><Text style={s.copyResolved}>{readOnlyBlock ? 'Automatically blocked · read-only evidence' : 'Auto-declined for high similarity · moderator review available'}</Text><Text style={s.detailText}>{selected.automated_block_reason === 'high_ai_score' ? 'The AI model score reached the automatic block threshold. This artwork was not published; no moderator decision is required. The score does not prove artwork origin.' : 'This submission was not published. Review the matched artwork history and ownership evidence. A similarity score does not establish copyright infringement.'}</Text></View>}
                   {selected.status === "declined" && !!selected.decline_reason && <Text style={s.copyResolved}>Rejection reason: {selected.decline_reason}</Text>}
                   <Text style={s.detailTitle}>Submitted details</Text>
                   <Text style={s.detailText}>Sale type: {selected.sale_type || "Direct Sell"}</Text>

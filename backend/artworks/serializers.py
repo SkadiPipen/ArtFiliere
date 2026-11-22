@@ -127,15 +127,16 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "phash_distance": match.phash_distance,
             "dhash_distance": match.dhash_distance,
             "edge_hash_distance": match.edge_hash_distance,
+            "match_evidence": match.match_evidence,
             "feature_match_score": match.feature_match_score,
             "color_similarity_score": match.color_similarity_score,
             "review_status": match.review_status,
             "automatic_assessment": (
                 'exact_duplicate' if artwork.automated_block_reason == 'exact_duplicate'
-                else 'high_similarity' if match.confidence_score >= settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD
+                else 'high_similarity' if match.confidence_score >= match.match_evidence.get('policy_threshold', settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD)
                 else 'possible_match'
             ),
-            "assessment_threshold": settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD,
+            "assessment_threshold": match.match_evidence.get("policy_threshold", settings.ARTWORK_AUTO_SIMILARITY_THRESHOLD),
         } for match in matches]
 
     def get_is_sold(self, artwork):

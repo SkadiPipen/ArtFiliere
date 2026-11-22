@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { acceptOrderApi, fetchPendingOrders, fetchAssignedOrders } from '@/services/deliveryApi';
@@ -156,7 +157,7 @@ export default function RiderOrdersScreen() {
       >
         {loading ? (
           <View style={styles.loaderCenter}>
-            <ActivityIndicator size="large" color="#BC5454" />
+            <Skeleton layout="list" />
             <Text style={styles.loadingText}>Fetching order requests...</Text>
           </View>
         ) : loadError ? (

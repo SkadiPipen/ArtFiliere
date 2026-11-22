@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import { Text } from '@/components/Typography';
@@ -66,18 +67,18 @@ export default function CartScreen() {
   const [contractArtwork, setContractArtwork] = useState<string | null>(null);
 
   const refreshContracts = useCallback(async () => {
-    try { 
+    try {
       const res = await contractRequest();
       setContracts(res.contracts || []);
-    } catch { 
-      setContracts([]); 
+    } catch {
+      setContracts([]);
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { 
-    refreshContracts(); 
-    const timer = setInterval(refreshContracts, 5000); 
-    return () => clearInterval(timer); 
+  useFocusEffect(useCallback(() => {
+    refreshContracts();
+    const timer = setInterval(refreshContracts, 5000);
+    return () => clearInterval(timer);
   }, [refreshContracts]));
 
   const latestFor = (id: string) => contracts.filter(c => String(c.artwork_id) === id).sort((a, b) => b.id - a.id)[0];
@@ -98,7 +99,7 @@ export default function CartScreen() {
         const token = await auth.currentUser?.getIdToken();
         const headers: Record<string, string> = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        
+
         let res = await fetch(`${API_URL}/api/users/artworks/${id}/`, { headers });
         if (!res.ok) {
           res = await fetch(`${API_URL}/api/artworks/${id}/`, { headers });
@@ -170,7 +171,7 @@ export default function CartScreen() {
     if (activeFilter === 'All') return true;
     const itemType = (item.type || '').toLowerCase();
     const filter = activeFilter.toLowerCase();
-    
+
     if (filter === 'auction') {
       return itemType.includes('auction') || item.title.toLowerCase().includes('auction');
     }
@@ -227,18 +228,18 @@ export default function CartScreen() {
   // Deletes both standard cart items and contract auction items
   const handleRemove = (itemId: string) => {
     const executeRemove = async () => {
-      try { 
+      try {
         if (itemId.startsWith('contract-art-')) {
           const contractId = itemId.replace('contract-art-', '');
-          
+
           await purchaseRequest(`cart/contracts/${contractId}/`, 'DELETE');
         } else {
-          await removeFromCart(itemId); 
+          await removeFromCart(itemId);
         }
-        await refreshContracts(); 
-      } catch (error: any) { 
-        Alert.alert('Cart', error.message); 
-        return; 
+        await refreshContracts();
+      } catch (error: any) {
+        Alert.alert('Cart', error.message);
+        return;
       }
       setSelectedItems((prev) => prev.filter((id) => id !== itemId));
     };
@@ -265,19 +266,19 @@ export default function CartScreen() {
       return;
     }
     const agreement = agreedFor(selected[0].artworkId);
-    if (!agreement) { 
-      setCheckoutError('Both you and the artist must accept the contract before checkout.'); 
-      return; 
+    if (!agreement) {
+      setCheckoutError('Both you and the artist must accept the contract before checkout.');
+      return;
     }
     const paymentTab = preparePaymentWindow();
     let opened = false;
     try {
       setCheckingOut(true);
       const signing = await contractRequest(`${agreement.id}/sign/`);
-      if (!signing.fully_signed) { 
-        setCheckoutError('Both parties must sign and save their signatures before checkout.'); 
-        await refreshContracts(); 
-        return; 
+      if (!signing.fully_signed) {
+        setCheckoutError('Both parties must sign and save their signatures before checkout.');
+        await refreshContracts();
+        return;
       }
       const user = auth.currentUser;
       if (!user) throw new Error('Please log in again.');
@@ -293,21 +294,21 @@ export default function CartScreen() {
         }
       }
       const response = await fetch(`${API_URL}/api/checkout/agreements/${agreement.id}/`, {
-        method: 'POST', 
-        headers: { 
-          Authorization: `Bearer ${await user.getIdToken()}`, 
-          'Content-Type': 'application/json' 
-        }, 
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${await user.getIdToken()}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(deliveryQuote ? { delivery_quote: deliveryQuote } : {}),
       });
       const data = await readApiResponse(response);
       if (!response.ok || (!data.simulated && !data.checkout_url)) throw new Error(data.error || 'Unable to create checkout.');
       setDeliveryCheckout(null);
-      
+
       setShowPurchases(true);
-      if (data.simulated) { 
-        await refreshCart(); 
-        await refreshContracts(); 
+      if (data.simulated) {
+        await refreshCart();
+        await refreshContracts();
       } else {
         await openPaymentCheckout(data.checkout_url, 'shop', data.payment_id, paymentTab);
         opened = true;
@@ -337,21 +338,21 @@ export default function CartScreen() {
         <MyPurchases onClose={() => { setShowPurchases(false); refreshCart(); refreshContracts(); }} />
       )}
       {signingId !== null && (
-        <SigningModal 
-          id={signingId} 
-          onClose={() => setSigningId(null)} 
-          onSigned={async () => { 
-            await refreshContracts(); 
-            const result = await contractRequest(`${signingId}/sign/`); 
+        <SigningModal
+          id={signingId}
+          onClose={() => setSigningId(null)}
+          onSigned={async () => {
+            await refreshContracts();
+            const result = await contractRequest(`${signingId}/sign/`);
             if (result.checkout_status === 'paid') { setSigningId(null); setShowPurchases(true); }
-          }} 
+          }}
         />
       )}
       {contractArtwork && (
-        <ContractPanel 
-          startInChat={ongoingFor(contractArtwork) || !!agreedFor(contractArtwork)} 
-          artworkId={contractArtwork} 
-          onClose={() => { setContractArtwork(null); refreshContracts(); }} 
+        <ContractPanel
+          startInChat={ongoingFor(contractArtwork) || !!agreedFor(contractArtwork)}
+          artworkId={contractArtwork}
+          onClose={() => { setContractArtwork(null); refreshContracts(); }}
         />
       )}
       <TransactionHeader title="Cart" onBack={() => goBackOr('/(home)')} />
@@ -360,7 +361,7 @@ export default function CartScreen() {
         {showTourControls && (
           <TourLauncher label="Checkout tutorial" steps={tourSteps} bottom={width >= 768 ? 120 : 220} controller={{ step: tourStep, onStep: setTourStep }} />
         )}
-        {cartLoading && <Text style={{ padding: 16 }}>Loading your saved cart...</Text>}
+
         {!!cartError && (
           <TouchableOpacity onPress={refreshCart}>
             <Text style={{ color: '#b00020', padding: 12 }}>{cartError} Tap to retry.</Text>
@@ -374,7 +375,7 @@ export default function CartScreen() {
           }}
         />
 
-        {filteredItems.length === 0 ? (
+        {cartLoading ? <Skeleton layout="list" /> : filteredItems.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyCard}>
               <ShoppingBag size={36} color="#BC5555" />
@@ -399,7 +400,7 @@ export default function CartScreen() {
                   onToggleSelect={toggleSelectItem}
                   onToggleArtistSelect={toggleArtistSelect}
                   onRemove={handleRemove}
-                  onNegotiate={(id) => { 
+                  onNegotiate={(id) => {
                     if (/^[1-9]\d*$/.test(id)) {
                       if (tourStep === 1) setTourStep(2);
                       setContractArtwork(id);

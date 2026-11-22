@@ -1,3 +1,4 @@
+import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import useChatAutoScroll from '@/hooks/useChatAutoScroll';
@@ -10,7 +11,7 @@ import { CompensationSettings, CompensationCategory, CompensationTerms, compensa
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, FileText, Send } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 type A = {
   id: number;
   price: string;
@@ -181,7 +182,7 @@ export default function DirectMessageScreen({ conversationId, title, onBack }: {
   if (loading)
     return (
       <View style={s.center}>
-        <ActivityIndicator color="#C15656" />
+        <Skeleton layout="list" />
       </View>
     );
   return (

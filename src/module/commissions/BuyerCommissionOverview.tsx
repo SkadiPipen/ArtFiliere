@@ -1,6 +1,6 @@
 import { Text } from '@/components/Typography';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { buyerCommissionFlow } from './buyerCommissionFlow';
+import { artistCommissionFlow, buyerCommissionFlow } from './buyerCommissionFlow';
 
 export const commissionMoney = (value: unknown) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value) || 0);
 const date = (value: string) => new Date(value).toLocaleString();
@@ -8,7 +8,7 @@ const date = (value: string) => new Date(value).toLocaleString();
 export default function BuyerCommissionOverview({ data, busy, paymentNotice, onFund, onRefresh, onReload, onAgreement, onProposal, onReview, onHelp }: {
   data: any; busy: boolean; paymentNotice: string; onFund: () => void; onRefresh: () => void; onReload: () => void; onAgreement: () => void; onProposal: () => void; onReview: (id?: number) => void; onHelp: () => void;
 }) {
-  const flow = buyerCommissionFlow(data);
+  const flow = data.is_artist ? artistCommissionFlow(data) : buyerCommissionFlow(data);
   const terms = Object.keys(data.terms || {}).length ? data.terms : data.proposal?.terms || {};
   const labels = ['Request', 'Agreement', 'Payment', 'Production', flow.physical ? 'Delivery & inspection' : 'Final review', 'Completed'];
   const button = (label: string, onPress: () => void, secondary = false) => <Pressable accessibilityRole="button" disabled={busy} onPress={onPress} style={[s.button, secondary && s.secondary, busy && { opacity: 0.5 }]}><Text style={{ color: secondary ? '#A6453E' : '#FFF', fontWeight: '700', fontSize: 14 }}>{busy ? 'Please wait…' : label}</Text></Pressable>;
@@ -46,7 +46,7 @@ export function BuyerAgreementSummary({ data, expanded, onToggle, onAgreement }:
     <Text style={s.heading}>Agreement at a glance</Text>
     <Text style={s.body}>{data.fully_signed ? 'Signed by both parties · terms locked' : data.agreement_id ? 'Awaiting both signatures' : 'Proposal under review'}</Text>
     <View style={s.actions}>
-      {detail('Total to fund', terms.price != null ? commissionMoney(terms.price) : 'Not agreed yet')}
+      {detail(data.is_artist ? 'Commission total' : 'Total to fund', terms.price != null ? commissionMoney(terms.price) : 'Not agreed yet')}
       {detail('Artist net', terms.artist_total != null ? commissionMoney(terms.artist_total) : 'Not agreed yet')}
       {detail('Platform fee · included', terms.platform_fee != null ? commissionMoney(terms.platform_fee) : commissionMoney(data.platform_fee))}
       {detail('Delivery · included', commissionMoney(terms.delivery_fee))}
