@@ -152,6 +152,47 @@ class FulfillmentTests(TestCase):
         self.assertEqual(order.delivered_at, legacy.updated_at)
         self.assertEqual(DeliveryOrder.objects.filter(payment=payment).count(), 1)
 
+    def test_buyer_tracking_is_private_and_hides_stale_or_completed_location(self):
+        from .buyer_tracking import BuyerDeliveryTrackingView
+        from .models import RiderProfile
+        from commissions.models import CommissionRequest
+        now = timezone.now()
+        commission = CommissionRequest.objects.create(buyer=self.buyer, artist=self.artist, title='Physical commission', art_type='Physical', flow_version=2, funded_at=now, deadline=now+timezone.timedelta(days=7))
+        order = DeliveryOrder.objects.create(commission=commission, driver=self.driver, status='in_transit', pickup_address='Studio', delivery_address='Home', fee=50)
+        RiderProfile.objects.create(user=self.driver, is_clocked_in=True, clock_in_time=now, latitude=10.3, longitude=123.9, location_updated_at=now)
+        locations = {'pickup_coordinates': [123.9, 10.3], 'delivery_coordinates': [123.95, 10.4]}
+        with patch('fulfillment.buyer_tracking.verified_locations', return_value=locations):
+            response = self.call(BuyerDeliveryTrackingView, self.buyer, order_id=order.pk)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.data['driver']['is_live'])
+            self.assertEqual(response.data['driver']['latitude'], 10.3)
+            self.assertEqual(response['Cache-Control'], 'private, no-store')
+            self.assertEqual(self.call(BuyerDeliveryTrackingView, self.other, order_id=order.pk).status_code, 404)
+            RiderProfile.objects.filter(user=self.driver).update(location_updated_at=now-timezone.timedelta(minutes=3))
+            stale = self.call(BuyerDeliveryTrackingView, self.buyer, order_id=order.pk)
+            self.assertFalse(stale.data['driver']['is_live'])
+            self.assertIsNone(stale.data['driver']['latitude'])
+            RiderProfile.objects.filter(user=self.driver).update(location_updated_at=now)
+            order.status = 'delivered'; order.save()
+            completed = self.call(BuyerDeliveryTrackingView, self.buyer, order_id=order.pk)
+            self.assertIsNone(completed.data['driver']['longitude'])
+            commission.funded_at = None; commission.save()
+            self.assertEqual(self.call(BuyerDeliveryTrackingView, self.buyer, order_id=order.pk).status_code, 404)
+
+    def test_clock_in_reports_server_elapsed_seconds_and_clock_out_resets(self):
+        from datetime import datetime, timezone as dt_timezone
+        now = datetime(2026, 11, 22, 1, 0, tzinfo=dt_timezone.utc)
+        with patch('fulfillment.riders.timezone.now', return_value=now):
+            started = self.call(RiderProfileView, self.driver, method='post', data={'is_clocked_in': True})
+        self.assertTrue(started.data['is_clocked_in'])
+        self.assertEqual(started.data['shift_elapsed_seconds'], 0)
+        with patch('fulfillment.riders.timezone.now', return_value=now + timezone.timedelta(seconds=65)):
+            ticking = self.call(RiderProfileView, self.driver)
+            self.assertEqual(ticking.data['shift_elapsed_seconds'], 65)
+            stopped = self.call(RiderProfileView, self.driver, method='post', data={'is_clocked_in': False})
+        self.assertFalse(stopped.data['is_clocked_in'])
+        self.assertEqual(stopped.data['shift_elapsed_seconds'], 0)
+
     def test_stale_shift_expires_and_profile_counts_are_real_manila_day(self):
         from .models import RiderProfile
         from commissions.models import CommissionRequest

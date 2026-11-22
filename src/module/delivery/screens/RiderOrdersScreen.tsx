@@ -1,7 +1,7 @@
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
-import { acceptOrderApi, fetchPendingOrders, fetchAssignedOrders } from '@/services/deliveryApi';
+import { acceptOrderApi, fetchPendingOrders, fetchAssignedOrders, fetchRiderProfile } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -72,6 +72,8 @@ export default function RiderOrdersScreen() {
 
     try {
       setIsAccepting(true);
+      const profile = await fetchRiderProfile();
+      if (!profile.is_clocked_in) throw new Error('You are currently clocked out. Open Driver Home and tap Clock In before accepting this delivery.');
       const result = await acceptOrderApi(String(selectedOrder.id));
 
       if (result) {

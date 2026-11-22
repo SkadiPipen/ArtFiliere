@@ -1,3 +1,4 @@
+import BuyerDeliveryTracking from '@/module/profile/BuyerDeliveryTracking';
 import { Text, TextInput } from '@/components/Typography';
 import React, { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
@@ -7,6 +8,7 @@ const steps = [ ['pending', 'Waiting for driver'], ['accepted', 'Driver assigned
 export default function CommissionDeliveryPanel({ data, milestone, busy, onAction }: {
   data: any; milestone: any; busy: boolean; onAction: (action: string, extra?: any) => void;
 }) {
+  const [trackingOpen, setTrackingOpen] = useState(false);
   const [external, setExternal] = useState(false);
   const [tracking, setTracking] = useState('');
   if (data.art_type?.toLowerCase() !== 'physical' || milestone?.number !== 3) return null;
@@ -22,6 +24,7 @@ export default function CommissionDeliveryPanel({ data, milestone, busy, onActio
   const canReceive = delivery ? delivery.status === 'delivered' && Boolean(delivery.has_delivery_proof) : hasReference;
   const button = (label: string, action: string, extra?: any, disabled = false) => <TouchableOpacity accessibilityRole="button" disabled={busy || disabled} onPress={() => onAction(action, extra)} style={{ backgroundColor: '#C15656', borderRadius: 10, padding: 12, opacity: busy || disabled ? 0.5 : 1 }}><Text style={{ color: '#fff', fontWeight: '700', textAlign: 'center' }}>{label}</Text></TouchableOpacity>;
   return <View style={{ gap: 12, borderTopWidth: 1, borderColor: '#E2D5CE', paddingTop: 16 }}>
+    {trackingOpen && delivery?.id && <BuyerDeliveryTracking orderId={delivery.id} onClose={() => setTrackingOpen(false)} />}
     <Text style={{ fontWeight: '800', fontSize: 18, color: '#B84A4A' }}>Physical delivery</Text>
     <Text>Final payment stays locked until the buyer confirms receipt, inspects the artwork and approves the final milestone.</Text>
     {!submitted && !approved && <Text>{isArtist ? 'Submit the final artwork preview before arranging delivery.' : 'The artist must submit the final artwork preview before you can approve it for delivery.'}</Text>}
@@ -29,6 +32,7 @@ export default function CommissionDeliveryPanel({ data, milestone, busy, onActio
     {ready && <Text>Ready for delivery approved: {new Date(milestone.delivery_ready_at).toLocaleString()}</Text>}
     {!!hasReference && <Text selectable style={{ fontWeight: '700' }}>Tracking: {reference}</Text>}
     {Boolean(delivery) && <>
+      {!isArtist && delivery.id && <TouchableOpacity accessibilityRole="button" onPress={() => setTrackingOpen(true)} style={{ backgroundColor: '#C15656', borderRadius: 10, padding: 12 }}><Text style={{ color: '#FFF', fontWeight: '700', textAlign: 'center' }}>Track delivery · Live map</Text></TouchableOpacity>}
       <Text>Status: {delivery.status === 'pending' ? 'Waiting for driver' : delivery.status_label}</Text>
       <Text>Driver: {delivery.driver ? `${delivery.driver.name} · ${delivery.driver.phone || 'No contact number'}` : 'Not assigned yet'}</Text>
       <Text>Pickup: {delivery.pickup_address}</Text><Text>Destination: {delivery.delivery_address}</Text>

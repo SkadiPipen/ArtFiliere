@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
 
@@ -16,8 +17,8 @@ export default function Skeleton({ layout = 'list', count = 3, style }: { layout
       animation?.stop(); opacity.setValue(1);
       if (!active || reduce) return;
       animation = Animated.loop(Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.45, duration: 850, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 850, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.45, duration: 850, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(opacity, { toValue: 1, duration: 850, useNativeDriver: Platform.OS !== 'web' }),
       ]));
       animation.start();
     };

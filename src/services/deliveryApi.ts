@@ -106,19 +106,26 @@ export async function uploadDeliveryProofApi(
   role: 'artist' | 'buyer',
   photoUri: string,
   timestamp?: string,
-  proofType?: 'PICKUP' | 'DELIVERY'
+  proofType?: 'PICKUP' | 'DELIVERY',
+  expectedUid?: string
 ): Promise<any> {
-  if (isVerified(orderId)) return tagVerified(await verifiedRequest(`orders/${verifiedId(orderId)}/proof/`, { proof_type: proofType || (role === 'artist' ? 'PICKUP' : 'DELIVERY'), image: photoUri }));
+  if (!photoUri.startsWith('data:image/jpeg;base64,') || photoUri.length > 7_000_000) throw new Error('Upload a compressed JPEG proof photo under 5 MB.');
+  if (isVerified(orderId)) return tagVerified(await verifiedRequest(`orders/${verifiedId(orderId)}/proof/`, { proof_type: proofType || (role === 'artist' ? 'PICKUP' : 'DELIVERY'), image: photoUri }, expectedUid));
+  const token = await driverAuthToken(expectedUid);
   const res = await fetch(`${API_URL}/api/delivery/orders/${orderId}/proof/`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
       type: proofType || (role === 'artist' ? 'PICKUP' : 'DELIVERY'),
       image: photoUri,
       timestamp: timestamp || new Date().toISOString(),
     }),
   });
-  if (!res.ok) throw new Error('Failed to upload proof photo');
+  if (!res.ok) {
+    let message = `Proof upload failed (HTTP ${res.status}).`;
+    try { const data = await res.json(); message = data.error || data.detail || message; } catch {}
+    throw new Error(message);
+  }
   const text = await res.text();
   return text ? JSON.parse(text) : null;
 }
@@ -171,10 +178,16 @@ const verifiedId = (id: string | number) => {
 };
 const tagVerified = (value: any): any => value ? { ...value, id: `verified-${value.id}`, delivery_fee: Number(value.delivery_fee || value.fee || 0) } : null;
 
-async function verifiedRequest(path: string, body?: any) {
+async function driverAuthToken(expectedUid?: string) {
   await auth.authStateReady();
-  const token = await auth.currentUser?.getIdToken();
-  if (!token) throw new Error('Sign in with your driver account.');
+  const user = auth.currentUser;
+  if (!user || expectedUid && user.uid !== expectedUid) throw new Error('Sign in with the driver account that captured this proof.');
+  const token = await user.getIdToken();
+  if (expectedUid && auth.currentUser?.uid !== expectedUid) throw new Error('The signed-in account changed. Proof upload was stopped.');
+  return token;
+}
+async function verifiedRequest(path: string, body?: any, expectedUid?: string) {
+  const token = await driverAuthToken(expectedUid);
   const response = await fetch(`${API_URL}/api/delivery/verified/${path}`, {
     method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     ...(body ? { body: JSON.stringify(body) } : {}),

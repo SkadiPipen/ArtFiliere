@@ -3,6 +3,7 @@ import { COLORS } from '@/constants/colors';
 import { Text } from '@/components/Typography';
 import { checkedDriverPosition } from '@/services/driverLocation';
 import DeliveryMap from '@/module/delivery/components/DeliveryMap';
+import { useProofCaptureBusy } from '@/services/deliveryProofCapture';
 import DeliveryChatButton from '@/module/delivery/components/DeliveryChatButton';
 import { ActiveDelivery } from '@/module/delivery/types/delivery';
 import { fetchActiveDeliveryApi, updateRiderLocationApi, fetchRiderProfile, setRiderClockApi } from '@/services/deliveryApi';
@@ -14,7 +15,24 @@ import { ActivityIndicator, Alert, Dimensions, Modal, Platform, RefreshControl, 
 
 const { width, height } = Dimensions.get('window');
 
+const timestamp = (value: unknown) => typeof value === 'string'
+  ? Date.parse(value.replace(/(\.\d{3})\d+(?=Z|[+-]\d{2}:?\d{2}$)/, '$1')) : NaN;
+
+function driverShiftSeconds(profile: { is_clocked_in?: boolean; shift_elapsed_seconds?: number; server_time?: string; clock_in_time?: string }, now = Date.now()) {
+  if (!profile.is_clocked_in) return 0;
+  if (typeof profile.shift_elapsed_seconds === 'number' && Number.isFinite(profile.shift_elapsed_seconds)) return Math.max(0, Math.floor(profile.shift_elapsed_seconds));
+  const start = timestamp(profile.clock_in_time);
+  const server = timestamp(profile.server_time);
+  return Number.isFinite(start) ? Math.max(0, Math.floor(((Number.isFinite(server) ? server : now) - start) / 1000)) : 0;
+}
+
+function driverShiftDate(value: unknown) {
+  const time = timestamp(value);
+  return Number.isFinite(time) ? new Date(time).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : null;
+}
+
 export default function HomeScreen() {
+  const proofBusy = useProofCaptureBusy();
   // Time Clock State
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [clockLoading, setClockLoading] = useState(true);
@@ -24,6 +42,8 @@ export default function HomeScreen() {
   const [endTime, setEndTime] = useState<string | null>(null);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const clockStartedRef = useRef<number | null>(null);
+  const clockRequest = useRef(0);
+  const clockMutation = useRef(false);
 
   // Live map
   const [showMap, setShowMap] = useState(false);
@@ -75,19 +95,27 @@ export default function HomeScreen() {
   const applyProfile = (profile: any) => {
     setStats({ today: profile.today_deliveries ?? 0, active: profile.active_tasks ?? 0 });
     setIsClockedIn(!!profile.is_clocked_in);
-    clockStartedRef.current = profile.is_clocked_in && profile.clock_in_time ? Date.parse(profile.clock_in_time) : null;
-    setSecondsElapsed(clockStartedRef.current ? Math.max(0, Math.floor((Date.now() - clockStartedRef.current) / 1000)) : 0);
-    setStartTime(profile.clock_in_time ? new Date(profile.clock_in_time).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : null);
-    setEndTime(profile.clock_out_time ? new Date(profile.clock_out_time).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : null);
+    const elapsed = driverShiftSeconds(profile);
+    clockStartedRef.current = profile.is_clocked_in ? Date.now() - elapsed * 1000 : null;
+    setSecondsElapsed(elapsed);
+    setStartTime(driverShiftDate(profile.clock_in_time));
+    setEndTime(driverShiftDate(profile.clock_out_time));
+  };
+
+  const syncClock = async () => {
+    if (clockMutation.current) return;
+    const request = ++clockRequest.current;
+    const profile = await fetchRiderProfile();
+    if (request === clockRequest.current && !clockMutation.current) applyProfile(profile);
   };
 
   useFocusEffect(
     useCallback(() => {
       loadActiveDelivery();
       setClockLoading(true);
-      void fetchRiderProfile().then(applyProfile).catch((error: any) => { setIsClockedIn(false); Alert.alert('Unable to load time clock', error.message); }).finally(() => setClockLoading(false));
-      const timer = setInterval(() => { loadActiveDelivery(); void fetchRiderProfile().then(applyProfile).catch(() => undefined); }, 15000);
-      return () => clearInterval(timer);
+      void syncClock().catch((error: any) => { setIsClockedIn(false); Alert.alert('Unable to load time clock', error.message); }).finally(() => setClockLoading(false));
+      const timer = setInterval(() => { loadActiveDelivery(); void syncClock().catch(() => undefined); }, 15000);
+      return () => { clearInterval(timer); clockRequest.current++; };
     }, [])
   );
 
@@ -106,18 +134,20 @@ export default function HomeScreen() {
   const handleClockIn = async () => {
     if (clockLoading) return;
     setClockLoading(true); setClockError('');
+    clockMutation.current = true; clockRequest.current++;
     try { applyProfile(await setRiderClockApi(true)); }
     catch (e: any) { setClockError(e.message || 'Unable to clock in. Please retry.'); }
-    finally { setClockLoading(false); }
+    finally { clockMutation.current = false; setClockLoading(false); }
   };
 
   const handleClockOut = () => {
     const doClockOut = async () => {
       if (clockLoading) return;
       setClockLoading(true); setClockError('');
+      clockMutation.current = true; clockRequest.current++;
       try { applyProfile(await setRiderClockApi(false)); }
-      catch (e: any) { setClockError(e.message || 'Unable to clock out. Please retry.'); void loadActiveDelivery(); void fetchRiderProfile().then(applyProfile).catch(() => undefined); }
-      finally { setClockLoading(false); }
+      catch (e: any) { setClockError(e.message || 'Unable to clock out. Please retry.'); void loadActiveDelivery(); void syncClock().catch(() => undefined); }
+      finally { clockMutation.current = false; setClockLoading(false); }
     };
 
     if (Platform.OS === 'web') {
@@ -156,7 +186,7 @@ export default function HomeScreen() {
 
   // Continuously track while the tracker is open; stop subscriptions on close.
   useEffect(() => {
-    if (!showMap) return;
+    if (proofBusy || (!showMap && !isClockedIn)) return;
     let active = true;
     let webWatch: number | undefined;
     let nativeWatch: Location.LocationSubscription | undefined;
@@ -183,7 +213,7 @@ export default function HomeScreen() {
       })().catch(error => { if (active) setAddressName(error.message); });
     } else setAddressName('GPS is unavailable in this browser.');
     return () => { active = false; if (webWatch !== undefined) navigator.geolocation.clearWatch(webWatch); nativeWatch?.remove(); };
-  }, [showMap, isClockedIn]);
+  }, [showMap, isClockedIn, proofBusy]);
 
   // GPS tracker handler
   const handleLocationPress = () => {
@@ -398,7 +428,7 @@ export default function HomeScreen() {
 
           {/* Reusable Map with lines and pins */}
           {!!delivery?.location_notices?.[['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step) ? 'pickup' : 'delivery'] && <Text style={{ color: '#795500', padding: 12 }}>{delivery.location_notices[['ACCEPTED', 'ARRIVED_AT_ARTIST'].includes(delivery.step) ? 'pickup' : 'delivery']}</Text>}
-          <DeliveryMap
+          {!proofBusy && <DeliveryMap
             driverLocation={driverLocation}
             destinationLocation={driverLocation?.accuracy && driverLocation.accuracy > 200 ? null : target?.coords || null}
             driverAccuracy={driverLocation?.accuracy}
@@ -406,7 +436,7 @@ export default function HomeScreen() {
             onRouteCalculated={(dist, mins) => setRouteStats({ distance: dist, eta: mins})}
             onRouteUnavailable={() => setRouteStats(null)}
             style={styles.fullScreenMap}
-          />
+          />}
         </View>
       </Modal>
     </View>

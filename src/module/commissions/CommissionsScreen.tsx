@@ -867,14 +867,7 @@ export default function CommissionsScreen() {
     ? commissions.filter(commission => statuses.includes(commission.status))
     : commissions;
   const refreshButton = (
-    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh commissions" disabled={loading} onPress={() => void fetchCommissions()} style={s.refreshButton}>
-      {loading ? <ActivityIndicator color={COLORS.red} /> : <RefreshCw size={20} color={COLORS.redDark} />}
-    </TouchableOpacity>
-  );
-
-  const refreshButton = (
-    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh commissions" disabled={loading} onPress={() => void fetchCommissions()}
-      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: loading ? .5 : 1 }}>
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh commissions" disabled={loading} onPress={() => void fetchCommissions()} style={[s.refreshButton, { opacity: loading ? 0.5 : 1 }]}>
       {loading ? <ActivityIndicator color={COLORS.red} /> : <RefreshCw size={20} color={COLORS.redDark} />}
     </TouchableOpacity>
   );

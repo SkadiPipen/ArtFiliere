@@ -51,6 +51,15 @@ def normalize_location(value, street=False):
     return ''.join(words) if street else ' '.join(words)
 
 
+def normalize_region(value):
+    import re
+    text = str(value).strip().casefold()
+    if text in ('vii', '7', 'region vii', 'region 7'):
+        return 'central visayas'
+    text = re.sub(r'^region\s+(?:[ivxlcdm]+|\d+)\b', '', text).strip()
+    return normalize_location(text)
+
+
 def secondary_geocode(query):
     """Adapt Geoapify results to the same strict validation as the primary source."""
     from django.core.cache import cache
@@ -125,11 +134,11 @@ def geocode_address(address, include_metadata=False, _street_retry=False, _fallb
         # Independent cities may be indexed under their region, without a province.
         # Explicit geographic association, never infer a province from proximity.
         independent_city_provinces = {'mandaue': 'cebu', 'cebu': 'cebu', 'lapu lapu': 'cebu'}
-        expected_region = normalize_location(parts[-2]) if len(parts) >= 6 else 'central visayas'
+        expected_region = normalize_region(parts[-2]) if len(parts) >= 6 else 'central visayas'
         expected_postal = parts[-1] if len(parts) >= 6 else ''
         regional_city_match = (
             independent_city_provinces.get(normalize_location(city)) == normalize_location(province)
-            and expected_region and normalize_location(properties.get('region', '')) == expected_region
+            and expected_region and normalize_region(properties.get('region', '')) == expected_region
             and (not expected_postal or str(properties.get('postalcode') or '') == expected_postal)
         )
         if not province_matches and not regional_city_match:
@@ -184,7 +193,12 @@ def road_distance(pickup, destination, pickup_coordinates=None, destination_coor
     if not settings.ORS_API_KEY:
         raise ValueError('Automatic delivery pricing is not configured yet. The administrator must configure the OpenRouteService API key.')
     try:
-        coordinates = [pickup_coordinates or geocode_address(pickup), destination_coordinates or geocode_address(destination)]
+        coordinates = []
+        for label, address, pin in (('Pickup address', pickup, pickup_coordinates), ('Delivery address', destination, destination_coordinates)):
+            try:
+                coordinates.append(pin or geocode_address(address))
+            except ValueError as error:
+                raise ValueError(f'{label}: {error}') from None
         payload = provider_json(requests.post('https://api.openrouteservice.org/v2/directions/driving-car/json',
             headers={'Authorization': settings.ORS_API_KEY},
             json={'coordinates': coordinates, 'units': 'm', 'instructions': False,

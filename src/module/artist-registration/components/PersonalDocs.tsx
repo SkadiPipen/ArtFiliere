@@ -1,6 +1,5 @@
 import CalendarDateField from '@/components/CalendarDateField';
 import { Text, TextInput } from '@/components/Typography';
-import CalendarDateField from '@/components/CalendarDateField';
 import { parseDateValue } from '@/components/calendarDateValue';
 import * as DocumentPicker from "expo-document-picker";
 import { FilePlus, Square, SquareCheck } from "lucide-react-native";

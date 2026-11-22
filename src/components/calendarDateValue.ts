@@ -7,7 +7,6 @@ export type CalendarDateFieldProps = {
   disabled?: boolean;
   appearance?: 'default' | 'signup';
   placeholder?: string;
-  disabled?: boolean;
 };
 
 // Store calendar dates locally; converting to UTC can shift the selected day.
