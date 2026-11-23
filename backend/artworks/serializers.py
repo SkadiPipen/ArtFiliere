@@ -18,6 +18,11 @@ class ArtworkSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
     ai_screening = serializers.SerializerMethodField()
+    inventory = serializers.SerializerMethodField()
+
+    def get_inventory(self, artwork):
+        from .inventory import inventory_summary
+        return inventory_summary(artwork)
 
     def get_seller_reseller_verified(self, artwork):
         return artwork.artist.reseller_verified
@@ -51,6 +56,10 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "category_labels",
             "tags",
             "art_type",
+            "physical_format",
+            "stock_quantity",
+            "edition_size",
+            "inventory",
             "price",
             "image_data",
             "additional_images",
@@ -148,7 +157,7 @@ class ArtworkSerializer(serializers.ModelSerializer):
                 return True
             paid_sales = artwork.payment_sessions.filter(status='paid')
             from .availability import blocks_public_listing
-            return (artwork.art_type == 'physical' and paid_sales.exists()) or any(
+            return (artwork.art_type == 'physical' and paid_sales.filter(is_simulated=False).count() >= artwork.stock_quantity) or any(
                 blocks_public_listing(payment.agreement)
                 for payment in paid_sales.filter(agreement__exclusivity__in=['exclusive', 'sole']).select_related('agreement')
             )

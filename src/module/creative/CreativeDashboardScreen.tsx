@@ -33,6 +33,9 @@ type Artwork = {
   image_data: string;
   additional_images?: string[];
   art_type?: string;
+  physical_format?: string;
+  stock_quantity?: number;
+  edition_size?: number | null;
   sale_type?: string;
   bid_increment?: string;
   starting_time?: string;
@@ -330,6 +333,11 @@ export default function CreativeDashboardScreen({ embedded = false }: { embedded
                   <Text style={s.detailTitle}>Submitted details</Text>
                   <Text style={s.detailText}>Sale type: {selected.sale_type || "Direct Sell"}</Text>
                   <Text style={s.detailText}>Artwork type: {selected.art_type || "Not specified"}</Text>
+                    {selected.art_type === 'physical' && <>
+                      <Text style={s.detailText}>Physical format: {label(selected.physical_format || 'original')}</Text>
+                      <Text style={s.detailText}>Submitted quantity: {selected.stock_quantity ?? 1}</Text>
+                      {!!selected.edition_size && <Text style={s.detailText}>Total edition size: {selected.edition_size}</Text>}
+                    </>}
                   <Text style={s.detailText}>Tags: {selected.tags?.join(", ") || "None"}</Text>
                   {!!selected.additional_images?.length && (
                     <ScrollView horizontal contentContainerStyle={s.gallery}>

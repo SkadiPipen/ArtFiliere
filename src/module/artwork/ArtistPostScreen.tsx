@@ -105,6 +105,9 @@ export default function ArtistPostScreen() {
   const [hourlyRate, setHourlyRate] = useState("");
   const [materials, setMaterials] = useState("0");
   const [artType, setArtType] = useState("Physical");
+  const [physicalFormat, setPhysicalFormat] = useState('original');
+  const [stockQuantity, setStockQuantity] = useState('1');
+  const [editionSize, setEditionSize] = useState('');
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [selectedAiTags, setSelectedAiTags] = useState<string[]>([]);
   const [customTags, setCustomTags] = useState<string[]>([]);
@@ -390,6 +393,18 @@ export default function ArtistPostScreen() {
 
   const submit = async () => {
     if (saving || submissionResult) return;
+    const physicalStock = physicalFormat === 'original' || saleType === 'Auction' ? 1 : Number(stockQuantity);
+    if (artType === 'Physical') {
+      if (!Number.isInteger(physicalStock) || physicalStock < 1 || physicalStock > 99999) {
+        return showToast('Available quantity must be a whole number from 1 to 99,999.', 'error');
+      }
+      if (physicalFormat === 'limited_edition' && (!Number.isInteger(Number(editionSize)) || Number(editionSize) < physicalStock || Number(editionSize) > 99999)) {
+        return showToast('Total edition size must be a whole number at least as large as available quantity, up to 99,999.', 'error');
+      }
+      if (physicalFormat !== 'original' && saleType === 'Auction' && auctionExclusivity !== 'non_exclusive') {
+        return showToast('Print auctions must use non-exclusive terms.', 'error');
+      }
+    }
     if (screeningBusy || !screening) return showToast(screeningError || 'Wait for image screening to finish before submitting.', 'error');
     if (!categories.length || categories.length > MAX_ARTWORK_CATEGORIES) {
       return showToast(`Choose 1–${MAX_ARTWORK_CATEGORIES} artwork categories.`, 'error');
@@ -457,6 +472,9 @@ export default function ArtistPostScreen() {
         hourly_rate: hourlyRate,
         material_cost: materials,
         art_type: artType.toLowerCase(),
+        physical_format: artType === 'Physical' ? physicalFormat : 'original',
+        stock_quantity: artType === 'Physical' ? physicalStock : 1,
+        edition_size: artType === 'Physical' && physicalFormat === 'limited_edition' ? Number(editionSize) : null,
         auction_license_type: auctionLicenseType,
         auction_exclusivity: auctionExclusivity,
         auction_delivery_type: auctionDeliveryType,
@@ -853,6 +871,29 @@ export default function ArtistPostScreen() {
 
             <View style={styles.rule} />
             <CategoryPicker value={categories} onChange={setCategories} />
+            {artType === 'Physical' && <>
+              <View style={styles.rule} />
+              <Text style={styles.pricingTitle}>PHYSICAL COPIES</Text>
+              <Text style={styles.label}>What are you selling?</Text>
+              <View style={styles.pillRow}>
+                {[['original', 'Original artwork'], ['print', 'Print / reproduction'], ['limited_edition', 'Limited edition']].map(([value, caption]) => (
+                  <TouchableOpacity key={value} accessibilityRole="button" accessibilityState={{ selected: physicalFormat === value }}
+                    onPress={() => setPhysicalFormat(value)} style={[styles.typePill, physicalFormat === value && styles.typePillActive]}>
+                    <Text style={[styles.typeText, physicalFormat === value && styles.typeTextActive]}>{caption}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.label}>Available quantity</Text>
+              {physicalFormat === 'original' || saleType === 'Auction'
+                ? <Text>{physicalFormat === 'original' ? '1 — one-of-a-kind original' : '1 — each auction sells one physical item'}</Text>
+                : <TextInput accessibilityLabel="Available physical quantity" style={styles.input} value={stockQuantity} onChangeText={setStockQuantity} keyboardType="number-pad" placeholder="e.g. 12" />}
+              {physicalFormat === 'limited_edition' && <>
+                <Text style={styles.label}>Total edition size</Text>
+                <TextInput accessibilityLabel="Total edition size" style={styles.input} value={editionSize} onChangeText={setEditionSize} keyboardType="number-pad" placeholder="e.g. 50 prints in the entire edition" />
+              </>}
+              <Text>Price is per copy. Each purchase is for one physical copy.</Text>
+              {physicalFormat !== 'original' && <Text>Print copies use non-exclusive terms. Buying a copy does not transfer copyright or permission to reproduce it.</Text>}
+            </>}
             <View style={styles.rule} />
             <Text style={styles.pricingTitle}>PRICING</Text>
 

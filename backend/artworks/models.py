@@ -23,6 +23,11 @@ class Artwork(models.Model):
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     material_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     art_type = models.CharField(max_length=10, default="digital")
+    physical_format = models.CharField(max_length=20, default='original', choices=[
+        ('original', 'Original artwork'), ('print', 'Print / reproduction'),
+        ('limited_edition', 'Limited-edition print')])
+    stock_quantity = models.PositiveIntegerField(default=1)
+    edition_size = models.PositiveIntegerField(null=True, blank=True)
     image_data = models.TextField()
     additional_images = models.JSONField(default=list, blank=True)
     status = models.CharField(
@@ -70,6 +75,12 @@ class Artwork(models.Model):
     class Meta:
         db_table = "artwork"
         ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(stock_quantity__gte=1, stock_quantity__lte=99999), name='artwork_stock_range'),
+            models.CheckConstraint(condition=~models.Q(physical_format='original') | models.Q(stock_quantity=1, edition_size__isnull=True), name='original_single_copy'),
+            models.CheckConstraint(condition=(models.Q(physical_format='limited_edition', edition_size__gte=models.F('stock_quantity'), edition_size__lte=99999)
+                & models.Q(edition_size__isnull=False)) | (models.Q(physical_format__in=['original', 'print'], edition_size__isnull=True)), name='physical_edition_size'),
+        ]
 
     def __str__(self):
         return self.title

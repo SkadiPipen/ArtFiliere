@@ -157,7 +157,12 @@ def check_checkout(agreement):
         from users.resellers import require_seller
         require_seller(agreement.artist)
     listing_sales = PaymentSession.objects.filter(artwork=agreement.artwork, is_simulated=False, status__in=['pending', 'paid']).exclude(agreement=agreement)
-    if (agreement.artwork.art_type == 'physical' and listing_sales.exists()) or listing_sales.filter(agreement__exclusivity__in=['exclusive', 'sole']).exists():
+    from artworks.inventory import validate_copy_rights
+    try:
+        validate_copy_rights(agreement.artwork, agreement.exclusivity, agreement.license_scope)
+    except ValueError as error:
+        raise OwnershipConflict(str(error)) from None
+    if (agreement.artwork.art_type == 'physical' and listing_sales.count() >= agreement.artwork.stock_quantity) or listing_sales.filter(agreement__exclusivity__in=['exclusive', 'sole']).exists():
         raise OwnershipConflict('This listing is sold or reserved by another purchase.')
     if not exclusive(agreement) and not ProvenanceListing.objects.filter(artwork=agreement.artwork).exists():
         return None

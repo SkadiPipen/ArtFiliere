@@ -60,7 +60,7 @@ export default function ContractPanel({ artworkId, onClose, revision, startInCha
         <View style={s.header}><Text style={s.heading}>Negotiate a contract</Text><TouchableOpacity onPress={cancelForm}><Text style={s.link}>Cancel</Text></TouchableOpacity></View>
         <View style={{ flex: 1 }}>
         <NegotiationForm
-          artwork={{ id: artwork.id, title: artwork.title, artist_name: artwork.artist, art_type: artwork.art_type, base_price: Number(artwork.price), image_url: artwork.image_url, royalty_enabled: artwork.royalty_enabled }}
+          artwork={{ id: artwork.id, title: artwork.title, artist_name: artwork.artist, art_type: artwork.art_type, physical_format: artwork.physical_format, base_price: Number(artwork.price), image_url: artwork.image_url, royalty_enabled: artwork.royalty_enabled }}
           buyerId={artwork.buyer_uid} buyerName={artwork.buyer_name}
           artistId={artwork.artist_uid} artistName={artwork.artist}
           chatId={[artwork.buyer_uid, artwork.artist_uid].sort().join('_')}

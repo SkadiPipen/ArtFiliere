@@ -104,6 +104,27 @@ class TruthScanTests(TestCase):
         self.assertEqual(result['status'], 'review_required')
         self.assertEqual(result['provider_label'], 'AI Edited')
 
+    def test_aws_cdn_upload_response_preserves_upload_url_and_detection_origin(self):
+        self.location = {
+            'presigned_url': 'https://image-presigned-upload-aws.ai-assets-cdn.com/?filename=uploads%2Fsample.jpg&signature=private',
+            'file_path': 'uploads/sample.jpg',
+        }
+        with patch('artworks.truthscan._send', side_effect=self.flow()) as http:
+            self.assertEqual(screen_image(self.image)['score'], .9)
+        self.assertEqual(http.call_args_list[1].args[1], self.location['presigned_url'])
+        self.assertEqual(http.call_args_list[2].kwargs['json']['url'],
+                         'https://ai-image-detector-prod.nyc3.digitaloceanspaces.com/uploads/sample.jpg')
+
+    def test_aws_cdn_rejects_mismatched_filename_before_upload(self):
+        self.location = {
+            'presigned_url': 'https://image-presigned-upload-aws.ai-assets-cdn.com/?filename=other.jpg&signature=private',
+            'file_path': 'uploads/sample.jpg',
+        }
+        with patch('artworks.truthscan._send', return_value=response(self.location)) as http:
+            with self.assertRaises(DetectorUnavailable):
+                screen_image(self.image)
+        self.assertEqual(http.call_count, 1)
+
     def test_digital_editing_alone_does_not_accuse_artist_of_ai_generation(self):
         with patch('artworks.truthscan._send', side_effect=self.flow(completed('Digitally Edited', 98))):
             result = screen_image(self.image)
@@ -184,6 +205,27 @@ class TruthScanTests(TestCase):
             with self.assertRaises(DetectorUnavailable):
                 screen_image(self.image)
         self.assertEqual(http.call_count, 1)
+
+    def test_upload_validation_logs_safe_diagnostic_without_provider_secrets(self):
+        cases = [
+            ([], 'upload_response_not_object'),
+            ({'secret': 'private-provider-data'}, 'upload_location_missing'),
+            ({'presigned_url': 'https://unexpected.example/uploads/sample.jpg?key=private-provider-data',
+              'file_path': 'uploads/sample.jpg'}, 'upload_storage_host_or_path_mismatch'),
+        ]
+        for payload, diagnostic in cases:
+            with self.subTest(diagnostic=diagnostic):
+                ArtworkAIScan.objects.all().delete()
+                with patch('artworks.truthscan._send', return_value=response(payload)) as http:
+                    with self.assertLogs('artworks.truthscan', level='WARNING') as logs:
+                        with self.assertRaises(DetectorUnavailable):
+                            screen_image(self.image)
+                output = ' '.join(logs.output)
+                self.assertIn('at validate_upload_location', output)
+                self.assertIn('diagnostic=' + diagnostic, output)
+                for secret in ('unit-test-secret', 'private-provider-data', 'unexpected.example'):
+                    self.assertNotIn(secret, output)
+                self.assertEqual(http.call_count, 1)
 
     def test_invalid_gallery_image_is_rejected_before_any_paid_call(self):
         with patch('artworks.truthscan._send') as http:

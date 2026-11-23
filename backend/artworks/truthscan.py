@@ -55,6 +55,10 @@ class ProviderHTTPError(Exception):
         self.reason = reason
 
 
+class ProviderResponseError(ValueError):
+    """A fixed diagnostic code; never contains provider URLs or response data."""
+
+
 FAILURES = {
     'credits': ('TruthScan has no available screening credits. The platform administrator must activate or add API credits before image screening can continue. Your image has not received a screening verdict.', 'screening_credits_exhausted'),
     'authentication': ('TruthScan denied access. The platform administrator must check the screening API key, account access and credits.', 'screening_access_denied'),
@@ -100,26 +104,31 @@ def normalise_result(payload):
 
 
 def _upload_location(payload):
+    if not isinstance(payload, dict):
+        raise ProviderResponseError('upload_response_not_object')
     signed = payload.get('presigned_url')
     path = payload.get('file_path')
     if not isinstance(signed, str) or not isinstance(path, str) or not path:
-        raise ValueError('Missing upload location')
+        raise ProviderResponseError('upload_location_missing')
     parsed = urlsplit(signed)
     if (parsed.scheme != 'https' or not parsed.hostname
             or parsed.username or parsed.password or parsed.port not in (None, 443)
             or parsed.fragment):
-        raise ValueError('Unexpected provider upload location')
-    if parsed.hostname == 'image-presigned-upload.ai-assets-cdn.com':
+        raise ProviderResponseError('upload_location_invalid')
+    if parsed.hostname in {
+        'image-presigned-upload.ai-assets-cdn.com',
+        'image-presigned-upload-aws.ai-assets-cdn.com',
+    }:
         # Current production responses use a signed upload proxy; file_path is
         # still the object key used by /detect, not the proxy's root URL.
         filename = parse_qs(parsed.query).get('filename', [''])[0]
         if (not path.startswith('uploads/') or '\\' in path or '..' in path.split('/')
                 or filename not in {path, path.rsplit('/', 1)[-1]}):
-            raise ValueError('Unexpected provider object key')
+            raise ProviderResponseError('upload_object_key_mismatch')
         return signed, 'https://ai-image-detector-prod.nyc3.digitaloceanspaces.com/' + quote(path, safe='/')
     if (not parsed.hostname.endswith('.digitaloceanspaces.com')
             or not unquote(parsed.path).endswith('/' + path.lstrip('/'))):
-        raise ValueError('Unexpected provider storage host')
+        raise ProviderResponseError('upload_storage_host_or_path_mismatch')
     return signed, urlunsplit((parsed.scheme, parsed.netloc, parsed.path, '', ''))
 
 
@@ -160,13 +169,15 @@ def screen_with_truthscan(raw):
         scan.save()
         owned_lease = scan.lease_until
     submitted = resume
-    stage = 'query' if resume else 'upload'
+    stage = 'query' if resume else 'presign'
     try:
         if not resume:
             filename = digest + '.' + extension
             location = _request('GET', API + '/get-presigned-url',
                                 headers={'apikey': key}, params={'file_name': filename}).json()
+            stage = 'validate_upload_location'
             signed, object_url = _upload_location(location)
+            stage = 'upload'
             _request('PUT', signed, data=raw, headers={'Content-Type': content_type, 'x-amz-acl': 'private'})
             # Save a client-generated ID BEFORE the billable call. If the reply
             # is lost, subsequent requests query this job, never submit another.
@@ -215,8 +226,11 @@ def screen_with_truthscan(raw):
                 state='failed', result={'failure_reason': reason}, expires_at=timezone.now() + timedelta(seconds=60))
         if submitted and isinstance(error, ProviderHTTPError) and error.status == 404:
             raise ScreeningPending('Your scan is awaiting confirmation. Please retry shortly.') from None
-        logger.warning('TruthScan screening failed (%s at %s; provider_status=%s; reason=%s).',
-                       type(error).__name__, stage, getattr(error, 'status', None), reason)
+        # Only our fixed validation codes are safe to log. Arbitrary exception
+        # messages can contain signed URLs, credentials or provider response data.
+        diagnostic = str(error) if isinstance(error, ProviderResponseError) else 'unspecified'
+        logger.warning('TruthScan screening failed (%s at %s; provider_status=%s; reason=%s; diagnostic=%s).',
+                       type(error).__name__, stage, getattr(error, 'status', None), reason, diagnostic)
         raise DetectorUnavailable(*FAILURES[reason]) from None
     finally:
         ArtworkAIScan.objects.filter(pk=identity, lease_until=owned_lease).update(lease_until=None)

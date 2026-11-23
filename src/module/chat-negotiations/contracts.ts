@@ -30,7 +30,7 @@ export type Contract = {
   buyer_accepted: boolean; artist_accepted: boolean; my_accepted: boolean;
 };
 export type ContractResponse = {
-  artwork: { id: number; title: string; price: string; artist: string; artist_uid: string; buyer_uid: string; buyer_name: string; image_url: string; art_type: 'digital' | 'physical'; royalty_enabled: boolean; can_propose: boolean; is_auction?: boolean } | null;
+  artwork: { id: number; title: string; price: string; artist: string; artist_uid: string; buyer_uid: string; buyer_name: string; image_url: string; art_type: 'digital' | 'physical'; physical_format?: 'original' | 'print' | 'limited_edition'; royalty_enabled: boolean; can_propose: boolean; is_auction?: boolean } | null;
   contracts: Contract[];
 };
 export const isAgreed = (contract: Contract) => contract.status === 'accepted' && contract.buyer_accepted && contract.artist_accepted;

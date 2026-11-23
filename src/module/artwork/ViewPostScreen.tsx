@@ -343,6 +343,12 @@ export default function ViewPostPage() {
 
             <View style={styles.detailsSection}>
               <Text style={styles.detailsHeader}>About the Art</Text>
+                {artworkData?.art_type === 'physical' && <Text style={styles.detailsText}>
+                  {String(artworkData.physical_format || 'original').replace(/_/g, ' ')}
+                  {' · '}{artworkData.inventory?.available ?? artworkData.stock_quantity ?? 1} available
+                  {artworkData.edition_size ? ` · Edition size: ${artworkData.edition_size}` : ''}
+                  {'\n'}Price is per physical copy. Each purchase includes one copy.
+                </Text>}
               <Text style={styles.detailsText}>
                 {artworkData?.description || "Original artwork on ArtFilier."}
                 {"\n"}
