@@ -1,3 +1,4 @@
+import FindArtistShortcut from './FindArtistShortcut';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import TourLauncher from '@/components/TourLauncher';
@@ -927,6 +928,7 @@ export default function CommissionsScreen() {
         </View>
       )}
 
+      {!isDesktop && <FindArtistShortcut style={{ margin: 16, alignSelf: 'flex-start' }} />}
       <TourLauncher label="Commissions tutorial" steps={[
         { target: 'commissions-list', instruction: isArtist ? 'Commissions Sent shows work you requested. Commissions Received shows client requests, with filters for each stage.' : 'Commissions Sent lists the work you requested from artists.' },
         { target: 'commissions-list', instruction: 'Open a commission to review its proposal, track milestones, and see the next action.' },
@@ -980,6 +982,8 @@ export default function CommissionsScreen() {
                 <Text style={s.buyerBadgeSidebarText}>Commissions Sent</Text>
               </View>
             )}
+
+            <FindArtistShortcut style={{ marginTop: 18 }} />
 
             <View style={s.sidebarFooterInfo}>
               <Text style={s.sidebarHelpHeading}>3-Stage Pipeline</Text>

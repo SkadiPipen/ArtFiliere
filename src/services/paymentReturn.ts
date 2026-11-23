@@ -2,7 +2,7 @@ import { Linking, Platform } from 'react-native';
 import { auth } from '@/firebase/config';
 import { purchaseRequest } from './purchases';
 
-type Target = { kind: 'shop' | 'commission'; id: number; uid: string };
+type Target = { kind: 'shop' | 'commission' | 'commission_extra'; id: number; uid: string; extraRevisionId?: number };
 let target: Target | null = null;
 let checkoutWindow: Window | null = null;
 const key = 'artfiliere-payment-return';
@@ -14,13 +14,13 @@ export function preparePaymentWindow(): Window | null {
   return tab;
 }
 
-export async function openPaymentCheckout(url: string, kind: Target['kind'], id: number, tab?: Window | null) {
-  if (!/^https:\/\//i.test(url) || !Number.isInteger(id) || id <= 0 || !auth.currentUser) {
+export async function openPaymentCheckout(url: string, kind: Target['kind'], id: number, tab?: Window | null, extraRevisionId?: number) {
+  if (!/^https:\/\//i.test(url) || !Number.isInteger(id) || id <= 0 || !auth.currentUser || (kind === 'commission_extra' && (!Number.isInteger(extraRevisionId) || extraRevisionId! <= 0))) {
     tab?.close(); throw new Error('Checkout could not be opened. Refresh and try again.');
   }
   const browser = Platform.OS === 'web' ? tab || preparePaymentWindow() : null;
   if (Platform.OS === 'web' && !browser) throw new Error('Allow payment pop-ups for ArtFilier, then click Checkout again.');
-  target = { kind, id, uid: auth.currentUser.uid };
+  target = { kind, id, uid: auth.currentUser.uid, extraRevisionId };
   if (Platform.OS === 'web') {
     try { sessionStorage.setItem(key, JSON.stringify(target)); } catch {}
     checkoutWindow = browser;
@@ -36,9 +36,10 @@ export async function reconcilePaymentReturn(): Promise<boolean> {
   const current = target;
   const result = current.kind === 'shop'
     ? await purchaseRequest(`payments/${current.id}/refresh/`, 'POST')
-    : await purchaseRequest(`commissions/flow/${current.id}/`, 'POST', { action: 'refresh_payment' });
-  const paid = current.kind === 'shop' ? result.status === 'paid' : Boolean(result.funded_at);
-  if (!paid && !['expired', 'refunded', 'cancelled'].includes(result.status)) return false;
+    : await purchaseRequest(`commissions/flow/${current.id}/`, 'POST', current.kind === 'commission_extra' ? { action: 'refresh_extra_payment', extra_revision_id: current.extraRevisionId } : { action: 'refresh_payment' });
+  const extra = current.kind === 'commission_extra' ? result.extra_revisions?.find((row: any) => row.id === current.extraRevisionId) : null;
+  const paid = current.kind === 'shop' ? result.status === 'paid' : current.kind === 'commission_extra' ? Boolean(extra?.funded_at) : Boolean(result.funded_at);
+  if (!paid && !['expired', 'refunded', 'cancelled'].includes(String(extra?.status || result.status).toLowerCase())) return false;
   if (target !== current || auth.currentUser?.uid !== current.uid) return false;
   target = null;
   if (Platform.OS === 'web') {

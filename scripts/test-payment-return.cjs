@@ -3,14 +3,14 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('typescript');
 async function main() {
-  let status = 'pending', closed = 0, focused = 0;
+  let status = 'pending', closed = 0, focused = 0, extraPaid = false;
   const requests = [], storage = new Map();
   const auth = { currentUser: { uid: 'buyer' } };
   const tab = { opener: {}, document: {}, location: {}, close() { closed++; } };
   const modules = {
     'react-native': { Platform: { OS: 'web' } },
     '@/firebase/config': { auth },
-    './purchases': { purchaseRequest: async (path, method) => { requests.push({ path, method }); return { status }; } },
+    './purchases': { purchaseRequest: async (path, method, body) => { requests.push({ path, method, body }); return path.startsWith('commissions/') ? { funded_at: 'original-paid', extra_revisions: [{ id: 91, status: extraPaid ? 'FUNDED' : 'AWAITING_PAYMENT', funded_at: extraPaid ? 'extra-paid' : null }] } : { status }; } },
   };
   const module = { exports: {} };
   const code = ts.transpileModule(fs.readFileSync('src/services/paymentReturn.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
@@ -28,6 +28,15 @@ async function main() {
   assert.equal(closed, 1); assert.equal(focused, 1); assert.equal(storage.size, 0);
   assert.equal(await api.reconcilePaymentReturn(), false, 'A confirmed return must be consumed once');
   assert.ok(requests.every(r => r.path === 'payments/7/refresh/' && r.method === 'POST'));
+  await api.openPaymentCheckout('https://payment.test/extra', 'commission_extra', 8, api.preparePaymentWindow(), 91);
+  assert.equal(await api.reconcilePaymentReturn(), false, 'Original funding must not be mistaken for extra revision funding');
+  assert.equal(requests.at(-1).body.action, 'refresh_extra_payment');
+  assert.equal(requests.at(-1).body.extra_revision_id, 91);
+  auth.currentUser = { uid: 'other-buyer' };
+  assert.equal(await api.reconcilePaymentReturn(), false, 'Another account cannot reconcile this checkout');
+  auth.currentUser = { uid: 'buyer' }; extraPaid = true;
+  assert.equal(await api.reconcilePaymentReturn(), true);
+  assert.equal(closed, 2);
   console.log('PASS: payment tab closes only after authenticated payment verification; pending payment stays open; return is consumed once.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

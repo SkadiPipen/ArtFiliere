@@ -10,6 +10,9 @@ def tracking_reference(order):
 
 
 def request_pickup(c):
+    from .extra_revisions import ACTIVE
+    from rest_framework.exceptions import ValidationError
+    if c.extra_revisions.filter(status__in=ACTIVE).exists(): raise ValidationError('Resolve the active extra revision before dispatch.')
     existing = DeliveryOrder.objects.filter(commission=c).first()
     if existing: return existing
     from fulfillment.routing import geocode_address, pinned_coordinates

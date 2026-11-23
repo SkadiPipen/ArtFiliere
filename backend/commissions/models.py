@@ -256,3 +256,31 @@ class CommissionProof(models.Model):
 
     class Meta:
         db_table = "commission_proof"
+
+
+class CommissionExtraRevision(models.Model):
+    commission = models.ForeignKey(CommissionRequest, on_delete=models.PROTECT, related_name='extra_revisions')
+    status = models.CharField(max_length=24, default='REQUESTED')
+    request = models.TextField()
+    scope = models.TextField(blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    platform_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    artist_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    held_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    due_at = models.DateTimeField(null=True, blank=True)
+    response_due_at = models.DateTimeField()
+    previous_review_due_at = models.DateTimeField(null=True, blank=True)
+    source_submission = models.ForeignKey(CommissionSubmission, on_delete=models.PROTECT, related_name='extra_requests')
+    submission = models.OneToOneField(CommissionSubmission, on_delete=models.PROTECT, null=True, blank=True, related_name='extra_revision')
+    payment_reference = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    provider_id = models.CharField(max_length=100, blank=True)
+    checkout_url = models.TextField(blank=True)
+    payment_payload = models.JSONField(default=dict, blank=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    funded_at = models.DateTimeField(null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'commission_extra_revision'
+        constraints = [models.UniqueConstraint(fields=['commission'], condition=models.Q(status__in=['REQUESTED', 'QUOTED', 'AWAITING_PAYMENT', 'FUNDED', 'SUBMITTED', 'RECONCILE']), name='one_active_extra_revision')]

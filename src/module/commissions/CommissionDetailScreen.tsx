@@ -1,3 +1,4 @@
+import ExtraRevisionPanel, { hasActiveExtraRevision, hasFundedExtraRevision } from './ExtraRevisionPanel';
 import Skeleton from '@/components/Skeleton';
 import ContentModal from '@/components/ContentModal';
 import TourLauncher from '@/components/TourLauncher';
@@ -11,7 +12,8 @@ import { ChatModal } from '@/module/chat-negotiations/chatModal';
 import { CompensationSettings } from '@/module/chat-negotiations/compensation';
 import API_URL from '@/services/api';
 import { openPaymentCheckout, preparePaymentWindow } from '@/services/paymentReturn';
-import * as DocumentPicker from 'expo-document-picker';
+import type { DocumentPickerAsset } from 'expo-document-picker';
+import StageFilePicker from './StageFilePicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Maximize2, X } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -27,19 +29,8 @@ import PayoutDestinationSelect from './PayoutDestinationSelect';
 import ResaleRoyaltyPolicy from './ResaleRoyaltyPolicy';
 import { buyerMilestoneLabels, commissionStatusLabel } from './buyerCommissionFlow';
 
-export async function commissionApi(path: string, body?: any) {
-  const token = await auth.currentUser?.getIdToken();
-  if (!token) throw new Error('Please sign in.');
-  const multipart = body instanceof FormData;
-  const response = await fetch(`${API_URL}/api/commissions/${path}`, {
-    method: body ? 'POST' : 'GET',
-    headers: { Authorization: `Bearer ${token}`, ...(!multipart ? { 'Content-Type': 'application/json' } : {}) },
-    ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || data.detail || JSON.stringify(data));
-  return data;
-}
+import { commissionApi } from './commissionApi';
+export { commissionApi } from './commissionApi';
 
 function Button({
   text,
@@ -208,21 +199,20 @@ export default function CommissionDetailScreen() {
     }
   };
 
-  const upload = async (milestone: any) => {
+  const upload = async (milestone: any, file: DocumentPickerAsset) => {
+    if (busy) throw new Error('Please wait for the current action to finish.');
+    setBusy(true);
+    setError('');
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
-      if (result.canceled) return;
-      const file = result.assets[0];
       const body = new FormData();
       body.append('action', 'submit');
       body.append('milestone_id', String(milestone.id));
-      if (Platform.OS === 'web') body.append('file', await (await fetch(file.uri)).blob(), file.name);
+      if (Platform.OS === 'web') body.append('file', file.file || await (await fetch(file.uri)).blob(), file.name);
       else body.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'application/octet-stream' } as any);
-      setBusy(true);
-      setError('');
       setData(await commissionApi(`flow/${id}/`, body));
     } catch (e: any) {
       setError(e.message);
+      throw e;
     } finally {
       setBusy(false);
     }
@@ -326,6 +316,9 @@ export default function CommissionDetailScreen() {
                   {data.reference_images?.map((uri: string, index: number) => (
                     <View key={index} style={styles.imageWrapper}>
                       <Image source={{ uri }} style={styles.refImage} resizeMode="contain" />
+                      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Enlarge reference photo ${index + 1}`} onPress={() => setExpandedPreview(uri)} style={[styles.expandPreviewButton, { position: 'absolute', right: 10, bottom: 10 }]}>
+                        <Maximize2 size={20} color="#C15656" />
+                      </TouchableOpacity>
                     </View>
                   ))}
 
@@ -591,15 +584,18 @@ export default function CommissionDetailScreen() {
                               </View>
                             )}
 
-                            {data.is_artist && data.status === `STAGE_${m.number}` && ['PENDING', 'REVISION_REQUESTED'].includes(m.status) && (
-                              <Button
-                                text={m.number === 3 && data.art_type.toLowerCase() === 'digital' ? 'Upload original final image (up to 30 MB)' : 'Upload milestone / revised submission'}
+                            {data.is_artist && data.status === `STAGE_${m.number}` && (['PENDING', 'REVISION_REQUESTED'].includes(m.status) || (m.number === 3 && hasFundedExtraRevision(data))) && (!hasActiveExtraRevision(data) || hasFundedExtraRevision(data)) && (
+                              <StageFilePicker
+                                key={m.id}
+                                label={m.number === 3 && hasFundedExtraRevision(data) ? 'Upload paid extra revision' : m.number === 3 && data.art_type.toLowerCase() === 'digital' ? 'Upload original final image (up to 30 MB)' : 'Upload milestone / revised submission'}
                                 disabled={busy}
-                                onPress={() => upload(m)}
+                                onConfirm={(file) => upload(m, file)}
                               />
                             )}
 
-                            {!data.is_artist && Boolean(data.funded_at) && data.status === `STAGE_${m.number}` && m.status === 'SUBMITTED' && !data.disputed && (
+                            {m.number === 3 && <ExtraRevisionPanel data={data} onUpdated={() => void load()} disabled={busy} />}
+
+                            {!data.is_artist && Boolean(data.funded_at) && data.status === `STAGE_${m.number}` && m.status === 'SUBMITTED' && !data.disputed && !hasActiveExtraRevision(data) && (
                               <View style={{ gap: 8 }}>
                                 {!m.revision_used && !m.delivery_ready_at && (
                                   <>
@@ -696,7 +692,7 @@ export default function CommissionDetailScreen() {
           <View style={styles.submissionViewer}>
             <View>
               <View style={styles.submissionViewerHeader}>
-                <Text style={[styles.sectionHeading, { color: '#FFF', flex: 1 }]}>Submission Preview</Text>
+                <Text style={[styles.sectionHeading, { color: '#FFF', flex: 1 }]}>Image viewer</Text>
                 <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close enlarged submission preview" onPress={() => setExpandedPreview('')} style={{ padding: 12 }}><X size={22} color="#FFF" /></TouchableOpacity>
               </View>
               <ZoomableArtwork key={expandedPreview} uri={expandedPreview} height={Math.max(140, Math.min(650, height - 240))} interactive hoverMagnify={false} />

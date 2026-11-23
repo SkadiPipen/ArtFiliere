@@ -33,6 +33,16 @@ class Command(BaseCommand):
 
     def process(self, options):
         now = timezone.now()
+        from commissions.extra_revisions import expire_extra, reconcile
+        for pk in CommissionRequest.objects.filter(extra_revisions__status__in=['REQUESTED', 'QUOTED', 'AWAITING_PAYMENT', 'FUNDED', 'SUBMITTED', 'RECONCILE']).values_list('pk', flat=True).distinct():
+            with transaction.atomic():
+                c = CommissionRequest.objects.select_for_update().get(pk=pk)
+                expire_extra(c)
+                for extra in c.extra_revisions.filter(status__in=['AWAITING_PAYMENT', 'RECONCILE'], funded_at__isnull=True):
+                    if settings.XENDIT_SECRET_KEY:
+                        try:
+                            reconcile(extra)
+                        except Exception as error: self.stderr.write(f'Extra payment #{extra.pk} pending: {type(error).__name__}')
         if settings.XENDIT_SECRET_KEY:
             from commissions.lifecycle import apply_funding
             for c in CommissionRequest.objects.filter(flow_version=2, funded_at__isnull=True).exclude(funding_provider_id=''):

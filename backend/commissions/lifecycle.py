@@ -195,6 +195,7 @@ def expire(c):
 
 
 def serialize(c, user):
+    from .extra_revisions import rows as extra_rows
     latest = c.proposals.order_by('-version').first()
     milestones = []
     for m in c.milestones.order_by('milestone_number'):
@@ -224,7 +225,7 @@ def serialize(c, user):
         'agreement_id': c.agreement_id, 'fully_signed': signed(c), 'funding_due_at': c.funding_due_at,
         'funding_pending': bool(c.funding_provider_id and not c.funded_at),
         'funded_at': c.funded_at, 'held_amount': str(c.held_amount), 'platform_fee': str(c.platform_fee),
-        'terms': c.locked_terms, 'milestones': milestones, 'disputed': c.disputed,
+        'terms': c.locked_terms, 'milestones': milestones, 'disputed': c.disputed, 'extra_revisions': extra_rows(c),
         'courier_tracking': c.courier_tracking, 'delivered_at': c.delivered_at, 'delivery': delivery,
           'asset': {'id': asset.pk, 'record_hash': asset.record_hash, 'license': asset.license_terms, 'owner': asset_owner,
               'provenance_id': str(asset.provenance_origin.pk) if hasattr(asset, 'provenance_origin') else None,
@@ -291,6 +292,8 @@ class CommissionFlowView(RestrictedAccessView):
     def get(self, request, pk):
         user, c = self.participant(request, pk, True)
         expire(c)
+        from .extra_revisions import expire_extra
+        expire_extra(c)
         refresh_payout_statuses(c)
         c.refresh_from_db()
         return Response(serialize(c, user))
@@ -299,6 +302,8 @@ class CommissionFlowView(RestrictedAccessView):
     def post(self, request, pk):
         user, c = self.participant(request, pk, True)
         expire(c)
+        from .extra_revisions import expire_extra
+        expire_extra(c)
         action = request.data.get('action')
         artist = user.pk == c.artist_id
         latest = c.proposals.order_by('-version').first()
@@ -315,6 +320,10 @@ class CommissionFlowView(RestrictedAccessView):
                 latest.status = 'DECLINED'; latest.save(update_fields=['status']); c.status = 'CANCELLED'; c.save()
                 notify(c, c.buyer if artist else c.artist, 'Commission proposal declined', 'The commission proposal was declined.')
             else: accept_proposal(c, latest)
+        elif action in ('request_extra_revision', 'quote_extra_revision', 'decline_extra_revision', 'pay_extra_revision', 'refresh_extra_payment', 'approve_extra_revision'):
+            from .extra_revisions import handle
+            response = handle(c, user, request)
+            if response is not None: return response
         elif action == 'fund':
             if artist: raise PermissionDenied('Only the buyer can fund the commission.')
             check_frozen(c)
@@ -352,9 +361,14 @@ def production_action(c, user, request, action):
     if not m: raise NotFound('Milestone not found.')
     current = c.milestones.filter(approved_at__isnull=True).order_by('milestone_number').first()
     if action != 'payout' and (not current or current.pk != m.pk): raise Conflict('Only the current stage can be updated.')
+    from .extra_revisions import ACTIVE
+    extra = c.extra_revisions.filter(status__in=ACTIVE).first()
+    if m.milestone_number == 3 and extra and action in ('approve', 'ready_delivery', 'request_pickup', 'ship'):
+        raise Conflict('Resolve the active extra revision before final approval or dispatch.')
     if action == 'submit':
         if not artist: raise PermissionDenied('Only the artist can submit work.')
-        if m.status not in ('PENDING', 'REVISION_REQUESTED') or m.delivery_ready_at: raise Conflict('This stage is awaiting buyer review or already approved for delivery.')
+        if extra and (m.milestone_number != 3 or extra.status != 'FUNDED'): raise Conflict('The extra revision requires verified payment before submission.')
+        if (m.status not in ('PENDING', 'REVISION_REQUESTED') and not (extra and extra.status == 'FUNDED')) or m.delivery_ready_at: raise Conflict('This stage is awaiting buyer review or already approved for delivery.')
         upload = request.FILES.get('file')
         if not upload or upload.size > 30 * 1024 * 1024: raise ValidationError('Upload a file up to 30 MB.')
         raw = upload.read(); mime = valid_file(raw)
@@ -368,6 +382,8 @@ def production_action(c, user, request, action):
         if m.milestone_number == 3 and c.art_type.lower() == 'physical':
             c.delivered_at = None; c.courier_tracking = ''; c.save()
         m.status = 'SUBMITTED'; m.review_due_at = timezone.now() + timedelta(days=5); m.save()
+        if extra:
+            extra.submission = submission; extra.status = 'SUBMITTED'; extra.save(update_fields=['submission', 'status'])
         notify(c, c.buyer, 'Commission stage submitted', f'{m.stage_label} is ready. Review within five days; one revision comment is allowed.')
     elif action == 'revise':
         if artist: raise PermissionDenied('Only the buyer can request a revision.')
@@ -391,7 +407,7 @@ def production_action(c, user, request, action):
         m.status = 'APPROVED'; m.approved_at = timezone.now(); m.save()
         if m.milestone_number < 3: c.status = f'STAGE_{m.milestone_number + 1}'
         else:
-            c.status = 'COMPLETE'; final = m.submissions.order_by('-pk').first()
+            c.status = 'COMPLETE'; final = m.submissions.exclude(extra_revision__status='REFUNDED').order_by('-pk').first()
             proof = {'commission': c.pk, 'agreement': c.agreement_id, 'file_hash': final.sha256, 'artist': c.artist_id, 'buyer': c.buyer_id, 'license': c.locked_terms,
                 'document_hash': hashlib.sha256(c.agreement.document_snapshot.encode()).hexdigest(),
                 'artist_signature_hash': hashlib.sha256(c.agreement.artist_signature_image.encode()).hexdigest(),
@@ -709,7 +725,10 @@ class CommissionPaymentWebhook(APIView):
         token = getattr(settings, 'XENDIT_WEBHOOK_TOKEN', '')
         if not token or not hmac.compare_digest(str(request.headers.get('x-callback-token', '')), token): raise PermissionDenied('Invalid webhook authentication.')
         data = request.data
-        if str(data.get('external_id', '')).startswith('commission-funding-'): apply_funding(data)
+        if str(data.get('external_id', '')).startswith('commission-extra-'):
+            from .extra_revisions import apply_payment
+            apply_payment(data)
+        elif str(data.get('external_id', '')).startswith('commission-funding-'): apply_funding(data)
         elif str(data.get('event', '')).startswith('refund.'):
             from .models import CommissionRefund
             from .reviews import apply_refund

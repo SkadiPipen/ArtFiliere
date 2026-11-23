@@ -1,4 +1,5 @@
 import BuyerDeliveryTracking from '@/module/profile/BuyerDeliveryTracking';
+import { hasActiveExtraRevision } from './ExtraRevisionPanel';
 import { Text, TextInput } from '@/components/Typography';
 import React, { useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
@@ -15,7 +16,8 @@ export default function CommissionDeliveryPanel({ data, milestone, busy, onActio
   const delivery = data.delivery;
   const ready = !!milestone.delivery_ready_at;
   const submitted = milestone.status === 'SUBMITTED';
-  const enabled = submitted && !data.disputed && (data.is_artist || Boolean(data.funded_at));
+  const extraPending = hasActiveExtraRevision(data);
+  const enabled = submitted && !data.disputed && !extraPending && (data.is_artist || Boolean(data.funded_at));
   const reference = delivery?.tracking_reference || data.courier_tracking;
   const hasReference = Boolean(reference);
   const received = Boolean(data.delivered_at);
@@ -27,6 +29,7 @@ export default function CommissionDeliveryPanel({ data, milestone, busy, onActio
     {trackingOpen && delivery?.id && <BuyerDeliveryTracking orderId={delivery.id} onClose={() => setTrackingOpen(false)} />}
     <Text style={{ fontWeight: '800', fontSize: 18, color: '#B84A4A' }}>Physical delivery</Text>
     <Text>Final payment stays locked until the buyer confirms receipt, inspects the artwork and approves the final milestone.</Text>
+    {extraPending && <Text>Resolve the active extra revision before approving the artwork for dispatch.</Text>}
     {!submitted && !approved && <Text>{isArtist ? 'Submit the final artwork preview before arranging delivery.' : 'The artist must submit the final artwork preview before you can approve it for delivery.'}</Text>}
     {enabled && !ready && !hasReference && (isArtist ? <Text>Waiting for the buyer to approve the final preview as ready for delivery.</Text> : button('Approve artwork as ready for delivery', 'ready_delivery'))}
     {ready && <Text>Ready for delivery approved: {new Date(milestone.delivery_ready_at).toLocaleString()}</Text>}

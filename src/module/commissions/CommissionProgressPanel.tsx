@@ -1,10 +1,12 @@
+import ExtraRevisionPanel, { hasActiveExtraRevision, hasFundedExtraRevision } from './ExtraRevisionPanel';
 import Skeleton from '@/components/Skeleton';
 import { Text, TextInput } from '@/components/Typography';
 import CommissionDeliveryPanel from './CommissionDeliveryPanel';
 import { auth } from '@/firebase/config';
 import API_URL from '@/services/api';
 import { downloadProtectedFile } from '@/services/purchases';
-import * as DocumentPicker from 'expo-document-picker';
+import type { DocumentPickerAsset } from 'expo-document-picker';
+import StageFilePicker from './StageFilePicker';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Image, Platform, TouchableOpacity, View } from 'react-native';
 import { commissionApi } from './CommissionDetailScreen';
@@ -128,26 +130,23 @@ export default function CommissionProgressPanel({ id, onUpdated, onRevisionLayou
     finally { setBusy(false); }
   };
 
-  const upload = async () => {
-    if (!stage || busy) return;
+  const upload = async (file: DocumentPickerAsset) => {
+    if (!stage || busy) throw new Error('This stage is busy. Please retry.');
+    setBusy(true); setError('');
     try {
-      const picked = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
-      if (picked.canceled) return;
-      setBusy(true); setError('');
-      const file = picked.assets[0]; const body = new FormData();
+      const body = new FormData();
       body.append('action', 'submit'); body.append('milestone_id', String(stage.id));
-      if (Platform.OS === 'web') body.append('file', await (await fetch(file.uri)).blob(), file.name);
+      if (Platform.OS === 'web') body.append('file', file.file || await (await fetch(file.uri)).blob(), file.name);
       else body.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'application/octet-stream' } as any);
       setData(await commissionApi(`flow/${id}/`, body)); onUpdated();
-    } catch (e: any) { setError(e.message); }
-    finally { setBusy(false); }
+    } finally { setBusy(false); }
   };
 
   if (!data) return <View style={{ padding: 20 }}>{error ? <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{error}</Text> : <Skeleton layout="form" />}</View>;
 
   const current = data.status === `STAGE_${stage?.number}`;
   const canRevise = !data.is_artist && current && stage?.status === 'SUBMITTED' && !stage.revision_used && !stage.delivery_ready_at && !data.disputed;
-  const canUpdate = data.is_artist && current && ['PENDING', 'REVISION_REQUESTED'].includes(stage?.status) && !data.disputed;
+  const canUpdate = data.is_artist && current && (['PENDING', 'REVISION_REQUESTED'].includes(stage?.status) || (stage?.number === 3 && hasFundedExtraRevision(data))) && (!hasActiveExtraRevision(data) || hasFundedExtraRevision(data)) && !data.disputed;
 
   return <View style={{ padding: 18, gap: 18 }}>
     <View><Text style={{ fontSize: 23, fontWeight: '800', color: '#C15656' }}>Progress Track</Text><Text style={{ color: '#75655F', marginTop: 5 }}>{data.title} · {data.is_artist ? `Client: @${data.buyer}` : `Artist: @${data.artist}`}</Text></View>
@@ -246,8 +245,7 @@ export default function CommissionProgressPanel({ id, onUpdated, onRevisionLayou
       </TouchableOpacity>
     </View>
 
-    <CommissionDeliveryPanel data={data} milestone={stage} busy={busy} onAction={(name, extra) => { void act(name, extra); }} />
-    {canUpdate && <Action label={stage.status === 'REVISION_REQUESTED' ? 'Upload revised stage artwork' : 'Post stage progress update'} onPress={() => void upload()} disabled={busy} />}
+    {canUpdate && <StageFilePicker key={stage.id} label={stage.number === 3 && hasFundedExtraRevision(data) ? 'Upload paid extra revision' : stage.status === 'REVISION_REQUESTED' ? 'Upload revised stage artwork' : 'Post stage progress update'} onConfirm={upload} disabled={busy} />}
     <View onLayout={event => { revisionPosition.current = event.nativeEvent.layout.y; onRevisionLayout?.(event.nativeEvent.layout.y); }} style={{ borderTopWidth: 1, borderColor: '#E1D5CC', paddingTop: 20, gap: 12 }}>
       <Text style={{ fontSize: 22, fontWeight: '800', color: '#C15656' }}>Revision</Text>
       <Text style={{ color: '#75655F' }}>One consolidated buyer revision request/comment per stage. Updated artwork does not reset this limit.</Text>
@@ -259,8 +257,11 @@ export default function CommissionProgressPanel({ id, onUpdated, onRevisionLayou
       </View> : <Text style={{ color: '#75655F' }}>No revision requested for this stage.</Text>}
       {canRevise && <><TextInput style={field} multiline maxLength={2000} placeholder="Describe all requested changes in one comment" value={comment} onChangeText={setComment} /><Action label="Request revision (once this stage)" disabled={busy || !comment.trim()} onPress={() => void act('revise', { comment })} /></>}
       {canUpdate && stage.status === 'REVISION_REQUESTED' && !stage.revision_replied_at && <><TextInput style={field} multiline maxLength={2000} placeholder="Reply to the buyer’s requested changes" value={reply} onChangeText={setReply} /><Action label="Send artist reply" disabled={busy || !reply.trim()} onPress={() => void act('reply_revision', { reply })} /></>}
-      {canUpdate && stage.status === 'REVISION_REQUESTED' && <Action label="Update this stage with revised artwork" disabled={busy} onPress={() => void upload()} />}
-      {!data.is_artist && current && stage?.status === 'SUBMITTED' && !data.disputed && !(stage.number === 3 && data.art_type.toLowerCase() === 'physical') && <Action label="Approve this stage" disabled={busy} onPress={() => void act('approve')} />}
+
+      {stage?.number === 3 && <ExtraRevisionPanel data={data} onUpdated={() => { void load(); onUpdated(); }} disabled={busy} />}
+
+      {!data.is_artist && current && stage?.status === 'SUBMITTED' && !data.disputed && !hasActiveExtraRevision(data) && !(stage.number === 3 && data.art_type.toLowerCase() === 'physical') && <Action label="Approve this stage" disabled={busy} onPress={() => void act('approve')} />}
     </View>
+    <CommissionDeliveryPanel data={data} milestone={stage} busy={busy} onAction={(name, extra) => { void act(name, extra); }} />
   </View>;
 }

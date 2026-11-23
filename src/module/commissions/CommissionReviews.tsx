@@ -19,9 +19,9 @@ export default function CommissionReviews() {
   const load = async () => { setLoading(true); try { const result = await commissionApi('reviews/'); setRows(result); void markAdminQueueRead('commission', result.map((row: any) => row.id)); } catch (e: any) { setError(e.message); } finally { setLoading(false); } };
   const adminWorkspace = useAdminRefresh(load);
   useEffect(() => { void load(); }, []);
-  const decide = async (row: any, action: string, milestone_id?: number, refund_id?: number) => {
+  const decide = async (row: any, action: string, milestone_id?: number, refund_id?: number, extra_revision_id?: number) => {
     setBusy(true); setError('');
-    try { const result = await commissionApi(`reviews/${row.id}/`, { action, reason: notes[row.id], amount: amounts[row.id], milestone_id, refund_id, provider_id: refund_id ? refundIds[refund_id] : milestone_id ? payoutIds[milestone_id] : undefined }); if (result.detail) setError(result.detail); await load(); }
+    try { const result = await commissionApi(`reviews/${row.id}/`, { action, reason: notes[row.id], amount: amounts[row.id], milestone_id, refund_id, extra_revision_id, provider_id: refund_id ? refundIds[refund_id] : milestone_id ? payoutIds[milestone_id] : undefined }); if (result.detail) setError(result.detail); await load(); }
     catch (e: any) { setError(e.message); }
     finally { setBusy(false); }
   };
@@ -41,6 +41,7 @@ export default function CommissionReviews() {
       <TextInput multiline placeholder="Decision reason (required)" value={notes[row.id] || ''} onChangeText={text => setNotes({ ...notes, [row.id]: text })} style={{ padding: 12, borderWidth: 1, borderColor: '#DDD' }} />
       <TextInput placeholder="Compensation PHP (unreleased funds only)" value={amounts[row.id] || ''} onChangeText={text => setAmounts({ ...amounts, [row.id]: text })} keyboardType="decimal-pad" style={{ padding: 12, borderWidth: 1, borderColor: '#DDD' }} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{button('Resolve / resume', () => decide(row, 'resume'))}{button('Authorize wallet credit', () => decide(row, 'wallet_credit'))}{button('Authorize Xendit refund', () => decide(row, 'refund'))}</View>
+      {row.extra_revisions?.map((extra: any) => <View key={extra.id} style={{ gap: 8 }}><Text>Extra revision #{extra.id}: {extra.status} · Separate held PHP {extra.held_amount}</Text><Text>{extra.scope || extra.request}</Text>{['RECONCILE', 'AWAITING_PAYMENT'].includes(extra.status) && button('Verify extra revision payment', () => decide(row, 'reconcile_extra_payment', undefined, undefined, extra.id))}{extra.funded_at && Number(extra.held_amount) > 0 && button('Refund extra revision to buyer wallet', () => decide(row, 'refund_extra_revision', undefined, undefined, extra.id))}</View>)}
       {row.payouts.map((p: any) => <View key={p.id}><Text>Stage {p.stage}: {p.status} · PHP {p.amount}</Text>{p.status === 'RECONCILE' && <TextInput placeholder="Matching Xendit payout ID (po-...)" value={payoutIds[p.id] || ''} onChangeText={text => setPayoutIds({ ...payoutIds, [p.id]: text })} style={{ padding: 12, borderWidth: 1, borderColor: '#DDD' }} />}{button('Reconcile provider payout', () => decide(row, 'reconcile_payout', p.id))}{['FAILED', 'REJECTED', 'REVERSED'].includes(p.status) && button('Retry verified failed payout', () => decide(row, 'retry_failed_payout', p.id))}</View>)}
     </View>)}
   </View>;

@@ -28,6 +28,7 @@ class CommissionReviewsView(AuthenticatedAPIView):
             'status': c.status, 'held_amount': str(c.held_amount),
             'tickets': [{'id': t.pk, 'details': t.details, 'status': t.status} for t in SupportTicket.objects.filter(commission=c)],
             'refunds': [{'id': r.pk, 'amount': str(r.amount), 'status': r.status, 'reason': r.reason} for r in c.refunds.all()],
+            'extra_revisions': list(c.extra_revisions.values('id', 'status', 'request', 'scope', 'amount', 'held_amount', 'funded_at')),
             'payouts': [{'id': m.pk, 'stage': m.milestone_number, 'status': m.payout_status, 'amount': str(m.amount)} for m in c.milestones.all()]} for c in rows])
 
     @transaction.atomic
@@ -40,11 +41,27 @@ class CommissionReviewsView(AuthenticatedAPIView):
         if not 5 <= len(reason) <= 4000: raise ValidationError('Record a decision reason (5 to 4000 characters).')
         action = request.data.get('action')
         if action == 'resume':
+            if c.extra_revisions.filter(status='RECONCILE').exists(): raise Conflict('Reconcile or refund the separate extra revision first.')
             if c.status == 'CANCELLED': raise Conflict('A cancelled commission cannot resume. Reconcile remaining funds and create a new agreement.')
             if c.refunds.filter(status__in=['AUTHORIZED', 'PROCESSING', 'RECONCILE', 'CONFIG_REQUIRED']).exists(): raise Conflict('Resolve pending refunds first.')
             c.disputed = False; c.save()
             SupportTicket.objects.filter(commission=c).exclude(status__in=['resolved', 'closed']).update(status='resolved')
             for user in (c.buyer, c.artist): notify(c, user, 'Commission dispute resolved', reason)
+        elif action == 'reconcile_extra_payment':
+            from .extra_revisions import reconcile
+            extra = c.extra_revisions.filter(pk=request.data.get('extra_revision_id'), status__in=['RECONCILE', 'AWAITING_PAYMENT']).first()
+            if not extra: raise Conflict('Select an extra revision payment that requires reconciliation.')
+            try: reconcile(extra)
+            except (requests.RequestException, ValueError): raise Conflict('Payment verification unavailable. No balance was changed.')
+        elif action == 'refund_extra_revision':
+            from .extra_revisions import credit_wallet, resume_review
+            extra = c.extra_revisions.filter(pk=request.data.get('extra_revision_id')).first()
+            if not c.disputed or not extra or not extra.funded_at or extra.held_amount != extra.amount or extra.held_amount <= 0:
+                raise Conflict('Select a funded, unreleased extra revision under support review.')
+            credit_wallet(c, extra, c.buyer, extra.held_amount, 'EXTRA_REVISION_REFUND')
+            extra.held_amount = 0; extra.status = 'REFUNDED'; extra.save(update_fields=['held_amount', 'status'])
+            resume_review(c, extra)
+            notify(c, c.buyer, 'Extra revision refunded to wallet', f'PHP {extra.amount} credited to your platform wallet. {reason}')
         elif action in ('wallet_credit', 'refund'):
             if not c.disputed or not c.funded_at: raise Conflict('A funded commission must be under review before compensation.')
             if c.milestones.filter(payout_status__in=['PROCESSING', 'RETRY_PENDING', 'RECONCILE']).exists(): raise Conflict('Reconcile in-flight payouts before refunding.')
