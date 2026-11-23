@@ -9,31 +9,42 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function WalletCard() {
   const openEarnings = useOpenArtistEarnings();
-  const [available, setAvailable] = useState("0.00");
-  const [pending, setPending] = useState("0.00");
+  const [totalEarnings, setTotalEarnings] = useState('0.00');
+  const [pending, setPending] = useState('0.00');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(useCallback(() => {
+    const controller = new AbortController();
+    let inFlight = false;
     const loadWallet = async () => {
+      if (inFlight) return;
+      inFlight = true;
       setError('');
       try {
         const user = auth.currentUser;
         if (!user) return;
         const response = await fetch(`${API_URL}/api/artist/earnings/?period=all`, {
+          signal: controller.signal,
           headers: { Authorization: `Bearer ${await user.getIdToken()}` },
         });
         if (!response.ok) throw new Error("Unable to load wallet.");
         const data = await response.json();
-        setAvailable(data.summary.available || '0.00');
+        if (controller.signal.aborted) return;
+        const total = ['received', 'available', 'pending', 'processing', 'failed']
+          .reduce((sum, key) => sum + Math.round(Number(data.summary[key] || 0) * 100), 0);
+        setTotalEarnings((total / 100).toFixed(2));
         setPending(data.summary.pending || '0.00');
       } catch {
-        setError("Earnings are unavailable. Open Details to retry.");
+        if (!controller.signal.aborted) setError("Earnings are unavailable. Open Details to retry.");
       } finally {
-        setLoading(false);
+        inFlight = false;
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     loadWallet();
+    const timer = setInterval(loadWallet, 15000);
+    return () => { controller.abort(); clearInterval(timer); };
   }, []));
 
   return (
@@ -44,10 +55,10 @@ export default function WalletCard() {
           <Skeleton layout="list" count={1} style={{ padding: 0 }} />
         ) : error ? <Text style={styles.pending}>{error}</Text> : (
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text accessibilityLabel={`Available artist earnings, ${available} pesos`} style={styles.currency}>
-              ₱ <Text style={styles.amount}>{available}</Text>
+            <Text accessibilityLabel={`Total artist earnings, ${totalEarnings} pesos`} style={styles.currency}>
+              {'\u20B1'} <Text style={styles.amount}>{totalEarnings}</Text>
             </Text>
-            <Text style={styles.pending}>₱ {pending} pending release</Text>
+            <Text style={styles.pending}>{'\u20B1'} {pending} pending release</Text>
             {!!error && <Text style={styles.pending}>{error}</Text>}
           </View>
         )}

@@ -72,8 +72,9 @@ class Command(BaseCommand):
         if options['record_proofs']:
             from commissions.proofs import process_proof
             from django.db.models import Q
-            rows = CommissionProof.objects.exclude(status='CONFIRMED')
+            incomplete = ~Q(status='CONFIRMED') | Q(transaction_hash='') | Q(block_number__isnull=True)
+            rows = CommissionProof.objects.filter(incomplete)
             if settings.COMMISSION_IPFS_API_URL:
-                rows = CommissionProof.objects.filter(~Q(status='CONFIRMED') | Q(submission__cid=''))
+                rows = CommissionProof.objects.filter(incomplete | Q(submission__cid=''))
             for proof in rows.order_by('pk')[:5]: process_proof(proof)
         self.stdout.write('Commission events processed.')

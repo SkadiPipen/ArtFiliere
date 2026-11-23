@@ -36,3 +36,18 @@ class CommissionInvestigationTests(TestCase):
         self.assertEqual(self.call(self.admin, query={'q': 'absent'}).data['items'], [])
         self.assertEqual(self.call(self.admin, 999).status_code, 404)
         self.assertEqual(self.call(self.admin, query={'page': '0'}).status_code, 400)
+
+    def test_existing_proof_recovers_transaction_and_block(self):
+        from commissions.proofs import process_proof
+        proof = self.commission.proofs.get()
+        proof.status = 'CONFIRMED'
+        proof.save()
+        with patch('blockchain.service.register_artwork', return_value={
+            'transaction_hash': '0x' + 'a' * 64, 'block_number': 42,
+        }):
+            process_proof(proof)
+        proof.refresh_from_db()
+        self.assertEqual(proof.block_number, 42)
+        response = self.call(self.admin, self.commission.pk)
+        self.assertEqual(response.data['sections']['proofs'][0]['block_number'], 42)
+        self.assertEqual(response.data['sections']['proofs'][0]['transaction_hash'], '0x' + 'a' * 64)

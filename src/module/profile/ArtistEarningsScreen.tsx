@@ -14,7 +14,7 @@ import { ArrowLeft, Download, Search, SlidersHorizontal, CalendarDays, ChevronDo
 
 type Row = { preview_image: string; id: string; title: string; buyer: string; category: string; date: string; gross: string; fees: string; shipping: string; royalty_deduction: string; net: string; status: string; reason: string; reference: string; destination: string; history: { at: string; label: string; amount: string }[] };
 type Bucket = { label: string; received: string; available: string; pending: string; processing: string };
-type Data = { summary: Record<string, string>; chart: Bucket[]; results: Row[]; count: number; page_size: number; pages: number; page: number; years: number[]; wallet: { available: string; pending: string; paid_out: string } };
+type Data = { payout_mode?: 'test' | 'live'; summary: Record<string, string>; chart: Bucket[]; results: Row[]; count: number; page_size: number; pages: number; page: number; years: number[]; wallet: { available: string; pending: string; paid_out: string } };
 const currency = (value: string | number = 0) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value));
 const categories: Record<string, string> = { '': 'All types', shop: 'Buy & Sell', auction: 'Auction', commission: 'Commission', commercial_royalty: 'Commercial Royalties', resale_royalty: 'Resale Royalties' };
 const statuses: Record<string, string> = { '': 'All statuses', received: 'Received', available: 'Available in wallet', pending: 'Pending release', processing: 'Processing payout', failed: 'Payout failed / reversed', awaiting_payment: 'Awaiting payment', refunded: 'Refunded', expired: 'Expired', cancelled: 'Cancelled' };
@@ -52,7 +52,15 @@ export default function ArtistEarningsScreen({ onBack }: { onBack: () => void })
   useEffect(() => {
     const controller = new AbortController(); setLoading(true); setError(''); setExpanded(null);
     request(false, controller.signal).then(value => { if (!controller.signal.aborted) setData(value); }).catch(e => { if (!controller.signal.aborted) { setError(e.message); setData(null); } }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    return () => controller.abort();
+    let refreshing = false;
+    const timer = setInterval(async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try { const value = await request(false, controller.signal); if (!controller.signal.aborted) setData(value); }
+      catch { /* Preserve the last verified earnings while offline. */ }
+      finally { refreshing = false; }
+    }, 15000);
+    return () => { controller.abort(); clearInterval(timer); };
   }, [period, year, month, from, to, query, category, status, page]);
   const select = (fn: () => void) => { setPage(1); fn(); };
   const chip = (label: string, selected: boolean, onPress: () => void) => <Pressable key={label} accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[s.chip, selected && s.active]}><Text style={[s.chipText, selected && { color: '#FFF' }]}>{label}</Text></Pressable>;
@@ -93,6 +101,7 @@ export default function ArtistEarningsScreen({ onBack }: { onBack: () => void })
         </View>
         {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
         {loading ? <Skeleton layout="dashboard" /> : data && <>
+          {data.payout_mode === 'test' && <Text style={s.note}>Xendit test mode: payout amounts are simulated; no real money is transferred.</Text>}
           <Text style={s.muted}>Summary follows the selected period, search, and filters.</Text>
           <View style={[s.wrap, { marginVertical: 16 }]}>{[['received', 'Received payouts'], ['available', 'Available in wallet'], ['pending', 'Pending release'], ['processing', 'Processing payout'], ['failed', 'Payout needs attention'], ['fees', 'Platform fees'], ['shipping', 'Delivery charges'], ['refunds', 'Refunded payments']].map(([key, label]) => <View key={key} style={[s.summary, { width: compact ? '47%' : '23%' }]}><Text style={s.muted}>{label}</Text><Text style={s.amount}>{currency(data.summary[key])}</Text></View>)}</View>
           <Text style={s.note}>Received means a recorded payout. Available means funds released to the platform wallet. Unpaid and refunded transactions are excluded from earnings. Delivery charges are shown separately from artist net earnings.</Text>

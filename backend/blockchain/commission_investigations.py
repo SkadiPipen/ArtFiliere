@@ -71,19 +71,9 @@ class CommissionInvestigationView(AuthenticatedAPIView):
                 'id': str(e.pk), 'label': e.get_kind_display(), 'status': e.status,
                 'record_hash': e.record_hash, 'transaction_hash': e.transaction_hash,
                 'block_number': e.block_number, 'error': e.error})
-            record = getattr(getattr(c, 'asset', None), 'provenance_origin', None)
-            section('ownership', record.events.order_by('created_at', 'pk') if record else [], lambda e: {
-                'id': str(e.pk), 'kind': e.kind, 'status': e.status, 'created_at': e.created_at,
-                'transaction_hash': e.transaction_hash, 'block_number': e.block_number, 'record_hash': e.record_hash})
             if page == 1:
                 ActivityLog.objects.create(user=user, action='commission_history_view',
                     description='Viewed private commission investigation.', reference_type='commission', reference_id=str(c.pk))
         response = Response(data)
         response['Cache-Control'] = 'private, no-store'
         return response
-
-    @staticmethod
-    def summary(c):
-        return {'id': c.pk, 'title': c.title, 'artist': c.artist.username, 'buyer': c.buyer.username,
-                'status': c.status, 'status_label': c.get_status_display(), 'created_at': c.created_at,
-                'funded_at': c.funded_at, 'disputed': c.disputed}
