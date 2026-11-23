@@ -9,12 +9,17 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import RightsSummary from './RightsSummary';
 
-export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: number | string; recordId?: string }) {
+export default function ProvenancePanel({ artworkId, recordId, buttonLabel = 'Creator attribution and review' }: {
+  artworkId?: number | string;
+  recordId?: string;
+  buttonLabel?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
+  const [verificationError, setVerificationError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState('');
@@ -47,6 +52,8 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
   };
   const button = (label: string, action: () => void) => <TouchableOpacity disabled={busy} style={s.button} onPress={action}><Text style={s.buttonText}>{label}</Text></TouchableOpacity>;
   const checkFile = async () => {
+    setMessage('');
+    setVerificationError('');
     const selected = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
     if (selected.canceled) return;
     const file = selected.assets[0];
@@ -56,18 +63,23 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
     const response = await fetch(`${API_URL}/api/${path}/integrity/`, { method: 'POST', body: form });
     const result = await response.json();
     if (!response.ok || !result.matches) throw new Error(result.detail || 'The selected file does not match the registered original. Previews and converted files have different hashes.');
+    setMessage(result.registration_confirmed
+      ? 'The selected file matches the blockchain-registered original.'
+      : 'The selected file matches the stored original. Blockchain registration is awaiting confirmation.');
   };
   if (!artworkId && !recordId) return null;
   return <>
-    <TouchableOpacity accessibilityRole="button" onPress={() => setOpen(true)}><Text style={s.link}>Creator attribution and review</Text></TouchableOpacity>
+    <TouchableOpacity accessibilityRole="button" onPress={() => setOpen(true)}><Text style={s.link}>{buttonLabel}</Text></TouchableOpacity>
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
       <View style={s.overlay}><View style={s.card}>
         <View style={s.heading}><Text style={s.title}>Creator & artwork history</Text><TouchableOpacity onPress={() => setOpen(false)}><Text style={s.link}>Close</Text></TouchableOpacity></View>
         <ScrollView contentContainerStyle={s.content}>
           {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+          {!!verificationError && <Text accessibilityRole="alert" style={s.error}>{verificationError}</Text>}
           {!!message && <Text style={s.message}>{message}</Text>}
           {data && <>
             <Text style={s.label}>Created by @{data.created_by.username}</Text>
+            <Text selectable style={s.id}>Artwork ID: {data.artwork_id}</Text>
             <Text style={s.id}>Creator information recorded by the platform.</Text>
             <Text>Creation date: {data.creation_date ? new Date(data.creation_date).toLocaleDateString() : 'Not provided'}</Text>
             {data.first_listed_at && <Text>First listed on: {new Date(data.first_listed_at).toLocaleDateString()}</Text>}
@@ -77,13 +89,17 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
             {data.can_admin && <TouchableOpacity onPress={() => setShowDetails(value => !value)}><Text style={s.link}>{showDetails ? 'Hide administrative proof details' : 'Administrative proof details'}</Text></TouchableOpacity>}
             {data.can_admin && showDetails && <>
             <Text>Registration: {data.registered_at ? 'Recorded on blockchain' : 'Awaiting confirmation'}</Text>
-            <Text selectable style={s.id}>Artwork ID: {data.artwork_id}</Text>
             <Text style={s.disclaimer}>{data.disclaimer}</Text>
             <Text selectable style={s.id}>Original file SHA-256: {data.file_hash}</Text>
             <Text>Compare an original file with the registered file fingerprint. Edited, resized, or watermarked copies may not match.</Text>
-            {button('Verify an original file', () => run(checkFile, 'File integrity matches the registered original. This does not prove authorship.'))}
-            {data.can_download_original && button('Download registered original', () => run(() => downloadProtectedFile(`${path}/original/`, data.original_filename), 'Original file downloaded. Its SHA-256 matches the registration.'))}
             </>}
+            {button('Verify an original file', () => {
+              setBusy(true);
+              void checkFile().catch((err: unknown) => {
+                setVerificationError(err instanceof Error ? err.message : 'Unable to verify the file.');
+              }).finally(() => setBusy(false));
+            })}
+            {data.can_download_original && button('Download registered original', () => run(() => downloadProtectedFile(`${path}/original/`, data.original_filename), 'Original file downloaded. Its SHA-256 matches the registration.'))}
             {data.entitlements?.length > 0 && <>
               <Text style={s.label}>Ownership & license history</Text>
               <Text style={s.id}>A license holder has permission to use the artwork; this does not always mean copyright ownership. Private buyers use holder references.</Text>

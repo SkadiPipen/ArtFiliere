@@ -161,8 +161,8 @@ export default function ProfileHeader({
               <ResellerBadge verified={profileData?.reseller_verified} />
               {profileData?.bio?.trim() ? <Text style={styles.bio}>{profileData.bio}</Text> : normalizedRole === 'artist' ? <TouchableOpacity accessibilityRole="button" onPress={() => router.push('/(home)/edit-profile')}><Text style={[styles.bio, { color: '#A84B46' }]}>Add artist bio</Text></TouchableOpacity> : null}
               {mobile && <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-                {['buyer', 'artist'].includes(normalizedRole) && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open artist and reseller options" accessibilityState={{ expanded: sellerOptionsOpen }} onPress={() => setSellerOptionsOpen(true)} style={[styles.registerArtistBtn, { marginTop: 0, minHeight: 36, paddingHorizontal: 7, paddingVertical: 8, gap: 4, flexShrink: 1 }]}>
-                  <Store size={13} color="#A24F41" /><Text style={[styles.registerText, { fontSize: 11, flexShrink: 1 }]}>{normalizedRole === 'buyer' ? 'Become a seller' : 'Seller options'}</Text>
+                {normalizedRole === 'buyer' && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open artist and reseller options" accessibilityState={{ expanded: sellerOptionsOpen }} onPress={() => setSellerOptionsOpen(true)} style={[styles.registerArtistBtn, { marginTop: 0, minHeight: 36, paddingHorizontal: 7, paddingVertical: 8, gap: 4, flexShrink: 1 }]}>
+                  <Store size={13} color="#A24F41" /><Text style={[styles.registerText, { fontSize: 11, flexShrink: 1 }]}>Become a seller</Text>
                 </TouchableOpacity>}
 
       <TouchableOpacity accessibilityRole="button" disabled={coverBusy} onFocus={() => setCoverFocused(true)} onBlur={() => setCoverFocused(false)} onPress={changeCover} style={[styles.coverButton, { padding: 7, gap: 4, flexShrink: 1 }, { opacity: showCoverButton ? 1 : 0 }]}>
@@ -192,10 +192,10 @@ export default function ProfileHeader({
       </TouchableOpacity>
       </>}
           </View>
-            {!mobile && ['buyer', 'artist'].includes(normalizedRole) && (
+            {!mobile && normalizedRole === 'buyer' && (
               <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open artist and reseller options" accessibilityState={{ expanded: sellerOptionsOpen }} style={styles.registerArtistBtn} onPress={() => setSellerOptionsOpen(true)}>
                 <Store size={17} color="#A24F41" />
-                <Text style={styles.registerText}>{normalizedRole === 'buyer' ? 'Become a seller' : 'Seller options'}</Text>
+                <Text style={styles.registerText}>Become a seller</Text>
                 <ChevronDown size={16} color="#A24F41" />
               </TouchableOpacity>
             )}

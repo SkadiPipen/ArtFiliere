@@ -38,7 +38,7 @@ from .ai_detector import DetectorUnavailable, ScreeningPending, screen_upload, s
 
 class ArtworkView(AuthenticatedAPIView):
     def get_permissions(self):
-        if self.request.method in ("POST", "PATCH"):
+        if self.request.method in ("POST", "PATCH", "DELETE"):
             return [IsArtist()]
         return [AllowAny()]
 
@@ -77,12 +77,30 @@ class ArtworkView(AuthenticatedAPIView):
             context={"include_similarity": bool(user and user.role == User.Role.CREATIVE_MODERATOR), 'include_screening': mine},
         ).data)
 
+    @transaction.atomic
+    def delete(self, request, artwork_id=None):
+        user = self.get_request_user(request)
+        if getattr(user, 'view_only', False):
+            return Response({'error': 'Your account has view-only access.'}, status=403)
+        artwork = Artwork.objects.select_for_update().filter(pk=artwork_id, artist=user).first()
+        if not artwork:
+            return Response({'error': 'Artwork not found.'}, status=404)
+        if artwork.payment_sessions.filter(status='pending').exists():
+            return Response({'error': 'Wait for the open checkout to finish before taking down this post.'}, status=409)
+        auctions = list(artwork.auction_listings.select_for_update().exclude(status__in=['CANCELLED', 'SETTLED']))
+        if any(auction.status in ('PAYMENT_PENDING', 'BACKUP_OFFER') or auction.bids.exists() for auction in auctions):
+            return Response({'error': 'An auction with bids or a pending winner must finish before this post can be taken down.'}, status=409)
+        artwork.auction_listings.filter(pk__in=[auction.pk for auction in auctions]).update(status='CANCELLED')
+        artwork.status = Artwork.Status.REMOVED
+        artwork.save(update_fields=['status', 'updated_at'])
+        return Response(status=204)
+
     def patch(self, request, artwork_id=None):
         user = self.get_request_user(request)
         artwork = Artwork.objects.filter(pk=artwork_id, artist=user).first()
         if not artwork:
             return Response({'error': 'Artwork not found.'}, status=404)
-        if artwork.automated_block_reason:
+        if artwork.status == Artwork.Status.REMOVED or artwork.automated_block_reason:
             return Response({'error': 'Automatically blocked submissions are read-only.'}, status=409)
         if set(request.data) != {'categories'}:
             return Response({'error': 'This action updates artwork categories only.'}, status=400)
@@ -519,6 +537,8 @@ class ArtworkReviewView(AuthenticatedAPIView):
                 {"error": "Artwork not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
+        if artwork.status == Artwork.Status.REMOVED:
+            return Response({'error': 'This post was taken down by the artist.'}, status=409)
         if artwork.automated_block_reason and artwork.automated_block_reason != 'high_similarity':
             return Response({'error': 'Automatically blocked submissions are read-only evidence and cannot be approved or changed.'}, status=409)
         screening = artwork.ai_screening

@@ -2,9 +2,13 @@ from django.urls import path
 
 from .views import SubmitArtistApplicationView, ArtistApplicationLogView, PortfolioMatchPreviewView, PortfolioTagSuggestionView
 from .deadlines import AdminDeadlinesView
+from .driver_renewals import AdminDriverLicenseRenewalView, DriverLicenseRenewalView
 from .sworn_renewals import AdminSwornRenewalView, ArtistSwornRenewalView
 
 urlpatterns = [
+    path('driver-license-renewals/', DriverLicenseRenewalView.as_view()),
+    path('admin/driver-license-renewals/', AdminDriverLicenseRenewalView.as_view()),
+    path('admin/driver-license-renewals/<int:renewal_id>/', AdminDriverLicenseRenewalView.as_view()),
     path('sworn-declaration-renewals/', ArtistSwornRenewalView.as_view()),
     path('admin/deadlines/', AdminDeadlinesView.as_view()),
     path('admin/sworn-declaration-renewals/', AdminSwornRenewalView.as_view()),

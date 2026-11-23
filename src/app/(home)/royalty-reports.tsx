@@ -70,21 +70,34 @@ function ReportCard({ report, reload, tourTarget }: { report: Period; reload: ()
     try { await work(); await reload(); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
   const attach = async () => {
-    const result = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], copyToCacheDirectory: true });
+    const result = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], copyToCacheDirectory: true, multiple: true });
     if (result.canceled) return;
-    const asset = result.assets[0];
-    if (files.length >= 3 || (asset.size ?? 0) > 5 * 1024 * 1024) throw Error('Attach up to 3 files, no larger than 5 MB total.');
-    const mime = asset.mimeType || 'application/pdf';
-    let data: string;
-    if (Platform.OS === 'web') {
-      const blob = await (await fetch(asset.uri)).blob();
-      data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(Error('Unable to read evidence.')); reader.readAsDataURL(blob); });
-    } else {
-      const fs = await import('expo-file-system/legacy');
-      data = `data:${mime};base64,${await fs.readAsStringAsync(asset.uri, { encoding: fs.EncodingType.Base64 })}`;
+    const limit = 5 * 1024 * 1024;
+    if (files.length + result.assets.length > 3 || result.assets.reduce((sum, asset) => sum + (asset.size ?? 0), 0) > limit) {
+      throw Error('Attach up to 3 files, no larger than 5 MB total.');
     }
-    const selected = [...files, { name: asset.name, data }];
-    if (selected.reduce((sum, file) => sum + file.data.split(',')[1].length * 3 / 4, 0) > 5 * 1024 * 1024) throw Error('Evidence may total at most 5 MB.');
+    const attachments = await Promise.all(result.assets.map(async asset => {
+      let data: string;
+      if (Platform.OS === 'web') {
+        const blob = asset.file ?? await (await fetch(asset.uri)).blob();
+        data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(Error('Unable to read evidence.'));
+          reader.readAsDataURL(blob);
+        });
+      } else {
+        const fs = await import('expo-file-system/legacy');
+        data = `data:${asset.mimeType || 'application/pdf'};base64,${await fs.readAsStringAsync(asset.uri, { encoding: fs.EncodingType.Base64 })}`;
+      }
+      return { name: asset.name, data };
+    }));
+    const selected = [...files, ...attachments];
+    const totalBytes = selected.reduce((sum, file) => {
+      const content = file.data.split(',')[1];
+      return sum + (content.length * 3 / 4) - (content.match(/=+$/)?.[0].length ?? 0);
+    }, 0);
+    if (totalBytes > limit) throw Error('Evidence may total at most 5 MB.');
     setFiles(selected);
   };
   return <View style={box}>
@@ -114,8 +127,8 @@ function ReportCard({ report, reload, tourTarget }: { report: Period; reload: ()
     {report.is_buyer && report.can_submit && <>
       <Text>Report this period’s figures only. Enter zero when there were no sales. Attach evidence supporting sales, deductions and costs.</Text>
       {fields.map(field => <View key={field} style={{ gap: 6 }}><Text>{field === 'units' ? 'Items sold (whole number)' : field === 'deductions' ? 'Contractually permitted deductions (PHP)' : field === 'costs' ? 'Contractually permitted costs (PHP)' : 'Gross sales (PHP)'}</Text><TextInput accessibilityLabel={field} keyboardType="decimal-pad" value={metrics[field] || ''} onChangeText={value => setMetrics({ ...metrics, [field]: value })} style={input} /></View>)}
-      {files.map((file, i) => <Pressable key={i} onPress={() => setFiles(files.filter((_, index) => index !== i))}><Text>{file.name} · Remove</Text></Pressable>)}
-      <Pressable disabled={busy} onPress={() => run(attach)}><Text style={link}>Attach evidence (PDF or image, 5 MB total)</Text></Pressable>
+      {files.map((file, i) => <Pressable key={i} disabled={busy} accessibilityRole="button" accessibilityLabel={`Remove ${file.name}`} onPress={() => setFiles(files.filter((_, index) => index !== i))}><Text>{file.name} · Remove</Text></Pressable>)}
+      <Pressable disabled={busy || files.length >= 3} onPress={() => run(attach)}><Text style={link}>Attach evidence ({files.length}/3 files, 5 MB total)</Text></Pressable>
       <Pressable disabled={busy || !files.length} onPress={() => run(async () => { await request(`periods/${report.id}/`, 'POST', { metrics, evidence: files }); setFiles([]); })}><Text style={link}>{report.admin_review ? 'Submit report for admin verification' : 'Submit for artist approval'}</Text></Pressable>
     </>}
     {!report.admin_review && !report.is_buyer && report.status === 'submitted' && <>

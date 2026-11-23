@@ -261,16 +261,34 @@ class ContractFlowTests(TestCase):
                      'kind': 'partial', 'rights': ['reproduction'], 'effective': 'signed_and_paid',
                      'existing_commitments': 'None', 'artist_reserved_uses': 'Portfolio only',
                      'additional_terms': 'None', 'acknowledged': True}}
-        response = self.call(ContractsView, self.buyer, 'post', {'price': '75.50', 'terms': 'Transfer reproduction',
+        response = self.call(ContractsView, self.buyer, 'post', {'price': '200.00', 'terms': 'Transfer reproduction',
             'license_scope': scope}, artwork_id=self.artwork.pk)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['license_scope']['copyright_transfer']['rights'], ['reproduction'])
+        self.assertEqual(response.data['exclusivity'], 'exclusive')
+        self.assertEqual(response.data['license_scope']['duration_months'], 12)
         pk = response.data['id']
         self.call(ContractDecisionView, self.artist, 'patch', {'action': 'accept'}, agreement_id=pk)
         document = self.call(AgreementSigningView, self.buyer, agreement_id=pk).data['document']
         self.assertIn('COPYRIGHT ASSIGNMENT', document)
+        self.assertIn('License term: 12 months', document)
+        self.assertIn('remaining statutory term of the assigned economic rights', document)
         self.assertIn('Portfolio only', document)
         self.assertNotIn('does not assign copyright ownership', document)
+
+        from artist_profiles.portfolio import artist_portfolio
+        from django.utils import timezone
+        agreement = Agreement.objects.get(pk=pk)
+        agreement.artist_signed_at = agreement.buyer_signed_at = timezone.now()
+        agreement.save(update_fields=['artist_signed_at', 'buyer_signed_at'])
+        PaymentSession.objects.create(agreement=agreement, artwork=self.artwork, buyer=self.buyer, artist=self.artist,
+                                      reference_id='assignment-portfolio', gross_amount=200, platform_fee=20,
+                                      artist_amount=180, status='paid')
+        self.assertEqual([item['id'] for item in artist_portfolio(self.artist)], [self.artwork.pk])
+        agreement.license_scope['copyright_transfer']['artist_reserved_uses'] = 'None'
+        agreement.save(update_fields=['license_scope'])
+        self.assertEqual(artist_portfolio(self.artist), [])
+        self.assertEqual(artist_portfolio(self.artist, own=True), [])
 
     def test_tampered_pricing_does_not_create_proposal(self):
         response = self.call(ContractsView, self.buyer, 'post', {

@@ -164,9 +164,10 @@ class AgreementView(AuthenticatedAPIView):
             return Response({'error': 'Portfolio-only artwork is unavailable for purchase or licensing.'}, status=409)
         try:
             license_scope = validate_scope(request.data.get('license_scope'), request.data.get('license_type', 'personal'))
+            exclusivity = 'exclusive' if license_scope.get('copyright_transfer') else request.data.get('exclusivity', 'non_exclusive')
             if artwork_id:
                 from artworks.inventory import validate_copy_rights
-                validate_copy_rights(Artwork.objects.get(pk=artwork_id), request.data.get('exclusivity', 'non_exclusive'), license_scope)
+                validate_copy_rights(Artwork.objects.get(pk=artwork_id), exclusivity, license_scope)
             compensation_terms = validate_compensation(request.data, user, request.data.get('license_type', 'personal'))
             validate_schedule_total(compensation_terms, price)
         except PermissionError as error:
@@ -175,7 +176,7 @@ class AgreementView(AuthenticatedAPIView):
             return Response({'error': str(error)}, status=400)
         if compensation_terms:
             terms += '\n\n' + compensation_summary(request.data.get('compensation_type', 'one_time'), compensation_terms)
-        agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, wording_snapshot=resolved_wording(template), platform_defaults_snapshot=current_defaults(), artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, license_scope=license_scope, compensation_terms=compensation_terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=request.data.get("exclusivity", "non_exclusive"), delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
+        agreement = Agreement.objects.create(conversation_id=conversation_id, template=template, wording_snapshot=resolved_wording(template), platform_defaults_snapshot=current_defaults(), artwork_id=artwork_id, buyer=buyer, artist=artist, price=price, terms_snapshot=terms, license_scope=license_scope, compensation_terms=compensation_terms, delivery_date=request.data.get("delivery_date") or None, revision_limit=request.data.get("revision_limit") or 0, license_type=request.data.get("license_type", "personal"), exclusivity=exclusivity, delivery_type=request.data.get("delivery_type", "digital"), compensation_type=request.data.get("compensation_type", "one_time"))
         Message.objects.create(conversation_id=conversation_id, sender=user, message_type=Message.Type.AGREEMENT, agreement=agreement, body="Agreement proposed")
         notify_negotiation(agreement, user, 'proposed')
         return Response(serialize_agreement(agreement), status=201)

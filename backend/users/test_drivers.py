@@ -2,6 +2,7 @@ from unittest.mock import patch
 from types import SimpleNamespace
 from django.test import TestCase
 from django.utils import timezone
+from artist_applications.driver_renewals import AdminDriverLicenseRenewalView, DriverLicenseRenewalView
 from users.models import User, ModeratorApplication, ActivityLog
 from users.test_moderators import ModeratorEvaluationTests
 from users.moderators import ModeratorApplicationsView, ModeratorApplicationDetail, ModeratorDocumentView, DriverAccountView
@@ -30,6 +31,26 @@ class DriverEvaluationTests(TestCase):
     def decide(self, item, actor, action):
         item.refresh_from_db()
         return self.call(ModeratorApplicationDetail, actor, 'patch', {'version': item.version, 'action': action, 'note': 'Review completed'}, application_id=item.pk)
+
+    def test_driver_license_expiry_changes_only_after_admin_approval(self):
+        application = self.submit()
+        application.status = 'approved'
+        application.save(update_fields=['status'])
+        self.buyer.role = 'driver'
+        self.buyer.save(update_fields=['role'])
+        payload = {'expires_on': '2035-12-31', 'document': self.payload['documents'][0]}
+        response = self.call(DriverLicenseRenewalView, self.buyer, 'post', payload)
+        self.assertEqual(response.status_code, 201, response.data)
+        renewal_id = response.data['id']
+        application.refresh_from_db()
+        self.assertEqual(application.application_details['license_expires_on'], '2030-12-31')
+        self.assertEqual(self.call(DriverLicenseRenewalView, self.buyer, 'post', payload).status_code, 409)
+        approval = {'action': 'approve'}
+        self.assertEqual(self.call(AdminDriverLicenseRenewalView, self.buyer, 'patch', approval, renewal_id=renewal_id).status_code, 403)
+        self.assertEqual(self.call(AdminDriverLicenseRenewalView, self.admin, 'patch', approval, renewal_id=renewal_id).status_code, 200)
+        self.assertEqual(self.call(AdminDriverLicenseRenewalView, self.admin, 'patch', approval, renewal_id=renewal_id).status_code, 409)
+        application.refresh_from_db()
+        self.assertEqual(application.application_details['license_expires_on'], '2035-12-31')
 
     def test_driver_review_is_separate_from_moderator_and_admin_grants_access(self):
         item = self.submit()

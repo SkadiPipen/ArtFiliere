@@ -6,12 +6,15 @@ import ArtistEarningsPanel, { ArtistEarningsContext } from '@/module/profile/Art
 import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { ContentModalRegion } from '@/components/ContentModal';
 import { COLORS } from '@/constants/colors';
+import WorkspaceMessages from './components/WorkspaceMessages';
+
+const messagePages = new Set(['/activities', '/auction-dashboard', '/profile']);
 
 export default function HomeLayout() {
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === 'web' && width >= 768;
   const pathname = usePathname();
-  const standaloneOnMobile = ['/report-management', '/artists', '/artist-profile', '/artist-post', '/auction-post', '/commissions', '/commission-detail', '/royalty-reports', '/support', '/my-portfolio'].includes(pathname) || pathname.startsWith('/artist/');
+  const standaloneOnMobile = ['/report-management', '/artists', '/artist-profile', '/artist-post', '/auction-post', '/commissions', '/commission-detail', '/royalty-reports', '/support', '/my-portfolio', '/purchases'].includes(pathname) || pathname.startsWith('/artist/');
   const [earningsOpen, setEarningsOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   useEffect(() => { setEarningsOpen(false); }, [pathname]);
@@ -32,6 +35,7 @@ export default function HomeLayout() {
 
         <Stack.Screen name="auction-dashboard"/>
       </Stack>
+      {!earningsOpen && messagePages.has(pathname) && <WorkspaceMessages key={pathname} />}
       </ContentModalRegion>
       </View>
       {!desktop && !standaloneOnMobile && <View pointerEvents={earningsOpen ? 'none' : 'auto'} accessibilityElementsHidden={earningsOpen} importantForAccessibility={earningsOpen ? 'no-hide-descendants' : 'auto'}><BottomNavBar /></View>}

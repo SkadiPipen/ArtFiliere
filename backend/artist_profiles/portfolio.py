@@ -6,6 +6,7 @@ from artworks.serializers import ArtworkSerializer
 from artworks.categories import CATEGORIES
 from commissions.models import CommissionRequest, CommissionSubmission
 from fulfillment.certificates import commission_completed
+from wallets.models import PaymentSession
 
 
 def commission_preview(commission):
@@ -37,7 +38,18 @@ def commission_preview(commission):
 
 
 def artist_portfolio(artist, *, own=False):
-    artworks = artist.artworks.all()
+    artworks = artist.artworks.exclude(status='removed')
+    completed_assignments = PaymentSession.objects.filter(
+        artist=artist, status='paid', is_simulated=False,
+        agreement__artist_signed_at__isnull=False, agreement__buyer_signed_at__isnull=False,
+        agreement__license_scope__copyright_transfer__acknowledged=True,
+        agreement__license_scope__copyright_transfer__kind__in=['full', 'partial'],
+    ).values_list('artwork_id', 'agreement__license_scope__copyright_transfer')
+    excluded = {
+        artwork_id for artwork_id, terms in completed_assignments
+        if terms.get('artist_reserved_uses', '').strip().lower() in ('', 'none')
+    }
+    artworks = artworks.exclude(pk__in=excluded)
     if not own:
         artworks = artworks.filter(status='approved')
     entries = list(ArtworkSerializer(artworks, many=True).data)
