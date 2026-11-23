@@ -17,7 +17,7 @@ export function buyerMilestoneLabels(data: any, milestone: any) {
   else if (status === 'REVERSED') payout = 'Payout reversed · support review needed';
   else if (status === 'RECONCILE') payout = 'Payout under reconciliation';
   else if (status === 'RETRY_PENDING') payout = 'Payout confirmation pending';
-  else if (status === 'CONFIG_REQUIRED') payout = 'Waiting for payout setup';
+  else if (status === 'CONFIG_REQUIRED') payout = 'Payout setup required';
   else if (milestone.approved_at) payout = 'Approved · awaiting payout release';
   if (data.disputed && status !== 'SUCCEEDED') payout = 'Unreleased funds on hold for dispute review';
   const used = Boolean(milestone.revision_used || milestone.revision_requested_at);

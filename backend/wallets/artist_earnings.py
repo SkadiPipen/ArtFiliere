@@ -5,6 +5,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from io import StringIO
 from zoneinfo import ZoneInfo
+from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.response import Response
@@ -98,6 +99,11 @@ class ArtistEarningsView(AuthenticatedAPIView):
             try: user = User.objects.get(pk=int(request.query_params['artist_id']), role='artist')
             except (User.DoesNotExist, ValueError): return Response({'error': 'Artist not found.'}, status=404)
         if user.role != 'artist': return Response({'error': 'Artist account required.'}, status=403)
+        from commissions.lifecycle import refresh_payout_statuses
+        pending = CommissionRequest.objects.filter(artist=user,
+            milestones__payout_status__in=['PROCESSING', 'RETRY_PENDING']).distinct().order_by('pk')[:3]
+        for commission in pending:
+            refresh_payout_statuses(commission)
         rows = earnings_rows(user)
         years = sorted({int(r['date'][:4]) for r in rows} | {timezone.localdate().year}, reverse=True)
         params = request.query_params
@@ -137,7 +143,7 @@ class ArtistEarningsView(AuthenticatedAPIView):
         visible = rows[(page-1)*PAGE_SIZE:page*PAGE_SIZE]
         for row in visible:
             row['preview_image'] = transaction_preview(row, user)
-        return Response({'summary': summary, 'chart': chart, 'count': len(rows), 'page': page, 'page_size': PAGE_SIZE, 'pages': page_count, 'results': visible, 'years': years, 'wallet': {'available': str(wallet.available_balance if wallet else ZERO), 'pending': str(wallet.pending_balance if wallet else ZERO), 'paid_out': str(wallet.paid_out_balance if wallet else ZERO)}})
+        return Response({'payout_mode': 'test' if settings.XENDIT_SECRET_KEY.startswith('xnd_development_') else 'live', 'summary': summary, 'chart': chart, 'count': len(rows), 'page': page, 'page_size': PAGE_SIZE, 'pages': page_count, 'results': visible, 'years': years, 'wallet': {'available': str(wallet.available_balance if wallet else ZERO), 'pending': str(wallet.pending_balance if wallet else ZERO), 'paid_out': str(wallet.paid_out_balance if wallet else ZERO)}})
 
 
 def transaction_preview(row, artist):

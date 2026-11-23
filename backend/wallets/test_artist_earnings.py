@@ -51,6 +51,26 @@ class ArtistEarningsTests(TestCase):
         self.assertEqual(Decimal(response.data['summary']['refunds']), 110)
         self.assertEqual(self.get(self.artist, month=13).status_code, 400)
 
+    def test_earnings_refreshes_existing_payout_without_crediting_available_wallet(self):
+        from django.core.cache import cache
+        commission = CommissionRequest.objects.create(artist=self.artist, buyer=self.buyer,
+            title='Payout lookup', deadline=timezone.now(), funded_at=timezone.now(), held_amount=100)
+        milestone = CommissionMilestone.objects.create(commission_req=commission, milestone_number=1,
+            percentage=30, amount=100, approved_at=timezone.now(), payout_status='PROCESSING',
+            payout_provider_id='po-earnings', payout_reference='earnings-payout')
+        cache.delete(f'commission-payout-poll-{milestone.pk}')
+        with self.settings(XENDIT_SECRET_KEY='xnd_development_test'), patch('commissions.lifecycle.requests.get') as lookup, patch('commissions.lifecycle.requests.post') as create:
+            lookup.return_value.json.return_value = {'payout_id': 'po-earnings', 'reference_id': 'earnings-payout',
+                'source_currency': 'PHP', 'destination_currency': 'PHP', 'destination_amount': 10000, 'status': 'SUCCEEDED'}
+            response = self.get(self.artist, category='commission')
+            create.assert_not_called()
+        self.assertEqual(Decimal(response.data['summary']['received']), 100)
+        self.assertEqual(Decimal(response.data['summary']['processing']), 0)
+        self.assertEqual(response.data['payout_mode'], 'test')
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.available_balance, 0)
+        cache.delete(f'commission-payout-poll-{milestone.pk}')
+
     def test_milestone_receipt_requires_confirmed_payout_and_excludes_shipping(self):
         commission = CommissionRequest.objects.create(artist=self.artist, buyer=self.buyer, title='Portrait', deadline=timezone.now(), funded_at=timezone.now(), locked_terms={'delivery_fee': '50'}, platform_fee=100)
         milestone = CommissionMilestone.objects.create(commission_req=commission, milestone_number=3, percentage=40, amount=450, payout_status='PROCESSING')

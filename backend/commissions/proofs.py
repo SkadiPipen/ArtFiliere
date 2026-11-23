@@ -15,7 +15,7 @@ def submission_proof(submission):
 
 
 def process_proof(proof):
-    from blockchain.service import register_artwork, verify_artwork, BlockchainError
+    from blockchain.service import register_artwork, BlockchainError
     submission = proof.submission
     endpoint = getattr(settings, 'COMMISSION_IPFS_API_URL', '')
     if submission and not submission.cid and endpoint:
@@ -27,11 +27,9 @@ def process_proof(proof):
             response = requests.post(endpoint.rstrip('/') + '/api/v0/add', params={'pin': 'true'}, files={'file': ('encrypted-submission', encrypted)}, timeout=20)
             response.raise_for_status(); submission.cid = response.json()['Hash']; submission.save(update_fields=['cid'])
         except (requests.RequestException, KeyError, ValueError): pass
-    if proof.status == 'CONFIRMED': return
+    if proof.status == 'CONFIRMED' and proof.transaction_hash and proof.block_number is not None: return
     try:
-        found, _ = verify_artwork(int(proof.registry_id), proof.record_hash)
-        if found:
-            proof.status = 'CONFIRMED'; proof.error = ''; proof.save(); return
+        # Registration also recovers an existing receipt after an interrupted write.
         result = register_artwork(int(proof.registry_id), proof.record_hash)
         proof.transaction_hash = result['transaction_hash']; proof.block_number = result['block_number']
         proof.status = 'CONFIRMED'; proof.error = ''; proof.save()

@@ -650,6 +650,42 @@ class LifecycleTests(TestCase):
         self.assertEqual(self.call(self.staff, path, {'action': 'wallet_credit', 'amount': '1100', 'reason': 'Cancel unfinished work'}).status_code, 200)
         c.refresh_from_db(); self.assertEqual(c.held_amount, 0); self.assertEqual(c.status, 'CANCELLED')
 
+    def test_same_currency_payout_lookup_without_source_amount(self):
+        c = self.funded(); m = c.milestones.first(); self.submit(c, m)
+        self.assertEqual(self.flow(self.buyer, c, 'approve', milestone_id=m.pk).status_code, 200)
+        m.refresh_from_db()
+        m.payout_reference = 'lookup-test'; m.payout_provider_id = 'po-lookup'; m.save()
+        payload = {'reference_id': 'lookup-test', 'payout_id': 'po-lookup',
+                   'source_currency': 'PHP', 'destination_currency': 'PHP',
+                   'destination_amount': int(m.amount * 100), 'status': 'SUCCEEDED'}
+        apply_payout(m, payload); apply_payout(m, payload)
+        m.refresh_from_db()
+        self.assertEqual(m.payout_status, 'SUCCEEDED')
+        c.refresh_from_db()
+        self.assertEqual(c.held_amount, Decimal('800.00'))
+
+    def test_payout_refresh_checks_existing_transfer_without_creating_another(self):
+        from django.core.cache import cache
+        from .lifecycle import refresh_payout_statuses
+        c = self.funded(); m = c.milestones.first(); self.submit(c, m)
+        self.assertEqual(self.flow(self.buyer, c, 'approve', milestone_id=m.pk).status_code, 200)
+        m.refresh_from_db()
+        m.payout_reference = 'poll-test'; m.payout_provider_id = 'po-poll'; m.payout_status = 'PROCESSING'; m.save()
+        cache.delete(f'commission-payout-poll-{m.pk}')
+        payload = {'reference_id': 'poll-test', 'payout_id': 'po-poll', 'source_currency': 'PHP',
+                   'destination_currency': 'PHP', 'destination_amount': int(m.amount * 100), 'status': 'SUCCEEDED'}
+        with self.settings(XENDIT_SECRET_KEY='test-key'), patch('commissions.lifecycle.requests.get') as lookup, patch('commissions.lifecycle.requests.post') as create:
+            lookup.return_value.json.return_value = payload
+            refresh_payout_statuses(c)
+            refresh_payout_statuses(c)
+            lookup.assert_called_once()
+            create.assert_not_called()
+        m.refresh_from_db()
+        self.assertEqual(m.payout_status, 'SUCCEEDED')
+        c.refresh_from_db()
+        self.assertEqual(c.held_amount, Decimal('800.00'))
+        cache.delete(f'commission-payout-poll-{m.pk}')
+
     def test_payout_webhooks_are_idempotent_and_reversal_restores_hold(self):
         c = self.funded(); m = c.milestones.first(); self.submit(c, m)
         self.assertEqual(self.flow(self.buyer, c, 'approve', milestone_id=m.pk).status_code, 200)

@@ -78,12 +78,12 @@ export default function ProvenancePanel({ artworkId, recordId, buttonLabel = 'Cr
           {!!verificationError && <Text accessibilityRole="alert" style={s.error}>{verificationError}</Text>}
           {!!message && <Text style={s.message}>{message}</Text>}
           {data && <>
-            <Text style={s.label}>Created by @{data.created_by.username}</Text>
+            {!!data.created_by && <Text style={s.label}>Created by @{data.created_by.username}</Text>}
             <Text selectable style={s.id}>Artwork ID: {data.artwork_id}</Text>
-            <Text style={s.id}>Creator information recorded by the platform.</Text>
+            {!!data.created_by && <Text style={s.id}>Creator information recorded by the platform.</Text>}
             <Text>Creation date: {data.creation_date ? new Date(data.creation_date).toLocaleDateString() : 'Not provided'}</Text>
             {data.first_listed_at && <Text>First listed on: {new Date(data.first_listed_at).toLocaleDateString()}</Text>}
-            {data.claimed_creator.id !== data.created_by.id && <Text>Original attribution claim: @{data.claimed_creator.username}</Text>}
+            {data.claimed_creator && data.created_by && data.claimed_creator.id !== data.created_by.id && <Text>Original attribution claim: @{data.claimed_creator.username}</Text>}
             {data.disputed && <Text style={s.error}>Attribution under review. New ownership transfers are on hold.</Text>}
             {!data.disputed && data.attribution_review_pending && <Text>An attribution review has been requested. A submitted claim alone does not change ownership or creator verification.</Text>}
             {data.can_admin && <TouchableOpacity onPress={() => setShowDetails(value => !value)}><Text style={s.link}>{showDetails ? 'Hide administrative proof details' : 'Administrative proof details'}</Text></TouchableOpacity>}

@@ -11,6 +11,7 @@ from decimal import Decimal, InvalidOperation
 
 import requests
 from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
@@ -293,6 +294,8 @@ class CommissionFlowView(RestrictedAccessView):
         expire(c)
         from .extra_revisions import expire_extra
         expire_extra(c)
+        refresh_payout_statuses(c)
+        c.refresh_from_db()
         return Response(serialize(c, user))
 
     @transaction.atomic
@@ -649,11 +652,33 @@ def attempt_payout(milestone_id):
         m.payout_status = 'RETRY_PENDING'; m.payout_error = 'Payout pending reconciliation. Retry uses the same payment reference.'; m.save()
 
 
+def refresh_payout_statuses(commission):
+    """Poll existing transfers when callbacks or the background worker are unavailable."""
+    if not settings.XENDIT_SECRET_KEY:
+        return
+    rows = commission.milestones.filter(payout_status__in=['PROCESSING', 'RETRY_PENDING']).exclude(payout_provider_id='')
+    for milestone in rows:
+        if not cache.add(f'commission-payout-poll-{milestone.pk}', True, timeout=30):
+            continue
+        try:
+            response = requests.get(f'https://api.xendit.co/v3/payouts/{milestone.payout_provider_id}',
+                auth=(settings.XENDIT_SECRET_KEY, ''), headers={'api-version': '2025-09-01'}, timeout=5)
+            response.raise_for_status()
+            apply_payout(milestone, response.json())
+        except (requests.RequestException, ValueError, KeyError, APIException):
+            # A lookup failure cannot establish success or authorize a new payout.
+            continue
+
+
 @transaction.atomic
 def apply_payout(m, data):
     c = CommissionRequest.objects.select_for_update().get(pk=m.commission_req_id)
     m.refresh_from_db()
-    if data.get('payout_id') != m.payout_provider_id or data.get('reference_id') != m.payout_reference or data.get('source_currency') != 'PHP' or Decimal(str(data.get('source_amount', -1))) != m.amount * 100:
+    amount = data.get('source_amount')
+    # Same-currency payout lookup responses can omit source_amount.
+    if amount is None and data.get('destination_currency') == 'PHP':
+        amount = data.get('destination_amount')
+    if data.get('payout_id') != m.payout_provider_id or data.get('reference_id') != m.payout_reference or data.get('source_currency') != 'PHP' or Decimal(str(amount if amount is not None else -1)) != m.amount * 100:
         raise ValidationError('Payout details do not match.')
     status = data.get('status')
     if status == 'SUCCEEDED' and m.payout_status != 'SUCCEEDED':

@@ -44,6 +44,26 @@ class ArtworkHistoryTests(TestCase):
         self.assertEqual(legacy.data['entitlements'], [])
         self.assertNotIn('file_hash', legacy.data)
 
+    def test_no_reserved_uses_hides_public_resale_credit_but_preserves_admin_history(self):
+        from .provenance import event
+        transfer = event(self.record, 'transfer', 'credit-test', new=self.buyer, payload={
+            'rights': {'scope': {'copyright_transfer': {'artist_reserved_uses': ' None '}}},
+        })
+        type(transfer).objects.filter(pk=transfer.pk).update(status='confirmed')
+        resale = Artwork.objects.create(artist=self.buyer, title='Resale', price=150,
+                                       status='approved', art_type='digital')
+        ProvenanceListing.objects.create(artwork=resale, record=self.record)
+        for viewer in (None, self.buyer, self.artist):
+            self.assertIsNone(self.call(CreatorAttributionView, viewer, resale.pk).data['created_by'])
+            data = self.call(ProvenanceView, viewer, resale.pk).data
+            self.assertIsNone(data['created_by'])
+            self.assertIsNone(data['claimed_creator'])
+        self.assertEqual(self.call(CreatorAttributionView, None).data['created_by']['id'], self.artist.pk)
+        self.assertEqual(self.call(ProvenanceView, self.admin, resale.pk).data['created_by']['id'], self.artist.pk)
+        self.assertEqual(self.call(ArtworkHistoryView, self.admin, resale.pk).data['created_by']['id'], self.artist.pk)
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.credited_creator_id, self.artist.pk)
+
     def test_frozen_purchase_terms_and_proofs_are_available_without_payment_secrets(self):
         payment = self.payment_for()
         payment.xendit_payment_id = 'SECRET_PROVIDER_ID'; payment.save()

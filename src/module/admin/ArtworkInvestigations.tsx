@@ -9,12 +9,13 @@ import { adminType } from './adminDesign';
 import AdminTabs from './AdminTabs';
 import AttributionReviewsScreen from '@/module/blockchain/AttributionReviewsScreen';
 import { useLocalSearchParams } from 'expo-router';
+import CommissionInvestigations from './CommissionInvestigations';
 
 type Listing = { id: number; title: string; artist: string; status: string };
 export default function ArtworkInvestigations() {
   const { tab: requestedTab } = useLocalSearchParams<{ tab?: string }>();
-  const [tab, setTab] = useState<'artworks' | 'reviews' | 'failed'>(requestedTab === 'failed' || requestedTab === 'reviews' ? requestedTab : 'artworks');
-  useEffect(() => { if (requestedTab === 'failed' || requestedTab === 'reviews' || requestedTab === 'artworks') setTab(requestedTab); }, [requestedTab]);
+  const [tab, setTab] = useState<'artworks' | 'commissions' | 'reviews' | 'failed'>(requestedTab === 'failed' || requestedTab === 'reviews' || requestedTab === 'commissions' ? requestedTab : 'artworks');
+  useEffect(() => { if (requestedTab === 'failed' || requestedTab === 'reviews' || requestedTab === 'artworks' || requestedTab === 'commissions') setTab(requestedTab); }, [requestedTab]);
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState<Listing[]>([]);
@@ -36,8 +37,8 @@ export default function ArtworkInvestigations() {
   useEffect(() => { setRows([]); setNext(null); void load(); return () => { version.current++; }; }, [search]);
   useAdminRefresh(() => load());
   return <View style={{ flex: 1 }}>
-    <View style={{ paddingHorizontal: 28 }}><AdminTabs items={[{ id: 'artworks', label: 'Artwork investigations' }, { id: 'reviews', label: 'Attribution disputes' }, { id: 'failed', label: 'Failed blockchain records' }]} value={tab} onChange={setTab} /></View>
-    {tab !== 'artworks' ? <AttributionReviewsScreen key={tab} embedded mode={tab} /> : <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
+    <View style={{ paddingHorizontal: 28 }}><AdminTabs items={[{ id: 'artworks', label: 'Artwork investigations' }, { id: 'commissions', label: 'Commissions' }, { id: 'reviews', label: 'Attribution disputes' }, { id: 'failed', label: 'Failed blockchain records' }]} value={tab} onChange={setTab} /></View>
+    {tab === 'commissions' ? <CommissionInvestigations /> : tab !== 'artworks' ? <AttributionReviewsScreen key={tab} embedded mode={tab} /> : <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
     <Text style={adminType.pageTitle}>Blockchain & artwork investigations</Text>
     <Text style={adminType.body}>Review artwork registration, ownership records, sales, agreements, and issued digital copies. Investigation access is restricted to administrators.</Text>
     <View style={s.search}>
