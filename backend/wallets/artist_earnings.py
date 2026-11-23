@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 from authentication.views import AuthenticatedAPIView
 from .models import PaymentSession, WalletAccount
-from commissions.models import CommissionRequest, CommissionResale
+from commissions.models import CommissionRequest, CommissionResale, CommissionExtraRevision
 from messaging.models import RoyaltyPeriod
 
 PAGE_SIZE = 4
@@ -63,6 +63,10 @@ def earnings_rows(user):
             add(f'commission-{m.pk}', f'{c.title} · {m.stage_label}', c.buyer.username, 'commission', m.paid_at or m.approved_at or c.funded_at or c.created_at, net+shipping+fee, fee, shipping, net, status, reason, m.payout_reference or c.funding_reference or f'commission-{c.pk}', history, destination)
         if refunded:
             add(f'refund-{c.pk}', c.title + ' · Refund', c.buyer.username, 'commission', c.created_at, refunded, 0, 0, 0, 'refunded', 'Refund includes any applicable delivery charges; excluded from earnings.', f'commission-{c.pk}-refund')
+    for extra in CommissionExtraRevision.objects.filter(commission__artist=user).select_related('commission__buyer'):
+        status = 'available' if extra.status == 'APPROVED' else 'refunded' if extra.status == 'REFUNDED' else 'pending' if extra.funded_at else 'cancelled' if extra.status in ['DECLINED', 'EXPIRED'] else 'awaiting_payment'
+        history = [dict(at=at.isoformat(), label=label, amount='') for at, label in [(extra.created_at, 'Extra revision requested'), (extra.accepted_at, 'Quote accepted'), (extra.funded_at, 'Separate payment verified'), (extra.approved_at, 'Approved and released to wallet')] if at]
+        add(f'extra-revision-{extra.pk}', f'{extra.commission.title} · Extra revision #{extra.pk}', extra.commission.buyer.username, 'commission', extra.approved_at or extra.funded_at or extra.created_at, extra.amount, extra.platform_fee, 0, extra.artist_amount, status, 'Separate extra revision payment. Approved earnings are available in the platform wallet.', extra.payment_reference or f'extra-{extra.pk}', history, destination='Platform wallet')
     for period in RoyaltyPeriod.objects.filter(agreement__artist=user).select_related('agreement__buyer', 'agreement__artwork', 'funding', 'receipt'):
         funding = getattr(period, 'funding', None)
         receipt = getattr(period, 'receipt', None)

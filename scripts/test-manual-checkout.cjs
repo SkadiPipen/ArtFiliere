@@ -11,6 +11,7 @@ async function main() {
     'react': { useState: initial => [initial, () => {}], useRef: value => ({ current: value }), useEffect: effect => effect() },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { Platform: { OS: 'web' }, View: 'view', Text: 'text', TouchableOpacity: 'button', ActivityIndicator: 'loading' },
+    '@/components/Typography': { Text: 'text' },
     '@/firebase/config': { auth: { currentUser: { getIdToken: async () => 'test-token' } } },
     '@/services/api': { __esModule: true, default: 'http://api.test' },
     '@/module/cart/components/AuctionDeliveryCheckout': { __esModule: true, default: () => null },
