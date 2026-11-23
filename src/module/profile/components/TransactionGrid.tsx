@@ -145,6 +145,7 @@ export default function TransactionGrid({ role }: { role?: string }) {
         <TouchableOpacity id="transactions-tour-royalties" accessibilityRole="button" style={styles.iconItem} onPress={() => setShowRoyalties(true)}><Percent color="#C15656" size={28} /><Text style={styles.iconLabel}>Art Royalties</Text></TouchableOpacity>
         <TouchableOpacity
           id="transactions-tour-negotiate"
+          accessibilityRole="button"
           style={styles.iconItem}
           onPress={() => setShowNegotiations(true)}
         >
@@ -156,6 +157,7 @@ export default function TransactionGrid({ role }: { role?: string }) {
           style={styles.iconItem}
           onPress={() => setPurchaseFilter("pay")}
           id="transactions-tour-pay"
+          accessibilityRole="button"
         >
           <Wallet color="#C15656" size={28} />
           <Text style={styles.iconLabel}>To Pay</Text>

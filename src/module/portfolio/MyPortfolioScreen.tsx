@@ -1,4 +1,5 @@
 import ContentModal from '@/components/ContentModal';
+import AppDialog from '@/components/AppDialog';
 import ViewPostPage from '@/module/artwork/ViewPostScreen';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
@@ -45,10 +46,30 @@ export default function MyPortfolioScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Artwork | null>(null);
+  const [takeDown, setTakeDown] = useState<Artwork | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removalError, setRemovalError] = useState('');
   const [samplePreview, setSamplePreview] = useState<Artwork | null>(null);
   const [draftCategories, setDraftCategories] = useState<string[]>([]);
   const [savingCategories, setSavingCategories] = useState(false);
   const [categoryError, setCategoryError] = useState('');
+  const removePost = async (artwork: Artwork) => {
+    setRemoving(true);
+    setRemovalError('');
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw Error('Please sign in again.');
+      const response = await fetch(`${API_URL}/api/users/artworks/${artwork.id}/`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) await readApiResponse(response);
+      setArtworks(current => current.filter(work => work.id !== artwork.id));
+    } catch (error) {
+      setRemovalError(error instanceof Error ? error.message : 'Unable to take down this post.');
+    } finally {
+      setRemoving(false);
+    }
+  };
   const saveCategories = async () => {
     if (!editing) return;
     setSavingCategories(true); setCategoryError('');
@@ -100,6 +121,8 @@ export default function MyPortfolioScreen() {
 
   return (
     <SafeAreaView style={s.page} edges={["top", "left", "right"]}>
+      {takeDown && <AppDialog visible title="Take down this post?" message={`“${takeDown.title}” will be removed from browsing and your portfolio. Existing purchases and agreements remain accessible.`} primaryLabel="Take down" secondaryLabel="Cancel" onClose={() => setTakeDown(null)} onPrimary={() => { void removePost(takeDown); }} />}
+      {!!removalError && <AppDialog visible tone="error" title="Unable to take down post" message={removalError} onClose={() => setRemovalError('')} />}
       {samplePreview && <ContentModal visible animationType="fade" accessibilityLabel="Portfolio preview" onRequestClose={() => setSamplePreview(null)}>
         <ViewPostPage preview={samplePreview} onClose={() => setSamplePreview(null)} />
       </ContentModal>}
@@ -216,6 +239,7 @@ export default function MyPortfolioScreen() {
                 </View>
               </TouchableOpacity>
               {(artwork.source === 'artwork' || !artwork.source) && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit categories for ${artwork.title}`} onPress={() => { setDraftCategories(artworkCategoryIds(artwork)); setCategoryError(''); setEditing(artwork); }} style={{ padding: 14 }}><Text style={{ color: '#BC5555', fontWeight: '700' }}>Edit categories</Text></TouchableOpacity>}
+              {artwork.source === 'artwork' && <TouchableOpacity accessibilityRole="button" disabled={removing} accessibilityLabel={`Take down ${artwork.title}`} onPress={() => setTakeDown(artwork)} style={{ padding: 14 }}><Text style={{ color: '#A74646', fontWeight: '700' }}>Take down post</Text></TouchableOpacity>}
               {artwork.status === "declined" && (
                 <TouchableOpacity
                   accessibilityRole="button"

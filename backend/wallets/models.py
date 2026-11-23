@@ -30,6 +30,7 @@ class SupportTicket(models.Model):
     details = models.TextField(max_length=4000)
     evidence = models.TextField(blank=True, max_length=2000)
     image_data = models.TextField(blank=True)
+    evidence_images = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.OPEN)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

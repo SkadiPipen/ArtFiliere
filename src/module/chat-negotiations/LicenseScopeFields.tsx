@@ -4,7 +4,7 @@ import CountrySelector from './CountrySelector';
 import { Pressable, View } from 'react-native';
 import InfoAccordion from './InfoAccordion';
 
-export type LicenseScope = { allow_resale?: boolean; copyright_transfer?: import('./CopyrightTransferFields').CopyrightTransfer; territory: string; territory_details: string; uses: string[]; products: string; modifications: string; sublicensing: string; credit: string; credit_name: string; duration_months: number };
+export type LicenseScope = { allow_resale?: boolean; copyright_transfer?: import('./CopyrightTransferFields').CopyrightTransfer; territory: string; territory_details: string; uses: string[]; products: string; modifications: string; sublicensing: string; credit: string; credit_name: string; duration_months: number | null };
 export const defaultScope: LicenseScope = { territory: 'philippines', territory_details: 'Philippines', uses: ['personal_display'], products: '', modifications: 'technical', sublicensing: 'none', credit: 'required', credit_name: '', duration_months: 12 };
 const groupInfo: Record<string, [string, string]> = {
   territory: ['Territory', 'Choose where the buyer may use the work.'],
