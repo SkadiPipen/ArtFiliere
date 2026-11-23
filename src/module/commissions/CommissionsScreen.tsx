@@ -19,6 +19,7 @@ import {
   ImageIcon,
   MessageCircle,
   Paintbrush,
+  RefreshCw,
   Trash2,
   Truck,
   UploadCloud,
@@ -28,6 +29,14 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Linking, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CommissionProgressPanel from './CommissionProgressPanel';
+
+const receivedFilters = [
+  { label: 'All', statuses: null },
+  { label: 'Awaiting Response', statuses: ['PENDING', 'NEGOTIATING'] },
+  { label: 'Accepted', statuses: ['SIGNING', 'AWAITING_FUNDS'] },
+  { label: 'In Progress', statuses: ['IN_PROGRESS', 'STAGE_1', 'STAGE_2', 'STAGE_3'] },
+  { label: 'Completed', statuses: ['COMPLETE'] },
+] as const;
 
 export default function CommissionsScreen() {
   const router = useRouter();
@@ -76,8 +85,11 @@ export default function CommissionsScreen() {
     return () => sub?.remove();
   }, []);
 
-  const [role, setRole] = useState<"buyer" | "artist">("buyer");
+  const [requestedRole, setRole] = useState<"buyer" | "artist">("buyer");
   const [userRole, setUserRole] = useState<string>("buyer");
+  const isArtist = userRole === "artist";
+  const role = isArtist ? requestedRole : "buyer";
+  const [receivedFilter, setReceivedFilter] = useState(0);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const progressScroll = useRef<ScrollView>(null);
@@ -86,6 +98,7 @@ export default function CommissionsScreen() {
     if (focusRevision) { progressScroll.current?.scrollTo({ y, animated: true }); setFocusRevision(false); }
   };
   const [commissionError, setCommissionError] = useState('');
+  const commissionRequest = useRef(0);
   const [showChatModal, setShowChatModal] = useState(false);
   const [chatCommissionId, setChatCommissionId] = useState<number | undefined>();
   const [chatTargetUser, setChatTargetUser] = useState<{
@@ -233,7 +246,8 @@ export default function CommissionsScreen() {
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const user = auth.currentUser;
+        const token = await user?.getIdToken();
         if (!token) return;
 
         const res = await fetch(`${API_URL}/auth/me/`, {
@@ -244,16 +258,19 @@ export default function CommissionsScreen() {
         });
         if (res.ok) {
           const data = await res.json();
-          setUserRole((data.role || "buyer").toLowerCase());
+          if (user === auth.currentUser) setUserRole((data.role || "buyer").toLowerCase());
         }
       } catch (err) {
         console.warn("Failed to fetch user role:", err);
       }
     };
-    return onAuthStateChanged(auth, () => { void fetchUserRole(); });
+    return onAuthStateChanged(auth, () => {
+      setUserRole('buyer');
+      setRole('buyer');
+      setReceivedFilter(0);
+      void fetchUserRole();
+    });
   }, []);
-
-  const isArtist = userRole === "artist";
 
   const currentChatUser = auth.currentUser
     ? {
@@ -273,6 +290,7 @@ export default function CommissionsScreen() {
     : null;
 
   const fetchCommissions = async () => {
+    const requestId = ++commissionRequest.current;
     try {
       setLoading(true);
       setCommissionError('');
@@ -288,6 +306,7 @@ export default function CommissionsScreen() {
       }
       if (res.ok) {
         const data = await res.json();
+        if (requestId !== commissionRequest.current) return;
         // Keep a cancelled/declined request out of the active work dashboard
         // even if an older backend response is cached by a client.
         const activeCommissions = data.filter(
@@ -299,19 +318,24 @@ export default function CommissionsScreen() {
         }
       }
     } catch (e: any) {
+      if (requestId !== commissionRequest.current) return;
       setCommissions([]);
       setCommissionError(e.message || 'Unable to load commissions. Please try again.');
     } finally {
-      setLoading(false);
+      if (requestId === commissionRequest.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    return onAuthStateChanged(auth, () => {
+    const unsubscribe = onAuthStateChanged(auth, () => {
       setSelectedCommission(null);
       setRightPanelMode('empty');
       void fetchCommissions();
     });
+    return () => {
+      unsubscribe();
+      commissionRequest.current += 1;
+    };
   }, [role]);
 
   const loadTrackData = async (commId: number) => {
@@ -607,15 +631,15 @@ export default function CommissionsScreen() {
         {item.deadline && <Text style={s.cardSub}>Preferred completion: {new Date(item.deadline).toLocaleDateString()}</Text>}
         {role === 'artist' && active && <TouchableOpacity style={s.updateProgressBtn} onPress={() => handleSelectForTrack(item)}><Paintbrush color="#FFF" size={14} /><Text style={s.updateProgressText}>Post 3-Stage Progress Update</Text></TouchableOpacity>}
         <View style={[s.utilityRow, { flexWrap: 'wrap' }]}>
-          <TouchableOpacity style={s.chatBtn} onPress={() => { setChatTargetUser(null); setChatCommissionId(item.commission_req_id); setShowChatModal(true); }}><MessageCircle color="#E67E22" size={15} /><Text style={s.chatBtnText}>Commission Chat</Text></TouchableOpacity>
-          <TouchableOpacity style={s.trackBtn} onPress={() => handleSelectForTrack(item)}><Eye color="#C15656" size={15} /><Text style={s.trackBtnText}>Track 3-Stage Progress</Text></TouchableOpacity>
+          <TouchableOpacity style={s.chatBtn} onPress={() => { setChatTargetUser(null); setChatCommissionId(item.commission_req_id); setShowChatModal(true); }}><MessageCircle color={COLORS.redDark} size={15} /><Text style={s.chatBtnText}>Commission Chat</Text></TouchableOpacity>
+          <TouchableOpacity style={s.trackBtn} onPress={() => handleSelectForTrack(item)}><Eye color={COLORS.redDark} size={15} /><Text style={s.trackBtnText}>Track 3-Stage Progress</Text></TouchableOpacity>
         </View>
         <View style={s.milestoneBox}><Text style={s.milestoneHeading}>3-Stage Milestones</Text>
           <Text style={[s.cardSub, { marginBottom: 10 }]}>{item.funded_at ? 'Full upfront payment confirmed. Artist payouts follow stage approval.' : 'Full upfront funding is required after both signatures.'}</Text>
           {!item.milestones?.length && <Text style={s.milestoneText}>The agreed milestone schedule will appear after proposal acceptance.</Text>}
           {item.milestones?.map((m: any) => <View key={m.milestone_id} style={[s.milestoneRow, { flexWrap: 'wrap', gap: 6 }]}><Text style={[s.milestoneText, { flex: 1, minWidth: 160 }]}>{m.stage_label} ({m.percentage}%): ₱{Number(m.amount).toLocaleString()}</Text><Text style={{ fontSize: 11, color: m.status === 'APPROVED' ? '#34854C' : '#75655F' }}>{m.status.replace(/_/g, ' ')}{m.revision_used ? ' · Revision 1/1' : ''}</Text></View>)}
         </View>
-        <TouchableOpacity style={[s.chatBtn, { flex: 0, height: 'auto', marginVertical: 10, paddingVertical: 10, paddingHorizontal: 16, borderColor: '#498e00c8', backgroundColor: '#498e0015' }]} onPress={openHistory}><Text style={[s.chatBtnText, { textAlign: 'center', color: '#498e00' }]}>Review Agreement, Milestone, and Revision History</Text></TouchableOpacity>
+        <TouchableOpacity style={[s.chatBtn, { flex: 0, height: 'auto', marginVertical: 10, paddingVertical: 10, paddingHorizontal: 16, borderColor: COLORS.border, backgroundColor: COLORS.pageBackground }]} onPress={openHistory}><Text style={[s.chatBtnText, { textAlign: 'center', color: COLORS.redDark }]}>Review Agreement, Milestone, and Revision History</Text></TouchableOpacity>
         {role === 'buyer' && !['COMPLETE', 'CANCELLED'].includes(item.status) && <TouchableOpacity style={s.cancelLink}
             onPress={() => {
               setCancellingId(item.commission_req_id);
@@ -722,7 +746,7 @@ export default function CommissionsScreen() {
               setShowChatModal(true);
             }}
           >
-            <MessageCircle color="#E67E22" size={15} />
+            <MessageCircle color={COLORS.redDark} size={15} />
             <Text style={s.chatBtnText}>Chat & Negotiate</Text>
           </TouchableOpacity>
 
@@ -732,7 +756,7 @@ export default function CommissionsScreen() {
               handleSelectForTrack(item);
             }}
           >
-            <Eye color="#C15656" size={15} />
+            <Eye color={COLORS.redDark} size={15} />
             <Text style={s.trackBtnText}>Track 3-Stage Progress</Text>
           </TouchableOpacity>
         </View>
@@ -838,16 +862,28 @@ export default function CommissionsScreen() {
     selectedCommission?.buyer_username ||
     selectedCommission?.buyer_name ||
     "Client";
+  const statuses: readonly string[] | null = receivedFilters[receivedFilter].statuses;
+  const visibleCommissions = role === 'artist' && statuses
+    ? commissions.filter(commission => statuses.includes(commission.status))
+    : commissions;
+  const refreshButton = (
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh commissions" disabled={loading} onPress={() => void fetchCommissions()} style={[s.refreshButton, { opacity: loading ? 0.5 : 1 }]}>
+      {loading ? <ActivityIndicator color={COLORS.red} /> : <RefreshCw size={20} color={COLORS.redDark} />}
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={s.pageContainer} edges={["top", "left", "right"]}>
       {/* MOBILE TOP NAVIGATION BAR (< 960px) */}
       {!isDesktop && (
         <View style={s.mobileTopNav}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from Commissions" onPress={handleBack} style={s.mobileBrandRow}>
-            <ArrowLeft color="#000000" size={22} />
-            <Text style={s.brandTitle}>Commissions</Text>
-          </TouchableOpacity>
+          <View style={s.mobileHeading}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from Commissions" onPress={handleBack} style={s.mobileBrandRow}>
+              <ArrowLeft color="#000000" size={22} />
+              <Text style={s.brandTitle}>Commissions</Text>
+            </TouchableOpacity>
+            {refreshButton}
+          </View>
           {isArtist ? (
             <View style={s.mobilePillRow}>
               <TouchableOpacity
@@ -863,7 +899,7 @@ export default function CommissionsScreen() {
                     role === "buyer" && s.mobileTabBtnTextActive,
                   ]}
                 >
-                  Requests
+                  Commissions Sent
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -879,20 +915,20 @@ export default function CommissionsScreen() {
                     role === "artist" && s.mobileTabBtnTextActive,
                   ]}
                 >
-                  Incoming
+                  Commissions Received
                 </Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={s.buyerBadgeMobile}>
-              <Text style={s.buyerBadgeMobileText}>My Requests</Text>
+              <Text style={s.buyerBadgeMobileText}>Commissions Sent</Text>
             </View>
           )}
         </View>
       )}
 
       <TourLauncher label="Commissions tutorial" steps={[
-        { target: 'commissions-list', instruction: isArtist ? 'Use My Requests for work you commissioned and Incoming Jobs for requests from buyers.' : 'My Requests lists the commissions you have requested from artists.' },
+        { target: 'commissions-list', instruction: isArtist ? 'Commissions Sent shows work you requested. Commissions Received shows client requests, with filters for each stage.' : 'Commissions Sent lists the work you requested from artists.' },
         { target: 'commissions-list', instruction: 'Open a commission to review its proposal, track milestones, and see the next action.' },
       ]} />
       <View style={s.appLayout}>
@@ -919,7 +955,7 @@ export default function CommissionsScreen() {
                       role === "buyer" && s.sideNavTextActive,
                     ]}
                   >
-                    My Requests
+                    Commissions Sent
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -935,13 +971,13 @@ export default function CommissionsScreen() {
                       role === "artist" && s.sideNavTextActive,
                     ]}
                   >
-                    Incoming Jobs
+                    Commissions Received
                   </Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={s.buyerBadgeSidebar}>
-                <Text style={s.buyerBadgeSidebarText}>My Requests</Text>
+                <Text style={s.buyerBadgeSidebarText}>Commissions Sent</Text>
               </View>
             )}
 
@@ -959,22 +995,40 @@ export default function CommissionsScreen() {
         {/* MIDDLE COLUMN: FEED OF COMMISSIONS */}
         <View id="commissions-list" style={[s.feedColumn, !isDesktop && s.feedColumnMobile]}>
           {isDesktop && (
-            <View style={s.feedHeader}>
+            <View style={[s.feedHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
               <Text style={s.feedHeaderText}>
-                {role === "artist" ? "Incoming Jobs" : "My Commission Requests"}
+                {role === "artist" ? "Commissions Received" : "Commissions Sent"}
               </Text>
+              {refreshButton}
             </View>
           )}
 
+          {role === 'artist' && <View style={s.receivedFilterRow}>
+            {receivedFilters.map((filter, index) => (
+              <TouchableOpacity
+                key={filter.label}
+                accessibilityRole="button"
+                accessibilityState={{ selected: index === receivedFilter }}
+                style={[s.mobileTabBtn, index === receivedFilter && s.mobileTabBtnActive]}
+                onPress={() => {
+                  setReceivedFilter(index);
+                  setSelectedCommission(null);
+                  setRightPanelMode('empty');
+                }}
+              >
+                <Text style={[s.mobileTabBtnText, index === receivedFilter && s.mobileTabBtnTextActive]}>{filter.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>}
           {!!commissionError && <View style={{ padding: 16, gap: 8 }}>
             <Text accessibilityRole="alert" style={{ color: '#A13030' }}>{commissionError}</Text>
-            <TouchableOpacity onPress={() => void fetchCommissions()}><Text style={{ color: '#C15656', fontWeight: '700' }}>Retry loading commissions</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => void fetchCommissions()}><Text style={{ color: COLORS.redDark, fontWeight: '700' }}>Retry loading commissions</Text></TouchableOpacity>
           </View>}
           {loading ? (
             <Skeleton layout="list" />
           ) : (
             <FlatList
-              data={commissions}
+              data={visibleCommissions}
               keyExtractor={(item) => String(item.commission_req_id)}
               renderItem={renderCard}
               contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
@@ -991,7 +1045,7 @@ export default function CommissionsScreen() {
             {rightPanelMode === "empty" || !selectedCommission ? (
               <View style={s.rightEmptyContainer}>
                 <Paintbrush
-                  color="#C15656"
+                  color={COLORS.redDark}
                   size={40}
                   style={{ opacity: 0.5 }}
                 />
@@ -1080,13 +1134,13 @@ export default function CommissionsScreen() {
                   >
                     <View style={s.dropZoneContent}>
                       <View style={s.dropIconCircle}>
-                        <ImageIcon color="#B84A4A" size={24} />
+                        <ImageIcon color={COLORS.redDark} size={24} />
                       </View>
                       <Text style={s.dropZoneTitle}>
                         Drag & drop artwork here, or{" "}
                         <Text
                           style={{
-                            color: "#B84A4A",
+                            color: COLORS.redDark,
                             textDecorationLine: "underline",
                           }}
                         >
@@ -1398,7 +1452,7 @@ export default function CommissionsScreen() {
                     >
                       <View style={s.dropZoneContent}>
                         <View style={s.dropIconCircle}>
-                          <ImageIcon color="#B84A4A" size={24} />
+                          <ImageIcon color={COLORS.redDark} size={24} />
                         </View>
                         <Text style={s.dropZoneTitle}>
                           Tap to select artwork from files
@@ -1687,7 +1741,7 @@ export default function CommissionsScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[s.modalSubmitBtn, { backgroundColor: "#E74C3C" }]}
+                style={[s.modalSubmitBtn, { backgroundColor: COLORS.redDark }]}
                 onPress={submitCancellation}
                 disabled={cancelling}
               >
@@ -1739,12 +1793,14 @@ const s = StyleSheet.create({
   // MOBILE NAV (< 960px)
   mobileTopNav: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#E8DED1",
+    borderBottomColor: COLORS.border,
     backgroundColor: COLORS.pageBackground,
   },
   mobileBrandRow: {
@@ -1752,18 +1808,28 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  mobileHeading: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  refreshButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   mobilePillRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 6,
+  },
+  receivedFilterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   mobileTabBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: "#EDE5D8",
+    backgroundColor: COLORS.roseLight,
   },
   mobileTabBtnActive: {
-    backgroundColor: "#E67E22",
+    backgroundColor: COLORS.redDark,
   },
   mobileTabBtnText: {
     fontSize: 12,
@@ -1774,7 +1840,7 @@ const s = StyleSheet.create({
     color: "#FFF",
   },
   buyerBadgeMobile: {
-    backgroundColor: "#EDE5D8",
+    backgroundColor: COLORS.roseLight,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 14,
@@ -1782,7 +1848,7 @@ const s = StyleSheet.create({
   buyerBadgeMobileText: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#8E44AD",
+    color: COLORS.redDark,
   },
 
   // MOBILE MODAL
@@ -1793,13 +1859,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#E8DED1",
+    borderBottomColor: COLORS.border,
     backgroundColor: COLORS.pageBackground,
   },
   mobileModalTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#B84A4A",
+    color: COLORS.redDark,
   },
   mobileModalCloseBtn: {
     paddingVertical: 4,
@@ -1808,14 +1874,14 @@ const s = StyleSheet.create({
   mobileModalCloseText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#B84A4A",
+    color: COLORS.redDark,
   },
 
   // SIDEBAR (DESKTOP)
   sidebar: {
     width: 260,
     borderRightWidth: 1,
-    borderRightColor: "#E8DED1",
+    borderRightColor: COLORS.border,
     paddingVertical: 18,
     paddingHorizontal: 16,
     gap: 16,
@@ -1829,7 +1895,7 @@ const s = StyleSheet.create({
   brandTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#B84A4A",
+    color: COLORS.redDark,
   },
   sidebarToggleContainer: {
     gap: 8,
@@ -1839,10 +1905,10 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 25,
-    backgroundColor: "#EDE5D8",
+    backgroundColor: COLORS.roseLight,
   },
   sideNavPillActive: {
-    backgroundColor: "#E67E22",
+    backgroundColor: COLORS.redDark,
   },
   sideNavText: {
     fontSize: 14,
@@ -1853,7 +1919,7 @@ const s = StyleSheet.create({
     color: "#FFF",
   },
   buyerBadgeSidebar: {
-    backgroundColor: "#EDE5D8",
+    backgroundColor: COLORS.roseLight,
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 20,
@@ -1862,7 +1928,7 @@ const s = StyleSheet.create({
   buyerBadgeSidebarText: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#8E44AD",
+    color: COLORS.redDark,
   },
   sidebarFooterInfo: {
     marginTop: "auto",
@@ -1870,12 +1936,12 @@ const s = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E8DED1",
+    borderColor: COLORS.border,
   },
   sidebarHelpHeading: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#B84A4A",
+    color: COLORS.redDark,
     marginBottom: 6,
   },
   sidebarHelpText: {
@@ -1889,7 +1955,7 @@ const s = StyleSheet.create({
     flex: 1,
     maxWidth: 620,
     borderRightWidth: 1,
-    borderRightColor: "#E8DED1",
+    borderRightColor: COLORS.border,
     height: "100%",
     ...(Platform.OS === "web" ? { overflowY: "auto" } : {}),
   },
@@ -1898,16 +1964,19 @@ const s = StyleSheet.create({
     borderRightWidth: 0,
   },
   feedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#E8DED1",
+    borderBottomColor: COLORS.border,
     backgroundColor: "rgba(250, 246, 239, 0.95)",
   },
   feedHeaderText: {
     fontSize: 17,
     fontWeight: "800",
-    color: "#2C3E50",
+    color: COLORS.textDark,
   },
 
   // RIGHT PANEL (DESKTOP)
@@ -1931,7 +2000,7 @@ const s = StyleSheet.create({
   rightEmptyHeading: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#B84A4A",
+    color: COLORS.redDark,
     marginTop: 14,
   },
   rightEmptySub: {
@@ -1949,7 +2018,7 @@ const s = StyleSheet.create({
   rightPanelTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#B84A4A",
+    color: COLORS.redDark,
   },
   rightPanelSub: {
     fontSize: 12,
@@ -1961,7 +2030,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#8E44AD",
+    backgroundColor: COLORS.redDark,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
@@ -1976,7 +2045,7 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   panelCloseText: {
-    color: "#C15656",
+    color: COLORS.redDark,
     fontWeight: "700",
     fontSize: 12,
   },
@@ -1988,10 +2057,10 @@ const s = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#E8DED1",
+    borderColor: COLORS.border,
   },
   cardSelected: {
-    borderColor: "#E67E22",
+    borderColor: COLORS.redDark,
     borderWidth: 1.5,
   },
   cardHeader: {
@@ -2002,7 +2071,7 @@ const s = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#2C3E50",
+    color: COLORS.textDark,
   },
   cardSub: {
     fontSize: 12,
@@ -2014,12 +2083,12 @@ const s = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 6,
   },
-  badgePending: { backgroundColor: "#FAD7A0" },
-  badgeProgress: { backgroundColor: "#AED6F1" },
-  badgeDone: { backgroundColor: "#A9DFBF" },
-  badgeText: { fontSize: 10, fontWeight: "800", color: "#332b2b" },
+  badgePending: { backgroundColor: COLORS.cream },
+  badgeProgress: { backgroundColor: COLORS.roseLight },
+  badgeDone: { backgroundColor: "#E3EEE5" },
+  badgeText: { fontSize: 10, fontWeight: "800", color: COLORS.textDark },
   desc: { fontSize: 13, color: "#555", marginVertical: 8 },
-  price: { fontSize: 13, fontWeight: "700", color: "#C0392B" },
+  price: { fontSize: 13, fontWeight: "700", color: COLORS.redDark },
   actionRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   btn: {
     flexDirection: "row",
@@ -2030,10 +2099,10 @@ const s = StyleSheet.create({
     borderRadius: 6,
   },
   btnAccept: { backgroundColor: "#27AE60" },
-  btnReject: { backgroundColor: "#E74C3C" },
+  btnReject: { backgroundColor: COLORS.redDark },
   btnText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
   updateProgressBtn: {
-    backgroundColor: "#8E44AD",
+    backgroundColor: COLORS.redDark,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -2058,10 +2127,10 @@ const s = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E67E22",
-    backgroundColor: "#FEF5EC",
+    borderColor: COLORS.redDark,
+    backgroundColor: COLORS.white,
   },
-  chatBtnText: { color: "#E67E22", fontSize: 12, fontWeight: "700" },
+  chatBtnText: { color: COLORS.redDark, fontSize: 12, fontWeight: "700" },
   trackBtn: {
     flex: 1,
     flexDirection: "row",
@@ -2071,12 +2140,12 @@ const s = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#C15656",
-    backgroundColor: "#FAF0F0",
+    borderColor: COLORS.redDark,
+    backgroundColor: COLORS.roseLight,
   },
-  trackBtnText: { color: "#C15656", fontSize: 12, fontWeight: "700" },
+  trackBtnText: { color: COLORS.redDark, fontSize: 12, fontWeight: "700" },
   milestoneBox: {
-    backgroundColor: "#FDFBF7",
+    backgroundColor: COLORS.pageBackground,
     padding: 10,
     borderRadius: 8,
     marginTop: 10,
@@ -2112,7 +2181,7 @@ const s = StyleSheet.create({
     paddingTop: 10,
   },
   dispatchBtn: {
-    backgroundColor: "#8E44AD",
+    backgroundColor: COLORS.redDark,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -2123,7 +2192,7 @@ const s = StyleSheet.create({
   dispatchBtnText: { color: "#FFF", fontSize: 12, fontWeight: "800" },
   cancelLink: { marginTop: 8, alignSelf: "center", paddingVertical: 4 },
   cancelLinkText: {
-    color: "#C0392B",
+    color: COLORS.redDark,
     fontSize: 11,
     fontWeight: "700",
     textDecorationLine: "underline",
@@ -2144,7 +2213,7 @@ const s = StyleSheet.create({
   },
   trackBarFill: {
     height: "100%",
-    backgroundColor: "#C15656",
+    backgroundColor: COLORS.redDark,
     borderRadius: 4,
   },
   previewCardWrapper: {
@@ -2155,7 +2224,7 @@ const s = StyleSheet.create({
     width: "100%",
     height: 260,
     borderWidth: 1.5,
-    borderColor: "#C15656",
+    borderColor: COLORS.redDark,
     backgroundColor: "#FFF",
     overflow: "hidden",
     borderRadius: 8,
@@ -2165,7 +2234,7 @@ const s = StyleSheet.create({
   previewImg: { width: "100%", height: "100%" },
   progressLabel: {
     marginTop: 12,
-    color: "#B84A4A",
+    color: COLORS.redDark,
     fontSize: 14,
     fontWeight: "800",
   },
@@ -2189,7 +2258,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#E6DCCF",
   },
-  stageDotActive: { backgroundColor: "#C15656" },
+  stageDotActive: { backgroundColor: COLORS.redDark },
   stageDotText: { fontSize: 11, fontWeight: "700", color: "#666" },
   stageDotTextActive: { color: "#FFF" },
 
@@ -2209,7 +2278,7 @@ const s = StyleSheet.create({
     backgroundColor: "#EEE",
     borderRadius: 6,
   },
-  pctBtnActive: { backgroundColor: "#B84A4A" },
+  pctBtnActive: { backgroundColor: COLORS.redDark },
   pctBtnText: { fontSize: 10, fontWeight: "700", color: "#555" },
   pctBtnTextActive: { color: "#FFF" },
   rightInput: {
@@ -2221,7 +2290,7 @@ const s = StyleSheet.create({
     backgroundColor: "#FFF",
   },
   rightSubmitBtn: {
-    backgroundColor: "#B84A4A",
+    backgroundColor: COLORS.redDark,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -2247,7 +2316,7 @@ const s = StyleSheet.create({
     cursor: "pointer" as any,
   },
   dropZoneActive: {
-    borderColor: "#B84A4A",
+    borderColor: COLORS.redDark,
     backgroundColor: "#FFF0EE",
   },
   dropZoneContent: {
@@ -2279,7 +2348,7 @@ const s = StyleSheet.create({
     height: 200,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: "#B84A4A",
+    borderColor: COLORS.redDark,
     backgroundColor: "#FFF",
     overflow: "hidden",
     alignItems: "center",
@@ -2333,7 +2402,7 @@ const s = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#E8DED1",
+    borderColor: COLORS.border,
     gap: 8,
   },
   riderHeaderRow: {
@@ -2355,7 +2424,7 @@ const s = StyleSheet.create({
   etaText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#C0392B",
+    color: COLORS.redDark,
   },
   riderInfoRow: {
     flexDirection: "row",
@@ -2409,7 +2478,7 @@ const s = StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: "800",
-    color: "#B84A4A",
+    color: COLORS.redDark,
     marginBottom: 4,
     textAlign: "center",
   },
@@ -2428,9 +2497,9 @@ const s = StyleSheet.create({
     marginVertical: 3,
     backgroundColor: "#FDFDFD",
   },
-  choicePillActive: { borderColor: "#B84A4A", backgroundColor: "#FFF0F0" },
+  choicePillActive: { borderColor: COLORS.redDark, backgroundColor: "#FFF0F0" },
   choiceText: { fontSize: 12, color: "#555" },
-  choiceTextActive: { color: "#B84A4A", fontWeight: "700" },
+  choiceTextActive: { color: COLORS.redDark, fontWeight: "700" },
   modalInput: {
     borderWidth: 1,
     borderColor: "#CCC",
@@ -2447,7 +2516,7 @@ const s = StyleSheet.create({
   },
   modalCancelBtn: { paddingVertical: 8, paddingHorizontal: 14 },
   modalSubmitBtn: {
-    backgroundColor: "#B84A4A",
+    backgroundColor: COLORS.redDark,
     paddingVertical: 8,
     paddingHorizontal: 18,
     borderRadius: 6,

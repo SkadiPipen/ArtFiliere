@@ -1,3 +1,5 @@
+import ContentModal from '@/components/ContentModal';
+import ViewPostPage from '@/module/artwork/ViewPostScreen';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
@@ -21,6 +23,7 @@ type Artwork = {
   source?: string;
   commission_id?: number;
   title: string;
+  description?: string;
   price: string;
   image_data: string;
   category: string;
@@ -42,6 +45,7 @@ export default function MyPortfolioScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Artwork | null>(null);
+  const [samplePreview, setSamplePreview] = useState<Artwork | null>(null);
   const [draftCategories, setDraftCategories] = useState<string[]>([]);
   const [savingCategories, setSavingCategories] = useState(false);
   const [categoryError, setCategoryError] = useState('');
@@ -96,6 +100,9 @@ export default function MyPortfolioScreen() {
 
   return (
     <SafeAreaView style={s.page} edges={["top", "left", "right"]}>
+      {samplePreview && <ContentModal visible animationType="fade" accessibilityLabel="Portfolio preview" onRequestClose={() => setSamplePreview(null)}>
+        <ViewPostPage preview={samplePreview} onClose={() => setSamplePreview(null)} />
+      </ContentModal>}
       {editing && <Modal visible animationType="slide" onRequestClose={() => { if (!savingCategories) setEditing(null); }}>
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFCFA' }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ width: '100%', maxWidth: 700, alignSelf: 'center', padding: 24, gap: 16 }}>
           <Text style={{ fontSize: 24, fontWeight: '700', color: '#A84B46' }}>Categories for {editing.title}</Text>
@@ -120,7 +127,7 @@ export default function MyPortfolioScreen() {
         </View>
         <TouchableOpacity
           style={s.post}
-          onPress={() => router.push("/artist-post")}
+          onPress={() => router.push({ pathname: '/artist-post', params: { mode: 'portfolio' } })}
         >
           <Plus size={17} color="#FFFFFF" />
           <Text style={s.postText}>Post</Text>
@@ -173,6 +180,7 @@ export default function MyPortfolioScreen() {
               <TouchableOpacity
                 accessibilityRole="button"
                 onPress={() =>
+                  artwork.source === 'registration' ? setSamplePreview(artwork) :
                   artwork.source === "commission" ? router.push({ pathname: "/commission-detail", params: { id: String(artwork.commission_id) } }) : router.push({
                     pathname: "/(home)/view-post",
                     params: {
@@ -197,9 +205,9 @@ export default function MyPortfolioScreen() {
                     </Text>
                   </View>
                   <Text style={s.price}>
-                    {artwork.source === "commission" ? "Completed commission" : `₱ ${Number(artwork.price).toLocaleString()}`}
+                    {artwork.source === "commission" ? "Completed commission" : artwork.source === 'registration' ? 'Registration portfolio sample' : artwork.sale_type === 'Portfolio Only' ? 'Portfolio only' : `₱ ${Number(artwork.price).toLocaleString()}`}
                   </Text>
-                  {artwork.source !== 'commission' && <Text style={{ color: '#75655F', fontSize: 12 }}>{artwork.category_labels?.length ? artwork.category_labels.join(' · ') : 'Choose artwork categories'}</Text>}
+                  {(artwork.source === 'artwork' || !artwork.source) && <Text style={{ color: '#75655F', fontSize: 12 }}>{artwork.category_labels?.length ? artwork.category_labels.join(' · ') : 'Choose artwork categories'}</Text>}
                   {artwork.status === "declined" && artwork.decline_reason ? (
                     <Text style={s.reason} numberOfLines={2}>
                       {artwork.decline_reason}
@@ -207,7 +215,7 @@ export default function MyPortfolioScreen() {
                   ) : null}
                 </View>
               </TouchableOpacity>
-              {artwork.source !== 'commission' && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit categories for ${artwork.title}`} onPress={() => { setDraftCategories(artworkCategoryIds(artwork)); setCategoryError(''); setEditing(artwork); }} style={{ padding: 14 }}><Text style={{ color: '#BC5555', fontWeight: '700' }}>Edit categories</Text></TouchableOpacity>}
+              {(artwork.source === 'artwork' || !artwork.source) && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Edit categories for ${artwork.title}`} onPress={() => { setDraftCategories(artworkCategoryIds(artwork)); setCategoryError(''); setEditing(artwork); }} style={{ padding: 14 }}><Text style={{ color: '#BC5555', fontWeight: '700' }}>Edit categories</Text></TouchableOpacity>}
               {artwork.status === "declined" && (
                 <TouchableOpacity
                   accessibilityRole="button"
@@ -233,7 +241,7 @@ export default function MyPortfolioScreen() {
             </Text>
             <TouchableOpacity
               style={s.emptyButton}
-              onPress={() => router.push("/artist-post")}
+              onPress={() => router.push({ pathname: '/artist-post', params: { mode: 'portfolio' } })}
             >
               <Text style={s.emptyButtonText}>Create a post</Text>
             </TouchableOpacity>

@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from datetime import datetime
 from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
@@ -6,6 +7,7 @@ from django.core.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory
 from users.models import User
 from artworks.models import Artwork
+from artworks.test_screening import screening
 from artworks.views import ArtworkView, AuctionAgreementPreviewView
 from artworks.tests import image_data_url
 from messaging.models import AgreementTemplate
@@ -13,7 +15,7 @@ from messaging.signing import AgreementSigningView, signing_data, render_pdf
 from messaging.contracts import ContractsView
 from wallets.views import AgreementCheckoutView
 from .models import AuctionListing
-from .views import create_auction_agreement
+from .views import AuctionDetailView, SettleAuctionView, create_auction_agreement
 from .licensing import request_document
 
 
@@ -36,9 +38,60 @@ class AuctionSigningTests(TestCase):
     def submit(self):
         document, digest = request_document(self.artist, self.payload)
         payload = {**self.payload, 'auction_signature_name':'Artist Name', 'auction_signature_consent':True, 'auction_document_hash':digest, 'signature_strokes':[[[0.1,0.1],[0.3,0.5],[0.5,0.1]]]}
-        response = self.call(ArtworkView, self.artist, payload)
+        with patch('artworks.views.screen_upload', return_value=screening()):
+            response = self.call(ArtworkView, self.artist, payload)
         self.assertEqual(response.status_code, 201, response.data)
         return AuctionListing.objects.get(), document, payload
+
+    def test_auction_start_is_checked_against_the_manila_date(self):
+        now = datetime.fromisoformat('2026-11-23T00:30:00+08:00')
+        payload = {**self.payload, 'starting_time': '2026-11-22T23:55:00+08:00', 'end_time': '2026-11-23T10:00:00+08:00'}
+        _, digest = request_document(self.artist, payload)
+        payload.update(auction_signature_name='Artist Name', auction_signature_consent=True,
+                       auction_document_hash=digest, signature_strokes=[[[0.1, 0.1], [0.3, 0.5], [0.5, 0.1]]])
+        with patch('artworks.views.timezone.now', return_value=now):
+            response = self.call(ArtworkView, self.artist, payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['error'], 'The auction start date cannot be before today.')
+
+    def test_past_auction_chat_requires_both_signatures_and_participation(self):
+        outsider = User.objects.create(username='outside-bidder', email='outside@example.com', firebase_uid='outside-bidder')
+        artwork = Artwork.objects.create(artist=self.artist, title='Auction portrait', price=100)
+        auction = AuctionListing.objects.create(
+            artwork=artwork, artist=self.artist, highest_bidder=self.buyer,
+            starting_bid=100, current_bid=100, status='ENDED',
+            end_time=timezone.now() - timezone.timedelta(minutes=1),
+        )
+
+        def details(viewer):
+            with patch.object(AuctionDetailView, 'get_request_user', return_value=viewer):
+                return AuctionDetailView.as_view()(self.factory.get('/'), pk=auction.pk).data
+
+        self.assertFalse(details(outsider)['can_select_winner'])
+        self.assertEqual(self.call(SettleAuctionView, outsider, pk=auction.pk).status_code, 403)
+        self.assertTrue(details(self.buyer)['can_select_winner'])
+        result = self.call(SettleAuctionView, self.artist, pk=auction.pk)
+        self.assertEqual(result.status_code, 200, result.data)
+        self.assertIsNone(details(self.buyer)['contract_conversation_id'])
+
+        from messaging.models import Agreement
+        Agreement.objects.filter(pk=result.data['agreement_id']).update(
+            artist_signed_at=timezone.now(), buyer_signed_at=timezone.now(),
+            artist_signature_image='artist signature', buyer_signature_image='buyer signature',
+        )
+        for participant in (self.artist, self.buyer):
+            self.assertEqual(details(participant)['contract_conversation_id'], result.data['conversation_id'])
+        for nonparticipant in (None, outsider):
+            self.assertIsNone(details(nonparticipant)['contract_conversation_id'])
+
+    def test_rejects_auction_start_before_today(self):
+        payload = {**self.payload, 'starting_time': (timezone.now() - timezone.timedelta(days=1)).isoformat()}
+        _, digest = request_document(self.artist, payload)
+        payload.update(auction_signature_name='Artist Name', auction_signature_consent=True,
+                       auction_document_hash=digest, signature_strokes=[[[0.1, 0.1], [0.3, 0.5], [0.5, 0.1]]])
+        response = self.call(ArtworkView, self.artist, payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['error'], 'The auction start date cannot be before today.')
 
     def test_preview_endpoint_returns_full_signable_document_for_each_delivery_type(self):
         import hashlib

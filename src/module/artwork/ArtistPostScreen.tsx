@@ -1,6 +1,9 @@
+import AuctionScheduleField from './components/AuctionScheduleField';
+import ArtworkSizeFields from './components/ArtworkSizeFields';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
 import ProductImage from '@/components/ProductImage';
+import TransactionHeader from '@/components/TransactionHeader';
 import { Text, TextInput } from '@/components/Typography';
 import CategoryPicker from './components/CategoryPicker';
 import { categoryLabel, MAX_ARTWORK_CATEGORIES } from '@/services/artworkCategories';
@@ -15,8 +18,8 @@ import AgreementDocument, {
   type AgreementTerms,
 } from "@/module/messages/components/AgreementDocument";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { ArrowLeft, ImagePlus, Plus, Sparkles } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ImagePlus, Plus, Sparkles, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -32,7 +35,9 @@ type ToastState = {
 
 export default function ArtistPostScreen() {
   const router = useRouter();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const { width } = useWindowDimensions();
+  const [pageWidth, setPageWidth] = useState(width);
   const [imageData, setImageData] = useState("");
   const [screening, setScreening] = useState<ImageScreening | null>(null);
   const [screeningBusy, setScreeningBusy] = useState(false);
@@ -108,6 +113,8 @@ export default function ArtistPostScreen() {
   const [physicalFormat, setPhysicalFormat] = useState('original');
   const [stockQuantity, setStockQuantity] = useState('1');
   const [editionSize, setEditionSize] = useState('');
+  const [medium, setMedium] = useState('');
+  const [dimensions, setDimensions] = useState('');
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [selectedAiTags, setSelectedAiTags] = useState<string[]>([]);
   const [customTags, setCustomTags] = useState<string[]>([]);
@@ -119,9 +126,10 @@ export default function ArtistPostScreen() {
     message: "",
     type: "success",
   });
-  const [saleType, setSaleType] = useState<"Auction" | "Direct Sell">(
-    "Auction",
+  const [saleType, setSaleType] = useState<"Auction" | "Direct Sell" | "Portfolio Only">(
+    mode === 'portfolio' ? 'Portfolio Only' : 'Auction',
   );
+  const portfolioOnly = saleType === 'Portfolio Only';
 
   useEffect(() => {
     let active = true;
@@ -271,17 +279,21 @@ export default function ArtistPostScreen() {
     saleType === "Auction"
       ? customStartingBid
       : calculatedPrice;
-  const todayLocal = new Date().toLocaleDateString("en-CA");
+  const todayLocal = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+  const auctionInstant = (value: string) => new Date(`${value}:00+08:00`);
 
   const validateAuctionDates = (start = startingTime, end = endTime) => {
     if (!start || !end) return "Choose both an auction start and end date.";
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const startDate = auctionInstant(start);
+    const endDate = auctionInstant(end);
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
       return "Enter valid auction dates.";
     }
     if (start.slice(0, 10) < todayLocal) return "The auction start date cannot be before today.";
     if (endDate <= startDate) return "The auction end date must be later than the start date.";
+    if (endDate <= new Date()) return "The auction must end in the future.";
     return "";
   };
 
@@ -416,6 +428,9 @@ export default function ArtistPostScreen() {
       );
     }
 
+    if (!dimensions.trim() || (artType === 'Physical' && !medium.trim())) {
+      return showToast('Enter the dimensions and, for physical artwork, the medium used.', 'error');
+    }
     if (saleType === "Direct Sell") {
       if (Number(hours) <= 0 || Number(hourlyRate) <= 0) {
         return showToast(
@@ -423,7 +438,7 @@ export default function ArtistPostScreen() {
           "error",
         );
       }
-    } else if (Number(price) <= 0) {
+    } else if (saleType === 'Auction' && Number(price) <= 0) {
       return showToast("Enter a valid starting bid.", "error");
     }
 
@@ -466,7 +481,7 @@ export default function ArtistPostScreen() {
         categories,
         selected_ai_tags: selectedAiTags,
         custom_tags: customTags,
-        price,
+        price: portfolioOnly ? undefined : price,
         sale_type: saleType,
         hours,
         hourly_rate: hourlyRate,
@@ -475,6 +490,8 @@ export default function ArtistPostScreen() {
         physical_format: artType === 'Physical' ? physicalFormat : 'original',
         stock_quantity: artType === 'Physical' ? physicalStock : 1,
         edition_size: artType === 'Physical' && physicalFormat === 'limited_edition' ? Number(editionSize) : null,
+        medium: artType === 'Digital' ? 'Digital' : medium.trim(),
+        dimensions: dimensions.trim(),
         auction_license_type: auctionLicenseType,
         auction_exclusivity: auctionExclusivity,
         auction_delivery_type: auctionDeliveryType,
@@ -493,8 +510,8 @@ export default function ArtistPostScreen() {
         payload.starting_price = price || customStartingBid;
         payload.bid_increment = bidIncrement;
         if (startingTime)
-          payload.starting_time = new Date(startingTime).toISOString();
-        if (endTime) payload.end_time = new Date(endTime).toISOString();
+          payload.starting_time = auctionInstant(startingTime).toISOString();
+        if (endTime) payload.end_time = auctionInstant(endTime).toISOString();
       }
 
       const response = await fetch(`${API_URL}/api/users/artworks/`, {
@@ -518,7 +535,7 @@ export default function ArtistPostScreen() {
           : "Sent to the Creative Moderator for review.",
         "success",
       );
-      setTimeout(() => router.replace("/(home)"), 500);
+      setTimeout(() => router.replace(portfolioOnly ? '/my-portfolio' : '/(home)'), 500);
     } catch (error: any) {
       showToast(error.message || "Please try again.", "error");
     } finally {
@@ -531,7 +548,7 @@ export default function ArtistPostScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView style={styles.page} onLayout={event => setPageWidth(event.nativeEvent.layout.width)}>
       <Modal visible={!!submissionResult} transparent animationType="fade" onRequestClose={() => { setSubmissionResult(null); router.replace('/(home)'); }}>
         <View style={{ flex: 1, backgroundColor: '#0006', alignItems: 'center', justifyContent: 'center', padding: 24 }}><View style={{ width: '100%', maxWidth: 500, backgroundColor: '#FFFDF8', borderRadius: 16, padding: 24, gap: 18 }}>
           <Text style={{ fontSize: 22, fontWeight: '800', color: '#A74646' }}>{submissionResult?.blocked ? 'Artwork not published' : 'Held for AI review'}</Text>
@@ -545,22 +562,17 @@ export default function ArtistPostScreen() {
           <Pressable accessibilityRole="button" onPress={() => { setSubmissionResult(null); router.replace('/(home)'); }} style={{ padding: 14, borderRadius: 10, backgroundColor: '#B95353' }}><Text style={{ color: '#FFF', fontWeight: '700', textAlign: 'center' }}>Done</Text></Pressable>
         </View></View>
       </Modal>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <ArrowLeft color="#D75B5C" size={24} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create a post</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <TransactionHeader title="Create a post" onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={[styles.card, width < 700 && styles.cardMobile]}>
-          <View style={[styles.assetsPanel, width < 700 && styles.panelMobile]}>
+        <View style={[styles.card, pageWidth < 700 && styles.cardMobile]}>
+          <View style={[styles.assetsPanel, pageWidth < 700 && styles.panelMobile]}>
             <Text style={styles.panelTitle}>ASSET PHOTOS</Text>
             <Text style={styles.label}>Upload Asset Images:</Text>
             <Text style={styles.helper}>Uploaded images are sent to TruthScan for AI screening. Its results can be wrong and do not prove authorship.</Text>
             {!!screeningConfigError && <View><Text style={{ color: '#A74646' }}>{screeningConfigError}</Text><Pressable onPress={() => setScreeningRetry(value => value + 1)}><Text>Retry screening setup</Text></Pressable></View>}
             <View style={styles.photoRow}>
-              <TouchableOpacity
+              <View style={styles.photoSlot}>
+              <TouchableOpacity accessibilityLabel="Choose cover artwork"
                 style={styles.primaryPhoto}
                 onPress={() => pickImage()}
               >
@@ -570,12 +582,14 @@ export default function ArtistPostScreen() {
                     style={styles.selectedImage}
                   />
                 ) : (
-                  <Plus size={38} color="#D75B5C" />
+                  <Plus size={38} color={COLORS.red} />
                 )}
               </TouchableOpacity>
+              {!!imageData && <Pressable accessibilityRole="button" accessibilityLabel="Remove cover artwork" onPress={() => setImageData('')} style={styles.removePhoto}><X size={15} color={COLORS.white} /></Pressable>}
+              </View>
               {[0, 1, 2].map((slot) => (
-                <TouchableOpacity
-                  key={slot}
+                <View key={slot} style={styles.photoSlot}>
+                <TouchableOpacity accessibilityLabel={`Choose gallery image ${slot + 1}`}
                   style={styles.emptyPhoto}
                   onPress={() => pickImage(slot)}
                 >
@@ -588,6 +602,8 @@ export default function ArtistPostScreen() {
                     <ImagePlus size={18} color="#D8C9A9" />
                   )}
                 </TouchableOpacity>
+                {!!additionalImages[slot] && <Pressable accessibilityRole="button" accessibilityLabel={`Remove gallery image ${slot + 1}`} onPress={() => setAdditionalImages(images => images.map((image, index) => index === slot ? '' : image))} style={styles.removePhoto}><X size={15} color={COLORS.white} /></Pressable>}
+                </View>
               ))}
             </View>
             <Text style={styles.helper}>
@@ -602,8 +618,12 @@ export default function ArtistPostScreen() {
               </>}
             </View>}
             <View style={styles.rule} />
-            <Text style={styles.soldTitle}>SOLD VIA</Text>
+            <Text style={styles.soldTitle}>Post type</Text>
             <View style={styles.saleRow}>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: portfolioOnly }}
+                onPress={() => setSaleType('Portfolio Only')} style={portfolioOnly ? styles.saleSelected : styles.saleOption}>
+                <Text style={portfolioOnly ? styles.saleSelectedText : styles.saleOptionText}>Portfolio only</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setSaleType("Auction")}
                 style={
@@ -638,14 +658,15 @@ export default function ArtistPostScreen() {
                       : styles.saleOptionText
                   }
                 >
-                  Sell & Buy
+                  Sell artwork
                 </Text>
               </TouchableOpacity>
             </View>
+            {portfolioOnly && <Text style={styles.pricingHint}>After review, this work appears in your portfolio for display.</Text>}
           </View>
 
           <View
-            style={[styles.detailsPanel, width < 700 && styles.panelMobile]}
+            style={[styles.detailsPanel, pageWidth < 700 && styles.panelMobile]}
           >
             <Text style={styles.panelTitle}>ASSET DETAILS</Text>
             <Text style={styles.label}>Art Piece Name:</Text>
@@ -683,10 +704,12 @@ export default function ArtistPostScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+            <ArtworkSizeFields digital={artType === 'Digital'} medium={medium} dimensions={dimensions}
+              onMediumChange={setMedium} onDimensionsChange={setDimensions} />
             <View style={styles.tagHeader}>
               <Text style={styles.label}>AI tag suggestions:</Text>
               {generatingTags && (
-                <ActivityIndicator size="small" color="#D75B5C" />
+                <ActivityIndicator size="small" color={COLORS.red} />
               )}
             </View>
             <Text style={styles.tagHint}>
@@ -721,6 +744,16 @@ export default function ArtistPostScreen() {
                 </Text>
               )}
             </View>
+            <TouchableOpacity
+              style={styles.generateButton}
+              onPress={generateTags}
+              disabled={generatingTags || description.trim().length < 20}
+            >
+              <Sparkles size={14} color={COLORS.red} />
+              <Text style={styles.generateText}>
+                {generatingTags ? "Generating tags..." : "Generate tags"}
+              </Text>
+            </TouchableOpacity>
             <Text style={styles.label}>Manual tags:</Text>
             <Text style={styles.tagHint}>
               Add terms the AI missed, such as a specific subject or technique.
@@ -768,17 +801,6 @@ export default function ArtistPostScreen() {
               multiline
               placeholder="Tell buyers about this piece..."
             />
-            <TouchableOpacity
-              style={styles.generateButton}
-              onPress={generateTags}
-              disabled={generatingTags || description.trim().length < 20}
-            >
-              <Sparkles size={14} color="#D75B5C" />
-              <Text style={styles.generateText}>
-                {generatingTags ? "Generating tags..." : "Generate tags"}
-              </Text>
-            </TouchableOpacity>
-
             {/* Conditional Auction (shown only if artist choose auction in sold via) */}
             {saleType === "Auction" && (
               <View style={styles.auctionBox}>
@@ -793,78 +815,18 @@ export default function ArtistPostScreen() {
                   keyboardType="decimal-pad"
                   placeholder="e.g. 100.00"
                 />
-                <Text style={styles.label}>Starting Date & Time:</Text>
-                {Platform.OS === "web" ? (
-                  <input
-                    type="datetime-local"
-                    value={startingTime}
-                    min={`${todayLocal}T00:00`}
-                    onChange={(e: any) => {
-                      const next = e.target.value;
-                      setStartingTime(next);
-                      setAuctionDateError(validateAuctionDates(next, endTime));
-                    }}
-                    style={{
-                      height: 44,
-                      borderRadius: 8,
-                      border: "1px solid #D8C989",
-                      padding: "0 12px",
-                      fontSize: 14,
-                      marginBottom: 12,
-                      backgroundColor: "#FAFAF8",
-                      color: "#333",
-                      outline: "none",
-                      width: "100%",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                ) : (
-                  <TextInput
-                    style={styles.input}
-                    value={startingTime}
-                    onChangeText={(next) => {
-                      setStartingTime(next);
-                      setAuctionDateError(validateAuctionDates(next, endTime));
-                    }}
-                    placeholder={`YYYY-MM-DDTHH:MM (${todayLocal} or later)`}
-                  />
-                )}
-
-                {Platform.OS === "web" ? (
-                  <input
-                    type="datetime-local"
-                    value={endTime}
-                    min={startingTime || `${todayLocal}T00:00`}
-                    onChange={(e: any) => {
-                      const next = e.target.value;
-                      setEndTime(next);
-                      setAuctionDateError(validateAuctionDates(startingTime, next));
-                    }}
-                    style={{
-                      height: 44,
-                      borderRadius: 8,
-                      border: "1px solid #D8C989",
-                      padding: "0 12px",
-                      fontSize: 14,
-                      marginBottom: 12,
-                      backgroundColor: "#FAFAF8",
-                      color: "#333",
-                      outline: "none",
-                      width: "100%",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                ) : (
-                  <TextInput
-                    style={styles.input}
-                    value={endTime}
-                    onChangeText={(next) => {
-                      setEndTime(next);
-                      setAuctionDateError(validateAuctionDates(startingTime, next));
-                    }}
-                    placeholder="YYYY-MM-DDTHH:MM (after the start)"
-                  />
-                )}
+                <Text style={styles.label}>Auction start (Philippine time)</Text>
+                <AuctionScheduleField label="Auction start" value={startingTime} minimum={`${todayLocal}T00:00`} onChange={next => {
+                  if (next && next.slice(0, 10) < todayLocal) { setAuctionDateError('Choose today or a later date.'); return; }
+                  setStartingTime(next);
+                  setAuctionDateError(endTime ? validateAuctionDates(next, endTime) : '');
+                }} />
+                <Text style={styles.label}>Auction end (Philippine time)</Text>
+                <AuctionScheduleField label="Auction end" value={endTime} minimum={startingTime || `${todayLocal}T00:00`} onChange={next => {
+                  if (next && next.slice(0, 10) < todayLocal) { setAuctionDateError('Choose today or a later date.'); return; }
+                  setEndTime(next);
+                  setAuctionDateError(startingTime ? validateAuctionDates(startingTime, next) : '');
+                }} />
                 {!!auctionDateError && <Text style={styles.dateError}>{auctionDateError}</Text>}
               </View>
             )}
@@ -896,6 +858,10 @@ export default function ArtistPostScreen() {
             </>}
             <View style={styles.rule} />
             <Text style={styles.pricingTitle}>PRICING</Text>
+            {!portfolioOnly && <>
+              <View style={styles.rule} />
+              <Text style={styles.pricingTitle}>PRICING</Text>
+            </>}
 
             {saleType === "Auction" && (
               <>
@@ -971,12 +937,12 @@ export default function ArtistPostScreen() {
                 only after a successful auction payment.
               </Text>
             )}
-            <Text style={styles.pricePreview}>
+            {!portfolioOnly && <Text style={styles.pricePreview}>
               {saleType === "Auction"
                 ? "Starting bid"
                 : "Calculated listing price"}:
               Php. {price || "0000.00"}
-            </Text>
+            </Text>}
 
             <TouchableOpacity
               style={styles.submit}
@@ -1066,21 +1032,14 @@ export default function ArtistPostScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.pageBackground },
-  header: {
-    height: 58,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderColor: "#E7D8D0",
-  },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: "#382D29" },
   scroll: { padding: 18, alignItems: "center" },
   card: {
     width: "100%",
-    maxWidth: 940,
+    maxWidth: 1080,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    overflow: "hidden",
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     shadowColor: "#5A4438",
@@ -1092,25 +1051,27 @@ const styles = StyleSheet.create({
   assetsPanel: {
     width: "43%",
     minWidth: 280,
-    backgroundColor: "#FFF7C7",
+    backgroundColor: COLORS.pageBackground,
     padding: 28,
   },
   detailsPanel: { flex: 1, padding: 28, minWidth: 310 },
   panelMobile: { width: "100%", minWidth: 0 },
   panelTitle: {
-    color: "#D75B5C",
+    color: COLORS.red,
     fontWeight: "900",
     fontSize: 18,
     marginBottom: 13,
   },
   label: {
-    color: "#E97878",
+    color: COLORS.redDark,
     fontSize: 12,
     fontWeight: "700",
     marginBottom: 6,
     marginTop: 8,
   },
   photoRow: { flexDirection: "row", gap: 9, alignItems: "center" },
+  photoSlot: { position: 'relative' },
+  removePhoto: { position: 'absolute', top: -5, right: -4, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.redDark },
   primaryPhoto: {
     width: 72,
     height: 72,
@@ -1136,14 +1097,14 @@ const styles = StyleSheet.create({
   helper: { color: "#8D7D70", fontSize: 11, marginTop: 9 },
   rule: {
     height: 1,
-    backgroundColor: "#E77171",
+    backgroundColor: COLORS.red,
     marginTop: 24,
     marginBottom: 10,
   },
-  soldTitle: { color: "#D75B5C", fontWeight: "900", fontSize: 17 },
-  saleRow: { flexDirection: "row", gap: 12, marginTop: 14 },
+  soldTitle: { color: COLORS.red, fontWeight: "900", fontSize: 17 },
+  saleRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 14 },
   saleSelected: {
-    backgroundColor: "#D75B5C",
+    backgroundColor: COLORS.red,
     borderRadius: 16,
     paddingHorizontal: 25,
     paddingVertical: 6,
@@ -1157,7 +1118,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   saleSelectedText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
-  saleOptionText: { color: "#D75B5C", fontSize: 12, fontWeight: "700" },
+  saleOptionText: { color: COLORS.red, fontSize: 12, fontWeight: "700" },
   input: {
     borderWidth: 1,
     borderColor: "#DDD4CF",
@@ -1175,9 +1136,9 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 22,
   },
-  typePillActive: { backgroundColor: "#FFF3F1", borderColor: "#D75B5C" },
+  typePillActive: { backgroundColor: "#FFF3F1", borderColor: COLORS.red },
   typeText: { color: "#A98F89", fontSize: 12 },
-  typeTextActive: { color: "#D75B5C", fontWeight: "800" },
+  typeTextActive: { color: COLORS.red, fontWeight: "800" },
   tagHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   tagRow: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 4 },
   tag: {
@@ -1186,11 +1147,11 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 12,
   },
-  tagActive: { backgroundColor: "#D75B5C" },
+  tagActive: { backgroundColor: COLORS.red },
   customTag: {
     borderWidth: 1,
     borderColor: "#D8A86B",
-    backgroundColor: "#FFF7DF",
+    backgroundColor: COLORS.roseLight,
   },
   tagText: { color: "#B46A65", fontSize: 12, fontWeight: "700" },
   tagTextActive: { color: "#FFF" },
@@ -1205,9 +1166,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: "#FFF3F1",
     borderWidth: 1,
-    borderColor: "#D75B5C",
+    borderColor: COLORS.red,
   },
-  addTagText: { color: "#D75B5C", fontWeight: "800", fontSize: 12 },
+  addTagText: { color: COLORS.red, fontWeight: "800", fontSize: 12 },
   generateButton: {
     flexDirection: "row",
     alignSelf: "flex-start",
@@ -1215,11 +1176,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 5,
   },
-  generateText: { color: "#D75B5C", fontSize: 12, fontWeight: "800" },
+  generateText: { color: COLORS.red, fontSize: 12, fontWeight: "800" },
   description: { minHeight: 72, textAlignVertical: "top" },
-  pricingTitle: { color: "#D75B5C", fontSize: 17, fontWeight: "900" },
+  pricingTitle: { color: COLORS.red, fontSize: 17, fontWeight: "900" },
   pricePreview: {
-    color: "#D75B5C",
+    color: COLORS.red,
     fontSize: 18,
     fontWeight: "900",
     marginTop: 12,
@@ -1238,7 +1199,7 @@ const styles = StyleSheet.create({
     borderColor: "#E8D2CD",
     backgroundColor: "#FFF9F6",
   },
-  agreementTitle: { color: "#D75B5C", fontSize: 13, fontWeight: "900" },
+  agreementTitle: { color: COLORS.red, fontSize: 13, fontWeight: "900" },
   agreementCopy: { color: "#766B66", fontSize: 12, lineHeight: 17, marginTop: 5 },
   agreementButton: {
     alignSelf: "flex-start",
@@ -1246,7 +1207,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 7,
-    backgroundColor: "#D75B5C",
+    backgroundColor: COLORS.red,
   },
   agreementButtonText: { color: "#FFF", fontSize: 12, fontWeight: "800" },
   agreementConfirmed: { color: "#4D8A61", fontSize: 12, fontWeight: "700", marginTop: 8 },
@@ -1254,16 +1215,16 @@ const styles = StyleSheet.create({
   agreementOverlay: { flex: 1, backgroundColor: "rgba(45, 35, 31, 0.55)", alignItems: "center", justifyContent: "center", padding: 16 },
   agreementModal: { width: "100%", maxWidth: 650, maxHeight: "92%", backgroundColor: "#FFFDF8", borderRadius: 16, overflow: "hidden" },
   agreementScroll: { padding: 18 },
-  agreementModalHeading: { color: "#D75B5C", fontSize: 19, fontWeight: "900", textAlign: "center" },
+  agreementModalHeading: { color: COLORS.red, fontSize: 19, fontWeight: "900", textAlign: "center" },
   agreementModalHint: { color: "#766B66", fontSize: 12, lineHeight: 17, textAlign: "center", marginVertical: 10 },
-  confirmAgreement: { marginTop: 14, padding: 12, borderWidth: 1, borderColor: "#D75B5C", borderRadius: 8, backgroundColor: "#FFF" },
+  confirmAgreement: { marginTop: 14, padding: 12, borderWidth: 1, borderColor: COLORS.red, borderRadius: 8, backgroundColor: "#FFF" },
   confirmAgreementActive: { backgroundColor: "#E8F3E9", borderColor: "#5A986A" },
-  confirmAgreementText: { color: "#D75B5C", textAlign: "center", fontWeight: "800" },
+  confirmAgreementText: { color: COLORS.red, textAlign: "center", fontWeight: "800" },
   closeAgreement: { alignSelf: "center", paddingVertical: 12, paddingHorizontal: 22 },
   closeAgreementText: { color: "#766B66", fontWeight: "800" },
   submit: {
     alignSelf: "flex-end",
-    backgroundColor: "#D75B5C",
+    backgroundColor: COLORS.red,
     borderRadius: 7,
     paddingVertical: 10,
     paddingHorizontal: 25,
@@ -1282,7 +1243,7 @@ const styles = StyleSheet.create({
   auctionHeaderTitle: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#D75B5C",
+    color: COLORS.red,
     letterSpacing: 0.5,
     marginBottom: 10,
   },

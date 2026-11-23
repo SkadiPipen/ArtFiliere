@@ -1,4 +1,5 @@
 import Skeleton from '@/components/Skeleton';
+import ContentModal from '@/components/ContentModal';
 import { COLORS } from '@/constants/colors';
 import { goBackToWorkspace } from '@/services/navigation';
 import { Text, TextInput } from '@/components/Typography';
@@ -204,6 +205,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
     return () => { active = false; clearTimeout(timer); };
   }, [reportedUsername, accountReport, chosenAccount, mode, review, user?.uid]);
   const ready = concern && (concern.reference === 'none' || reference);
+  const helpOpen = mode === 'new' && !!category;
   return <SafeAreaView style={s.page} edges={embedded ? [] : undefined}><KeyboardAvoidingView style={s.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     {!embedded && <View style={s.header}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={close} style={s.iconButton}><ArrowLeft size={23} color="#62493E" /></TouchableOpacity><View style={{ flex: 1 }}><Text style={s.brand}>ArtFilier</Text><Text style={s.muted}>{moderator ? `${catalog?.department_label || 'Moderator'} reports` : 'Support & account safety'}</Text></View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh customer support" disabled={busy} style={[s.iconButton, busy && s.disabled]} onPress={() => { if (selected) run(async () => setSelected(await request<Ticket>(`tickets/${selected.id}/`))); else if (mode === 'tickets' && catalog) run(() => loadTickets()); else loadCatalog(); }}><RefreshCw size={22} color="#984E43" /></TouchableOpacity></View>}
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.content, embedded && s.workspaceContent]}>
@@ -221,12 +223,21 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
         </View>}
         {mode === 'new' ? <>
           <View style={s.introduction}><Text style={s.bubbleText}>Welcome to ArtFilier support. Choose a topic below. This guided chat can answer common questions or send a report to our support team.</Text></View>
-          {!category && catalog.concerns.some(c => c.id === 'rejected_artwork') && <Button disabled={busy} onPress={() => { const item = catalog.concerns.find(c => c.id === 'rejected_artwork'); if (item) chooseConcern(item); }}>Appeal a rejected artwork</Button>}
-          {!category && <View style={s.options}>{[...new Set(catalog.concerns.map(c => c.category)), 'FAQs'].map(c => <Button key={c} disabled={busy} onPress={() => setCategory(c)}>{c}</Button>)}</View>}
-          {!!category && !concern && <><Bubble mine>{category}</Bubble><TouchableOpacity accessibilityRole="button" disabled={busy} onPress={reset} style={[s.restartButton, busy && s.disabled]}><RotateCcw size={17} color="#FFF" /><Text style={s.restartText}>Start over</Text></TouchableOpacity></>}
+          {catalog.concerns.some(c => c.id === 'rejected_artwork') && <Button disabled={busy} onPress={() => { const item = catalog.concerns.find(c => c.id === 'rejected_artwork'); if (item) chooseConcern(item); }}>Appeal a rejected artwork</Button>}
+          <View style={s.options}>{[...new Set(catalog.concerns.map(c => c.category)), 'FAQs'].map(c => <Button key={c} disabled={busy} onPress={() => setCategory(c)}>{c}</Button>)}</View>
+          {helpOpen && <ContentModal visible transparent animationType="fade" accessibilityLabel={category} onRequestClose={() => { if (!busy) reset(); }}>
+            <KeyboardAvoidingView style={s.helpOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+              <View style={s.helpPopup}>
+                <View style={s.helpHeader}>
+                  <Text accessibilityRole="header" style={[s.title, { flex: 1 }]}>{category}</Text>
+                  <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={reset} style={[s.restartButton, busy && s.disabled]}>
+                    <RotateCcw size={16} color={COLORS.redDark} /><Text style={s.restartText}>Start Over</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView keyboardShouldPersistTaps="handled" style={s.helpScroll} contentContainerStyle={s.helpContent}>
           {category === 'FAQs' && <>{!faq ? <View style={s.options}>{catalog.faqs.map(f => <Button key={f.id} onPress={() => setFaq(f)}>{f.question}</Button>)}</View> : <><Bubble mine>{faq.question}</Bubble><Bubble>{faq.answer}</Bubble><Text>Did this answer your question?</Text><View style={s.row}><Button onPress={() => { reset(); }}>Yes, thanks</Button><Button disabled={busy} onPress={() => { const item = catalog.concerns.find(c => c.id === faq.concern); if (item) chooseConcern(item); }}>No, contact support</Button></View></>}</>}
           {!!category && category !== 'FAQs' && !concern && <><Bubble>What would you like help with?</Bubble><View style={s.options}>{catalog.concerns.filter(c => c.category === category).map(c => <Button disabled={busy} key={c.id} onPress={() => chooseConcern(c)}>{c.label}</Button>)}</View></>}
-          {concern && <View style={s.concernCard}><View style={s.concernHeader}><View style={{ flex: 1, gap: 6 }}><Text style={s.muted}>{concern.category}</Text><Text accessibilityRole="header" style={s.concernTitle}>{concern.label}</Text><Text style={s.muted}>{review ? 'Review your report' : 'Report details'}</Text></View><TouchableOpacity accessibilityRole="button" disabled={busy} onPress={reset} style={[s.restartButton, busy && s.disabled]}><RotateCcw size={17} color="#FFF" /><Text style={s.restartText}>Start over</Text></TouchableOpacity></View>
+          {concern && <View style={s.concernCard}><View style={s.concernHeader}><View style={{ flex: 1, gap: 6 }}><Text accessibilityRole="header" style={s.concernTitle}>{concern.label}</Text><Text style={s.muted}>{review ? 'Review your report' : 'Report details'}</Text></View></View>
             {concern.reference !== 'none' && !reference && <>
               <Bubble>{concern.reference.includes('artwork') ? 'Select the artwork this report concerns.' : concern.reference === 'commission' ? 'Which commission is this about?' : concern.reference === 'auction' ? 'Which auction is this about?' : 'Which transaction is this about?'}</Bubble>
               <View style={s.row}><TextInput accessibilityLabel="Search linked records" style={[s.input, s.flex]} placeholder="Search by title or record number" value={search} onChangeText={setSearch} /><Button disabled={busy} onPress={() => run(() => loadReferences(concern, 0, search))}>Search</Button></View>
@@ -251,16 +262,26 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
                 <Text style={s.muted}>Customer support will use this username to review the correct account.</Text>
               </>}
               <TextInput accessibilityLabel="Report details" multiline maxLength={4000} style={[s.input, s.multiline]} value={details} onChangeText={setDetails} placeholder="What happened, and what help do you need? (at least 10 characters)" />
-              {['plagiarism', 'rejected_artwork'].includes(concern.id) && <><Text>{concern.id === 'plagiarism' ? 'Original work link or evidence of ownership (required)' : 'Ownership evidence or supporting links (optional)'}</Text><TextInput accessibilityLabel="Original work evidence" multiline maxLength={2000} style={s.input} value={evidence} onChangeText={setEvidence} placeholder="Link to the original work, publication date, or description of ownership evidence" /></>}
-              <Button disabled={busy} onPress={attach}>{photo ? 'Replace photo' : 'Attach a photo (optional)'}</Button>
+              {['plagiarism', 'rejected_artwork'].includes(concern.id) && <>
+                <Text style={s.bold}>Ownership evidence</Text>
+                <Text style={s.muted}>{concern.id === 'plagiarism' ? 'Add a link, an image, or both. At least one is required.' : 'You can add a link, an image, or both.'}</Text>
+                <TextInput accessibilityLabel="Original work link or source details" multiline maxLength={2000} style={s.input} value={evidence} onChangeText={setEvidence} placeholder="Paste a link to the original work" />
+              </>}
+              <Button disabled={busy} onPress={attach}>{photo ? 'Replace photo' : ['plagiarism', 'rejected_artwork'].includes(concern.id) ? 'Attach an evidence image' : 'Attach a photo (optional)'}</Button>
               {photo && <><Image source={{ uri: photo }} style={s.photo} resizeMode="contain" /><Button onPress={() => setPhoto('')}>Remove photo</Button></>}
-              <Button primary disabled={busy || (accountReport && !reportedUsername.trim().replace(/^@/, '')) || details.trim().length < 10 || (concern.id === 'plagiarism' && !evidence.trim())} onPress={() => setReview(true)}>Review report</Button>
+              <Button primary disabled={busy || (accountReport && !reportedUsername.trim().replace(/^@/, '')) || details.trim().length < 10 || (concern.id === 'plagiarism' && !evidence.trim() && !photo)} onPress={() => setReview(true)}>Review report</Button>
             </> : <>
               <Bubble>Review your report before sending it to support.</Bubble><View style={s.card}><Text style={s.bold}>{concern.label}</Text><Text>{reference ? `${reference.label}: ${reference.title}` : 'General concern'}</Text><Text>{details}</Text>{accountReport && <Text>Reported account: {reportedUsername}</Text>}{!!evidence && <Text>Original work evidence: {evidence}</Text>}{!!photo && <Image source={{ uri: photo }} style={s.photo} resizeMode="contain" />}</View>
               <Text style={s.muted}>Support will review your report. Submission does not automatically approve artwork, cancel an order, or issue a refund.</Text>
               <View style={s.row}><Button disabled={busy} onPress={() => setReview(false)}>Edit</Button><Button primary disabled={busy} onPress={submit}>{concern.id === 'rejected_artwork' ? 'Submit appeal' : 'Submit report'}</Button></View>
             </>)}
           </View>}
+                  {busy && <ActivityIndicator accessibilityLabel="Loading support" color={COLORS.red} />}
+                  {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+                </ScrollView>
+              </View>
+            </KeyboardAvoidingView>
+          </ContentModal>}
         </> : selected ? <>
           <View style={s.caseNavigation}>
             <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setSelected(null); setReply(''); setCaseActionsExpanded(false); run(() => loadTickets()); }} style={s.caseBack}><ArrowLeft size={18} color="#A84B46" /><Text style={s.filterLabel}>Back to Reports</Text></Pressable>
@@ -345,8 +366,8 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
           {tickets.next_offset !== null && <Button disabled={busy} onPress={() => run(() => loadTickets(tickets.next_offset!))}>More reports</Button>}
         </>}
       </>}
-      {busy && catalog && (mode === 'tickets' && !selected && !tickets.results.length ? <Skeleton layout="list" /> : <ActivityIndicator accessibilityLabel="Loading support" color="#C15656" />)}
-      {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
+      {busy && catalog && !helpOpen && (mode === 'tickets' && !selected && !tickets.results.length ? <Skeleton layout="list" /> : <ActivityIndicator accessibilityLabel="Loading support" color="#C15656" />)}
+      {!!error && !helpOpen && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
     </ScrollView>
   </KeyboardAvoidingView></SafeAreaView>;
 }
@@ -377,8 +398,13 @@ const s = StyleSheet.create({
   hero: { gap: 16, paddingVertical: 12, marginBottom: 8 },
   heroTitle: { fontSize: 26, lineHeight: 34, fontFamily: 'LoraSemiBold', fontWeight: '600', color: '#3E322B' },
   heroCopy: { fontSize: 16, lineHeight: 24, color: '#74665D' },
-  restartButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#52687C', borderRadius: 10, paddingVertical: 13, paddingHorizontal: 18, minHeight: 46 },
-  restartText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  helpOverlay: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', backgroundColor: '#2B232066', paddingHorizontal: 16, paddingTop: 42, paddingBottom: 24 },
+  helpPopup: { width: '100%', maxWidth: 720, maxHeight: '100%', overflow: 'hidden', borderRadius: 16, backgroundColor: COLORS.pageBackground },
+  helpHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border, backgroundColor: COLORS.white },
+  helpScroll: { flexGrow: 0, flexShrink: 1 },
+  helpContent: { padding: 16, gap: 14 },
+  restartButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.roseLight, borderRadius: 10, paddingHorizontal: 10, minHeight: 44 },
+  restartText: { color: COLORS.redDark, fontSize: 13, fontWeight: '700' },
   introduction: { width: '100%', paddingVertical: 16, paddingHorizontal: 18, borderRadius: 14, backgroundColor: '#F1E8DF' },
   concernCard: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3D7D0', borderRadius: 16, padding: 18, gap: 16 },
   concernHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 14, borderBottomWidth: 1, borderBottomColor: '#EEE4DD', paddingBottom: 16 },

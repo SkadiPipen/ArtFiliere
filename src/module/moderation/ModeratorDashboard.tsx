@@ -1,3 +1,4 @@
+import useLogoutConfirmation from '@/components/useLogoutConfirmation';
 import Skeleton from '@/components/Skeleton';
 import { AuthContext } from '@/context/AuthContext';
 import { auth } from '@/firebase/config';
@@ -18,6 +19,7 @@ function useWork() {
 function Feedback({ busy, error, loadingContent = false }: { busy: boolean; error: string; loadingContent?: boolean }) { return <>{busy && (loadingContent ? <Skeleton layout="list" /> : <ActivityIndicator color="#A84949" />)}{!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}</>; }
 
 export default function ModeratorDashboard() {
+  const { requestLogout, logoutConfirmation } = useLogoutConfirmation();
   const { user, loading } = useContext(AuthContext);
   const [profile, setProfile] = useState<{ role: string; is_moderator: boolean; department_label: string } | null>(null);
   const [reports, setReports] = useState(false);
@@ -29,7 +31,8 @@ export default function ModeratorDashboard() {
   if (reports) return <SupportScreen moderator onClose={() => setReports(false)} />;
   return <SafeAreaView style={s.page}>
     <ScrollView contentContainerStyle={s.content}>
-      <View style={s.row}><Text style={s.title}>{role === 'creative_moderator' ? 'Creative Director tickets' : 'Customer Support'}</Text><Action label="Log out" onPress={() => work.run(async () => { await auth.signOut(); router.replace('/login'); })} /></View>
+      <View style={s.row}><Text style={s.title}>{role === 'creative_moderator' ? 'Creative Director tickets' : 'Customer Support'}</Text><Action label="Log out" onPress={() => requestLogout(() => work.run(async () => { await auth.signOut(); router.replace('/login'); }))} /></View>
+      {logoutConfirmation}
       <Feedback {...work} loadingContent={!profile} />
       {!user && !loading && <Action label="Sign in" onPress={() => router.replace('/login')} />}
       {user && !profile && <Action label="Retry" disabled={work.busy} onPress={load} />}

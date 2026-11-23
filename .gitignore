@@ -52,6 +52,11 @@ backend/**/firebase*
 backend/*serviceAccountKey*.json
 src/*firebase*
 src/**/firebase*
+!src/firebase/
+src/firebase/*
+!src/firebase/app.ts
+!src/firebase/config.ts
+!src/firebase/config.native.ts
 
 # Python bytecode
 __pycache__/

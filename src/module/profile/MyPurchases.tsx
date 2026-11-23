@@ -1,3 +1,4 @@
+import BuyerDeliveryTracking from './BuyerDeliveryTracking';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import ProductImage from '@/components/ProductImage';
@@ -28,12 +29,13 @@ type Purchase = {
   certificate_code?: string; certificate_path?: string;
   is_simulated?: boolean; image?: string; can_download: boolean; can_rate: boolean; checkout_url?: string;
   review?: { artist_rating: number; artwork_rating: number; comment: string; artist_comment?: string; artwork_comment?: string };
-  delivery?: { status: string; status_label: string; driver?: string; delivery_address: string; fee: string };
+  delivery?: { id?: number; received_at?: string | null; status: string; status_label: string; driver?: string; delivery_address: string; fee: string };
 };
 
 export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () => void; filter?: 'all' | 'receive' | 'rate' | 'pay' }) {
   const { width: screenWidth } = useWindowDimensions();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [trackingOrder, setTrackingOrder] = useState<number | null>(null);
   const [kind, setKind] = useState<PurchaseKind>('all');
   const [paymentStatus, setPaymentStatus] = useState<'all' | 'paid' | 'expired'>('all');
   const [expandedPurchase, setExpandedPurchase] = useState<number | string | null>(null);
@@ -109,6 +111,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
+      {trackingOrder !== null && <BuyerDeliveryTracking key={trackingOrder} orderId={trackingOrder} onClose={() => setTrackingOrder(null)} />}
       {deliveryCheckout && <AuctionDeliveryCheckout agreementId={deliveryCheckout.agreementId} context={deliveryCheckout.context}
         busy={busy} onClose={() => setDeliveryCheckout(null)} onPay={async token => {
           setBusy(true);
@@ -161,6 +164,8 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
               </View>
               {expandedPurchase === p.id ? <ChevronUp size={20} color="#BC5555" /> : <ChevronDown size={20} color="#BC5555" />}
             </TouchableOpacity>
+            {!!p.delivery?.id && <TouchableOpacity accessibilityRole="button" style={s.button} onPress={() => setTrackingOrder(p.delivery!.id!)}><Text style={s.white}>Track delivery · Live map</Text></TouchableOpacity>}
+            {!p.delivery && p.status === 'paid' && p.art_type?.toLowerCase() === 'physical' && <Text>Paid · awaiting delivery dispatch.</Text>}
             {expandedPurchase === p.id && <View style={s.purchaseDetails}>
             {Boolean(p.image) ? (
               <ProductImage source={{ uri: p.image }} style={{ width: '100%', height: screenWidth < 600 ? 280 : 380, backgroundColor: '#F5F1ED', borderRadius: 10 }} resizeMode="contain" />

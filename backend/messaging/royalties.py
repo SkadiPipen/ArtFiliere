@@ -104,8 +104,7 @@ def period_data(period, user):
             'collection_error': period.collection_error}
 
 
-def royalty_license_data(agreement, today=None):
-    today = today or timezone.localdate()
+def royalty_license_window(agreement):
     terms = agreement.compensation_terms
     start = None
     waiting = 'Awaiting both signatures'
@@ -121,6 +120,13 @@ def royalty_license_data(agreement, today=None):
                 start = timezone.localdate(commission.asset.created_at)
     duration = agreement.license_scope.get('duration_months') or terms.get('reporting_duration_months')
     end = add_months(start, duration) if start and type(duration) is int and duration > 0 else None
+    return start, end, waiting
+
+
+def royalty_license_data(agreement, today=None):
+    today = today or timezone.localdate()
+    terms = agreement.compensation_terms
+    start, end, waiting = royalty_license_window(agreement)
     expired = bool(end and today >= end)
     return {'starts_on': str(start) if start else None, 'ends_on': str(end) if end else None,
             'license_status': 'expired' if expired else 'active',

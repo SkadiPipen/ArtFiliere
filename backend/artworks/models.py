@@ -4,6 +4,7 @@ from users.models import User
 
 
 class Artwork(models.Model):
+    PORTFOLIO_ONLY = 'Portfolio Only'
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         APPROVED = "approved", "Approved"
@@ -28,6 +29,8 @@ class Artwork(models.Model):
         ('limited_edition', 'Limited-edition print')])
     stock_quantity = models.PositiveIntegerField(default=1)
     edition_size = models.PositiveIntegerField(null=True, blank=True)
+    medium = models.CharField(max_length=120, blank=True, default='')
+    dimensions = models.CharField(max_length=120, blank=True, default='')
     image_data = models.TextField()
     additional_images = models.JSONField(default=list, blank=True)
     status = models.CharField(

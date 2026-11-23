@@ -4,6 +4,8 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 from users.models import User
+from artworks.models import Artwork
+from artworks.tests import image_data_url
 from .models import ArtistApplication
 from .document_details import validate_document_details
 
@@ -21,11 +23,16 @@ class DocumentDetailsTests(TestCase):
     def test_submission_requires_details_and_exposes_them_to_hr(self):
         user = User.objects.create(username='artist_details', email='artist_details@example.com', firebase_uid='artist-details')
         client = APIClient()
-        payload = dict(firebase_uid=user.firebase_uid, hourly_rate='100', tinNum='123456789', birCertificate=dict(name='bir.pdf', data_uri='data:application/pdf;base64,QQ=='), swornDeclaration=dict(name='sworn.pdf', data_uri='data:application/pdf;base64,QQ=='), portfolio=[dict(title='Artwork')])
-        self.assertEqual(client.post('/api/users/artist-applications/', payload, format='json').status_code, 400)
-        self.assertFalse(ArtistApplication.objects.filter(user=user).exists())
-        payload['documentDetails'] = self.details
-        self.assertEqual(client.post('/api/users/artist-applications/', payload, format='json').status_code, 201)
+        author = User.objects.create(username='reference_artist', email='reference@example.com', firebase_uid='reference-artist', role=User.Role.ARTIST)
+        image = image_data_url()
+        Artwork.objects.create(artist=author, title='Reference', price=100, image_data=image, status=Artwork.Status.APPROVED)
+        payload = dict(firebase_uid=user.firebase_uid, hourly_rate='100', tinNum='123456789', birCertificate=dict(name='bir.pdf', data_uri='data:application/pdf;base64,QQ=='), swornDeclaration=dict(name='sworn.pdf', data_uri='data:application/pdf;base64,QQ=='), portfolio=[dict(title='Artwork', description='A digital illustration', imageDataUri=image, art_type='digital', dimensions='1200 × 1800 px', categories=['illustration'], custom_tags=['ink study'])])
+        self.assertEqual(client.post('/api/users/artist-applications/', payload, format='json').status_code, 403)
+        with patch('artist_applications.views.SubmitArtistApplicationView.get_request_user', return_value=user):
+            self.assertEqual(client.post('/api/users/artist-applications/', payload, format='json').status_code, 400)
+            self.assertFalse(ArtistApplication.objects.filter(user=user).exists())
+            payload['documentDetails'] = self.details
+            self.assertEqual(client.post('/api/users/artist-applications/', payload, format='json').status_code, 201)
         self.assertEqual(ArtistApplication.objects.get(user=user).document_details, self.details)
         hr = User.objects.create(username='hr_details', email='hr_details@example.com', role=User.Role.HR)
         client.force_authenticate(user=hr)
@@ -33,3 +40,16 @@ class DocumentDetailsTests(TestCase):
             response = client.get('/api/users/artist-applications/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['document_details'], self.details)
+        sample = response.data[0]['portfolio'][0]
+        self.assertEqual(sample['medium'], 'Digital')
+        self.assertEqual(sample['dimensions'], '1200 × 1800 px')
+        self.assertEqual(sample['tags'], ['ink_study'])
+        self.assertEqual(sample['similarity_match_count'], 1)
+        self.assertTrue(sample['similarity_matches'][0]['exact'])
+        path = f"/api/users/artist-applications/{response.data[0]['id']}/portfolio-match/0/0/"
+        with patch('artist_applications.views.PortfolioMatchPreviewView.get_request_user', return_value=user):
+            self.assertEqual(client.get(path).status_code, 403)
+        with patch('artist_applications.views.PortfolioMatchPreviewView.get_request_user', return_value=hr):
+            reference = client.get(path)
+        self.assertEqual(reference.status_code, 200)
+        self.assertEqual(reference.data['image'], image)

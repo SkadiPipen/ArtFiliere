@@ -1,7 +1,7 @@
 import { Text } from '@/components/Typography';
 import WebDeliveryTiles from './WebDeliveryTiles';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
 
 interface DeliveryMapProps {
   driverLat?: number | null; driverLng?: number | null;
@@ -38,15 +38,15 @@ export default function DeliveryLeafletMap({ driverLat, driverLng, targetLat, ta
   }, [driverLat, driverLng, targetLat, targetLng, hasDriver, hasTarget]);
   if (!hasTarget) return <View style={{ gap: 8 }}>
     <Text>Pickup or destination pin unavailable. Your location is shown when GPS is available; a route requires a verified destination.</Text>
-    {Platform.OS === 'web' && <WebDeliveryTiles
+    <WebDeliveryTiles
       target={hasDriver ? [driverLat!, driverLng!] : [12.8797, 121.7740]}
       driver={null} points={[]} label="Your GPS location" color="#2980B9" overview={!hasDriver}
-    />}
+    />
   </View>;
   const color = isPickupStep ? '#BC5454' : '#27AE60';
   return <View style={{ gap: 8 }}>
     {!hasDriver && <Text>Waiting for precise driver GPS. No route or ETA is estimated.</Text>}
     {!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}
-    {Platform.OS === 'web' ? <WebDeliveryTiles target={[targetLat!, targetLng!]} driver={hasDriver ? [driverLat!, driverLng!] : null} points={route} label={`${isPickupStep ? 'Artist pickup' : 'Buyer destination'}: ${targetLabel}`} color={color} /> : <Text>Destination: {targetLabel}. Use Open in Maps for navigation.</Text>}
+    <WebDeliveryTiles target={[targetLat!, targetLng!]} driver={hasDriver ? [driverLat!, driverLng!] : null} points={route} label={`${isPickupStep ? 'Artist pickup' : 'Buyer destination'}: ${targetLabel}`} color={color} />
   </View>;
 }

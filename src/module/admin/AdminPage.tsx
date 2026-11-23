@@ -1,3 +1,4 @@
+import useLogoutConfirmation from '@/components/useLogoutConfirmation';
 import UserManagement from './UserManagement';
 import { AdminRefreshContext } from './AdminRefresh';
 import AccountApprovalWorkspace from './AccountApprovalWorkspace';
@@ -6,6 +7,7 @@ import { TypographyDefaults } from '@/components/Typography';
 import ResellerApprovals from './ResellerApprovals';
 import ModeratorEvaluation from '@/module/hr/ModeratorEvaluation';
 import RoyaltyApprovals from './RoyaltyApprovals';
+import RenewalsAndDeadlines from './RenewalsAndDeadlines';
 import { AccountActions } from '@/module/moderation/ModeratorDashboard';
 import AppealReviews from '@/module/moderation/AppealReviews';
 import ArtworkCodeLookup from '@/app/artwork-code-lookup';
@@ -34,6 +36,7 @@ const navigationGroups: { id: string; label: string; icon: typeof LayoutDashboar
   { id: 'monitoring', label: 'Monitoring', icon: Shield, links: [
     { kind: 'tab', key: 'blockchain', label: 'Blockchain investigations', icon: ShieldCheck, path: '/admin-blockchain' },
     { kind: 'tab', key: 'performance', label: 'Performance', icon: ChartNoAxesCombined, path: '/admin-performance' },
+    { kind: 'section', label: 'Renewals & Deadlines', icon: FileText, path: 'deadlines' },
   ] },
   { id: 'finance', label: 'Finance', icon: WalletCards, links: [
     { kind: 'tab', key: 'reports', label: 'Reports & transactions', icon: Flag, path: '/admin-reports' },
@@ -48,6 +51,7 @@ const navigationGroups: { id: string; label: string; icon: typeof LayoutDashboar
 ];
 
 export default function AdminPage({ activeTab, children, onRefresh, initialSection = null }: { activeTab: Tab; children: ReactNode; onRefresh?: () => void; initialSection?: string | null }) {
+  const { requestLogout, logoutConfirmation } = useLogoutConfirmation();
   const refreshers = useRef(new Set<() => void | Promise<unknown>>());
   const registerRefresh = useCallback((refresh: () => void | Promise<unknown>) => { refreshers.current.add(refresh); return () => { refreshers.current.delete(refresh); }; }, []);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,7 +71,9 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
   const [expandedGroup, setExpandedGroup] = useState<string | null>(initialSection ? (approvalQueues.some(queue => queue.path === initialSection) ? 'approvals' : 'administration') : initialGroup);
   const [logoutError, setLogoutError] = useState('');
   const overview = { key: 'dashboard', label: 'Overview', icon: LayoutDashboard, path: '/admin-dashboard' } as const;
-  const current = section === 'users' ? 'User management' : section === 'lookup' ? 'Artwork code lookup' : approvalQueues.find(queue => queue.path === section)?.label || navigationGroups.flatMap(group => group.links).find(link => link.kind === 'tab' && link.key === activeTab)?.label || overview.label;
+  const current = navigationGroups.flatMap(group => group.links).find(link =>
+    section ? link.kind === 'section' && link.path === section : link.kind === 'tab' && link.key === activeTab
+  )?.label ?? overview.label;
   const groupPending = (groupId: string) => navigationGroups.find(group => group.id === groupId)?.links.reduce((total, link) => total + ('categories' in link && link.categories ? link.categories.reduce((sum, key) => sum + (categories[key]?.pending || 0), 0) : link.kind === 'tab' && link.key === 'blockchain' ? (categories.attribution?.pending || 0) + (categories.blockchain?.pending || 0) : 0), 0) || 0;
   const isLinkActive = (link: AdminLink) => link.kind === 'tab' ? !section && activeTab === link.key : section === link.path;
   const selectLink = (link: AdminLink) => {
@@ -120,13 +126,15 @@ export default function AdminPage({ activeTab, children, onRefresh, initialSecti
         })}
       </ScrollView>
       {!!logoutError && <Text style={workspace.error}>{logoutError}</Text>}
-      <Pressable accessibilityRole="button" onPress={async () => { try { await auth.signOut(); router.replace('/login'); } catch { setLogoutError('Unable to log out. Please try again.'); } }} style={workspace.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>Log out</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => requestLogout(async () => { try { await auth.signOut(); router.replace('/login'); } catch { setLogoutError('Unable to log out. Please try again.'); } })} style={workspace.logout}><LogOut size={18} color="#A74646" /><Text style={{ color: '#A74646' }}>Log out</Text></Pressable>
+      {logoutConfirmation}
     </View>
     <View style={workspace.main}>
       <View style={workspace.topbar}><Shield size={22} color="#B65B50" /><Text style={workspace.workspace}>Platform administration</Text><Text style={workspace.muted}>{current}</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh current admin section" disabled={refreshing} onPress={() => void refreshCurrent()} style={{ padding: 8, opacity: refreshing ? 0.4 : 1 }}><RefreshCcw size={20} color="#A74646" /></TouchableOpacity></View>
       {!!refreshError && <Text style={workspace.error}>{refreshError}</Text>}
       {!section ? children : section === 'lookup' ? <ArtworkCodeLookup /> : <ScrollView key={section} contentContainerStyle={workspace.content}>
         {section === 'users' && <UserManagement />}
+        {section === 'deadlines' && <RenewalsAndDeadlines />}
         {section === '/reseller-approvals' && <ResellerApprovals workspace />}
         {section === '/admin-moderator-approvals' && <ModeratorEvaluation admin />}
         {section === '/admin-driver-approvals' && <ModeratorEvaluation admin driver />}

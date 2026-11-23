@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import CreatorAttribution from '@/module/blockchain/CreatorAttribution';
 import { auth } from "@/firebase/config";
 import ZoomableArtwork from "@/module/artwork/components/ZoomableArtwork";
+import ArtworkTagPills from '@/module/artwork/components/ArtworkTagPills';
 import AppDialog, { AppDialogProps } from "@/components/AppDialog";
 import AppToast from "@/components/AppToast";
 import API_URL from "@/services/api";
@@ -24,16 +25,31 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function ViewPostPage() {
+type PortfolioPreview = {
+  title: string;
+  description?: string;
+  image_data?: string;
+  artist_id?: number;
+  artist_username?: string;
+  category?: string;
+  art_type?: string;
+  medium?: string;
+  dimensions?: string;
+  category_labels?: string[];
+  tags?: string[];
+};
+
+export default function ViewPostPage({ preview, onClose }: { preview?: PortfolioPreview; onClose?: () => void } = {}) {
   const router = useRouter();
   const { width, height: windowHeight } = useWindowDimensions();
   const isDesktop = width >= 768;
   const { addToCart } = useCart();
 
   const params = useLocalSearchParams();
-  const artworkId = (params.artworkId as string) || "";
+  const artworkId = preview ? '' : (params.artworkId as string) || "";
 
-  const [artworkData, setArtworkData] = useState<any>(null);
+  const [loadedArtwork, setArtworkData] = useState<any>(null);
+  const artworkData = preview ?? loadedArtwork;
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
   const [loadingArtwork, setLoadingArtwork] = useState(true);
@@ -124,7 +140,7 @@ export default function ViewPostPage() {
 
   const title = artworkData?.title || params.title;
   const price = artworkData?.price || params.price;
-  const image = artworkData?.image || artworkData?.image_data || params.image;
+  const image = preview ? preview.image_data : artworkData?.image || artworkData?.image_data || params.image;
   const galleryImages = [
     image,
     ...(Array.isArray(artworkData?.additional_images)
@@ -132,7 +148,6 @@ export default function ViewPostPage() {
       : []),
   ].filter(Boolean);
   const displayedImage = galleryImages[activeImageIndex] || image;
-  const medium = artworkData?.category || params.medium;
   const artistName =
     artworkData?.artist_name || artworkData?.artist?.username || params.artist;
   const resolvedArtistId = String(
@@ -152,6 +167,7 @@ export default function ViewPostPage() {
   const paramType = String(params.type || "")
     .trim()
     .toLowerCase();
+  const portfolioOnly = !!preview || (backendSaleType || paramSaleType) === 'portfolio only';
 
   const isAuction =
     backendSaleType === "auction" ||
@@ -261,7 +277,8 @@ export default function ViewPostPage() {
   };
 
   const handleBack = () => {
-    goBackOr("/(home)");
+    if (onClose) onClose();
+    else goBackOr("/(home)");
   };
 
   return (
@@ -276,13 +293,17 @@ export default function ViewPostPage() {
           <View
             style={[styles.imageHeader, isDesktop && styles.desktopImageHeader]}
           >
-            <ZoomableArtwork
+            {preview && !displayedImage ? (
+              <View style={{ minHeight: isDesktop ? 550 : 350, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={styles.detailsText}>No preview image available.</Text>
+              </View>
+            ) : <ZoomableArtwork
               key={`preview-${artworkId}-${activeImageIndex}-${displayedImage}`}
               uri={String(displayedImage || "https://picsum.photos/seed/view/800/1200")}
               height={isDesktop ? 550 : 350}
               onOpen={() => setShowGallery(true)}
-            />
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            />}
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={preview ? 'Close portfolio preview' : 'Back from artwork'} style={styles.backButton} onPress={handleBack}>
               <ArrowLeft color="white" size={22} />
             </TouchableOpacity>
             {galleryImages.length > 1 && (
@@ -311,12 +332,12 @@ export default function ViewPostPage() {
           <View
             style={[styles.contentCard, isDesktop && styles.desktopContentCard]}
           >
-            <Text style={styles.date}>Posted Artwork</Text>
+            <Text style={styles.date}>{preview ? 'Portfolio preview' : 'Posted Artwork'}</Text>
             <Text style={styles.title}>{title}</Text>
 
             {/* Artist Profile */}
             {!!artworkData?.category_labels?.length && <Text style={{ color: '#75655F', fontSize: 13, lineHeight: 19, marginBottom: 12 }}>Categories: {artworkData.category_labels.join(' Â· ')}</Text>}
-            <TouchableOpacity
+            {!!resolvedArtistId && !preview && <TouchableOpacity
               onPress={() =>
                 router.push({
                   pathname: "/artist-profile" as any,
@@ -327,19 +348,19 @@ export default function ViewPostPage() {
               <Text style={styles.artistLink}>
                 {(artworkData?.provenance?.created_by || artworkData?.artist_username || artworkData?.artist?.username) ? `@${artworkData?.provenance?.created_by || artworkData?.artist_username || artworkData?.artist?.username}` : 'Creator Profile'}
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
 
-            <TouchableOpacity onPress={() => router.push({ pathname: '/artist-profile', params: { artistId: resolvedArtistId } })}>
+            {!portfolioOnly && <TouchableOpacity onPress={() => router.push({ pathname: '/artist-profile', params: { artistId: resolvedArtistId } })}>
               <Text style={{ color: '#625550', marginTop: 8 }}>Sold by {artistName} Â· View seller profile</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
             <ResellerBadge verified={artworkData?.seller_reseller_verified} />
-            <View style={styles.badge}>
+            {!preview && <View style={styles.badge}>
               <Text style={styles.badgeText}>
                 {isAuction ? "Auction" : isDigital ? "Digital" : "Physical"}
               </Text>
-            </View>
+            </View>}
 
-            <CreatorAttribution artworkId={artworkId} />
+            {!!artworkId && <CreatorAttribution artworkId={artworkId} />}
 
             <View style={styles.detailsSection}>
               <Text style={styles.detailsHeader}>About the Art</Text>
@@ -351,16 +372,11 @@ export default function ViewPostPage() {
                 </Text>}
               <Text style={styles.detailsText}>
                 {artworkData?.description || "Original artwork on ArtFilier."}
-                {"\n"}
-                Medium/Material:{" "}
-                {isDigital ? "Digital" : (medium as string) || "Oil on Canvas"}
-                {"\n"}
-                {Array.isArray(artworkData?.tags) && artworkData.tags.length
-                  ? `Tags: ${artworkData.tags.join(" Â· ").replace(/_/g, " ")}\n`
-                  : ""}
-                License: Terms are agreed during purchase.{"\n"}
-                Dimensions: 2000 x 3000 px
               </Text>
+              {(isDigital || !!artworkData?.medium) && <Text style={styles.detailsText}>Medium: {isDigital ? 'Digital' : artworkData.medium}</Text>}
+              {!!artworkData?.dimensions && <Text style={styles.detailsText}>Dimensions: {artworkData.dimensions}</Text>}
+              {Array.isArray(artworkData?.tags) && <ArtworkTagPills tags={artworkData.tags} />}
+              {!portfolioOnly && <Text style={styles.detailsText}>License terms are agreed during purchase.</Text>}
             </View>
 
             {/* Auction deets */}
@@ -393,17 +409,17 @@ export default function ViewPostPage() {
               </View>
             )}
 
-            <View style={styles.priceContainer}>
+            {!portfolioOnly && <View style={styles.priceContainer}>
               <Text style={styles.priceLabel}>
                 {isAuction ? "Starting / Current Bid:" : "Price:"}
               </Text>
               <Text style={styles.priceValue}>
                 Php {Number(price || 0).toLocaleString()}
               </Text>
-            </View>
+            </View>}
 
             {/* If auction, Go to Auction / Place Bid is provided */}
-            {isAuction ? (
+            {portfolioOnly ? <Text style={styles.priceLabel}>Portfolio only</Text> : isAuction ? (
               <TouchableOpacity
                 style={[
                   styles.auctionBtn,
@@ -457,7 +473,7 @@ export default function ViewPostPage() {
           </View>
         </View>
 
-        <View style={styles.reviewsSection}>
+        {!portfolioOnly && <View style={styles.reviewsSection}>
           <View style={styles.reviewsHeader}>
             <View>
               <Text style={styles.reviewsTitle}>Reviews & Feedback</Text>
@@ -513,7 +529,7 @@ export default function ViewPostPage() {
               </View>
             ))
           )}
-        </View>
+        </View>}
       </ScrollView>
       <Modal
         visible={showGallery}

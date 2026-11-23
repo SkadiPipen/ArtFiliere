@@ -68,7 +68,7 @@ class CartView(AuthenticatedAPIView):
         listing_id = str(request.data.get("listing_id", ""))
         if qty is None or not listing_id.isdecimal():
             return Response({"error": "Provide a valid listing and quantity (1-999)."}, status=400)
-        artwork = Artwork.objects.filter(pk=listing_id, status=Artwork.Status.APPROVED).first()
+        artwork = Artwork.objects.filter(pk=listing_id, status=Artwork.Status.APPROVED).exclude(sale_type=Artwork.PORTFOLIO_ONLY).first()
         if not artwork or artwork.artist_id == user.id:
             return Response({"error": "This artwork is unavailable or belongs to you."}, status=400)
         if PaymentSession.objects.filter(buyer=user, artwork=artwork, status=PaymentSession.Status.PAID).exists():

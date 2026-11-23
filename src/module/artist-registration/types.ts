@@ -5,6 +5,12 @@ export interface PortfolioItem {
   imageDataUri?: string;
   title: string;
   description: string;
+  art_type: 'physical' | 'digital';
+  medium: string;
+  dimensions: string;
+  categories: string[];
+  selected_ai_tags: string[];
+  custom_tags: string[];
 }
 
 export interface DocumentFile {

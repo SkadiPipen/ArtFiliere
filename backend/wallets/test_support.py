@@ -41,6 +41,8 @@ class SupportTests(TestCase):
         self.assertEqual(self.call(None, action='catalog').status_code, 403)
         result = self.call(self.buyer, action='catalog')
         self.assertFalse(any(c['artist_only'] for c in result.data['concerns']))
+        self.assertNotIn('Artist Support', [c['category'] for c in result.data['concerns']])
+        self.assertEqual(next(c['category'] for c in result.data['concerns'] if c['id'] == 'plagiarism'), 'Orders & Artwork')
         self.assertEqual(self.report(concern='verification', reference_id=self.art.pk).status_code, 403)
         artist = self.call(self.artist, action='catalog')
         self.assertTrue(any(c['id'] == 'verification' for c in artist.data['concerns']))
@@ -90,6 +92,11 @@ class SupportTests(TestCase):
         self.art.status = 'approved'; self.art.save()
         self.assertEqual(self.report(self.artist, concern='plagiarism', reference_id=self.art.pk).status_code, 400)
         self.assertEqual(self.report(self.artist, concern='plagiarism', reference_id=self.art.pk, evidence='Original source and publication date').status_code, 201)
+        buffer = BytesIO()
+        Image.new('RGB', (4, 4), 'red').save(buffer, 'PNG')
+        image = 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode()
+        self.assertEqual(self.report(self.artist, concern='plagiarism', reference_id=self.art.pk, image_data=image).status_code, 201)
+        self.assertEqual(self.report(self.artist, concern='plagiarism', reference_id=self.art.pk, evidence='https://example.com/art', image_data=image).status_code, 201)
 
     def test_general_report_and_invalid_photo(self):
         self.assertEqual(self.report(concern='account', reference_id=None).status_code, 201)

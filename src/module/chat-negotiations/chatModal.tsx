@@ -1,16 +1,16 @@
 import ContentModal from '@/components/ContentModal';
 import { Text } from '@/components/Typography';
+import { COLORS } from '@/constants/colors';
 // ========================================
 // FILE: chatModal.tsx
 // PURPOSE: Switches between chatList(group) view to chatWindow(pm).
 //          Referenced in: index.tsx (home screen) and profile.tsx
 // ========================================
 
-import ContractPanel from './ContractPanel';
 import DirectMessageScreen from '@/module/messages/DirectMessageScreen';
 import CommissionChat from '@/module/commissions/CommissionChat';
-import { X } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react-native';
+import { useEffect, useId, useState } from 'react';
 import { SafeAreaView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import type { Artwork } from './types';
 import { ChatList } from './chatList';
@@ -35,7 +35,7 @@ export function ChatModal({
   initialNegotiationArtwork,
   initialCommissionId,
 }: ChatModalProps) {
-  const [showContracts, setShowContracts] = useState(false);
+  const chatId = useId();
   const [selectedDriver, setSelectedDriver] = useState<{ id: number; name: string } | null>(null);
   const [driverTab, setDriverTab] = useState(false);
   //II.1. State: show chat list if null, chat box if there's a selected chat
@@ -43,11 +43,11 @@ export function ChatModal({
   const [selectedCommission, setSelectedCommission] = useState<number | null>(null);
   const [commissionFilter, setCommissionFilter] = useState(false);
   useEffect(() => {
-    setSelectedChat(null); setSelectedCommission(null); setShowContracts(false); setSelectedDriver(null); setDriverTab(false);
+    setSelectedChat(null); setSelectedCommission(null); setSelectedDriver(null); setDriverTab(false);
   }, [currentUser?.uid]);
   useEffect(() => {
     if (visible && initialCommissionId) {
-      setSelectedChat(null); setShowContracts(false);
+      setSelectedChat(null);
       setSelectedCommission(initialCommissionId); setCommissionFilter(true);
     }
   }, [visible, initialCommissionId]);
@@ -104,7 +104,6 @@ export function ChatModal({
 
   //II.5. Close the entire modal
   const handleCloseModal = () => {
-    setShowContracts(false);
     setSelectedChat(null);
     setSelectedCommission(null);
     setCommissionFilter(false); setSelectedDriver(null); setDriverTab(false);
@@ -121,9 +120,7 @@ export function ChatModal({
       transparent={false}
       onRequestClose={handleCloseModal}
     >
-      <SafeAreaView style={styles.modalContainer}>
-        <TouchableOpacity onPress={() => setShowContracts(true)} style={{ padding: 14 }}><Text style={{ color: "#C15656", fontWeight: "700" }}>Contracts ? review and accept proposals</Text></TouchableOpacity>
-        {showContracts && <ContractPanel onClose={() => setShowContracts(false)} />}
+      <SafeAreaView nativeID={`artfilier-chat-open-${chatId}`} style={styles.modalContainer}>
         {selectedDriver ? <DirectMessageScreen key={selectedDriver.id} conversationId={selectedDriver.id} title={selectedDriver.name} onBack={() => { setSelectedDriver(null); setDriverTab(true); }} /> : selectedCommission !== null ? <CommissionChat key={selectedCommission} id={selectedCommission} onBack={() => { setSelectedCommission(null); setCommissionFilter(true); }} /> : selectedChat ? (
           <ChatWindow
             user={selectedChat.user}
@@ -135,10 +132,10 @@ export function ChatModal({
         ) : (
           <>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Messages</Text>
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close messages" onPress={handleCloseModal}>
-                <X size={24} color="#000" />
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back from messages" onPress={handleCloseModal} hitSlop={8}>
+                <ArrowLeft size={24} color={COLORS.redDark} />
               </TouchableOpacity>
+              <Text style={styles.modalTitle}>Messages</Text>
             </View>
             <ChatList
               currentUser={currentUser}
@@ -163,8 +160,8 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,

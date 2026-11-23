@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { Text } from '@/components/Typography';
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
@@ -26,13 +27,13 @@ export default function Toast({
     Animated.timing(opacity, {
       toValue: 1,
       duration: 200,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
     const timer = setTimeout(() => {
       Animated.timing(opacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }).start(() => onHide());
     }, duration);
     return () => clearTimeout(timer);

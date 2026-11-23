@@ -60,6 +60,8 @@ class ArtworkSerializer(serializers.ModelSerializer):
             "stock_quantity",
             "edition_size",
             "inventory",
+            "medium",
+            "dimensions",
             "price",
             "image_data",
             "additional_images",

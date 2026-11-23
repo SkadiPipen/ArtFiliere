@@ -160,6 +160,8 @@ class AgreementView(AuthenticatedAPIView):
             return Response({"error": "The selected artwork does not belong to the agreement artist."}, status=400)
         if artwork_id and Artwork.objects.filter(id=artwork_id, sale_type='Auction').exists():
             return Response({'error': 'Auction license terms are fixed. Use the winning auction agreement.'}, status=409)
+        if artwork_id and Artwork.objects.filter(id=artwork_id, sale_type=Artwork.PORTFOLIO_ONLY).exists():
+            return Response({'error': 'Portfolio-only artwork is unavailable for purchase or licensing.'}, status=409)
         try:
             license_scope = validate_scope(request.data.get('license_scope'), request.data.get('license_type', 'personal'))
             if artwork_id:

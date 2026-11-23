@@ -1,5 +1,6 @@
 from messaging.platform_defaults import current_defaults
 from decimal import Decimal, InvalidOperation
+from zoneinfo import ZoneInfo
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -10,6 +11,7 @@ from users.models import User
 from .models import Artwork, ArtworkReviewLog, ArtworkSimilarityMatch
 from .serializers import ArtworkSerializer
 from .tagging import generate_tags, validate_final_tags
+from .metadata import artwork_metadata
 from .categories import CATEGORIES, validate_categories
 from django.db import IntegrityError, transaction
 from django.db.models import Avg, Q, F
@@ -68,7 +70,7 @@ class ArtworkView(AuthenticatedAPIView):
             artworks = artworks.all()
         else:
             from .availability import restricted_artwork_ids
-            artworks = artworks.filter(status=Artwork.Status.APPROVED).exclude(pk__in=restricted_artwork_ids())
+            artworks = artworks.filter(status=Artwork.Status.APPROVED).exclude(sale_type=Artwork.PORTFOLIO_ONLY).exclude(pk__in=restricted_artwork_ids())
 
         return Response(ArtworkSerializer(
             artworks, many=True,
@@ -96,7 +98,11 @@ class ArtworkView(AuthenticatedAPIView):
     @transaction.atomic
     def post(self, request):
         user = self.get_request_user(request)
-        required = ["title", "description", "price", "image_data"]
+        sale_type = request.data.get("sale_type", "Direct Sell")
+        portfolio_only = sale_type == Artwork.PORTFOLIO_ONLY
+        required = ["title", "description", "image_data"]
+        if not portfolio_only:
+            required.append("price")
         missing = [field for field in required if not request.data.get(field)]
         if missing:
             return Response(
@@ -113,17 +119,25 @@ class ArtworkView(AuthenticatedAPIView):
         except ValueError as error:
             return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
-        sale_type = request.data.get("sale_type", "Direct Sell")
         art_type = request.data.get("art_type")
         if art_type not in ("digital", "physical"):
             return Response({"error": "Choose a valid artwork type."}, status=status.HTTP_400_BAD_REQUEST)
         from .inventory import listing_inventory
         try:
             inventory = listing_inventory(request.data, art_type, sale_type)
-            if sale_type == 'Auction' and inventory['physical_format'] != 'original' and request.data.get('auction_exclusivity', 'non_exclusive') != 'non_exclusive':
-                raise ValueError('Print auctions must use non-exclusive terms.')
+            if (
+                sale_type == "Auction"
+                and inventory["physical_format"] != "original"
+                and request.data.get("auction_exclusivity", "non_exclusive") != "non_exclusive"
+            ):
+                raise ValueError("Print auctions must use non-exclusive terms.")
+            metadata = artwork_metadata(
+                request.data,
+                art_type,
+                required="medium" in request.data or "dimensions" in request.data,
+            )
         except ValueError as error:
-            return Response({'error': str(error)}, status=400)
+            return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         auction_template = None
         auction_terms = ""
@@ -181,14 +195,18 @@ class ArtworkView(AuthenticatedAPIView):
             auction_end_time = parse_datetime(request.data.get("end_time") or "")
             if not auction_start_time or not auction_end_time:
                 return Response({"error": "Choose both an auction start and end date."}, status=status.HTTP_400_BAD_REQUEST)
+            manila = ZoneInfo('Asia/Manila')
+            now = timezone.now()
             if timezone.is_naive(auction_start_time):
-                auction_start_time = timezone.make_aware(auction_start_time)
+                auction_start_time = timezone.make_aware(auction_start_time, manila)
             if timezone.is_naive(auction_end_time):
-                auction_end_time = timezone.make_aware(auction_end_time)
-            if auction_start_time.date() < timezone.localdate():
+                auction_end_time = timezone.make_aware(auction_end_time, manila)
+            if timezone.localdate(auction_start_time, manila) < timezone.localdate(now, manila):
                 return Response({"error": "The auction start date cannot be before today."}, status=status.HTTP_400_BAD_REQUEST)
             if auction_end_time <= auction_start_time:
                 return Response({"error": "The auction end date must be later than the start date."}, status=status.HTTP_400_BAD_REQUEST)
+            if auction_end_time <= now:
+                return Response({"error": "The auction must end in the future."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             if sale_type == "Auction":
@@ -201,6 +219,9 @@ class ArtworkView(AuthenticatedAPIView):
                 hours = None
                 rate = None
                 materials = Decimal("0")
+            elif portfolio_only:
+                listing_price = materials = Decimal("0")
+                hours = rate = None
             else:
                 hours = Decimal(str(request.data.get("hours", "")))
                 rate = Decimal(str(request.data.get("hourly_rate", "")))
@@ -278,6 +299,7 @@ class ArtworkView(AuthenticatedAPIView):
                     material_cost=materials,
                     art_type=art_type,
                     **inventory,
+                    **metadata,
                     image_data=request.data["image_data"],
                     additional_images=additional_images,
                     # Retain duplicate attempts as private evidence without taking
@@ -565,7 +587,7 @@ class ArtworkReviewView(AuthenticatedAPIView):
             category_str = str(getattr(artwork, "category", "")).upper()
             sale_type = str(getattr(artwork, "sale_type", "")).upper()
 
-            is_auction = "AUCTION" in sale_type or "AUCTION" in category_str
+            is_auction = artwork.sale_type != Artwork.PORTFOLIO_ONLY and ("AUCTION" in sale_type or "AUCTION" in category_str)
             is_physical = "PHYSICAL" in category_str or getattr(artwork, "art_type", "") == "physical"
 
             if is_auction:

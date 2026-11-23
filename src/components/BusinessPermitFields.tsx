@@ -1,3 +1,4 @@
+import CalendarDateField from './CalendarDateField';
 import { Text, TextInput } from '@/components/Typography';
 import { Square, SquareCheck } from 'lucide-react-native';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -6,11 +7,11 @@ import type { PermitDocument } from './businessPermit';
 export default function BusinessPermitFields({ details, setDetails, document, upload, consent, setConsent, busy, purpose }: { details: Record<string, string>; setDetails: (value: Record<string, string>) => void; document: PermitDocument | null; upload: () => void; consent: boolean; setConsent: (value: boolean) => void; busy: boolean; purpose: 'reseller' | 'royalty' }) {
   return <>
         <Text style={s.sectionTitle}>Business permit details</Text>
-        <Text style={s.description}>Enter all details exactly as shown on your permit. Dates must use YYYY-MM-DD.</Text>
+        <Text style={s.description}>Enter all details exactly as shown on your permit.</Text>
         <View style={s.grid}>{[
           ['registered_business_name', 'Registered business name'], ['permit_number', 'Permit number'],
           ['issuing_authority', 'Issuing authority'], ['issued_on', 'Issue date'], ['expires_on', 'Expiry date'],
-        ].map(([key, label]) => <View key={key} style={s.field}><Text style={s.label}>{label} *</Text><TextInput editable={!busy} accessibilityLabel={label} value={details[key] || ''} onChangeText={value => setDetails({ ...details, [key]: value })} maxLength={key.endsWith('_on') ? 10 : 180} placeholder={key.endsWith('_on') ? 'YYYY-MM-DD' : label} style={s.input} /></View>)}</View>
+        ].map(([key, label]) => <View key={key} style={s.field}><Text style={s.label}>{label} *</Text> {key.endsWith('_on') ? <CalendarDateField disabled={busy} label={label} value={details[key] || ''} onChange={value => setDetails({ ...details, [key]: value })} maximumDate={key === 'issued_on' ? new Date() : undefined} /> : <TextInput editable={!busy} accessibilityLabel={label} value={details[key] || ''} onChangeText={value => setDetails({ ...details, [key]: value })} maxLength={180} placeholder={label} style={s.input} />}</View>)}</View>
         <Text style={s.sectionTitle}>Upload business permit</Text>
         <TouchableOpacity disabled={busy} style={s.upload} onPress={() => upload()}><Text style={s.label}>Business permit *</Text><Text style={s.link}>{document?.name || 'Choose PDF or image / up to 5 MB'}</Text></TouchableOpacity>
         <TouchableOpacity disabled={busy} accessibilityRole="checkbox" accessibilityState={{ checked: consent }} onPress={() => setConsent(!consent)} style={s.notice}>

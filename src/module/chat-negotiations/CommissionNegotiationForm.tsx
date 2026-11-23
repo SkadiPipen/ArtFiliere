@@ -496,7 +496,7 @@ export default function NegotiationForm({
             <>
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>Delivery Fee</Text>
-                <Text style={styles.priceValue}>₱{formatPrice(prices.baseDeliveryFee)}</Text>
+                <Text style={styles.priceValue}>{missingCommissionShipping ? 'Awaiting verified shipping quote' : `₱${formatPrice(prices.baseDeliveryFee)}`}</Text>
               </View>
               {prices.priorityFee > 0 && (
                 <View style={styles.priceRow}>
@@ -508,7 +508,7 @@ export default function NegotiationForm({
           )}
           <View style={styles.priceDivider} />
           <View style={[styles.priceRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total Price</Text>
+            <Text style={styles.totalLabel}>{missingCommissionShipping ? 'Subtotal · shipping not yet included' : 'Total Price'}</Text>
             <Text style={styles.totalValue}>₱{formatPrice(prices.totalWithDelivery)}</Text>
           </View>
         </View>

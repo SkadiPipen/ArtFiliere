@@ -19,7 +19,7 @@ class FeaturedArtworkView(APIView):
                 | Q(auction_listings__status='SETTLED')
                 | (Q(provenance_listing__record__registered_at__isnull=False)
                    & ~Q(provenance_listing__record__current_owner_id=F('artist_id'))))
-        works = list(Artwork.objects.filter(status='approved', artist__is_banned=False)
+        works = list(Artwork.objects.filter(status='approved', artist__is_banned=False).exclude(sale_type=Artwork.PORTFOLIO_ONLY)
                      .filter(Q(artist__suspended_until__isnull=True) | Q(artist__suspended_until__lte=timezone.now()))
                      .exclude(sold).select_related('artist').distinct())
         from .inventory import inventory_summary

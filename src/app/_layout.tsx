@@ -1,3 +1,4 @@
+import DeliveryProofRecovery from '@/components/DeliveryProofRecovery';
 import { COLORS } from '@/constants/colors';
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -21,6 +22,7 @@ export default function RootLayout() {
         <BackNavigationTracker />
         <ContentProtection />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.pageBackground } }} />
+        <DeliveryProofRecovery />
         <AccountRestrictionNotice />
         <ReadOnlyRequestGuard />
         <PaymentReturnMonitor />

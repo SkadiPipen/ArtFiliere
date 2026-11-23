@@ -1,3 +1,5 @@
+import { auth } from '@/firebase/config';
+import { beginProofCapture, clearPendingProof, endProofCapture, readPendingProof, uploadPendingProof, useProofCaptureBusy, type PendingDeliveryProof } from '@/services/deliveryProofCapture';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
 import { goBackOr } from '@/services/navigation';
@@ -8,7 +10,7 @@ import { BuyerDeliveryCard } from '@/module/delivery/components/BuyerDeliveryCar
 import DeliveryLeafletMap from '@/module/delivery/components/DeliveryLeafletMap';
 import { DeliveryProgressBar } from '@/module/delivery/components/DeliveryProgressBar';
 import { ActiveDelivery, DeliveryStep } from '@/module/delivery/types/delivery';
-import { fetchActiveDeliveryApi, fetchDeliveryDetailsApi, resolveDeliveryLocationApi, updateOrderStatusApi, updateRiderLocationApi, uploadDeliveryProofApi } from '@/services/deliveryApi';
+import { fetchActiveDeliveryApi, fetchDeliveryDetailsApi, resolveDeliveryLocationApi, updateOrderStatusApi, updateRiderLocationApi } from '@/services/deliveryApi';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -39,6 +41,9 @@ export default function DeliveryDetailScreen() {
     // Photo proofs
     const [artistPhotoUri, setArtistPhotoUri] = useState<string | null>(null);
     const [buyerPhotoUri, setBuyerPhotoUri] = useState<string | null>(null);
+    const proofBusy = useProofCaptureBusy();
+    const captureLock = useRef(false);
+    const [pendingProof, setPendingProof] = useState<PendingDeliveryProof | null>(null);
 
     const safeGoBack = () => {
         goBackOr('/rider/(tabs)');
@@ -47,6 +52,7 @@ export default function DeliveryDetailScreen() {
     const effectiveOrderId = delivery?.id ?? (delivery as any)?.order_id ?? routeOrderId;
 
     const loadDeliveryDetails = useCallback(async () => {
+        if (captureLock.current) return;
         try {
             const data = routeOrderId ? await fetchDeliveryDetailsApi(String(routeOrderId)) : await fetchActiveDeliveryApi();
             setDelivery(data);
@@ -60,10 +66,11 @@ export default function DeliveryDetailScreen() {
     }, [routeOrderId]);
 
     useEffect(() => {
+        if (proofBusy) return;
         loadDeliveryDetails();
         const timer = setInterval(loadDeliveryDetails, 15000);
         return () => clearInterval(timer);
-    }, [loadDeliveryDetails]);
+    }, [loadDeliveryDetails, proofBusy]);
 
     const resolveCurrentAddress = useCallback(async () => {
         if (!delivery?.id || resolvingAddress) return;
@@ -87,8 +94,9 @@ export default function DeliveryDetailScreen() {
         }
     }, [delivery?.id, delivery?.step, resolveCurrentAddress, resolvingAddress]);
 
-    // Track Driver GPS
+    // Pause GPS and map resources while capturing/compressing proof.
     useEffect(() => {
+        if (proofBusy) return;
         let webWatch: number | undefined;
         let active = true;
         // Keep watching even if the browser's first GPS fix is unavailable.
@@ -110,11 +118,14 @@ export default function DeliveryDetailScreen() {
         (async () => {
             try {
                 const point = await getDriverPosition(); if (!active) return; setDriverLocation(point); setGpsError('');
-                if (Platform.OS !== 'web') locationSubRef.current = await Location.watchPositionAsync(
+                if (Platform.OS !== 'web') {
+                  const subscription = await Location.watchPositionAsync(
                     { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 5000, distanceInterval: 10 },
-                    loc => { try { const point = checkedDriverPosition(loc.coords); setDriverLocation(point); setGpsError(''); void updateRiderLocationApi(1, point.latitude, point.longitude).catch((error: any) => setGpsError(`Location found, but sharing failed: ${error.message}`)); } catch (e: any) { setDriverLocation(null); setGpsError(e.message); } }
+                    loc => { if (!active) return; try { const point = checkedDriverPosition(loc.coords); setDriverLocation(point); setGpsError(''); void updateRiderLocationApi(1, point.latitude, point.longitude).catch((error: any) => { if (active) setGpsError(`Location found, but sharing failed: ${error.message}`); }); } catch (e: any) { setDriverLocation(null); setGpsError(e.message); } }
                 );
-            } catch (e: any) { setDriverLocation(null); setGpsError(e.message || 'Enable precise GPS location.'); }
+                  if (active) locationSubRef.current = subscription; else subscription.remove();
+                }
+            } catch (e: any) { if (active) { setDriverLocation(null); setGpsError(e.message || 'Enable precise GPS location.'); } }
         })();
 
         return () => {
@@ -122,9 +133,10 @@ export default function DeliveryDetailScreen() {
             if (webWatch !== undefined) navigator.geolocation.clearWatch(webWatch);
             if (locationSubRef.current) {
                 locationSubRef.current.remove();
+                locationSubRef.current = null;
             }
         };
-    }, []);
+    }, [proofBusy]);
 
     // Manual GPS Location Tracker Trigger with Web + Mobile support
     const handleLocationPress = async () => {
@@ -150,51 +162,60 @@ export default function DeliveryDetailScreen() {
     };
 
     // Camera Handler
+    useEffect(() => {
+        let active = true;
+        if (!proofBusy) void readPendingProof().then(pending => {
+            if (active) setPendingProof(pending && pending.uid === auth.currentUser?.uid && pending.orderId === String(effectiveOrderId) && pending.asset ? pending : null);
+        }).catch(() => undefined);
+        return () => { active = false; };
+    }, [proofBusy, effectiveOrderId]);
+
     const handleTakeProofPhoto = async (role: 'artist' | 'buyer') => {
+        if (captureLock.current || proofBusy || !effectiveOrderId) return;
+        captureLock.current = true;
+        let pending: PendingDeliveryProof | undefined;
+        let captured = false;
         try {
-            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-            if (!permissionResult.granted) {
-                Alert.alert(
-                    'Permission Required',
-                    'Camera access is needed to capture proof of delivery. Please enable camera permissions in your device settings.'
-                );
-                return;
-            }
-
-            const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ['images'],
-                allowsEditing: false,
-                quality: 0.7,
-                base64: true,
-            });
-
-            if (!result.canceled && result.assets && result.assets.length > 0) {
-                const capturedUri = result.assets[0].uri;
-                const timestamp = new Date().toISOString();
-                const proofType: 'PICKUP' | 'DELIVERY' = role === 'artist' ? 'PICKUP' : 'DELIVERY';
-
-                if (role === 'artist') {
-                    setArtistPhotoUri(capturedUri);
-                } else {
-                    setBuyerPhotoUri(capturedUri);
-                }
-
-                if (effectiveOrderId) {
-                    await uploadDeliveryProofApi(String(effectiveOrderId), role, result.assets[0].base64 ? `data:image/jpeg;base64,${result.assets[0].base64}` : capturedUri, timestamp, proofType);
-                }
-
-                Alert.alert('Proof Saved', 'Photo captured successfully.');
-            }
-        } catch (error) {
-            if (role === 'artist') setArtistPhotoUri(null); else setBuyerPhotoUri(null);
-            console.error('Camera Launch Error:', error);
-            Alert.alert('Camera Notice', 'Failed to open device camera.');
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) { Alert.alert('Permission Required', 'Allow camera access in your device settings to capture delivery proof.'); return; }
+            pending = await beginProofCapture(String(effectiveOrderId), role);
+            // Allow React/native views to dispose of the map before the camera opens.
+            await new Promise(resolve => setTimeout(resolve, 200));
+            const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 0.5, base64: false });
+            if (result.canceled || !result.assets?.[0]) { await clearPendingProof(pending.id); return; }
+            captured = true;
+            const saved = await uploadPendingProof(pending, result.assets[0]);
+            if (role === 'artist') setArtistPhotoUri(saved.uri); else setBuyerPhotoUri(saved.uri);
+            setPendingProof(null);
+            Alert.alert('Proof Saved', 'The compressed photo was uploaded successfully.');
+        } catch (error: any) {
+            if (pending && !captured) await clearPendingProof(pending.id).catch(() => undefined);
+            Alert.alert(captured ? 'Proof upload needs attention' : 'Camera Notice', error.message || 'Please retry the proof photo.');
+        } finally {
+            captureLock.current = false;
+            if (pending) endProofCapture();
         }
+    };
+
+    const retrySavedProof = async () => {
+        if (!pendingProof || captureLock.current || proofBusy) return;
+        captureLock.current = true;
+        try {
+            // Recovery claims the same global lock and reuses the compressed file.
+            const { recoverProofCapture } = await import('@/services/deliveryProofCapture');
+            const saved = await recoverProofCapture();
+            if (saved?.uri) {
+                if (saved.record.role === 'artist') setArtistPhotoUri(saved.uri); else setBuyerPhotoUri(saved.uri);
+                setPendingProof(null);
+                Alert.alert('Proof Saved', 'The saved photo was uploaded successfully.');
+            }
+        } catch (error: any) { Alert.alert('Proof upload failed', error.message); }
+        finally { captureLock.current = false; }
     };
 
     // Step Status Transition
     const handleNextDeliverySteps = async () => {
-        if (!delivery) return;
+        if (!delivery || proofBusy || captureLock.current) return;
 
         if (!effectiveOrderId) {
             Alert.alert('Error', 'Missing Order ID for this delivery.');
@@ -347,7 +368,7 @@ export default function DeliveryDetailScreen() {
                         </View>
                     )}
 
-                    <DeliveryLeafletMap
+                    {proofBusy ? <View style={{ padding: 35, alignItems: 'center', gap: 12 }}><ActivityIndicator color="#C15656" /><Text>Taking or saving proof photo…</Text></View> : <DeliveryLeafletMap
                         driverLat={driverLocation?.latitude ?? null}
                         driverLng={driverLocation?.longitude ?? null}
                         targetLat={destinationCoords?.latitude ?? null}
@@ -362,8 +383,9 @@ export default function DeliveryDetailScreen() {
                         onRouteCalculated={(dist, duration) => {
                             setRouteETA(`${duration} mins (${dist} km)`);
                         }}
-                    />
+                    />}
                 </View>
+                {!!pendingProof && !proofBusy && <View style={{ padding: 16, gap: 10 }}><Text>Your captured photo is saved locally but has not been uploaded.</Text><TouchableOpacity accessibilityRole="button" onPress={() => void retrySavedProof()}><Text style={{ color: '#A43F48', fontWeight: '700' }}>Retry saved proof photo</Text></TouchableOpacity></View>}
 
                 {/* Pickup Card */}
                 {isPickup && (

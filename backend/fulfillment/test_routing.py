@@ -251,3 +251,78 @@ class RoadDistanceTests(SimpleTestCase):
         with patch('fulfillment.routing.requests.get', return_value=response):
             with self.assertRaises(ValueError):
                 geocode_address('M.J. Cuenco Avenue corner R. Palma Street, San Roque, Cebu City, Cebu')
+
+
+@override_settings(ORS_API_KEY='test-key', GEOAPIFY_API_KEY='', DELIVERY_BASE_FARE=50, DELIVERY_PER_KM=15)
+class CommissionAddressRegressionTests(SimpleTestCase):
+    def test_independent_cebu_city_accepts_saved_region_label(self):
+        from .routing import geocode_address
+        response = Mock(ok=True, status_code=200)
+        response.json.return_value = {'features': [{'properties': {
+            'country_a': 'PHL', 'layer': 'address', 'confidence': 0.95,
+            'locality': 'Cebu City', 'region': 'Central Visayas', 'postalcode': '6000',
+            'street': 'Test Street', 'housenumber': '12', 'neighbourhood': 'San Roque',
+        }, 'geometry': {'coordinates': [123.9, 10.3]}}]}
+        with patch('fulfillment.routing.requests.get', return_value=response):
+            self.assertEqual(geocode_address('12 Test Street, San Roque, City of Cebu, Cebu, Region VII (Central Visayas), 6000'), [123.9, 10.3])
+
+    def test_saved_pins_are_used_for_commission_quote(self):
+        from types import SimpleNamespace
+        from commissions.delivery import CommissionDeliveryQuoteView
+        pickup = SimpleNamespace(id=1, pk=1, label='Studio', is_default=True, street='12 Artist Street', barangay='Centro', city='Cebu', province='Cebu', region='VII', postal_code='6000', latitude=10.3, longitude=123.9)
+        destination = SimpleNamespace(**{**vars(pickup), 'id': 2, 'pk': 2, 'label': 'Home', 'latitude': 10.4, 'longitude': 123.95})
+        buyer = SimpleNamespace(pk=2, address=destination, addresses=Mock(), first_name='Test', middle_name='', last_name='Buyer', contact_number='09171234567')
+        buyer.addresses.order_by.return_value = [destination]
+        artist = SimpleNamespace(pk=1, address=pickup)
+        request = SimpleNamespace(query_params={'artist_id': '1'})
+        with patch.object(CommissionDeliveryQuoteView, 'get_request_user', return_value=buyer), patch('commissions.delivery.User.objects.filter') as artists, patch('commissions.delivery.road_distance', return_value=3000) as route:
+            artists.return_value.first.return_value = artist
+            response = CommissionDeliveryQuoteView().get(request)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(route.call_args.kwargs['pickup_coordinates'], [123.9, 10.3])
+            self.assertEqual(route.call_args.kwargs['destination_coordinates'], [123.95, 10.4])
+            self.assertEqual(response.data['delivery_address_id'], 2)
+
+
+@override_settings(ORS_API_KEY='test-key')
+class RoutingAddressErrorTests(SimpleTestCase):
+    def test_pickup_failure_identifies_artist_side(self):
+        with patch('fulfillment.routing.geocode_address', side_effect=ValueError('Address not found')):
+            with self.assertRaisesRegex(ValueError, 'Pickup address: Address not found'):
+                road_distance('Artist address', 'Buyer address')
+
+    def test_destination_failure_identifies_buyer_side(self):
+        with patch('fulfillment.routing.geocode_address', side_effect=ValueError('Address not found')):
+            with self.assertRaisesRegex(ValueError, 'Delivery address: Address not found'):
+                road_distance('Artist address', 'Buyer address', pickup_coordinates=[123.9, 10.3])
+
+
+class SavedDeliveryPinTests(SimpleTestCase):
+    def test_driver_uses_immutable_order_pin_when_text_cannot_geocode(self):
+        from commissions.shipping import verified_locations
+        pickup = 'Artist studio, Cebu'
+        delivery = 'Nasipit, Talamban, City of Cebu, Cebu, Central Visayas, 6000'
+        details = {
+            'pickup_snapshot': {'formatted': pickup, 'latitude': 10.4, 'longitude': 123.9},
+            'delivery_snapshot': {'formatted': delivery, 'latitude': 10.36, 'longitude': 123.92},
+        }
+        order = Mock(route_details=details, pickup_address=pickup, delivery_address=delivery)
+        with patch('fulfillment.routing.geocode_address', side_effect=ValueError('Cannot geocode')) as lookup:
+            result = verified_locations(order)
+        lookup.assert_not_called()
+        self.assertEqual(result['delivery_coordinates'], [123.92, 10.36])
+        self.assertEqual(result['location_precision']['delivery'], 'user_selected')
+        self.assertFalse(result['location_errors'])
+
+    def test_pickup_request_keeps_signed_address_pins(self):
+        from types import SimpleNamespace
+        from commissions.shipping import request_pickup
+        pickup, delivery = 'Artist studio', 'Buyer destination'
+        snapshots = {'pickup_snapshot': {'formatted': pickup, 'latitude': 10.4, 'longitude': 123.9}, 'delivery_snapshot': {'formatted': delivery, 'latitude': 10.36, 'longitude': 123.92}}
+        commission = SimpleNamespace(pk=9, locked_terms={'pickup_address': pickup, 'delivery_address': delivery, 'delivery_details': snapshots, 'delivery_fee': '65'})
+        order = SimpleNamespace(pk=1, commission_id=9)
+        with patch('commissions.shipping.DeliveryOrder.objects.filter') as existing, patch('commissions.shipping.DeliveryOrder.objects.get_or_create', return_value=(order, False)) as create, patch('fulfillment.routing.geocode_address', side_effect=ValueError('Cannot geocode')) as lookup:
+            existing.return_value.first.return_value = None
+            self.assertEqual(request_pickup(commission), order)
+            lookup.assert_not_called()
+            self.assertEqual(create.call_args.kwargs['defaults']['route_details']['delivery_coordinates'], [123.92, 10.36])
