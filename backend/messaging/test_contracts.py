@@ -266,12 +266,13 @@ class ContractFlowTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['license_scope']['copyright_transfer']['rights'], ['reproduction'])
         self.assertEqual(response.data['exclusivity'], 'exclusive')
-        self.assertIsNone(response.data['license_scope']['duration_months'])
+        self.assertEqual(response.data['license_scope']['duration_months'], 12)
         pk = response.data['id']
         self.call(ContractDecisionView, self.artist, 'patch', {'action': 'accept'}, agreement_id=pk)
         document = self.call(AgreementSigningView, self.buyer, agreement_id=pk).data['document']
         self.assertIn('COPYRIGHT ASSIGNMENT', document)
-        self.assertIn('Perpetual', document)
+        self.assertIn('License term: 12 months', document)
+        self.assertIn('remaining statutory term of the assigned economic rights', document)
         self.assertIn('Portfolio only', document)
         self.assertNotIn('does not assign copyright ownership', document)
 

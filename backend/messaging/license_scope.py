@@ -34,14 +34,12 @@ def validate_scope(raw, license_type):
         raise ValueError('Specify the licensed products, media, or campaign.')
     from .copyright_transfer import validate_transfer
     transfer = validate_transfer(raw.get('copyright_transfer'))
+    duration = raw.get('duration_months')
+    if not (transfer and duration is None) and (type(duration) is not int or not 1 <= duration <= 60):
+        raise ValueError('License duration must be 1 to 60 whole months.')
+    result['duration_months'] = duration
     if transfer:
         result['copyright_transfer'] = transfer
-        result['duration_months'] = None
-    else:
-        duration = raw.get('duration_months')
-        if type(duration) is not int or not 1 <= duration <= 60:
-            raise ValueError('License duration must be 1 to 60 whole months.')
-        result['duration_months'] = duration
     return result
 
 
@@ -54,7 +52,7 @@ def scope_text(scope):
     credit = 'Credit the Artist on copies and public uses.' if scope['credit'] == 'required' else 'Credit the Artist on copies and public uses wherever practicable.'
     return '\n'.join([f'Territory: {territory}.', f'Permitted uses only: {", ".join(scope["uses"])}.',
         f'Licensed products / media: {scope["products"] or "Personal, non-commercial uses only"}.',
-        ('License term: Perpetual, subject to applicable statutory limits.' if scope.get('copyright_transfer') and scope.get('duration_months') is None
+        ('License term: No fixed duration specified.' if scope.get('duration_months') is None
          else f'License term: {scope["duration_months"]} months from the later signature date; renewal requires written agreement.'),
         modifications, partners, credit + f' Credit name: {scope["credit_name"] or "Artist name stated in this agreement"}.',
         'Resale of the ownership entitlement is ' + ('permitted, retaining this license scope and creator attribution.' if scope.get('allow_resale') else 'not permitted.'),
