@@ -164,6 +164,9 @@ class AgreementView(AuthenticatedAPIView):
             return Response({'error': 'Portfolio-only artwork is unavailable for purchase or licensing.'}, status=409)
         try:
             license_scope = validate_scope(request.data.get('license_scope'), request.data.get('license_type', 'personal'))
+            if artwork_id:
+                from artworks.inventory import validate_copy_rights
+                validate_copy_rights(Artwork.objects.get(pk=artwork_id), request.data.get('exclusivity', 'non_exclusive'), license_scope)
             compensation_terms = validate_compensation(request.data, user, request.data.get('license_type', 'personal'))
             validate_schedule_total(compensation_terms, price)
         except PermissionError as error:

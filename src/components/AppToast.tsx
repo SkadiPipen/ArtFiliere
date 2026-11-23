@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { Text } from '@/components/Typography';
 import { Check } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
@@ -21,14 +22,14 @@ export default function AppToast({ visible, message, onDismiss, duration = 1000 
     scale.setValue(0.72);
     translateY.setValue(14);
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 120, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, friction: 6, tension: 150, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, friction: 7, tension: 130, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 120, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(scale, { toValue: 1, friction: 6, tension: 150, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(translateY, { toValue: 0, friction: 7, tension: 130, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
     const timer = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 0, duration: 170, useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 0.9, duration: 170, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0, duration: 170, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(scale, { toValue: 0.9, duration: 170, useNativeDriver: Platform.OS !== 'web' }),
       ]).start(({ finished }) => {
         if (finished) {
           setMounted(false);

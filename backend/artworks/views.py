@@ -122,10 +122,22 @@ class ArtworkView(AuthenticatedAPIView):
         art_type = request.data.get("art_type")
         if art_type not in ("digital", "physical"):
             return Response({"error": "Choose a valid artwork type."}, status=status.HTTP_400_BAD_REQUEST)
+        from .inventory import listing_inventory
         try:
-            metadata = artwork_metadata(request.data, art_type, required='medium' in request.data or 'dimensions' in request.data)
+            inventory = listing_inventory(request.data, art_type, sale_type)
+            if (
+                sale_type == "Auction"
+                and inventory["physical_format"] != "original"
+                and request.data.get("auction_exclusivity", "non_exclusive") != "non_exclusive"
+            ):
+                raise ValueError("Print auctions must use non-exclusive terms.")
+            metadata = artwork_metadata(
+                request.data,
+                art_type,
+                required="medium" in request.data or "dimensions" in request.data,
+            )
         except ValueError as error:
-            return Response({'error': str(error)}, status=400)
+            return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         auction_template = None
         auction_terms = ""
@@ -286,6 +298,7 @@ class ArtworkView(AuthenticatedAPIView):
                     hourly_rate=rate,
                     material_cost=materials,
                     art_type=art_type,
+                    **inventory,
                     **metadata,
                     image_data=request.data["image_data"],
                     additional_images=additional_images,

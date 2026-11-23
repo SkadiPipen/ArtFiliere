@@ -141,11 +141,12 @@ class PurchasesView(AuthenticatedAPIView):
             from commissions.shipping import delivery_status
             delivery = delivery_status(c) if not digital else None
             if delivery:
+                delivery['received_at'] = c.delivered_at
                 delivery['driver'] = delivery['driver']['name'] if delivery['driver'] else None
             elif not digital:
                 delivery = {'status': 'delivered' if c.delivered_at else 'in_production',
                     'status_label': 'Received by buyer' if c.delivered_at else 'In production / awaiting dispatch',
-                    'driver': None, 'delivery_address': c.locked_terms.get('delivery_address', ''), 'fee': str(c.locked_terms.get('delivery_fee', '0'))}
+                    'driver': None, 'received_at': c.delivered_at, 'delivery_address': c.locked_terms.get('delivery_address', ''), 'fee': str(c.locked_terms.get('delivery_fee', '0'))}
             completion_dates = [m.approved_at or m.paid_at for m in c.milestones.all() if m.milestone_number == 3 and (m.approved_at or m.paid_at)]
             purchase_date = max(completion_dates) if complete and completion_dates else c.funded_at or c.created_at
             asset = getattr(c, 'asset', None)

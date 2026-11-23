@@ -1,3 +1,4 @@
+from .buyer_tracking import BuyerDeliveryTrackingView
 from .riders import RiderOrdersView, RiderProfileView, RiderLocationView, RiderProofView
 from .addresses import AddressesView
 from .routing import DeliveryQuoteView
@@ -7,6 +8,7 @@ from .views import PurchaseCertificateView, RoyaltyLicenseDownloadView
 from .fingerprint_lookup import FingerprintLookupView
 
 urlpatterns = [
+    path('delivery/tracking/<int:order_id>/', BuyerDeliveryTrackingView.as_view()),
     path('support/artwork-code/', FingerprintLookupView.as_view()),
     path('addresses/', AddressesView.as_view()),
     path('addresses/<int:address_id>/', AddressesView.as_view()),

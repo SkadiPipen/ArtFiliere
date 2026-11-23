@@ -15,14 +15,15 @@ class FeaturedArtworkView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        sold = (Q(art_type='physical', payment_sessions__status='paid')
-                | Q(payment_sessions__status='paid', payment_sessions__agreement__exclusivity__in=['exclusive', 'sole'])
+        sold = (Q(payment_sessions__status='paid', payment_sessions__agreement__exclusivity__in=['exclusive', 'sole'])
                 | Q(auction_listings__status='SETTLED')
                 | (Q(provenance_listing__record__registered_at__isnull=False)
                    & ~Q(provenance_listing__record__current_owner_id=F('artist_id'))))
         works = list(Artwork.objects.filter(status='approved', artist__is_banned=False).exclude(sale_type=Artwork.PORTFOLIO_ONLY)
                      .filter(Q(artist__suspended_until__isnull=True) | Q(artist__suspended_until__lte=timezone.now()))
                      .exclude(sold).select_related('artist').distinct())
+        from .inventory import inventory_summary
+        works = [work for work in works if work.art_type != 'physical' or inventory_summary(work)['available'] > 0]
         sales = PaymentSession.objects.filter(status='paid', is_simulated=False)
         art_sales = {r['artwork_id']: r['total'] for r in sales.values('artwork_id').annotate(total=Count('pk'))}
         artist_sales = {r['artist_id']: r['total'] for r in sales.values('artist_id').annotate(total=Count('pk'))}

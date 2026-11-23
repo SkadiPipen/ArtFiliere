@@ -140,6 +140,9 @@ class ContractsView(AuthenticatedAPIView):
             artwork_data = {"id": artwork.id, "title": artwork.title, "price": str(base_cost(artwork)), "artist": artwork.artist.username, "artist_uid": artwork.artist.firebase_uid, "buyer_uid": user.firebase_uid, "buyer_name": user.username, "image_url": artwork.image_data, "art_type": "physical" if physical(artwork) else "digital", "is_auction": str(artwork.sale_type).lower() == "auction", "can_propose": str(artwork.sale_type).lower() != "auction" and user.role in (User.Role.BUYER, User.Role.ARTIST) and user.id != artwork.artist_id}
         if artwork_data:
             artwork_data['royalty_enabled'] = user.royalty_enabled
+            artwork_data['physical_format'] = artwork.physical_format
+            artwork_data['stock_quantity'] = artwork.stock_quantity
+            artwork_data['edition_size'] = artwork.edition_size
         return Response({"artwork": artwork_data, "contracts": [contract_data(item, user) for item in contracts]})
 
     @transaction.atomic
@@ -202,6 +205,8 @@ class ContractsView(AuthenticatedAPIView):
         selected["delivery_type"] = "physical" if physical(artwork) else "digital"
         try:
             license_scope = validate_scope(request.data.get('license_scope'), selected['license_type'])
+            from artworks.inventory import validate_copy_rights
+            validate_copy_rights(artwork, selected['exclusivity'], license_scope)
             compensation_terms = validate_compensation(request.data, user, selected['license_type'])
             if license_scope and compensation_terms.get('reporting_duration_months') and license_scope['duration_months'] != compensation_terms['reporting_duration_months']:
                 raise ValueError('Royalty reporting duration must match the license duration.')
@@ -237,6 +242,10 @@ class ContractsView(AuthenticatedAPIView):
         conversation = Conversation.objects.create(artwork=artwork)
         ConversationParticipant.objects.bulk_create([ConversationParticipant(conversation=conversation, user=buyer), ConversationParticipant(conversation=conversation, user=artwork.artist)])
         snapshot = f"Artwork: {artwork.title}\nBuyer: {buyer.username}\nArtist: {artwork.artist.username}\nAgreed total: PHP {price}\n\n{terms.strip()}"
+        if artwork.art_type == 'physical':
+            snapshot += '\nPhysical purchase: one ' + artwork.get_physical_format_display() + ' copy.'
+            if artwork.edition_size:
+                snapshot += f' Total edition size: {artwork.edition_size}.'
         if delivery_details:
             snapshot += f"\nDelivery to: {delivery_details['delivery_address']}\nDelivery fee: PHP {delivery_fee}\nPickup: {delivery_details['pickup_address']}"
         if pricing_terms:

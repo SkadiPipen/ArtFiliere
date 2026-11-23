@@ -1,3 +1,4 @@
+import AddressLocationPicker from './AddressLocationPicker';
 import { Text, TextInput } from '@/components/Typography';
 import { getDriverPosition } from '@/services/driverLocation';
 import { useEffect, useState } from 'react';
@@ -8,7 +9,7 @@ const fields = ['label', 'street', 'barangay', 'city', 'province', 'region', 'po
 const empty = { label: 'Home', street: '', barangay: '', city: '', province: '', region: '', postal_code: '', is_default: false };
 export type SavedAddress = typeof empty & { id: number; formatted: string; latitude?: number | null; longitude?: number | null };
 
-export default function AddressBook({ onChanged, showLocationFields = true }: { onChanged?: () => void; showLocationFields?: boolean }) {
+export default function AddressBook({ onChanged, showLocationFields = true, initialAddressId }: { onChanged?: (addressId?: number) => void; showLocationFields?: boolean; initialAddressId?: number }) {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [form, setForm] = useState<typeof empty | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
@@ -18,14 +19,22 @@ export default function AddressBook({ onChanged, showLocationFields = true }: { 
   const [pinLat, setPinLat] = useState('');
   const [pinLng, setPinLng] = useState('');
   const [locating, setLocating] = useState(false);
-  const reload = async () => setAddresses(await purchaseRequest('addresses/'));
-  useEffect(() => { reload().catch(e => setError(e.message)); }, []);
+  const reload = async () => { const rows: SavedAddress[] = await purchaseRequest('addresses/'); setAddresses(rows); return rows; };
+  useEffect(() => {
+    let active = true;
+    reload().then(rows => {
+      if (!active || !initialAddressId) return;
+      const address = rows.find(row => row.id === initialAddressId);
+      if (address) { setEditing(address.id); setForm({ ...address }); setPinLat(address.latitude == null ? '' : String(address.latitude)); setPinLng(address.longitude == null ? '' : String(address.longitude)); }
+    }).catch(e => { if (active) setError(e.message); });
+    return () => { active = false; };
+  }, [initialAddressId]);
   const change = async (path: string, method: string, body?: object) => {
     setBusy(true); setError('');
     try {
-      await purchaseRequest(path, method, body);
+      const saved = await purchaseRequest(path, method, body);
       setForm(null); setEditing(null); setRemoving(null);
-      await reload(); onChanged?.();
+      await reload(); onChanged?.(typeof saved?.id === 'number' ? saved.id : undefined);
     } catch (e: any) { setError(e.message); }
     finally { setBusy(false); }
   };
@@ -73,6 +82,7 @@ export default function AddressBook({ onChanged, showLocationFields = true }: { 
       {showLocationFields && <>
       <Text style={styles.title}>Exact delivery location (optional)</Text>
       <Text>Use a precise location pin if your street cannot be found. Only use your current GPS when you are at this saved address.</Text>
+      <AddressLocationPicker value={pinLat.trim() && pinLng.trim() && Number.isFinite(Number(pinLat)) && Number.isFinite(Number(pinLng)) ? { latitude: Number(pinLat), longitude: Number(pinLng) } : null} onChange={point => { setPinLat(point.latitude.toFixed(7)); setPinLng(point.longitude.toFixed(7)); }} />
       <TextInput accessibilityLabel="Address latitude" placeholder="Latitude" keyboardType="numbers-and-punctuation" value={pinLat} onChangeText={setPinLat} style={styles.input} editable={!busy && !locating} />
       <TextInput accessibilityLabel="Address longitude" placeholder="Longitude" keyboardType="numbers-and-punctuation" value={pinLng} onChangeText={setPinLng} style={styles.input} editable={!busy && !locating} />
       <TouchableOpacity accessibilityRole="button" disabled={busy || locating} onPress={() => void useGps()}><Text style={styles.link}>{locating ? 'Locating…' : 'Use my current GPS for this address'}</Text></TouchableOpacity>

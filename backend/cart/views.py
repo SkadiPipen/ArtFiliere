@@ -73,9 +73,15 @@ class CartView(AuthenticatedAPIView):
             return Response({"error": "This artwork is unavailable or belongs to you."}, status=400)
         if PaymentSession.objects.filter(buyer=user, artwork=artwork, status=PaymentSession.Status.PAID).exists():
             return Response({"error": "You have already purchased this artwork. View it in My Purchases instead."}, status=409)
-        # A physical artwork and an exclusive/sole license can only have one buyer.
+        from artworks.inventory import inventory_summary
+        if artwork.art_type == 'physical':
+            if qty != 1:
+                return Response({'error': 'Each agreement purchases one physical copy. Set quantity to 1.'}, status=400)
+            if inventory_summary(artwork)['available'] < 1:
+                return Response({'error': 'All physical copies are sold or reserved by pending checkouts.'}, status=409)
+        # Exclusive/sole rights still restrict the entire artwork identity.
         sold_exclusively = PaymentSession.objects.filter(artwork=artwork, status=PaymentSession.Status.PAID).filter(
-            Q(artwork__art_type="physical") | Q(agreement__exclusivity__in=["exclusive", "sole"])
+            Q(agreement__exclusivity__in=["exclusive", "sole"])
         ).exists()
         if sold_exclusively:
             return Response({"error": "This artwork is no longer available for sale."}, status=409)
@@ -95,6 +101,8 @@ class CartItemView(AuthenticatedAPIView):
         item = CartItem.objects.filter(pk=item_id, cart__buyer=self.get_request_user(request)).first()
         if not item:
             return Response({"error": "Cart item not found."}, status=404)
+        if item.listing.art_type == 'physical' and qty != 1:
+            return Response({'error': 'Each agreement purchases one physical copy. Set quantity to 1.'}, status=400)
         item.quantity = qty
         item.save(update_fields=["quantity"])
         return Response(payload(item.cart))

@@ -7,6 +7,7 @@ export interface Artwork {
   title: string;
   artist_name?: string;
   art_type: 'digital' | 'physical';
+  physical_format?: 'original' | 'print' | 'limited_edition';
   base_price: number;
   image_base64?: string;
   image_url?: string;

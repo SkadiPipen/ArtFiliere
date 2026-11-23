@@ -22,12 +22,12 @@ const titles: Record<string, string> = {
   commission_proofs: 'Commission blockchain proofs',
 };
 
-function Licence({ value }: { value: any }) {
+function Licence({ value, heading = 'Agreed rights' }: { value: any; heading?: string }) {
   if (!value || !Object.keys(value).length) return <Text>No licence terms available.</Text>;
   const scope = value.scope || value.license_scope || {};
   const assignment = scope.copyright_transfer;
   return <View style={s.licence}>
-    <Text style={s.bold}>Agreed rights</Text>
+    <Text style={s.bold}>{heading}</Text>
     <Text>Licence: {readable(value.license_type) || 'See agreement'} · {readable(value.exclusivity) || 'Not recorded'}</Text>
     {!!value.agreed_price && <Text>Agreed artwork price: PHP {value.agreed_price}</Text>}
     <Text>Resale permission: {(scope.allow_resale ?? value.allow_resale) === true ? 'Permitted under the agreed terms' : 'No permission recorded'}</Text>
@@ -43,6 +43,26 @@ function Licence({ value }: { value: any }) {
     {Object.entries(value.compensation_terms || {}).map(([key, entry]) => <Text key={key}>{readable(key)}: {termValue(entry)}</Text>)}
     {!!value.artist_signed_at && <Text>Artist signed: {date(value.artist_signed_at)}</Text>}
     {!!value.buyer_signed_at && <Text>Buyer signed: {date(value.buyer_signed_at)}</Text>}
+  </View>;
+}
+
+function CollapsibleTerms({ value, sale = false }: { value: any; sale?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  return <View style={s.agreementTerms}>
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={sale
+        ? (expanded ? 'Hide agreed rights' : 'View agreed rights')
+        : (expanded ? 'Hide agreement terms' : 'View agreement terms')}
+      accessibilityState={{ expanded }}
+      onPress={() => setExpanded(previous => !previous)}
+      style={s.termsToggle}
+    >
+      <Text style={s.bold}>{sale
+        ? (expanded ? 'Hide agreed rights' : 'View agreed rights')
+        : (expanded ? 'Hide terms' : 'View terms')}</Text>
+    </TouchableOpacity>
+    {expanded && <Licence value={value} heading={sale ? 'Agreed rights' : 'Agreement terms'} />}
   </View>;
 }
 
@@ -127,7 +147,9 @@ export default function ArtworkHistoryPanel({ artworkId, buttonLabel = 'View ful
                 {!!row.payment_id && <Text>Purchase #{row.payment_id}</Text>}
                 {!!row.agreement_id && <Text>Agreement #{row.agreement_id}</Text>}
                 {!!row.terms_source && <Text style={row.terms_source === 'legacy_current_record' ? s.error : s.note}>{row.terms_source === 'checkout' ? 'Frozen checkout licence snapshot' : row.terms_source === 'sale_recording' ? 'Snapshot captured when the sale proof was recorded' : row.terms_source === 'legacy_current_record' ? 'Legacy record: exact purchase-time terms were not captured; displayed terms may have changed.' : 'Agreement record; compare with the purchase snapshot'}</Text>}
-                {!!row.license && <Licence value={row.license} />}
+                {!!row.license && (section === 'agreements' || section === 'sales'
+                  ? <CollapsibleTerms value={row.license} sale={section === 'sales'} />
+                  : <Licence value={row.license} />)}
                 {row.transaction_hash ? <Text selectable>Transaction: {row.transaction_hash}</Text> : ['blockchain_proofs', 'ownership_events', 'commission_proofs'].includes(section) && <Text>No transaction hash recorded.</Text>}
                 {row.block_number != null && <Text>Block: {row.block_number}{row.chain_id ? ` · Chain: ${row.chain_id}` : ''}</Text>}
                 {!!row.network && <Text>Network: {row.network}</Text>}
@@ -159,6 +181,8 @@ const s = StyleSheet.create({
   section: { gap: 10, paddingVertical: 12, borderTopWidth: 1, borderColor: '#E8DBD2' },
   record: { gap: 7, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#E8DBD2' },
   licence: { gap: 5, padding: 10, backgroundColor: '#F4EFE7', borderRadius: 8 },
+  agreementTerms: { gap: 6 },
+  termsToggle: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#F4EFE7' },
   input: { borderWidth: 1, borderColor: '#DCCAC1', borderRadius: 8, padding: 12 },
   button: { padding: 12, backgroundColor: '#B95353', borderRadius: 9, alignItems: 'center', marginVertical: 6 },
   buttonText: { color: '#FFF', fontWeight: '700' },

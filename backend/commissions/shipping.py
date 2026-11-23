@@ -12,12 +12,15 @@ def tracking_reference(order):
 def request_pickup(c):
     existing = DeliveryOrder.objects.filter(commission=c).first()
     if existing: return existing
-    from fulfillment.routing import geocode_address
+    from fulfillment.routing import geocode_address, pinned_coordinates
     from rest_framework.exceptions import ValidationError
     details = dict(c.locked_terms.get('delivery_details') or {})
     try:
         for party in ('pickup', 'delivery'):
-            details[f'{party}_coordinates'] = geocode_address(c.locked_terms[f'{party}_address'])
+            address = c.locked_terms[f'{party}_address']
+            snapshot = details.get(f'{party}_snapshot') or {}
+            pin = pinned_coordinates(snapshot) if snapshot.get('formatted') == address else None
+            details[f'{party}_coordinates'] = pin or geocode_address(address)
     except ValueError as error: raise ValidationError(str(error))
     details['location_validation_version'] = 3
     details['geocoded_addresses'] = {party: c.locked_terms[f'{party}_address'] for party in ('pickup', 'delivery')}
@@ -40,7 +43,7 @@ def request_pickup(c):
 
 def verified_locations(order, force_side=None):
     """Bind coordinates to the immutable order address, never a mutable profile pin."""
-    from fulfillment.routing import geocode_address
+    from fulfillment.routing import geocode_address, pinned_coordinates
     from django.core.cache import cache
     import hashlib
     details = dict(order.route_details or {})
@@ -52,6 +55,19 @@ def verified_locations(order, force_side=None):
     changed = details.get('location_validation_version') != 7
     for party in ('pickup', 'delivery'):
         text = getattr(order, f'{party}_address')
+        # Use only the pin frozen into this order's signed address snapshot.
+        # Later edits to a buyer/artist profile must not move an existing delivery.
+        snapshot = details.get(f'{party}_snapshot') or {}
+        saved_pin = pinned_coordinates(snapshot) if snapshot.get('formatted') == text else None
+        if saved_pin:
+            details[f'{party}_coordinates'] = saved_pin
+            precision[party] = 'user_selected'
+            providers[party] = 'saved_address'
+            notices[party] = 'Location selected by the address owner. Confirm the entrance using delivery chat.'
+            errors.pop(party, None)
+            addresses[party] = text
+            changed = True
+            continue
         valid = details.get('location_validation_version') == 7 and addresses.get(party) == text and details.get(f'{party}_coordinates') and party not in errors
         if valid and party != force_side:
             continue

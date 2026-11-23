@@ -35,6 +35,20 @@ class ProvenanceView(AuthenticatedAPIView):
         from users.resellers import seller_compliant
         data['seller_verified'] = seller_compliant(user)
         data['can_resell'] = bool(user and record.current_owner_id == user.pk and data['rights'] and data['rights'].get('allow_resale') and not record.disputed and not record.events.filter(kind='transfer').exclude(status='confirmed').exists())
+        data['resale_unavailable_reason'] = ''
+        if user and not data['can_resell']:
+            if not record.registered_at:
+                data['resale_unavailable_reason'] = 'Artwork registration is awaiting confirmation. Resale becomes available only after registration and your ownership transfer are confirmed.'
+            elif record.events.filter(kind='transfer', new_owner=user, status='pending').exists():
+                data['resale_unavailable_reason'] = 'Your ownership transfer is awaiting confirmation. Resale is unavailable until it is confirmed.'
+            elif record.current_owner_id != user.pk:
+                data['resale_unavailable_reason'] = 'Only the confirmed current entitlement holder can list this artwork for resale.'
+            elif record.disputed:
+                data['resale_unavailable_reason'] = 'Resale is on hold while the artwork attribution is disputed.'
+            elif not data['rights'] or not data['rights'].get('allow_resale'):
+                data['resale_unavailable_reason'] = 'No confirmed purchase terms authorizing resale are recorded for this artwork.'
+            else:
+                data['resale_unavailable_reason'] = 'An unresolved ownership transfer is blocking resale. Contact platform support if it remains unresolved.'
         data['commission_asset_id'] = record.commission_asset_id
         data['can_download_original'] = bool(user and record.registered_at and record.current_owner_id == user.pk)
         data['original_filename'] = record.commission_asset.submission.filename if record.commission_asset_id else f'artwork-{record.pk}.' + {'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/webp': 'webp'}.get(record.original_artwork.image_data.split(';', 1)[0].removeprefix('data:'), 'png')
@@ -45,7 +59,7 @@ class ProvenanceView(AuthenticatedAPIView):
             owner = bool(user and record.current_owner_id == user.pk)
             allowed = ('artwork_id', 'created_by', 'claimed_creator', 'creator_verification', 'disputed',
                        'attribution_review_pending', 'can_review', 'can_admin', 'can_resell', 'seller_verified',
-                       'can_download_original', 'creation_date', 'first_listed_at')
+                       'can_download_original', 'creation_date', 'first_listed_at', 'resale_unavailable_reason')
             response.data = {key: response.data.get(key) for key in allowed}
             response.data.update({'history': [], 'entitlements': [],
                                   'rights': data.get('rights') if owner else None})

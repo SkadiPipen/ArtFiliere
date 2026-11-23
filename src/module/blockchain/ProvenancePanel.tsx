@@ -115,6 +115,10 @@ export default function ProvenancePanel({ artworkId, recordId }: { artworkId?: n
                 {button('Submit resale listing', () => run(() => purchaseRequest(`${path}/resale/`, 'POST', { price }), 'Resale listing submitted for moderation.'))}
               </> : button('Complete reseller verification', () => { setOpen(false); router.push('/reseller-verification' as any); })}
             </View>}
+            {!data.can_resell && !!data.resale_unavailable_reason && !recordId && <View style={s.section}>
+              <Text style={s.label}>Resale unavailable</Text>
+              <Text>{data.resale_unavailable_reason}</Text>
+            </View>}
             {auth.currentUser && <TouchableOpacity onPress={() => setShowReview(value => !value)}><Text style={s.link}>{showReview ? 'Hide correction request' : 'Report incorrect creator information'}</Text></TouchableOpacity>}
             {auth.currentUser && showReview && <View style={s.section}>
               <Text style={s.label}>Request attribution review</Text>

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 
 let leafletPromise: Promise<any> | undefined;
-function loadLeaflet(): Promise<any> {
+export function loadLeaflet(): Promise<any> {
   if ((window as any).L) return Promise.resolve((window as any).L);
   if (!leafletPromise) leafletPromise = new Promise((resolve, reject) => {
     const css = document.createElement('link');
@@ -62,6 +62,12 @@ export default function WebDeliveryTiles({ target, driver, points, label, color,
     else map.setView(target, overview ? 5 : 16);
     map.invalidateSize();
   }, [leaflet, target[0], target[1], driver?.[0], driver?.[1], points, label, color, accuracy, overview]);
+  useEffect(() => {
+    if (!leaflet || !container.current || !mapRef.current) return;
+    const observer = new ResizeObserver(() => mapRef.current?.invalidateSize());
+    observer.observe(container.current);
+    return () => observer.disconnect();
+  }, [leaflet]);
   return <View style={{ gap: 8 }}>
     {!!error && <Text accessibilityRole="alert" style={{ color: '#B91C1C' }}>{error}</Text>}
     {Platform.OS === 'web' && <div ref={container} aria-label="Delivery location and road route" style={{ width: '100%', height: 300, borderRadius: 14, overflow: 'hidden', zIndex: 0 }} />}

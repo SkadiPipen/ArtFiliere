@@ -54,7 +54,8 @@ function ArtworkNegotiationForm({
   revisionId,
 }: NegotiationFormProps) {
   const platformSettings = usePlatformDefaults();
-  const preferredExclusivity = artwork.exclusivity_types?.includes(platformSettings.default_exclusivity) !== false ? platformSettings.default_exclusivity : artwork.exclusivity_types?.[0] || platformSettings.default_exclusivity;
+  const isPrint = artwork.art_type === 'physical' && !!artwork.physical_format && artwork.physical_format !== 'original';
+  const preferredExclusivity = isPrint ? 'non-exclusive' : artwork.exclusivity_types?.includes(platformSettings.default_exclusivity) !== false ? platformSettings.default_exclusivity : artwork.exclusivity_types?.[0] || platformSettings.default_exclusivity;
   const [royaltyEnabled, setRoyaltyEnabled] = useState(!!artwork.royalty_enabled);
   useEffect(() => setRoyaltyEnabled(!!artwork.royalty_enabled), [artwork.royalty_enabled]);
   const [offer, setOffer] = useState(initialProposal ? initialProposal.pricing_terms?.license_fee || ((Number(initialProposal.price) - Number(initialProposal.delivery_fee || 0)) / (1 + platformSettings.platform_fee_percentage / 100)).toFixed(2) : '');
@@ -68,7 +69,7 @@ function ArtworkNegotiationForm({
   // GET AVAILABLE OPTIONS FROM ARTWORK
   // ========================================
   const availableLicenses: LicenseType[] = artwork.license_types || ['personal', 'commercial'];
-  const availableExclusivity: ExclusivityType[] = artwork.exclusivity_types || ['non-exclusive', 'exclusive', 'sole'];
+  const availableExclusivity: ExclusivityType[] = isPrint ? ['non-exclusive'] : artwork.exclusivity_types || ['non-exclusive', 'exclusive', 'sole'];
 
   // Check if artwork is digital
   const isDigital = artwork.art_type === 'digital';
@@ -405,7 +406,8 @@ function ArtworkNegotiationForm({
         </View>
       </NegotiationSection>
 
-      <NegotiationSection id="copyright" title="Copyright ownership" required={!!transfer}><CopyrightTransferFields value={licenseScope.copyright_transfer} onChange={copyright_transfer => setLicenseScope({ ...licenseScope, copyright_transfer })} /></NegotiationSection>
+      {isPrint ? <Text>Each purchase includes one physical print. Copyright and exclusive rights are not transferred with a copy.</Text>
+        : <NegotiationSection id="copyright" title="Copyright ownership" required={!!transfer}><CopyrightTransferFields value={licenseScope.copyright_transfer} onChange={copyright_transfer => setLicenseScope({ ...licenseScope, copyright_transfer })} /></NegotiationSection>}
       <NegotiationSection id="permissions" title="License permissions" required><LicenseScopeFields value={licenseScope} commercial={licenseType === 'commercial'} onChange={setLicenseScope} /></NegotiationSection>
       {(
         <NegotiationSection id="duration" title="License duration" required>

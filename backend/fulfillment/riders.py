@@ -176,10 +176,13 @@ class RiderProfileView(RiderView):
         user = self.get_request_user(request)
         profile, _ = RiderProfile.objects.get_or_create(user=user)
         expire_stale_shift(profile)
-        day_start = timezone.now().astimezone(ZoneInfo('Asia/Manila')).replace(hour=0, minute=0, second=0, microsecond=0)
+        now = timezone.now()
+        elapsed = max(0, int((now - profile.clock_in_time).total_seconds())) if profile.is_clocked_in and profile.clock_in_time else 0
+        day_start = now.astimezone(ZoneInfo('Asia/Manila')).replace(hour=0, minute=0, second=0, microsecond=0)
         return Response({'fullName': ' '.join(filter(None, [user.first_name, user.middle_name, user.last_name])) or user.username,
                          'username': user.username, 'email': user.email, 'phoneNum': user.contact_number,
                          'is_clocked_in': profile.is_clocked_in, 'clock_in_time': profile.clock_in_time,
+                         'shift_elapsed_seconds': elapsed, 'server_time': now,
                          'clock_out_time': profile.clock_out_time, 'latitude': profile.latitude, 'longitude': profile.longitude,
                          'location_updated_at': profile.location_updated_at,
                          'today_deliveries': orders().filter(driver=user, status='delivered', delivered_at__gte=day_start, delivered_at__lt=day_start + timedelta(days=1)).count(),
