@@ -130,7 +130,7 @@ def faint_tag(image, record):
     central = code_outline(label, max(10, round(min(image.size) / 46)),
                            max(1, round(image.width * .70)))
     paint(central, (image.width - central.width) / 2,
-          image.height * .60 - central.height / 2, .055, .035)
+          (image.height - central.height) / 2, .055, .035)
     corner = dotted_code(label, max(14, round(size * .65)),
                           max(1, image.width - margin * 2))
     paint(corner, margin, image.height - margin - corner.height, .34, .24)

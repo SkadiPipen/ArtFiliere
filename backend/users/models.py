@@ -26,6 +26,21 @@ class ModeratorApplication(models.Model):
         ]
 
 
+class DriverLicenseRenewal(models.Model):
+    application = models.ForeignKey(ModeratorApplication, on_delete=models.PROTECT, related_name='license_renewals')
+    expires_on = models.DateField()
+    document = models.TextField()
+    document_name = models.CharField(max_length=255)
+    status = models.CharField(max_length=10, default='pending')
+    note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey('User', on_delete=models.PROTECT, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['application'], condition=models.Q(status='pending'), name='one_pending_driver_renewal'),
+        ]
+
+
 class ModeratorApplicationReview(models.Model):
     application = models.ForeignKey(ModeratorApplication, on_delete=models.PROTECT, related_name='reviews')
     actor = models.ForeignKey('User', on_delete=models.PROTECT)

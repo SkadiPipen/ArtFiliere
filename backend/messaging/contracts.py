@@ -193,6 +193,9 @@ class ContractsView(AuthenticatedAPIView):
         }
         defaults = current_defaults()
         selected = {key: request.data.get(key, defaults['default_exclusivity'].replace('-', '_') if key == 'exclusivity' else values[0]) for key, values in choices.items()}
+        raw_scope = request.data.get('license_scope')
+        if isinstance(raw_scope, dict) and raw_scope.get('copyright_transfer') is not None:
+            selected['exclusivity'] = 'exclusive'
         resale = getattr(artwork, 'commission_resale', None)
         if resale:
             from commissions.resale import license_active
@@ -208,7 +211,7 @@ class ContractsView(AuthenticatedAPIView):
             from artworks.inventory import validate_copy_rights
             validate_copy_rights(artwork, selected['exclusivity'], license_scope)
             compensation_terms = validate_compensation(request.data, user, selected['license_type'])
-            if license_scope and compensation_terms.get('reporting_duration_months') and license_scope['duration_months'] != compensation_terms['reporting_duration_months']:
+            if license_scope and license_scope['duration_months'] is not None and compensation_terms.get('reporting_duration_months') and license_scope['duration_months'] != compensation_terms['reporting_duration_months']:
                 raise ValueError('Royalty reporting duration must match the license duration.')
         except PermissionError as error:
             return Response({'error': str(error)}, status=403)

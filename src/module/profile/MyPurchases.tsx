@@ -9,12 +9,16 @@ import { Text, TextInput } from '@/components/Typography';
 import { filterPurchases, PurchaseKind } from './purchaseFilters';
 import RoyaltyReminder, { type RoyaltyReminderData } from './RoyaltyReminder';
 import ProvenancePanel from '@/module/blockchain/ProvenancePanel';
+import AgreementCheckout from '@/module/chat-negotiations/AutomaticCheckout';
+import { contractRequest, isAgreed, type Contract } from '@/module/chat-negotiations/contracts';
+import { auth } from '@/firebase/config';
 import { openPaymentCheckout } from '@/services/paymentReturn';
 import SigningModal from '@/module/chat-negotiations/SigningModal';
 import AuctionDeliveryCheckout, { AuctionCheckoutContext } from '@/module/cart/components/AuctionDeliveryCheckout';
 import { downloadPurchase, downloadProtectedFile, downloadCertificate, downloadLicensePdf, purchaseRequest } from '@/services/purchases';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Modal, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { Linking, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import ContentModal from '@/components/ContentModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Purchase = {
@@ -32,9 +36,11 @@ type Purchase = {
   delivery?: { id?: number; received_at?: string | null; status: string; status_label: string; driver?: string; delivery_address: string; fee: string };
 };
 
-export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () => void; filter?: 'all' | 'receive' | 'rate' | 'pay' }) {
+export default function MyPurchases({ onClose, filter = 'all', asPage = false }: { onClose: () => void; filter?: 'all' | 'receive' | 'rate' | 'pay'; asPage?: boolean }) {
   const { width: screenWidth } = useWindowDimensions();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [payableContracts, setPayableContracts] = useState<Contract[]>([]);
+  const [contractError, setContractError] = useState('');
   const [trackingOrder, setTrackingOrder] = useState<number | null>(null);
   const [kind, setKind] = useState<PurchaseKind>('all');
   const [paymentStatus, setPaymentStatus] = useState<'all' | 'paid' | 'expired'>('all');
@@ -66,13 +72,28 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
         if (failed?.status === 'rejected') setError(failed.reason.message); else setError('');
       }
       setPurchases(rows);
+      if (filter === 'pay') {
+        try {
+          const { contracts } = await contractRequest();
+          const existingPayments = new Set(rows.filter(row =>
+            (row.status === 'pending' && row.checkout_url) || row.status === 'paid' || row.is_royalty_license
+          ).map(row => row.agreement_id));
+          const buyerUid = auth.currentUser?.uid;
+          setPayableContracts(contracts.filter((contract: Contract) => buyerUid && contract.buyer_uid === buyerUid &&
+            contract.artwork_id && !contract.commission_id && isAgreed(contract) && contract.fully_signed &&
+            contract.checkout_status !== 'paid' && !existingPayments.has(contract.id)));
+          setContractError('');
+        } catch (err) {
+          setContractError(err instanceof Error ? err.message : 'Unable to load agreements ready for checkout.');
+        }
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
       syncing.current = false;
       setLoading(false);
     }
-  }, []);
+  }, [filter]);
 
   useEffect(() => {
     load();
@@ -88,7 +109,13 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
     finally { setBusy(false); }
   };
 
-  const rows = filterPurchases(purchases, filter, kind).filter(p => paymentStatus === 'all' || (paymentStatus === 'paid' ? p.status === 'paid' || p.is_royalty_license && p.status === 'active' : p.status === 'expired'));
+  const checkoutRows = filter === 'pay' ? payableContracts.filter(contract =>
+    kind === 'all' || (kind === 'auction' && contract.is_auction) || kind === contract.delivery_type
+  ) : [];
+  const checkoutIds = new Set(checkoutRows.map(contract => contract.id));
+  const rows = filterPurchases(purchases, filter, kind).filter(p =>
+    !checkoutIds.has(p.agreement_id) && (paymentStatus === 'all' || (paymentStatus === 'paid' ? p.status === 'paid' || p.is_royalty_license && p.status === 'active' : p.status === 'expired'))
+  );
 
   const stars = (label: string, rating: number, change: (n: number) => void) => (
     <View style={s.gap}>
@@ -109,8 +136,8 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
     </View>
   );
 
-  return (
-    <Modal visible animationType="slide" onRequestClose={onClose}>
+  const content = (
+    <>
       {trackingOrder !== null && <BuyerDeliveryTracking key={trackingOrder} orderId={trackingOrder} onClose={() => setTrackingOrder(null)} />}
       {deliveryCheckout && <AuctionDeliveryCheckout agreementId={deliveryCheckout.agreementId} context={deliveryCheckout.context}
         busy={busy} onClose={() => setDeliveryCheckout(null)} onPay={async token => {
@@ -135,14 +162,22 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
         </ScrollView>
       </View>
       <ScrollView contentContainerStyle={s.page}>
-        <View style={s.statusFilters}>
+        {filter === 'all' && <View style={s.statusFilters}>
           {(['all', 'paid', 'expired'] as const).map(value => <TouchableOpacity key={value} accessibilityRole="tab" accessibilityLabel={`Show ${value} purchases`} accessibilityState={{ selected: paymentStatus === value }} onPress={() => { setPaymentStatus(value); setReviewing(null); setExpandedPurchase(null); }} style={[s.statusTab, paymentStatus === value && s.statusTabActive]}>
             <Text style={s.statusTabText}>{value.charAt(0).toUpperCase() + value.slice(1)}</Text>
           </TouchableOpacity>)}
-        </View>
+        </View>}
         {loading ? <Skeleton layout="list" /> : null}
         {Boolean(error) ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
-        {!loading && rows.length === 0 ? <Text>No purchases in this category yet.</Text> : null}
+        {!!contractError && <Text accessibilityRole="alert" style={s.error}>{contractError}</Text>}
+        {!loading && !error && !contractError && rows.length === 0 && checkoutRows.length === 0 &&
+          <Text>{filter === 'pay' ? 'No purchases are awaiting payment in this category.' : 'No purchases in this category yet.'}</Text>}
+        {checkoutRows.map(contract => <View key={contract.id} style={s.card}>
+          <Text style={s.purchaseTitle}>{contract.title}</Text>
+          <Text style={s.purchaseMeta}>by {contract.artist}</Text>
+          <Text style={s.purchaseAmount}>PHP {contract.price}</Text>
+          <AgreementCheckout id={contract.id} onChange={() => load(true)} />
+        </View>)}
 
         {rows.map(p => filter === 'rate' ? (
           <PurchaseRatingCard key={p.id} purchase={p} onSaved={() => load()} />
@@ -164,8 +199,15 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
               </View>
               {expandedPurchase === p.id ? <ChevronUp size={20} color="#BC5555" /> : <ChevronDown size={20} color="#BC5555" />}
             </TouchableOpacity>
+            {filter === 'pay' && p.status === 'pending' && !!p.checkout_url &&
+              <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => run(() => openPaymentCheckout(p.checkout_url!, 'shop', Number(p.id)))}>
+                <Text style={s.link}>Continue payment</Text>
+              </TouchableOpacity>}
             {!!p.delivery?.id && <TouchableOpacity accessibilityRole="button" style={s.button} onPress={() => setTrackingOrder(p.delivery!.id!)}><Text style={s.white}>Track delivery · Live map</Text></TouchableOpacity>}
             {!p.delivery && p.status === 'paid' && p.art_type?.toLowerCase() === 'physical' && <Text>Paid · awaiting delivery dispatch.</Text>}
+            {(p.provenance_id || (p.artwork_id && (p.status === 'paid' || p.is_royalty_license))) ? (
+              <ProvenancePanel artworkId={p.artwork_id} recordId={p.provenance_id} buttonLabel="View artwork provenance" />
+            ) : null}
             {expandedPurchase === p.id && <View style={s.purchaseDetails}>
             {Boolean(p.image) ? (
               <ProductImage source={{ uri: p.image }} style={{ width: '100%', height: screenWidth < 600 ? 280 : 380, backgroundColor: '#F5F1ED', borderRadius: 10 }} resizeMode="contain" />
@@ -181,8 +223,6 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
             <Text>{p.is_royalty_license ? 'Royalty-based license' : `PHP ${p.amount}`} · {p.status}</Text>
             {!!p.purchase_date && <Text>Date: {new Date(p.purchase_date).toLocaleString()}</Text>}
             <RoyaltyReminder data={p.royalty_reminder} onOpen={onClose} />
-            {!!p.artwork_id && p.status === 'paid' && <ProvenancePanel artworkId={p.artwork_id} />}
-            {!!p.provenance_id && <ProvenancePanel recordId={p.provenance_id} />}
             {p.status === 'paid' && p.verification_code ? <Text selectable style={{ color: '#5D8A63', fontWeight: '800' }}>Transaction verification code: {p.verification_code}</Text> : null}
 
             {Boolean(p.agreement_id) ? (
@@ -195,7 +235,7 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
               <Text style={s.white}>Download license agreement (PDF)</Text>
             </TouchableOpacity>}
 
-            {p.status === 'pending' && Boolean(p.checkout_url) ? (
+            {filter !== 'pay' && p.status === 'pending' && Boolean(p.checkout_url) ? (
               <TouchableOpacity disabled={busy} onPress={() => run(() => openPaymentCheckout(p.checkout_url!, 'shop', Number(p.id)))}>
                 <Text style={s.link}>Continue payment</Text>
               </TouchableOpacity>
@@ -329,7 +369,12 @@ export default function MyPurchases({ onClose, filter = 'all' }: { onClose: () =
         ))}
       </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </>
+  );
+  return asPage ? content : (
+    <ContentModal visible animationType="slide" onRequestClose={onClose}>
+      {content}
+    </ContentModal>
   );
 }
 

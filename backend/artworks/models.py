@@ -9,6 +9,7 @@ class Artwork(models.Model):
         PENDING = "pending", "Pending"
         APPROVED = "approved", "Approved"
         DECLINED = "declined", "Declined"
+        REMOVED = "removed", "Taken down"
 
     artist = models.ForeignKey(User, on_delete=models.CASCADE, related_name="artworks")
     title = models.CharField(max_length=200)

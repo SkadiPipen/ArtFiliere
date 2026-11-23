@@ -5,6 +5,7 @@ export function proposalPayload(proposal: any, artType: string, revisionId?: num
     `Exclusivity: ${proposal.exclusivity}`,
     `Product: ${artType}`,
     proposal.durationMonths ? `License duration: ${proposal.durationMonths} months` : 'License duration: no fixed duration specified',
+    proposal.licenseScope?.copyright_transfer ? 'Copyright assignment duration: Remaining statutory copyright term' : '',
     `Base price: PHP ${Number(proposal.basePrice).toFixed(2)}`,
     proposal.pricingTerms?.mode === 'fixed' ? 'Pricing: agreed fixed fee' : `Pricing: negotiated multipliers; license ${proposal.licenseMultiplier}; exclusivity ${proposal.exclusivityMultiplier}`,
     `Platform fee included: PHP ${Number(proposal.platformFee).toFixed(2)}`,

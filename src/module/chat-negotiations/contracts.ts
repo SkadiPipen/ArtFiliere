@@ -22,6 +22,7 @@ export type Contract = {
   unread_count?: number;
   delivery_details?: { route_id?: number; delivery_address?: string };
   delivery_fee?: string;
+  delivery_type?: 'physical' | 'digital';
   is_proposer: boolean;
   buyer_uid: string; artist_uid: string; created_at: string;
   id: number; artwork_id: number; title: string; buyer: string; artist: string;

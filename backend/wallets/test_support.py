@@ -96,6 +96,10 @@ class SupportTests(TestCase):
         Image.new('RGB', (4, 4), 'red').save(buffer, 'PNG')
         image = 'data:image/png;base64,' + base64.b64encode(buffer.getvalue()).decode()
         self.assertEqual(self.report(self.artist, concern='plagiarism', reference_id=self.art.pk, image_data=image).status_code, 201)
+        result = self.report(self.artist, concern='plagiarism', reference_id=self.art.pk, evidence_images=[image, image])
+        self.assertEqual(result.status_code, 201)
+        self.assertEqual(self.call(self.artist, ticket_id=result.data['id']).data['evidence_images'], [image, image])
+        self.assertEqual(self.call(self.other, ticket_id=result.data['id']).status_code, 404)
         self.assertEqual(self.report(self.artist, concern='plagiarism', reference_id=self.art.pk, evidence='https://example.com/art', image_data=image).status_code, 201)
 
     def test_general_report_and_invalid_photo(self):

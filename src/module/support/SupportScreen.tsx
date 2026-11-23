@@ -19,7 +19,7 @@ type FAQ = { id: string; question: string; answer: string; concern: string };
 type Reference = { id: number; kind: string; title: string; status: string; date: string; image?: string; label: string; decline_reason?: string };
 type AccountSuggestion = { username: string; profile_image: string | null };
 type ReportedProfile = { id: number; username: string; name: string; role: string; joined_at: string; bio: string; restricted: boolean; artworks: { id: number; title: string; image_data: string }[] };
-type Ticket = { reported_username?: string; reported_user?: { id: number; username: string; role: string }; assigned_to_id?: number | null; assigned_to?: string; transfer_to_id?: number | null; transfer_to?: string; can_handle?: boolean; department_label: string; id: number; number: string; label: string; requester: string; status: string; reference?: Reference; details?: string; evidence?: string; image_data?: string; created_at: string; replies?: { id: number; message: string; sender: string; is_staff: boolean; created_at: string }[] };
+type Ticket = { reported_username?: string; reported_user?: { id: number; username: string; role: string }; assigned_to_id?: number | null; assigned_to?: string; transfer_to_id?: number | null; transfer_to?: string; can_handle?: boolean; department_label: string; id: number; number: string; label: string; requester: string; status: string; reference?: Reference; details?: string; evidence?: string; image_data?: string; evidence_images?: string[]; created_at: string; replies?: { id: number; message: string; sender: string; is_staff: boolean; created_at: string }[] };
 type Catalog = { user_id: number; concerns: Concern[]; faqs: FAQ[]; is_moderator: boolean; role: string; department_label: string; statuses: Record<string, string> };
 type Page<T> = { results: T[]; next_offset: number | null };
 async function request<T>(path: string, method = 'GET', body?: object): Promise<T> {
@@ -75,7 +75,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
   const [accountSearched, setAccountSearched] = useState(false);
   const [reportedProfile, setReportedProfile] = useState<ReportedProfile | null>(null);
   const [evidence, setEvidence] = useState('');
-  const [photo, setPhoto] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
   const [review, setReview] = useState(false);
   const [tickets, setTickets] = useState<Page<Ticket>>({ results: [], next_offset: null });
   const [selected, setSelected] = useState<Ticket | null>(null);
@@ -135,7 +135,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
     }, 15000);
     return () => { active = false; clearInterval(timer); };
   }, [selected?.id]);
-  const reset = () => { setCategory(''); setConcern(null); setFaq(null); setReference(null); setDetails(''); setReportedUsername(''); setChosenAccount(null); setReportedProfile(null); setEvidence(''); setPhoto(''); setReview(false); setSearch(''); setError(''); };
+  const reset = () => { setCategory(''); setConcern(null); setFaq(null); setReference(null); setDetails(''); setReportedUsername(''); setChosenAccount(null); setReportedProfile(null); setEvidence(''); setPhotos([]); setReview(false); setSearch(''); setError(''); };
   const loadReferences = async (item: Concern, offset = 0, query = '') => {
     const page = await request<Page<Reference>>(`references/?concern=${item.id}&offset=${offset}&q=${encodeURIComponent(query)}`);
     setAppliedSearch(query);
@@ -174,14 +174,17 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
     });
   }, [catalog, busy, moderator, initialArtworkId, user?.uid]);
   const attach = () => run(async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.7 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.7, allowsMultipleSelection: true, selectionLimit: 3 - photos.length });
     if (result.canceled) return;
-    const asset = result.assets[0];
-    if (!asset.base64 || asset.base64.length > 2097152 || asset.width * asset.height > 16000000) throw Error('Choose an image under 1.5 MB and 16 megapixels.');
-    setPhoto(`data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`);
+    if (result.assets.length + photos.length > 3) throw Error('Attach up to three photos.');
+    const images = result.assets.map(asset => {
+      if (!asset.base64 || asset.base64.length > 2097152 || asset.width * asset.height > 16000000) throw Error('Choose images under 1.5 MB and 16 megapixels each.');
+      return `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+    });
+    setPhotos(current => [...current, ...images]);
   });
   const submit = () => run(async () => {
-    const ticket = await request<Ticket>('tickets/', 'POST', { concern: concern!.id, reference_id: reference?.id ?? null, details, evidence, image_data: photo, reported_username: reportedUsername });
+    const ticket = await request<Ticket>('tickets/', 'POST', { concern: concern!.id, reference_id: reference?.id ?? null, details, evidence, evidence_images: photos, reported_username: reportedUsername });
     setSelected(ticket); setReply(''); setMode('tickets'); reset(); await loadTickets();
   });
   const close = onClose || (() => void goBackToWorkspace());
@@ -247,7 +250,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
             </>}
             {reference && <><Bubble mine>{reference.label}: {reference.title}</Bubble>{concern.id === 'rejected_artwork' && !!reference.decline_reason && <Bubble>Rejection reason: {reference.decline_reason}</Bubble>}{!review && <Button disabled={busy} onPress={() => setReference(null)}>Choose a different record</Button>}</>}
             {ready && (!review ? <>
-              <Bubble>{concern.id === 'rejected_artwork' ? 'Explain why your artwork should be reconsidered. Include ownership evidence or describe how you addressed the feedback. The Creative Moderator will review your appeal.' : 'Please describe what happened. You can attach a photo. Do not include passwords, payment card numbers, or private keys.'}</Bubble>
+              <Bubble>{concern.id === 'rejected_artwork' ? 'Explain why your artwork should be reconsidered. Include ownership evidence or describe how you addressed the feedback. The Creative Moderator will review your appeal.' : 'Please describe what happened. You can attach up to three photos. Do not include passwords, payment card numbers, or private keys.'}</Bubble>
               {accountReport && <>
                 <Text style={s.bold}>Reported account username (required)</Text>
                 <TextInput accessibilityLabel="Reported account username" autoCapitalize="none" autoCorrect={false} maxLength={151} style={s.input} value={reportedUsername} onChangeText={value => { setReportedUsername(value); setChosenAccount(null); }} placeholder="Exact username, with or without @" />
@@ -267,11 +270,14 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
                 <Text style={s.muted}>{concern.id === 'plagiarism' ? 'Add a link, an image, or both. At least one is required.' : 'You can add a link, an image, or both.'}</Text>
                 <TextInput accessibilityLabel="Original work link or source details" multiline maxLength={2000} style={s.input} value={evidence} onChangeText={setEvidence} placeholder="Paste a link to the original work" />
               </>}
-              <Button disabled={busy} onPress={attach}>{photo ? 'Replace photo' : ['plagiarism', 'rejected_artwork'].includes(concern.id) ? 'Attach an evidence image' : 'Attach a photo (optional)'}</Button>
-              {photo && <><Image source={{ uri: photo }} style={s.photo} resizeMode="contain" /><Button onPress={() => setPhoto('')}>Remove photo</Button></>}
-              <Button primary disabled={busy || (accountReport && !reportedUsername.trim().replace(/^@/, '')) || details.trim().length < 10 || (concern.id === 'plagiarism' && !evidence.trim() && !photo)} onPress={() => setReview(true)}>Review report</Button>
+              <Button disabled={busy || photos.length >= 3} onPress={attach}>Attach photos ({photos.length}/3)</Button>
+              {photos.map((photo, index) => <View key={index}>
+                <Image source={{ uri: photo }} style={s.photo} resizeMode="contain" />
+                <Button disabled={busy} onPress={() => setPhotos(current => current.filter((_, i) => i !== index))}>Remove photo {index + 1}</Button>
+              </View>)}
+              <Button primary disabled={busy || (accountReport && !reportedUsername.trim().replace(/^@/, '')) || details.trim().length < 10 || (concern.id === 'plagiarism' && !evidence.trim() && !photos.length)} onPress={() => setReview(true)}>Review report</Button>
             </> : <>
-              <Bubble>Review your report before sending it to support.</Bubble><View style={s.card}><Text style={s.bold}>{concern.label}</Text><Text>{reference ? `${reference.label}: ${reference.title}` : 'General concern'}</Text><Text>{details}</Text>{accountReport && <Text>Reported account: {reportedUsername}</Text>}{!!evidence && <Text>Original work evidence: {evidence}</Text>}{!!photo && <Image source={{ uri: photo }} style={s.photo} resizeMode="contain" />}</View>
+              <Bubble>Review your report before sending it to support.</Bubble><View style={s.card}><Text style={s.bold}>{concern.label}</Text><Text>{reference ? `${reference.label}: ${reference.title}` : 'General concern'}</Text><Text>{details}</Text>{accountReport && <Text>Reported account: {reportedUsername}</Text>}{!!evidence && <Text>Original work evidence: {evidence}</Text>}{photos.map((photo, index) => <Image key={index} source={{ uri: photo }} style={s.photo} resizeMode="contain" />)}</View>
               <Text style={s.muted}>Support will review your report. Submission does not automatically approve artwork, cancel an order, or issue a refund.</Text>
               <View style={s.row}><Button disabled={busy} onPress={() => setReview(false)}>Edit</Button><Button primary disabled={busy} onPress={submit}>{concern.id === 'rejected_artwork' ? 'Submit appeal' : 'Submit report'}</Button></View>
             </>)}
@@ -296,7 +302,7 @@ export default function SupportScreen({ moderator = false, initialPaymentId, ini
           <View style={[s.caseLayout, { flexDirection: width >= 1000 ? 'row' : 'column' }]}>
             <View style={[s.caseMain, width < 1000 && { width: '100%', flex: undefined }]}>
               <View style={s.detailPanel}><Text style={s.panelTitle}>Reported Concern</Text>
-          <Text style={s.detailCopy}>{selected.details}</Text>{!!selected.evidence && <Text>Original work evidence: {selected.evidence}</Text>}{!!selected.image_data && <Image source={{ uri: selected.image_data }} style={s.photo} resizeMode="contain" />}
+          <Text style={s.detailCopy}>{selected.details}</Text>{!!selected.evidence && <Text>Original work evidence: {selected.evidence}</Text>}{[selected.image_data, ...(selected.evidence_images ?? [])].filter(Boolean).map((photo, index) => <Image key={index} source={{ uri: photo }} style={s.photo} resizeMode="contain" />)}
 
               </View>
               <View style={s.detailPanel}>

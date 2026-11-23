@@ -106,6 +106,11 @@ class TicketInput(serializers.Serializer):
     details = serializers.CharField(max_length=4000, min_length=10)
     evidence = serializers.CharField(max_length=2000, required=False, allow_blank=True, default='')
     image_data = serializers.CharField(max_length=2100000, required=False, allow_blank=True, default='')
+    evidence_images = serializers.ListField(
+        child=serializers.CharField(max_length=2100000), max_length=3, required=False, default=list)
+
+    def validate_evidence_images(self, values):
+        return [self.validate_image_data(value) for value in values]
 
     def validate_image_data(self, value):
         if not value:
@@ -140,6 +145,7 @@ def ticket_data(ticket, detail=False, viewer=None):
         result['reported_user'] = dict(id=ticket.reported_user_id, username=ticket.reported_user.username, role=ticket.reported_user.role)
     if detail:
         result.update(details=ticket.details, evidence=ticket.evidence, image_data=ticket.image_data,
+                      evidence_images=ticket.evidence_images,
                       replies=[dict(id=r.pk, message=r.message, is_staff=is_moderator(r.sender) and r.sender_id != ticket.requester_id,
                                     sender=DEPARTMENTS.get(r.sender.role, 'Support team') if is_moderator(r.sender) and r.sender_id != ticket.requester_id else r.sender.username or 'Member',
                                     created_at=r.created_at.isoformat()) for r in ticket.replies.select_related('sender')])
@@ -323,7 +329,7 @@ class SupportView(AuthenticatedAPIView):
             linked[kind] = obj
         elif ref_id is not None:
             raise ValidationError({'error': 'This concern does not require a linked record.'})
-        if item['id'] == 'plagiarism' and not (values['evidence'].strip() or values['image_data']):
+        if item['id'] == 'plagiarism' and not (values['evidence'].strip() or values['image_data'] or values['evidence_images']):
             raise ValidationError({'error': 'Provide a link to the original work, attach an image showing ownership, or provide both.'})
         if item['id'] == 'rejected_artwork':
             existing = SupportTicket.objects.filter(

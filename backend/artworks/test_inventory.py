@@ -68,6 +68,25 @@ class PhysicalInventoryTests(TestCase):
         second.status = 'refunded'; second.save(update_fields=['status'])
         self.assertEqual(inventory_summary(self.art)['available'], 2)
 
+    def test_artist_takes_down_listing_without_removing_purchases(self):
+        from unittest.mock import patch
+        from rest_framework.test import APIRequestFactory
+        from artist_profiles.portfolio import artist_portfolio
+        from artworks.views import ArtworkView
+
+        payment = self.payment(0)
+        view = ArtworkView.as_view()
+        request = APIRequestFactory().delete('/')
+        with patch.object(ArtworkView, 'get_request_user', return_value=self.artist):
+            self.assertEqual(view(request, artwork_id=self.art.pk).status_code, 409)
+            payment.status = 'paid'
+            payment.save(update_fields=['status'])
+            self.assertEqual(view(request, artwork_id=self.art.pk).status_code, 204)
+        self.art.refresh_from_db()
+        self.assertEqual(self.art.status, Artwork.Status.REMOVED)
+        self.assertEqual(artist_portfolio(self.artist), [])
+        self.assertTrue(PaymentSession.objects.filter(pk=payment.pk, status='paid').exists())
+
     def test_settlement_is_counted_once_and_listing_only_sells_out_at_zero(self):
         first = self.payment(0)
         first.status = 'paid'; first.save(update_fields=['status'])

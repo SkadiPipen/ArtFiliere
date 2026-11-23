@@ -3,10 +3,9 @@ import { Text } from '@/components/Typography';
 import { COLORS } from '@/constants/colors';
 import TourLauncher from '@/components/TourLauncher';
 import { staffDashboardForRole } from '@/services/roleRoutes';
-import UnreadMessageBadge from "@/module/chat-negotiations/UnreadMessageBadge";
+import MessageLauncher from "@/module/chat-negotiations/MessageLauncher";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { MessageSquare } from "lucide-react-native";
 import { createElement, useCallback, useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
@@ -29,33 +28,10 @@ import { ArtItem } from "@/module/home/types";
 import API_URL from "@/services/api";
 
 const marketplaceAnimation = `
-  #marketplace-tour-messages:is(:hover, :focus-visible) { background-color: ${COLORS.redDark}; }
   #marketplace-tour-commissions:is(:hover, :focus-visible) #marketplace-artist-link-text { color: ${COLORS.redDark}; }
-  #marketplace-chat-secondary {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transform: scale(.65);
-  }
-  #marketplace-tour-messages:is(:hover, :focus-visible) #marketplace-chat-glyph {
-    transform: translate(-6px, 4px) scale(.67);
-  }
-  #marketplace-tour-messages:is(:hover, :focus-visible) #marketplace-chat-secondary {
-    opacity: 1;
-    transform: translate(6px, -5px) scale(.67);
-  }
-
   @media (prefers-reduced-motion: no-preference) {
-    #marketplace-chat-glyph, #marketplace-artist-link-text {
-      transition: transform 180ms ease-out;
-    }
-    #marketplace-chat-secondary {
-      transition: transform 180ms ease-out, opacity 150ms ease-out;
-    }
-    #marketplace-artist-link-text { transform-origin: left center; }
-    #marketplace-tour-commissions:is(:hover, :focus-visible) #marketplace-artist-link-text {
-      transform: scale(1.07);
-    }
+    #marketplace-artist-link-text { transition: transform 180ms ease-out; transform-origin: left center; }
+    #marketplace-tour-commissions:is(:hover, :focus-visible) #marketplace-artist-link-text { transform: scale(1.07); }
   }
   @media (prefers-reduced-motion: no-preference) {
     @keyframes artfilier-card-paint-drift {
@@ -96,7 +72,7 @@ export default function Dashboard() {
   const tourSteps = [
     { target: 'marketplace-nav-home', instruction: `Use the ${hasSidebar ? 'sidebar' : 'bottom navigation'} to move around ArtFilier. Home brings you back to the marketplace.` },
     { target: 'marketplace-tour-search', instruction: 'Search for artwork by title, artist, category, or tag.' },
-    { target: 'marketplace-tour-messages', instruction: 'Open messages to talk to artists and return to ongoing negotiations.' },
+    { target: 'artfilier-message-button-marketplace', instruction: 'Open messages to talk to artists and return to ongoing negotiations.' },
     { target: 'marketplace-tour-commissions', instruction: 'Find an artist, request custom work, then agree on the scope, milestones, and price.' },
     { target: 'marketplace-nav-auctions', instruction: hasSidebar ? 'Browse live auctions and review the bidding rules before placing a bid.' : 'Buyers can browse auctions here. Artists use this shortcut to post artwork.' },
     { target: 'marketplace-nav-cart', instruction: 'Open your cart to review an agreement, sign it with the artist, and check out.' },
@@ -304,27 +280,8 @@ export default function Dashboard() {
         )}
       </ScrollView>
 
-      {/* Floating chat button */}
       {Platform.OS === 'web' && createElement('style', null, marketplaceAnimation)}
-      <TouchableOpacity
-        id="marketplace-tour-messages"
-        style={[styles.msgFab, { width: chatSize, height: chatSize, borderRadius: chatSize / 2, right: chatRight, bottom: chatBottom }]}
-        onPress={handleOpenChat}
-        accessibilityRole="button"
-        accessibilityLabel="Open messages"
-      >
-        <View style={{ position: 'relative' }} aria-hidden>
-          {Platform.OS === 'web' && (
-            <View id="marketplace-chat-secondary">
-              <MessageSquare color={COLORS.white} size={26} fill={COLORS.white} />
-            </View>
-          )}
-          <View id="marketplace-chat-glyph">
-            <MessageSquare color={COLORS.white} size={26} fill={COLORS.white} />
-          </View>
-        </View>
-        <UnreadMessageBadge uid={currentUser?.uid} />
-      </TouchableOpacity>
+      <MessageLauncher id="marketplace" uid={currentUser?.uid} size={chatSize} right={chatRight} bottom={chatBottom} onPress={handleOpenChat} />
       {chatVisible && currentUser && (
         <ChatModal
           visible={chatVisible}
@@ -416,18 +373,6 @@ const styles = StyleSheet.create({
   },
   footerBrand: { color: "#C15656", fontSize: 18, fontFamily: "LoraSemiBold", fontWeight: "600" },
   footerText: { color: "#8A7C76", fontSize: 11, fontFamily: "NunitoSans", lineHeight: 17, flex: 1 },
-  msgFab: {
-    position: "absolute",
-    backgroundColor: COLORS.red,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 5,
-    zIndex: 10,
-    shadowColor: COLORS.textDark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
   navBar: {
     position: "absolute",
     bottom: 0,

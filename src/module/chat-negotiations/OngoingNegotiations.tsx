@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '@/firebase/config';
-import { Contract, contractRequest } from './contracts';
+import { Contract, contractRequest, isAgreed } from './contracts';
 import { ChatWindow } from './chats';
 
 export default function OngoingNegotiations({ onClose }: { onClose: () => void }) {
@@ -21,7 +21,10 @@ export default function OngoingNegotiations({ onClose }: { onClose: () => void }
     const load = async () => {
       try {
         const data = await contractRequest();
-        if (active) { setRows(data.contracts.filter((c: Contract) => c.status === 'proposed')); setError(''); }
+        if (active) {
+          setRows(data.contracts.filter((c: Contract) => c.status === 'proposed' || (isAgreed(c) && !c.fully_signed)));
+          setError('');
+        }
       } catch (e: any) { if (active) setError(e.message); }
       finally { if (active) setLoading(false); }
     };
@@ -31,7 +34,7 @@ export default function OngoingNegotiations({ onClose }: { onClose: () => void }
   const buying = selected?.buyer_uid === auth.currentUser?.uid;
   return <ContentModal visible animationType="slide" onRequestClose={selected ? () => setSelected(null) : onClose}>
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.pageBackground }}>
-      {selected ? <ChatWindow currentUser={auth.currentUser} user={{ id: buying ? selected.artist_uid : selected.buyer_uid, displayName: buying ? selected.artist : selected.buyer, role: buying ? 'artist' : 'buyer', email: '', photoURL: '' }} onClose={() => setSelected(null)} /> : <>
+      {selected ? <ChatWindow currentUser={auth.currentUser} isArtist={!buying} user={{ id: buying ? selected.artist_uid : selected.buyer_uid, displayName: buying ? selected.artist : selected.buyer, role: buying ? 'artist' : 'buyer', email: '', photoURL: '' }} onClose={() => setSelected(null)} /> : <>
         <TransactionHeader title="Ongoing Negotiations" onBack={onClose} onRefresh={() => { setLoading(true); setRevision(value => value + 1); }} refreshing={loading} />
         <FlatList data={loading ? [] : rows} keyExtractor={item => String(item.id)} style={{ flex: 1 }} contentContainerStyle={s.content}
           ListHeaderComponent={error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
@@ -39,7 +42,7 @@ export default function OngoingNegotiations({ onClose }: { onClose: () => void }
           renderItem={({ item }) => <TouchableOpacity accessibilityRole="button" onPress={() => setSelected(item)} style={s.card}>
           <Text style={{ fontWeight: '700', fontSize: 16 }}>{item.title}</Text>
           <Text>{item.buyer} / {item.artist}</Text>
-          <Text>PHP {item.price} - Awaiting agreement</Text>
+          <Text>PHP {item.price} · {item.status === 'accepted' ? 'Awaiting signatures' : 'Awaiting agreement'}</Text>
           <Text style={{ color: '#C15656', marginTop: 8 }}>View negotiation</Text>
         </TouchableOpacity>} />
       </>}

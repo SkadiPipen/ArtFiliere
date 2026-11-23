@@ -44,6 +44,7 @@ export default function TourLauncher({ label, steps, bottom, right = 20, size = 
           .artfilier-guide-button:is(:hover, :focus-visible) { width: calc(var(--artfilier-guide-size) + 98px); }
           .artfilier-guide-button:focus-visible { outline: 2px solid ${COLORS.redDark}; outline-offset: 3px; }
           body:has([id^="artfilier-chat-open-"]) .artfilier-guide-button { display: none; }
+          body:has(#artfilier-message-button-workspace) .artfilier-guide-button { --artfilier-chat-offset: 60px; }
           .artfilier-guide-paper {
             position: absolute;
             inset: 8px calc(var(--artfilier-guide-size) / 2) 8px 10px;
@@ -122,7 +123,7 @@ export default function TourLauncher({ label, steps, bottom, right = 20, size = 
             position: scoped ? 'absolute' : 'fixed',
             zIndex: 21,
             right,
-            bottom: bottom ?? (dialog || width >= 768 ? 24 : 96),
+            bottom: bottom ?? (dialog ? 24 : `calc(${width >= 768 ? 24 : 96}px + var(--artfilier-chat-offset, 0px))`),
           } as CSSProperties}
         >
           <span className="artfilier-guide-paper" aria-hidden="true">Guide</span>

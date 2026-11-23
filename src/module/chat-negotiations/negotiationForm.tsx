@@ -21,6 +21,7 @@ import InfoAccordion from './InfoAccordion';
 import { CheckCircle, Circle, Info } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { Link } from 'expo-router';
 import DeliveryAddressPicker, { DeliveryQuote } from './DeliveryAddressPicker';
 import type { Artwork, ExclusivityType, LicenseType } from './types';
 
@@ -78,7 +79,7 @@ function ArtworkNegotiationForm({
   const [licenseType, setLicenseType] = useState<'personal' | 'commercial'>(
     initialProposal?.license_type || (availableLicenses.includes('personal') ? 'personal' : availableLicenses[0] || 'personal')
   );
-  const [exclusivity, setExclusivity] = useState<'non-exclusive' | 'exclusive' | 'sole'>(
+  const [selectedExclusivity, setExclusivity] = useState<ExclusivityType>(
     (initialProposal?.exclusivity?.replace('_', '-') as ExclusivityType) || preferredExclusivity
   );
   const [durationMonths, setDurationMonths] = useState(String(initialProposal?.license_scope?.duration_months || initialProposal?.compensation_terms?.reporting_duration_months || platformSettings.default_license_duration_months));
@@ -89,6 +90,8 @@ function ArtworkNegotiationForm({
   const effectiveCategory = licenseType === 'commercial' ? compensationCategory : 'one_time';
   const effectiveTerms = licenseType === 'commercial' ? compensationTerms : { subtype: 'one_time_payment' };
   const [licenseScope, setLicenseScope] = useState<LicenseScope>(initialProposal?.license_scope?.uses ? initialProposal.license_scope : defaultScope);
+  const transfer = licenseScope.copyright_transfer;
+  const exclusivity = transfer ? 'exclusive' : selectedExclusivity;
   const [resaleRights, setResaleRights] = useState<any>(null);
   useEffect(() => {
     let active = true;
@@ -102,7 +105,7 @@ function ArtworkNegotiationForm({
         setExclusivity('exclusive');
         if (record.rights.scope?.uses) {
           setLicenseScope(record.rights.scope);
-          setDurationMonths(String(record.rights.scope.duration_months));
+          setDurationMonths(String(record.rights.scope.duration_months ?? platformSettings.default_license_duration_months));
         } else {
           const duration = record.rights.duration_months || 12;
           setLicenseScope({ ...defaultScope, allow_resale: record.rights.allow_resale === true, duration_months: duration });
@@ -175,16 +178,16 @@ function ArtworkNegotiationForm({
   const invalidPricing = belowBasePrice || invalidOffer || !Number.isFinite(prices.finalPrice) || prices.finalPrice <= 0 || prices.finalPrice > 9999999999.99;
   const offerError = belowBasePrice ? `Minimum artwork checkout is PHP ${minimumCheckout.toFixed(2)} (artwork base price), excluding delivery.` : pricingMode === 'fixed' ? 'Enter a positive fixed license fee with up to two decimal places.' : 'Enter multipliers greater than zero and no more than 100, with up to two decimal places.';
 
-  const transfer = licenseScope.copyright_transfer;
   const sectionIssues: Record<string, string> = {};
   if (!availableLicenses.includes(licenseType)) sectionIssues.license = 'Choose a license type.';
-  if (!availableExclusivity.includes(exclusivity)) sectionIssues.exclusivity = 'Choose an exclusivity option.';
+  if (!transfer && !availableExclusivity.includes(exclusivity)) sectionIssues.exclusivity = 'Choose an exclusivity option.';
   if (transfer && (!transfer.acknowledged || !transfer.rights.length || !transfer.existing_commitments.trim() || !transfer.artist_reserved_uses.trim() || !transfer.additional_terms.trim())) sectionIssues.copyright = 'Complete the assignment rights, commitments, reserved uses, conditions and acknowledgement.';
   if (!licenseScope.uses.length || (licenseScope.territory === 'custom' && !licenseScope.territory_details.trim()) || (licenseType === 'commercial' && !licenseScope.products.trim())) sectionIssues.permissions = 'Select permitted uses and complete the territory and licensed products or media.';
   const duration = Number(durationMonths);
+  const reportingDuration = duration;
   if (!Number.isInteger(duration) || duration < 1 || duration > 60) sectionIssues.duration = 'Enter a duration of 1 to 60 whole months.';
   if (requiresDelivery && !deliveryQuote) sectionIssues.delivery = 'Calculate and confirm a delivery quote.';
-  const compensationValidation = compensationError(effectiveCategory, { ...effectiveTerms, reporting_duration_months: duration }, prices.finalPrice);
+  const compensationValidation = compensationError(effectiveCategory, { ...effectiveTerms, reporting_duration_months: reportingDuration }, prices.finalPrice);
   if (compensationValidation || (effectiveCategory !== 'one_time' && !royaltyEnabled)) sectionIssues.compensation = compensationValidation || 'Royalty access approval is required.';
   if (invalidPricing) sectionIssues.pricing = offerError;
   const requiredSections = [
@@ -228,17 +231,11 @@ function ArtworkNegotiationForm({
       deliveryFee: prices.deliveryFee,
       isRoyalty: effectiveCategory !== 'one_time',
       compensationCategory: effectiveCategory,
-      compensationTerms: { ...effectiveTerms, reporting_duration_months: Number(durationMonths) },
+      compensationTerms: { ...effectiveTerms, reporting_duration_months: reportingDuration },
       status: 'pending' as const,
       chatId,
     };
 
-    // ========================================
-    // ONLY add duration if license is commercial
-    // ========================================
-    if (licenseType === 'commercial') {
-      proposal.durationMonths = duration;
-    }
 
     // ONLY add deliveryZone and deliveryAddress if requiresDelivery is true
     if (requiresDelivery && deliveryQuote) {
@@ -396,7 +393,7 @@ function ArtworkNegotiationForm({
 
       {/* Exclusivity - Only show available from artwork */}
       <NegotiationSection id="exclusivity" title="Exclusivity" required>
-
+        {transfer ? <Text style={styles.sectionSubtitle}>Exclusive · Set by the copyright assignment</Text> : <>
         <Text style={styles.sectionSubtitle}>Decide who else may use the licensed rights during the agreed term.</Text>
         <View style={styles.optionsContainer}>
           {availableExclusivity.map(option => {
@@ -404,14 +401,19 @@ function ArtworkNegotiationForm({
             return <InfoAccordion key={option} {...details} selected={exclusivity === option} onSelect={() => { setExclusivity(option as any); setExclusivityFactor(String(platformSettings.exclusivity_multipliers[option as ExclusivityType])); }} />;
           })}
         </View>
+        </>}
       </NegotiationSection>
 
       {isPrint ? <Text>Each purchase includes one physical print. Copyright and exclusive rights are not transferred with a copy.</Text>
-        : <NegotiationSection id="copyright" title="Copyright ownership" required={!!transfer}><CopyrightTransferFields value={licenseScope.copyright_transfer} onChange={copyright_transfer => setLicenseScope({ ...licenseScope, copyright_transfer })} /></NegotiationSection>}
+        : <NegotiationSection id="copyright" title="Copyright ownership" required={!!transfer}><CopyrightTransferFields value={transfer} onChange={copyright_transfer => {
+          setLicenseScope({ ...licenseScope, copyright_transfer });
+          if (Boolean(transfer) !== Boolean(copyright_transfer)) {
+            setExclusivityFactor(String(platformSettings.exclusivity_multipliers[copyright_transfer ? 'exclusive' : selectedExclusivity]));
+          }
+        }} /></NegotiationSection>}
       <NegotiationSection id="permissions" title="License permissions" required><LicenseScopeFields value={licenseScope} commercial={licenseType === 'commercial'} onChange={setLicenseScope} /></NegotiationSection>
       {(
         <NegotiationSection id="duration" title="License duration" required>
-
           <InfoAccordion title="License duration" description="Choose 1 to 60 whole months from the later signature date. The agreed term limits the license; royalty reporting uses the same duration. Renewal requires written agreement. Statutory rights and outstanding payment obligations are not waived when the term ends." />
           <Text style={styles.sectionSubtitle}>Starts on the later signature date; renewal requires written agreement</Text>
           <TextInput
@@ -423,13 +425,24 @@ function ArtworkNegotiationForm({
             placeholderTextColor="#C7C7CC"
           />
           <Text style={styles.helperText}>Minimum 1 month. Maximum 60 months (5 years).</Text>
+          {transfer && <View style={{ gap: 4 }}>
+            <Text style={styles.sectionSubtitle}>Copyright assignment duration: Remaining statutory copyright term</Text>
+            <Link
+              href="https://lawphil.net/statutes/repacts/ra1997/ra_8293_1997.html#:~:text=Section%20213."
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#A74646', textDecorationLine: 'underline', alignSelf: 'flex-start' }}
+            >
+              Read Section 213 of the Philippine Intellectual Property Code
+            </Link>
+          </View>}
         </NegotiationSection>
       )}
 
       {!isDigital && <NegotiationSection id="delivery" title="Delivery" required><DeliveryAddressPicker artworkId={artwork.id} revisionId={revisionId} onQuote={setDeliveryQuote} /></NegotiationSection>}
 
       {licenseType === 'commercial' && <NegotiationSection id="compensation" title="Compensation" required>
-        <CompensationSettings expectedTotal={prices.finalPrice} enabled={royaltyEnabled} onAccessChange={setRoyaltyEnabled} category={compensationCategory} terms={{ ...compensationTerms, reporting_duration_months: Number(durationMonths) }} onChange={(category, terms) => { setCompensationCategory(category); setCompensationTerms(terms); if (terms.reporting_duration_months !== undefined) setDurationMonths(String(terms.reporting_duration_months)); }} />
+        <CompensationSettings expectedTotal={prices.finalPrice} enabled={royaltyEnabled} onAccessChange={setRoyaltyEnabled} category={compensationCategory} terms={{ ...compensationTerms, reporting_duration_months: reportingDuration }} onChange={(category, terms) => { setCompensationCategory(category); setCompensationTerms(terms); if (terms.reporting_duration_months !== undefined) setDurationMonths(String(terms.reporting_duration_months)); }} />
       </NegotiationSection>}
 
       {/* Note */}

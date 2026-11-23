@@ -856,8 +856,6 @@ export default function ArtistPostScreen() {
               <Text>Price is per copy. Each purchase is for one physical copy.</Text>
               {physicalFormat !== 'original' && <Text>Print copies use non-exclusive terms. Buying a copy does not transfer copyright or permission to reproduce it.</Text>}
             </>}
-            <View style={styles.rule} />
-            <Text style={styles.pricingTitle}>PRICING</Text>
             {!portfolioOnly && <>
               <View style={styles.rule} />
               <Text style={styles.pricingTitle}>PRICING</Text>

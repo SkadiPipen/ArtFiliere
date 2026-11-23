@@ -1,4 +1,5 @@
 import useLogoutConfirmation from '@/components/useLogoutConfirmation';
+import DriverLicenseRenewal from '../components/DriverLicenseRenewal';
 import { ActivityIndicator } from 'react-native';
 import Skeleton from '@/components/Skeleton';
 import { COLORS } from '@/constants/colors';
@@ -192,17 +193,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <View style={[styles.gridRow, { marginTop: 16 }]}>
-            <View style={styles.cardIcon} />
-            <View style={styles.gridItem}>
-              <Text style={styles.cardLabel}>Expiry Date</Text>
-              <Text style={styles.cardValue}>
-                {riderData?.license?.expiry_date || 'N/A'}{' '}
-                <Text style={styles.validTag}>({riderData?.license?.status || 'Active'})</Text>
-              </Text>
-            </View>
-          </View>
-
           <View style={styles.divider} />
 
           <Text style={styles.documentLabel}>License Document</Text>
@@ -210,6 +200,8 @@ export default function ProfileScreen() {
             <Ionicons name="document-text-outline" size={18} color="#7F8C8D" />
             <Text style={styles.documentText}>{riderData?.license?.document_url || 'Verified License'}</Text>
           </View>
+          <View style={styles.divider} />
+          <DriverLicenseRenewal />
         </View>
 
         {/* Statistics */}
