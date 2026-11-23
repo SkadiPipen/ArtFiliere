@@ -65,6 +65,11 @@ class ProvenanceView(AuthenticatedAPIView):
                                   'rights': data.get('rights') if owner else None})
             if owner:
                 response.data['original_filename'] = data.get('original_filename')
+            from .artwork_history import context, hide_resale_creator
+            artwork, _, asset, _, _ = context(artwork_id)
+            if hide_resale_creator(artwork, record, asset):
+                response.data['created_by'] = None
+                response.data['claimed_creator'] = None
         response['Cache-Control'] = 'private, no-store'
         return response
 

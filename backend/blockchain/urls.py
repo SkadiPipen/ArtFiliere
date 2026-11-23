@@ -1,8 +1,14 @@
 from django.urls import path
+from .commission_investigations import CommissionInvestigationView
+from .commission_investigations import CommissionInvestigationView
 from .views import AgreementBlockchainProofView, ArtworkBlockchainView, PublicVerificationView, SaleBlockchainProofView
 from .provenance_views import ProvenanceView, ProvenanceResaleView, ProvenanceReviewView, ProvenanceRetryView, FileIntegrityView, ProvenanceReviewQueueView, ProvenanceOriginalView, CreatorAttributionView, ArtworkHistoryView, ArtworkVerificationView, ArtworkInvestigationListView
 
 urlpatterns = [
+    path('commission-investigations/', CommissionInvestigationView.as_view()),
+    path('commission-investigations/<int:commission_id>/', CommissionInvestigationView.as_view()),
+    path('commission-investigations/', CommissionInvestigationView.as_view()),
+    path('commission-investigations/<int:commission_id>/', CommissionInvestigationView.as_view()),
     path('investigations/', ArtworkInvestigationListView.as_view()),
     path('artworks/<int:artwork_id>/verification/', ArtworkVerificationView.as_view()),
     path('artworks/<int:artwork_id>/creator/', CreatorAttributionView.as_view()),

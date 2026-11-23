@@ -48,6 +48,17 @@ def context(artwork_id):
     return artwork, record, asset, sorted(ids), creator
 
 
+def hide_resale_creator(artwork, record, asset=None):
+    """Hide public resale credit only; stored creator history remains intact."""
+    if not artwork or not (asset or (record and artwork.pk != record.original_artwork_id)):
+        return False
+    latest = record.events.filter(kind='transfer', status='confirmed').order_by('-created_at').first() if record else None
+    rights = latest.payload.get('rights', {}) if latest else (asset.license_terms if asset else {})
+    scope = rights.get('scope') or {}
+    assignment = scope.get('copyright_transfer') or rights.get('copyright_transfer') or {}
+    return str(assignment.get('artist_reserved_uses', '')).strip().lower() == 'none'
+
+
 def creator_record(artwork_id, viewer=None):
     artwork, record, asset, ids, creator = context(artwork_id)
     staff = viewer and viewer.role in STAFF_ROLES
@@ -55,7 +66,8 @@ def creator_record(artwork_id, viewer=None):
     owner = viewer and ((artwork and artwork.artist_id == viewer.pk) or (record and record.current_owner_id == viewer.pk))
     if not visible and not (staff or owner):
         raise NotFound('Artwork not found.')
-    return {'created_by': person(creator), 'creator_verification': 'reviewed' if record and record.creator_verified else 'claimed',
+    hidden = not staff and hide_resale_creator(artwork, record, asset)
+    return {'created_by': None if hidden else person(creator), 'creator_verification': 'reviewed' if record and record.creator_verified else 'claimed',
             'disputed': bool(record and record.disputed)}
 
 
